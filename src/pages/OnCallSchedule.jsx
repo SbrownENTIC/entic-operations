@@ -1,15 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
-import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, addMonths, subMonths, isSameDay, startOfWeek, endOfWeek, differenceInDays } from "date-fns";
+import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, addMonths, subMonths, isSameDay, startOfWeek, endOfWeek, startOfDay } from "date-fns";
 import OnCallForm from "../components/oncall/OnCallForm";
 
 const PROVIDER_COLORS = [
   "bg-green-500",
-  "bg-orange-500",
+  "bg-orange-500", 
   "bg-yellow-500",
   "bg-blue-500",
   "bg-purple-500",
@@ -67,6 +67,15 @@ export default function OnCallSchedule() {
     setShowForm(true);
   };
 
+  // Assign consistent colors to providers
+  const providerColorMap = useMemo(() => {
+    const map = {};
+    providers.forEach((provider, index) => {
+      map[provider.id] = PROVIDER_COLORS[index % PROVIDER_COLORS.length];
+    });
+    return map;
+  }, [providers]);
+
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const calendarStart = startOfWeek(monthStart);
@@ -78,45 +87,57 @@ export default function OnCallSchedule() {
     weeks.push(calendarDays.slice(i, i + 7));
   }
 
-  const schedulesWithProviders = schedules.map((schedule, index) => ({
+  const schedulesWithProviders = schedules.map(schedule => ({
     ...schedule,
     provider: providers.find(p => p.id === schedule.provider_id),
-    color: PROVIDER_COLORS[index % PROVIDER_COLORS.length]
+    color: providerColorMap[schedule.provider_id] || PROVIDER_COLORS[0]
   }));
 
   const getSchedulesForDay = (day) => {
+    const dayStart = startOfDay(day);
     return schedulesWithProviders.filter(schedule => {
-      const start = parseISO(schedule.start_date);
-      const end = parseISO(schedule.end_date);
-      return day >= start && day <= end;
+      const start = startOfDay(parseISO(schedule.start_date));
+      const end = startOfDay(parseISO(schedule.end_date));
+      return dayStart >= start && dayStart <= end;
     });
   };
 
-  const getSchedulePosition = (schedule, day) => {
-    const start = parseISO(schedule.start_date);
-    const end = parseISO(schedule.end_date);
-    const dayOfWeek = day.getDay();
+  const isFirstDayOfSchedule = (schedule, day, weekDays) => {
+    const scheduleStart = startOfDay(parseISO(schedule.start_date));
+    const dayStart = startOfDay(day);
     
-    const isFirstDay = isSameDay(day, start) || dayOfWeek === 0;
-    const isLastDay = isSameDay(day, end) || dayOfWeek === 6;
+    // First day of the schedule overall
+    if (isSameDay(scheduleStart, dayStart)) return true;
     
-    let daysSpan = 1;
-    if (isFirstDay) {
-      const weekEnd = endOfWeek(day);
-      const scheduleEnd = end < weekEnd ? end : weekEnd;
-      daysSpan = differenceInDays(scheduleEnd, day) + 1;
+    // First day of the week (Sunday) if schedule continues from previous week
+    if (day.getDay() === 0 && dayStart > scheduleStart) return true;
+    
+    return false;
+  };
+
+  const getScheduleSpan = (schedule, day, weekDays) => {
+    const scheduleStart = startOfDay(parseISO(schedule.start_date));
+    const scheduleEnd = startOfDay(parseISO(schedule.end_date));
+    const dayStart = startOfDay(day);
+    
+    const dayIndex = weekDays.findIndex(d => isSameDay(d, day));
+    let span = 0;
+    
+    for (let i = dayIndex; i < weekDays.length; i++) {
+      const currentDay = startOfDay(weekDays[i]);
+      if (currentDay >= scheduleStart && currentDay <= scheduleEnd) {
+        span++;
+      } else {
+        break;
+      }
     }
     
-    return {
-      isFirstDay,
-      isLastDay,
-      daysSpan
-    };
+    return span;
   };
 
   return (
     <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
-      <div className="max-w-[1600px] mx-auto space-y-6">
+      <div className="max-w-[1800px] mx-auto space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">On-Call Schedule</h1>
@@ -147,7 +168,7 @@ export default function OnCallSchedule() {
           />
         )}
 
-        <Card className="border-slate-200 shadow-sm">
+        <Card className="border-slate-200 shadow-sm overflow-hidden">
           <CardHeader className="border-b border-slate-100 p-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">{format(currentMonth, 'MMMM yyyy')}</h2>
@@ -176,9 +197,9 @@ export default function OnCallSchedule() {
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="bg-white">
+            <div className="bg-white overflow-x-auto">
               {/* Calendar Header */}
-              <div className="grid grid-cols-7 border-b border-slate-200">
+              <div className="grid grid-cols-7 border-b border-slate-200 min-w-[900px]">
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
                   <div key={day} className="p-3 text-center text-sm font-semibold text-slate-700 border-r border-slate-200 last:border-r-0">
                     {day}
@@ -187,9 +208,9 @@ export default function OnCallSchedule() {
               </div>
 
               {/* Calendar Grid */}
-              <div>
+              <div className="min-w-[900px]">
                 {weeks.map((week, weekIndex) => (
-                  <div key={weekIndex} className="grid grid-cols-7 border-b border-slate-200 last:border-b-0" style={{ minHeight: '120px' }}>
+                  <div key={weekIndex} className="grid grid-cols-7" style={{ minHeight: '100px' }}>
                     {week.map((day, dayIndex) => {
                       const daySchedules = getSchedulesForDay(day);
                       const isCurrentMonth = isSameMonth(day, currentMonth);
@@ -197,35 +218,38 @@ export default function OnCallSchedule() {
                       return (
                         <div
                           key={dayIndex}
-                          className={`border-r border-slate-200 last:border-r-0 p-2 ${
+                          className={`border-r border-b border-slate-200 last:border-r-0 p-2 relative ${
                             !isCurrentMonth ? 'bg-slate-50' : 'bg-white'
                           }`}
                         >
-                          <div className={`text-sm font-medium mb-1 ${
+                          <div className={`text-sm font-medium mb-2 ${
                             !isCurrentMonth ? 'text-slate-400' : 'text-slate-700'
                           }`}>
                             {format(day, 'd')}
                           </div>
                           
                           <div className="space-y-1">
-                            {daySchedules.map(schedule => {
-                              const position = getSchedulePosition(schedule, day);
+                            {daySchedules.map((schedule, schedIndex) => {
+                              const isFirstDay = isFirstDayOfSchedule(schedule, day, week);
                               
-                              if (!position.isFirstDay) return null;
+                              if (!isFirstDay) return null;
+                              
+                              const span = getScheduleSpan(schedule, day, week);
                               
                               return (
                                 <div
                                   key={schedule.id}
                                   onClick={() => handleEditSchedule(schedule)}
-                                  className={`${schedule.color} text-white text-xs px-2 py-1 rounded cursor-pointer hover:opacity-90 transition-opacity`}
+                                  className={`absolute left-2 right-0 ${schedule.color} text-white text-xs px-2 py-1.5 rounded cursor-pointer hover:opacity-90 transition-opacity shadow-sm z-10`}
                                   style={{
-                                    gridColumn: `span ${position.daysSpan}`
+                                    width: `calc(${span * 100}% + ${(span - 1) * 100}%)`,
+                                    top: `${40 + schedIndex * 36}px`
                                   }}
                                 >
-                                  <div className="font-medium truncate">
+                                  <div className="font-semibold truncate">
                                     {schedule.start_time} - {schedule.end_time}
                                   </div>
-                                  <div className="truncate">
+                                  <div className="font-medium truncate">
                                     {schedule.provider?.full_name}
                                   </div>
                                   {schedule.provider?.phone && (
