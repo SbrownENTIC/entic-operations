@@ -6,6 +6,9 @@ import ClinicalPrivileges from './pages/ClinicalPrivileges';
 import CMETracking from './pages/CMETracking';
 import SupplyOrders from './pages/SupplyOrders';
 import OnCallSchedule from './pages/OnCallSchedule';
+import OutsideIncome from './pages/OutsideIncome';
+import Invoices from './pages/Invoices';
+import Payments from './pages/Payments';
 import Layout from './Layout.jsx';
 
 
@@ -18,6 +21,9 @@ export const PAGES = {
     "CMETracking": CMETracking,
     "SupplyOrders": SupplyOrders,
     "OnCallSchedule": OnCallSchedule,
+    "OutsideIncome": OutsideIncome,
+    "Invoices": Invoices,
+    "Payments": Payments,
 }
 
 export const pagesConfig = {
