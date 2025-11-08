@@ -5,14 +5,14 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X } from "lucide-react";
+import { X, Plus, Trash2 } from "lucide-react";
 
 export default function OutsideIncomeForm({ income, providers, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = useState({
     provider_id: '',
     facility_name: '',
-    work_date: '',
-    hours_worked: 0,
+    work_dates: [''],
+    days_worked: 0,
     rate: 0,
     total_amount: 0,
     status: 'pending',
@@ -21,18 +21,47 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
 
   useEffect(() => {
     if (income) {
-      setFormData(income);
+      setFormData({
+        ...income,
+        work_dates: income.work_dates || ['']
+      });
     }
   }, [income]);
 
   useEffect(() => {
-    const total = (formData.hours_worked || 0) * (formData.rate || 0);
-    setFormData(prev => ({ ...prev, total_amount: total }));
-  }, [formData.hours_worked, formData.rate]);
+    const days = formData.work_dates.filter(d => d).length;
+    const total = days * (formData.rate || 0);
+    setFormData(prev => ({ 
+      ...prev, 
+      days_worked: days,
+      total_amount: total 
+    }));
+  }, [formData.work_dates, formData.rate]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(formData);
+    const cleanedDates = formData.work_dates.filter(d => d);
+    onSubmit({ ...formData, work_dates: cleanedDates });
+  };
+
+  const addWorkDate = () => {
+    setFormData({
+      ...formData,
+      work_dates: [...formData.work_dates, '']
+    });
+  };
+
+  const removeWorkDate = (index) => {
+    setFormData({
+      ...formData,
+      work_dates: formData.work_dates.filter((_, i) => i !== index)
+    });
+  };
+
+  const updateWorkDate = (index, value) => {
+    const newDates = [...formData.work_dates];
+    newDates[index] = value;
+    setFormData({ ...formData, work_dates: newDates });
   };
 
   return (
@@ -46,7 +75,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
         </div>
       </CardHeader>
       <form onSubmit={handleSubmit}>
-        <CardContent className="p-6">
+        <CardContent className="p-6 space-y-6">
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="provider_id">Provider *</Label>
@@ -75,29 +104,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="work_date">Work Date *</Label>
-              <Input
-                id="work_date"
-                type="date"
-                value={formData.work_date}
-                onChange={(e) => setFormData({ ...formData, work_date: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="hours_worked">Hours Worked</Label>
-              <Input
-                id="hours_worked"
-                type="number"
-                step="0.5"
-                value={formData.hours_worked}
-                onChange={(e) => setFormData({ ...formData, hours_worked: parseFloat(e.target.value) })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="rate">Rate ($)</Label>
+              <Label htmlFor="rate">Daily Rate ($)</Label>
               <Input
                 id="rate"
                 type="number"
@@ -108,15 +115,17 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="total_amount">Total Amount *</Label>
-              <Input
-                id="total_amount"
-                type="number"
-                step="0.01"
-                value={formData.total_amount}
-                onChange={(e) => setFormData({ ...formData, total_amount: parseFloat(e.target.value) })}
-                required
-              />
+              <Label>Days Worked</Label>
+              <div className="text-lg font-semibold text-slate-900">
+                {formData.days_worked}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Total Amount *</Label>
+              <div className="text-2xl font-bold text-green-600">
+                ${formData.total_amount.toFixed(2)}
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -132,16 +141,43 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
                 </SelectContent>
               </Select>
             </div>
+          </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                rows={3}
-              />
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <Label>Work Dates *</Label>
+              <Button type="button" variant="outline" size="sm" onClick={addWorkDate}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Date
+              </Button>
             </div>
+            <div className="space-y-3">
+              {formData.work_dates.map((date, index) => (
+                <div key={index} className="flex items-center gap-3">
+                  <Input
+                    type="date"
+                    value={date}
+                    onChange={(e) => updateWorkDate(index, e.target.value)}
+                    className="flex-1"
+                  />
+                  {formData.work_dates.length > 1 && (
+                    <Button type="button" variant="ghost" size="icon" onClick={() => removeWorkDate(index)}>
+                      <Trash2 className="w-4 h-4 text-red-500" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="notes">Notes</Label>
+            <Textarea
+              id="notes"
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              rows={3}
+            />
           </div>
         </CardContent>
         <CardFooter className="border-t border-slate-100 p-6 flex justify-end gap-3">

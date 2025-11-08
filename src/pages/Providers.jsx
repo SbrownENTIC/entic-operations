@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -5,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye } from "lucide-react";
+import { Plus, Search, Eye, Pencil } from "lucide-react"; // Added Pencil import
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import ProviderForm from "../components/providers/ProviderForm";
@@ -50,7 +51,8 @@ export default function Providers() {
   const filteredProviders = providers.filter(provider =>
     provider.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     provider.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    provider.specialty?.toLowerCase().includes(searchTerm.toLowerCase())
+    provider.specialty?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    provider.phone?.toLowerCase().includes(searchTerm.toLowerCase()) // Added phone to search term
   );
 
   return (
@@ -104,6 +106,7 @@ export default function Providers() {
                   <tr>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Name</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Email</th>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Phone</th> {/* Added Phone column */}
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Specialty</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Status</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Flu Vaccine</th>
@@ -117,6 +120,7 @@ export default function Providers() {
                         <p className="font-medium text-slate-900">{provider.full_name}</p>
                       </td>
                       <td className="p-4 text-slate-600">{provider.email}</td>
+                      <td className="p-4 text-slate-600">{provider.phone || '-'}</td> {/* Display provider phone */}
                       <td className="p-4 text-slate-600">{provider.specialty || '-'}</td>
                       <td className="p-4">
                         <Badge variant={provider.status === 'active' ? 'default' : 'secondary'}>
@@ -132,6 +136,16 @@ export default function Providers() {
                       </td>
                       <td className="p-4 text-right">
                         <div className="flex gap-2 justify-end">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                              setEditingProvider(provider);
+                              setShowForm(true);
+                            }}
+                          >
+                            <Pencil className="w-4 h-4" /> {/* Edit button */}
+                          </Button>
                           <Link to={createPageUrl(`ProviderDetail?id=${provider.id}`)}>
                             <Button variant="ghost" size="sm">
                               <Eye className="w-4 h-4" />

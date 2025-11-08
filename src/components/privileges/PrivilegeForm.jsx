@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,7 +12,6 @@ export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel
   const [formData, setFormData] = useState({
     provider_id: '',
     facility_name: '',
-    privilege_type: '',
     granted_date: '',
     expiration_date: '',
     status: 'active',
@@ -69,17 +69,6 @@ export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="privilege_type">Privilege Type *</Label>
-              <Input
-                id="privilege_type"
-                value={formData.privilege_type}
-                onChange={(e) => setFormData({ ...formData, privilege_type: e.target.value })}
-                placeholder="e.g., Admitting Privileges, Surgery"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
                 <SelectTrigger>
@@ -104,7 +93,7 @@ export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 md:col-span-2">
               <Label htmlFor="expiration_date">Expiration Date *</Label>
               <Input
                 id="expiration_date"

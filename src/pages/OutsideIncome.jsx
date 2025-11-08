@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, FileText } from "lucide-react";
+import { Plus, Search, FileText, Pencil } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -21,7 +21,7 @@ export default function OutsideIncome() {
 
   const { data: incomes = [] } = useQuery({
     queryKey: ['outside-income'],
-    queryFn: () => base44.entities.OutsideIncome.list('-work_date')
+    queryFn: () => base44.entities.OutsideIncome.list('-created_date')
   });
 
   const { data: providers = [] } = useQuery({
@@ -160,10 +160,11 @@ export default function OutsideIncome() {
                     </th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Provider</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Facility</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Work Date</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Hours</th>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Work Dates</th>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Days</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Amount</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Status</th>
+                    <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -184,9 +185,18 @@ export default function OutsideIncome() {
                       </td>
                       <td className="p-4 text-slate-600">{income.facility_name}</td>
                       <td className="p-4 text-slate-600">
-                        {format(parseISO(income.work_date), 'MMM d, yyyy')}
+                        {income.work_dates && income.work_dates.length > 0 ? (
+                          <div className="text-sm">
+                            {income.work_dates.slice(0, 2).map((date, idx) => (
+                              <div key={idx}>{format(parseISO(date), 'MMM d, yyyy')}</div>
+                            ))}
+                            {income.work_dates.length > 2 && (
+                              <div className="text-slate-500">+{income.work_dates.length - 2} more</div>
+                            )}
+                          </div>
+                        ) : '-'}
                       </td>
-                      <td className="p-4 text-slate-600">{income.hours_worked || '-'}</td>
+                      <td className="p-4 text-slate-600">{income.days_worked || 0}</td>
                       <td className="p-4 font-medium text-slate-900">
                         ${income.total_amount?.toFixed(2)}
                       </td>
@@ -194,6 +204,18 @@ export default function OutsideIncome() {
                         <Badge className={statusColors[income.status]}>
                           {income.status}
                         </Badge>
+                      </td>
+                      <td className="p-4 text-right">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setEditingIncome(income);
+                            setShowForm(true);
+                          }}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
                       </td>
                     </tr>
                   ))}

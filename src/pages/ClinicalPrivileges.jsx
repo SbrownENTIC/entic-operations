@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -5,7 +6,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Pencil } from "lucide-react"; // Added Pencil icon
 import { differenceInDays, format, parseISO } from "date-fns";
 import PrivilegeForm from "../components/privileges/PrivilegeForm";
 
@@ -59,8 +60,8 @@ export default function ClinicalPrivileges() {
 
   const filteredPrivileges = privilegesWithProviders.filter(priv =>
     priv.provider?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    priv.facility_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    priv.privilege_type?.toLowerCase().includes(searchTerm.toLowerCase())
+    priv.facility_name?.toLowerCase().includes(searchTerm.toLowerCase())
+    // Removed privilege_type from search criteria
   );
 
   return (
@@ -115,10 +116,11 @@ export default function ClinicalPrivileges() {
                   <tr>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Provider</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Facility</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Privilege Type</th>
+                    {/* Removed Privilege Type header */}
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Granted</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Expires</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Status</th>
+                    <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th> {/* Added Actions header */}
                   </tr>
                 </thead>
                 <tbody>
@@ -132,7 +134,7 @@ export default function ClinicalPrivileges() {
                           <p className="font-medium text-slate-900">{priv.provider?.full_name}</p>
                         </td>
                         <td className="p-4 text-slate-600">{priv.facility_name}</td>
-                        <td className="p-4 text-slate-600">{priv.privilege_type}</td>
+                        {/* Removed Privilege Type data cell */}
                         <td className="p-4 text-slate-600">
                           {format(parseISO(priv.granted_date), 'MMM d, yyyy')}
                         </td>
@@ -146,6 +148,18 @@ export default function ClinicalPrivileges() {
                           >
                             {isExpired ? 'Expired' : isExpiringSoon ? `${priv.daysUntilExpiration}d` : 'Active'}
                           </Badge>
+                        </td>
+                        <td className="p-4 text-right"> {/* Added Actions data cell */}
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                              setEditingPrivilege(priv);
+                              setShowForm(true);
+                            }}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
                         </td>
                       </tr>
                     );

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,6 +12,7 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
   const [formData, setFormData] = useState({
     order_number: '',
     vendor: '',
+    location: 'Glastonbury', // Added location field with default value
     order_date: '',
     expected_delivery: '',
     actual_delivery: '',
@@ -82,6 +84,22 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
                 onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
                 required
               />
+            </div>
+
+            {/* New Location field */}
+            <div className="space-y-2">
+              <Label htmlFor="location">Location *</Label>
+              <Select value={formData.location} onValueChange={(value) => setFormData({ ...formData, location: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Glastonbury">Glastonbury</SelectItem>
+                  <SelectItem value="Manchester">Manchester</SelectItem>
+                  <SelectItem value="Bloomfield">Bloomfield</SelectItem>
+                  <SelectItem value="Farmington">Farmington</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
