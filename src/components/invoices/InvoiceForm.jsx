@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -104,7 +105,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
     if (!finalData.invoice_number && finalData.program_location === 'UConn') {
       const uconnLocation = programLocations.find(pl => pl.program_location === 'UConn');
       if (uconnLocation) {
-        const nextNumber = (uconnLocation.invoice_counter || 67) + 1;
+        const nextNumber = (uconnLocation.invoice_counter || 39) + 1;
         finalData.invoice_number = `${nextNumber}`;
         
         // Update the counter in the program location
