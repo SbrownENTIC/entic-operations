@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -83,7 +84,7 @@ export default function Invoices() {
   };
 
   const filteredInvoices = invoices.filter(invoice =>
-    invoice.facility_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    invoice.program_group?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     invoice.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -149,9 +150,8 @@ export default function Invoices() {
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Invoice #</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Facility</th>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Program Group</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Date</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Due Date</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Total</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Paid</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Balance</th>
@@ -163,21 +163,18 @@ export default function Invoices() {
                   {filteredInvoices.map((invoice) => (
                     <tr key={invoice.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                       <td className="p-4 font-medium text-slate-900">{invoice.invoice_number || '-'}</td>
-                      <td className="p-4 text-slate-600">{invoice.facility_name}</td>
+                      <td className="p-4 text-slate-600">{invoice.program_group}</td>
                       <td className="p-4 text-slate-600">
                         {format(parseISO(invoice.invoice_date), 'MMM d, yyyy')}
                       </td>
-                      <td className="p-4 text-slate-600">
-                        {invoice.due_date ? format(parseISO(invoice.due_date), 'MMM d, yyyy') : '-'}
-                      </td>
                       <td className="p-4 font-medium text-slate-900">
-                        ${invoice.total_amount?.toFixed(2)}
+                        ${invoice.total?.toFixed(2)}
                       </td>
                       <td className="p-4 text-green-600 font-medium">
-                        ${(invoice.paid_amount || 0).toFixed(2)}
+                        ${(invoice.amount_received || 0).toFixed(2)}
                       </td>
                       <td className="p-4 font-medium text-slate-900">
-                        ${(invoice.balance || invoice.total_amount || 0).toFixed(2)}
+                        ${((invoice.total || 0) - (invoice.amount_received || 0)).toFixed(2)}
                       </td>
                       <td className="p-4">
                         <Badge className={statusColors[invoice.status]}>

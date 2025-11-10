@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -27,7 +26,7 @@ const INVOICE_STATUSES = [
 export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [], onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = useState({
     invoice_number: '',
-    program_location: '',
+    program_group: '',
     staff_member_id: '',
     work_email: '',
     invoice_date: new Date().toISOString().split('T')[0],
@@ -63,6 +62,9 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
     queryFn: () => base44.entities.ProgramLocation.list()
   });
 
+  // Get unique program groups
+  const programGroups = [...new Set(programLocations.map(pl => pl.program_group).filter(Boolean))].sort();
+
   useEffect(() => {
     if (invoice) {
       setFormData(invoice);
@@ -71,16 +73,30 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
       const totalDays = selectedIncomes.reduce((sum, inc) => sum + (inc.days_worked || 0), 0);
       const totalAmount = selectedIncomes.reduce((sum, inc) => sum + (inc.total_amount || 0), 0);
       
+      // Auto-populate program group and staff member from first selected income
+      const firstIncome = selectedIncomes[0];
+      let programGroup = '';
+      let staffMemberId = firstIncome?.provider_id || '';
+      
+      if (firstIncome?.program_location_id) {
+        const programLocation = programLocations.find(pl => pl.id === firstIncome.program_location_id);
+        if (programLocation) {
+          programGroup = programLocation.program_group || '';
+        }
+      }
+      
       setFormData(prev => ({
         ...prev,
         outside_income_ids: preselectedIncomes,
+        program_group: programGroup,
+        staff_member_id: staffMemberId,
         days_worked: totalDays,
         subtotal: totalAmount,
         total: totalAmount,
         amount_expected: totalAmount
       }));
     }
-  }, [invoice, preselectedIncomes, incomes]);
+  }, [invoice, preselectedIncomes, incomes, programLocations]);
 
   useEffect(() => {
     const balance = (formData.amount_expected || 0) - (formData.amount_received || 0);
@@ -102,8 +118,8 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
     let finalData = { ...formData };
     
     // Auto-generate invoice number for UConn if not provided
-    if (!finalData.invoice_number && finalData.program_location === 'UConn') {
-      const uconnLocation = programLocations.find(pl => pl.program_location === 'UConn');
+    if (!finalData.invoice_number && finalData.program_group === 'UConn') {
+      const uconnLocation = programLocations.find(pl => pl.program_group === 'UConn');
       if (uconnLocation) {
         const nextNumber = (uconnLocation.invoice_counter || 39) + 1;
         finalData.invoice_number = `${nextNumber}`;
@@ -116,11 +132,11 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
     }
     
     // Set timestamps based on checkboxes
-    if (finalData.invoice_sent_for_approval && !invoice?.sent_for_approval_at && finalData.program_location !== 'St. Francis') {
+    if (finalData.invoice_sent_for_approval && !invoice?.sent_for_approval_at && finalData.program_group !== 'St. Francis') {
       finalData.sent_for_approval_at = new Date().toISOString();
     }
     
-    if (finalData.invoice_sent_to_vendor && !invoice?.sent_to_vendor_at && finalData.program_location !== 'St. Francis') {
+    if (finalData.invoice_sent_to_vendor && !invoice?.sent_to_vendor_at && finalData.program_group !== 'St. Francis') {
       finalData.sent_to_vendor_at = new Date().toISOString();
     }
     
@@ -141,14 +157,29 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
         amount_expected: prev.amount_expected - (income?.total_amount || 0)
       }));
     } else {
-      setFormData(prev => ({
-        ...prev,
+      // When adding income, auto-update program group and staff member if not set
+      let updates = {
         outside_income_ids: [...prev.outside_income_ids, incomeId],
         days_worked: prev.days_worked + (income?.days_worked || 0),
         subtotal: prev.subtotal + (income?.total_amount || 0),
         total: prev.total + (income?.total_amount || 0),
         amount_expected: prev.amount_expected + (income?.total_amount || 0)
-      }));
+      };
+      
+      // Auto-set program group and staff member from first selected income
+      if (formData.outside_income_ids.length === 0) {
+        if (income?.program_location_id) {
+          const programLocation = programLocations.find(pl => pl.id === income.program_location_id);
+          if (programLocation) {
+            updates.program_group = programLocation.program_group || '';
+          }
+        }
+        if (income?.provider_id) {
+          updates.staff_member_id = income.provider_id;
+        }
+      }
+      
+      setFormData(prev => ({ ...prev, ...updates }));
     }
   };
 
@@ -196,20 +227,20 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                 id="invoice_number"
                 value={formData.invoice_number}
                 onChange={(e) => setFormData({ ...formData, invoice_number: e.target.value })}
-                placeholder={formData.program_location === 'UConn' ? 'Auto-generated' : ''}
+                placeholder={formData.program_group === 'UConn' ? 'Auto-generated' : ''}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="program_location">Program/Location *</Label>
-              <Select value={formData.program_location} onValueChange={(value) => setFormData({ ...formData, program_location: value })}>
+              <Label htmlFor="program_group">Program Group *</Label>
+              <Select value={formData.program_group} onValueChange={(value) => setFormData({ ...formData, program_group: value })}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select location" />
+                  <SelectValue placeholder="Select program group" />
                 </SelectTrigger>
                 <SelectContent>
-                  {programLocations.map(location => (
-                    <SelectItem key={location.id} value={location.program_location}>
-                      {location.program_location}
+                  {programGroups.map(group => (
+                    <SelectItem key={group} value={group}>
+                      {group}
                     </SelectItem>
                   ))}
                 </SelectContent>
