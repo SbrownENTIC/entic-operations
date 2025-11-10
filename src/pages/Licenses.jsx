@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -174,7 +175,6 @@ export default function Licenses() {
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Provider</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">License Type</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Internal #</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">State</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Expiration</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Days Until</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Status</th>
@@ -197,7 +197,6 @@ export default function Licenses() {
                           </Badge>
                         </td>
                         <td className="p-4 text-slate-600 font-mono text-sm">{license.internal_license_number}</td>
-                        <td className="p-4 text-slate-600">{license.issuing_state || '-'}</td>
                         <td className="p-4 text-slate-600">
                           {format(parseISO(license.expiration_date), 'MMM d, yyyy')}
                         </td>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -97,7 +98,6 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
   const addLicense = () => {
     setLicenses([...licenses, {
       license_type: 'MED',
-      issuing_state: '',
       issue_date: '',
       expiration_date: '',
       status: 'active',
@@ -120,8 +120,6 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
       course_name: '',
       credits: 0,
       completion_date: '',
-      category: 'Category 1',
-      provider_organization: '',
       notes: ''
     }]);
   };
@@ -299,10 +297,7 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="space-y-2">
-                          <Label>Issuing State</Label>
-                          <Input value={license.issuing_state} onChange={(e) => updateLicense(index, 'issuing_state', e.target.value)} />
-                        </div>
+                        {/* Removed Issuing State input */}
                         <div className="space-y-2">
                           <Label>Issue Date</Label>
                           <Input type="date" value={license.issue_date} onChange={(e) => updateLicense(index, 'issue_date', e.target.value)} />
@@ -346,26 +341,10 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
                           <Label>Credits</Label>
                           <Input type="number" step="0.5" value={cme.credits} onChange={(e) => updateCME(index, 'credits', parseFloat(e.target.value))} />
                         </div>
-                        <div className="space-y-2">
+                        {/* Removed Category and Provider Organization */}
+                        <div className="space-y-2 md:col-span-2"> {/* Added md:col-span-2 */}
                           <Label>Completion Date</Label>
                           <Input type="date" value={cme.completion_date} onChange={(e) => updateCME(index, 'completion_date', e.target.value)} />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Category</Label>
-                          <Select value={cme.category} onValueChange={(value) => updateCME(index, 'category', value)}>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Category 1">Category 1</SelectItem>
-                              <SelectItem value="Category 2">Category 2</SelectItem>
-                              <SelectItem value="Other">Other</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2 md:col-span-2">
-                          <Label>Provider Organization</Label>
-                          <Input value={cme.provider_organization} onChange={(e) => updateCME(index, 'provider_organization', e.target.value)} />
                         </div>
                       </div>
                     </div>

@@ -11,7 +11,6 @@ export default function LicenseForm({ license, providers, onSubmit, onCancel, is
   const [formData, setFormData] = useState({
     provider_id: '',
     license_type: 'MED',
-    issuing_state: '',
     issue_date: '',
     expiration_date: '',
     status: 'active',
@@ -84,15 +83,6 @@ export default function LicenseForm({ license, providers, onSubmit, onCancel, is
                 </div>
               </div>
             )}
-
-            <div className="space-y-2">
-              <Label htmlFor="issuing_state">Issuing State</Label>
-              <Input
-                id="issuing_state"
-                value={formData.issuing_state}
-                onChange={(e) => setFormData({ ...formData, issuing_state: e.target.value })}
-              />
-            </div>
 
             <div className="space-y-2">
               <Label htmlFor="issue_date">Issue Date</Label>

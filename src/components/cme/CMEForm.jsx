@@ -13,8 +13,6 @@ export default function CMEForm({ cme, providers, onSubmit, onCancel, isLoading 
     course_name: '',
     credits: 0,
     completion_date: '',
-    category: 'Category 1',
-    provider_organization: '',
     certificate_url: '',
     notes: ''
   });
@@ -34,7 +32,7 @@ export default function CMEForm({ cme, providers, onSubmit, onCancel, isLoading 
     <Card className="border-slate-200 shadow-sm">
       <CardHeader className="border-b border-slate-100">
         <div className="flex items-center justify-between">
-          <CardTitle>{cme ? 'Edit CME Record' : 'Add New CME Record'}</CardTitle>
+          <CardTitle>{cme ? 'Edit CME Record' : 'Add CME Record'}</CardTitle>
           <Button variant="ghost" size="icon" onClick={onCancel}>
             <X className="w-4 h-4" />
           </Button>
@@ -92,36 +90,14 @@ export default function CMEForm({ cme, providers, onSubmit, onCancel, isLoading 
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
-              <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Category 1">Category 1</SelectItem>
-                  <SelectItem value="Category 2">Category 2</SelectItem>
-                  <SelectItem value="Other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="provider_organization">Provider Organization</Label>
-              <Input
-                id="provider_organization"
-                value={formData.provider_organization}
-                onChange={(e) => setFormData({ ...formData, provider_organization: e.target.value })}
-              />
-            </div>
-
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="certificate_url">Certificate URL</Label>
               <Input
                 id="certificate_url"
+                type="url"
+                placeholder="https://..."
                 value={formData.certificate_url}
                 onChange={(e) => setFormData({ ...formData, certificate_url: e.target.value })}
-                placeholder="https://..."
               />
             </div>
 
