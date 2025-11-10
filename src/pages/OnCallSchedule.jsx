@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
-import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, addMonths, subMonths, isSameDay, startOfWeek, endOfWeek, startOfDay } from "date-fns";
+import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, addMonths, subMonths, isSameDay, startOfWeek, endOfWeek, startOfDay, isAfter } from "date-fns";
 import OnCallForm from "../components/oncall/OnCallForm";
 
 const PROVIDER_COLORS = [
@@ -127,6 +127,12 @@ export default function OnCallSchedule() {
     const dayStart = startOfDay(day);
     
     const dayIndex = weekDays.findIndex(d => isSameDay(d, day));
+    
+    // If the schedule starts and ends on the same day, only span 1 day
+    if (isSameDay(scheduleStart, scheduleEnd)) {
+      return 1;
+    }
+    
     let span = 0;
     
     // Count consecutive days from this day forward within the week that the schedule covers
