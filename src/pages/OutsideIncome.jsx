@@ -5,17 +5,28 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, FileText, Pencil } from "lucide-react";
+import { Plus, Search, FileText, Pencil, Trash2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import OutsideIncomeForm from "../components/income/OutsideIncomeForm";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function OutsideIncome() {
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingIncome, setEditingIncome] = useState(null);
   const [selectedIncomes, setSelectedIncomes] = useState([]);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -44,6 +55,14 @@ export default function OutsideIncome() {
       queryClient.invalidateQueries({ queryKey: ['outside-income'] });
       setShowForm(false);
       setEditingIncome(null);
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.OutsideIncome.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['outside-income'] });
+      setDeleteConfirm(null);
     }
   });
 
@@ -206,16 +225,26 @@ export default function OutsideIncome() {
                         </Badge>
                       </td>
                       <td className="p-4 text-right">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => {
-                            setEditingIncome(income);
-                            setShowForm(true);
-                          }}
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
+                        <div className="flex gap-2 justify-end">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                              setEditingIncome(income);
+                              setShowForm(true);
+                            }}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => setDeleteConfirm(income)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -230,6 +259,26 @@ export default function OutsideIncome() {
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Outside Income</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this income record for {deleteConfirm?.provider?.full_name} at {deleteConfirm?.facility_name}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteMutation.mutate(deleteConfirm.id)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
