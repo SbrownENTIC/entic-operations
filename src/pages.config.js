@@ -10,6 +10,7 @@ import OutsideIncome from './pages/OutsideIncome';
 import Invoices from './pages/Invoices';
 import Payments from './pages/Payments';
 import Supplies from './pages/Supplies';
+import ProgramLocations from './pages/ProgramLocations';
 import Layout from './Layout.jsx';
 
 
@@ -26,6 +27,7 @@ export const PAGES = {
     "Invoices": Invoices,
     "Payments": Payments,
     "Supplies": Supplies,
+    "ProgramLocations": ProgramLocations,
 }
 
 export const pagesConfig = {

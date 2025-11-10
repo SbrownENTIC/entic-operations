@@ -12,7 +12,8 @@ import {
   FileText,
   CreditCard,
   ShieldCheck,
-  Boxes
+  Boxes,
+  MapPin
 } from "lucide-react";
 import {
   Sidebar,
@@ -53,6 +54,11 @@ const navigationItems = [
     title: "Licenses",
     url: createPageUrl("Licenses"),
     icon: ShieldCheck,
+  },
+  {
+    title: "Program Locations",
+    url: createPageUrl("ProgramLocations"),
+    icon: MapPin,
   },
   {
     title: "Supply Catalog",
