@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -6,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye } from "lucide-react";
+import { Plus, Search, Eye, Pencil } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -89,11 +88,15 @@ export default function Invoices() {
   );
 
   const statusColors = {
+    not_started: "bg-gray-100 text-gray-800",
     draft: "bg-gray-100 text-gray-800",
-    sent: "bg-blue-100 text-blue-800",
-    partial: "bg-yellow-100 text-yellow-800",
-    paid: "bg-green-100 text-green-800",
-    overdue: "bg-red-100 text-red-800"
+    pending_providers_approval: "bg-yellow-100 text-yellow-800",
+    pending_providers_time: "bg-yellow-100 text-yellow-800",
+    sent_for_approval: "bg-blue-100 text-blue-800",
+    approved: "bg-green-100 text-green-800",
+    sent_to_vendor: "bg-blue-100 text-blue-800",
+    paid_to_entic: "bg-green-100 text-green-800",
+    provider_paid: "bg-green-100 text-green-800"
   };
 
   return (
@@ -178,12 +181,20 @@ export default function Invoices() {
                       </td>
                       <td className="p-4">
                         <Badge className={statusColors[invoice.status]}>
-                          {invoice.status}
+                          {invoice.status?.replace(/_/g, ' ')}
                         </Badge>
                       </td>
                       <td className="p-4 text-right">
-                        <Button variant="ghost" size="sm">
-                          <Eye className="w-4 h-4" />
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setEditingInvoice(invoice);
+                            setPreselectedIncomes([]);
+                            setShowForm(true);
+                          }}
+                        >
+                          <Pencil className="w-4 h-4" />
                         </Button>
                       </td>
                     </tr>
