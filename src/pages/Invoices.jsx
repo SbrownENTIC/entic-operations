@@ -5,16 +5,27 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Pencil } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import InvoiceForm from "../components/invoices/InvoiceForm";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function Invoices() {
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingInvoice, setEditingInvoice] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [preselectedIncomes, setPreselectedIncomes] = useState([]);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -79,6 +90,27 @@ export default function Invoices() {
     }
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (invoice) => {
+      // Reset outside income records back to pending
+      if (invoice.outside_income_ids && invoice.outside_income_ids.length > 0) {
+        for (const incomeId of invoice.outside_income_ids) {
+          await base44.entities.OutsideIncome.update(incomeId, {
+            invoice_id: null,
+            status: 'pending'
+          });
+        }
+      }
+      
+      await base44.entities.Invoice.delete(invoice.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['outside-income'] });
+      setDeleteConfirm(null);
+    }
+  });
+
   const handleSubmit = (data) => {
     if (editingInvoice) {
       updateMutation.mutate({ id: editingInvoice.id, data });
@@ -95,7 +127,8 @@ export default function Invoices() {
   const filteredInvoices = invoicesWithProviders.filter(invoice =>
     invoice.program_group?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     invoice.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    invoice.provider?.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
+    invoice.provider?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    invoice.month?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const statusColors = {
@@ -166,6 +199,7 @@ export default function Invoices() {
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Invoice #</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Program Group</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Provider</th>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Month</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Date</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Total</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Paid</th>
@@ -180,6 +214,7 @@ export default function Invoices() {
                       <td className="p-4 font-medium text-slate-900">{invoice.invoice_number || '-'}</td>
                       <td className="p-4 text-slate-600">{invoice.program_group}</td>
                       <td className="p-4 text-slate-900">{invoice.provider?.full_name || '-'}</td>
+                      <td className="p-4 text-slate-600">{invoice.month || '-'}</td>
                       <td className="p-4 text-slate-600">
                         {format(parseISO(invoice.invoice_date), 'MMM d, yyyy')}
                       </td>
@@ -198,17 +233,27 @@ export default function Invoices() {
                         </Badge>
                       </td>
                       <td className="p-4 text-right">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => {
-                            setEditingInvoice(invoice);
-                            setPreselectedIncomes([]);
-                            setShowForm(true);
-                          }}
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
+                        <div className="flex gap-2 justify-end">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                              setEditingInvoice(invoice);
+                              setPreselectedIncomes([]);
+                              setShowForm(true);
+                            }}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => setDeleteConfirm(invoice)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -223,6 +268,26 @@ export default function Invoices() {
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Invoice</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete invoice {deleteConfirm?.invoice_number} for {deleteConfirm?.provider?.full_name}? This will reset the associated outside income records back to pending status. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteMutation.mutate(deleteConfirm)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
