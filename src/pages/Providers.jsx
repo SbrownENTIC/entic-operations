@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -33,9 +34,14 @@ export default function Providers() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Provider.create(data),
+    mutationFn: async (data) => {
+      const provider = await base44.entities.Provider.create(data);
+      return provider;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['providers'] });
+      queryClient.invalidateQueries({ queryKey: ['licenses'] });
+      queryClient.invalidateQueries({ queryKey: ['cme'] });
       setShowForm(false);
       setEditingProvider(null);
     }
@@ -58,11 +64,12 @@ export default function Providers() {
     }
   });
 
-  const handleSubmit = (data) => {
+  const handleSubmit = async (data) => {
     if (editingProvider) {
       updateMutation.mutate({ id: editingProvider.id, data });
     } else {
-      createMutation.mutate(data);
+      const result = await createMutation.mutateAsync(data);
+      return result;
     }
   };
 

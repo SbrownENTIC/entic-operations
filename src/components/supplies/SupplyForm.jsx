@@ -10,9 +10,10 @@ export default function SupplyForm({ supply, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = useState({
     item_name: '',
     description: '',
+    vendor: 'Staples',
+    vendor_item_number: '',
     current_price: 0,
     unit: '',
-    supplier: '',
     notes: ''
   });
 
@@ -51,6 +52,25 @@ export default function SupplyForm({ supply, onSubmit, onCancel, isLoading }) {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="vendor">Vendor</Label>
+              <Input
+                id="vendor"
+                value={formData.vendor}
+                onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="vendor_item_number">Vendor Item Number</Label>
+              <Input
+                id="vendor_item_number"
+                placeholder="SKU or item number"
+                value={formData.vendor_item_number}
+                onChange={(e) => setFormData({ ...formData, vendor_item_number: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="current_price">Current Price ($) *</Label>
               <Input
                 id="current_price"
@@ -69,15 +89,6 @@ export default function SupplyForm({ supply, onSubmit, onCancel, isLoading }) {
                 placeholder="box, each, case, etc."
                 value={formData.unit}
                 onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="supplier">Preferred Supplier</Label>
-              <Input
-                id="supplier"
-                value={formData.supplier}
-                onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
               />
             </div>
 

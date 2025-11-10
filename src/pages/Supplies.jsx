@@ -47,7 +47,8 @@ export default function Supplies() {
   const filteredSupplies = supplies.filter(supply =>
     supply.item_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     supply.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    supply.supplier?.toLowerCase().includes(searchTerm.toLowerCase())
+    supply.vendor?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    supply.vendor_item_number?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -100,10 +101,11 @@ export default function Supplies() {
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Item Name</th>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Vendor</th>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Vendor Item #</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Description</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Current Price</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Unit</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Supplier</th>
                     <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th>
                   </tr>
                 </thead>
@@ -111,10 +113,11 @@ export default function Supplies() {
                   {filteredSupplies.map((supply) => (
                     <tr key={supply.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                       <td className="p-4 font-medium text-slate-900">{supply.item_name}</td>
+                      <td className="p-4 text-slate-600">{supply.vendor || 'Staples'}</td>
+                      <td className="p-4 text-slate-600 font-mono text-sm">{supply.vendor_item_number || '-'}</td>
                       <td className="p-4 text-slate-600">{supply.description || '-'}</td>
                       <td className="p-4 font-medium text-green-600">${supply.current_price?.toFixed(2)}</td>
                       <td className="p-4 text-slate-600">{supply.unit || '-'}</td>
-                      <td className="p-4 text-slate-600">{supply.supplier || '-'}</td>
                       <td className="p-4 text-right">
                         <Button 
                           variant="ghost" 

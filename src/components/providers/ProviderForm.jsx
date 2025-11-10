@@ -8,7 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { X } from "lucide-react";
+import { X, Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = useState({
@@ -23,9 +28,19 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
     notes: ''
   });
 
+  const [licenses, setLicenses] = useState([]);
+  const [cmeRecords, setCmeRecords] = useState([]);
+  const [showLicenses, setShowLicenses] = useState(false);
+  const [showCME, setShowCME] = useState(false);
+
   const { data: programLocations = [] } = useQuery({
     queryKey: ['program-locations'],
     queryFn: () => base44.entities.ProgramLocation.list('program_location')
+  });
+
+  const { data: existingLicenses = [] } = useQuery({
+    queryKey: ['licenses'],
+    queryFn: () => base44.entities.License.list()
   });
 
   useEffect(() => {
@@ -37,9 +52,37 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
     }
   }, [provider]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSubmit(formData);
+    
+    // First create/update the provider
+    const savedProvider = await onSubmit(formData);
+    
+    // If creating a new provider and we have licenses or CME records
+    if (!provider && savedProvider) {
+      const providerId = savedProvider.id;
+      
+      // Create licenses
+      for (const license of licenses) {
+        const sameLicenseType = existingLicenses.filter(l => l.license_type === license.license_type);
+        const nextId = sameLicenseType.length + 1;
+        const internalNumber = `${license.license_type}-${String(nextId).padStart(3, '0')}`;
+        
+        await base44.entities.License.create({
+          ...license,
+          provider_id: providerId,
+          internal_license_number: internalNumber
+        });
+      }
+      
+      // Create CME records
+      for (const cme of cmeRecords) {
+        await base44.entities.CME.create({
+          ...cme,
+          provider_id: providerId
+        });
+      }
+    }
   };
 
   const toggleLocation = (locationId) => {
@@ -49,6 +92,48 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
         ? prev.program_locations.filter(l => l !== locationId)
         : [...prev.program_locations, locationId]
     }));
+  };
+
+  const addLicense = () => {
+    setLicenses([...licenses, {
+      license_type: 'MED',
+      issuing_state: '',
+      issue_date: '',
+      expiration_date: '',
+      status: 'active',
+      notes: ''
+    }]);
+  };
+
+  const removeLicense = (index) => {
+    setLicenses(licenses.filter((_, i) => i !== index));
+  };
+
+  const updateLicense = (index, field, value) => {
+    const newLicenses = [...licenses];
+    newLicenses[index] = { ...newLicenses[index], [field]: value };
+    setLicenses(newLicenses);
+  };
+
+  const addCME = () => {
+    setCmeRecords([...cmeRecords, {
+      course_name: '',
+      credits: 0,
+      completion_date: '',
+      category: 'Category 1',
+      provider_organization: '',
+      notes: ''
+    }]);
+  };
+
+  const removeCME = (index) => {
+    setCmeRecords(cmeRecords.filter((_, i) => i !== index));
+  };
+
+  const updateCME = (index, field, value) => {
+    const newCME = [...cmeRecords];
+    newCME[index] = { ...newCME[index], [field]: value };
+    setCmeRecords(newCME);
   };
 
   const showFluVaccine = formData.role === 'ENT DM';
@@ -64,7 +149,7 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
         </div>
       </CardHeader>
       <form onSubmit={handleSubmit}>
-        <CardContent className="p-6">
+        <CardContent className="p-6 space-y-6">
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="full_name">Full Name *</Label>
@@ -178,6 +263,121 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
               />
             </div>
           </div>
+
+          {!provider && (
+            <>
+              <Collapsible open={showLicenses} onOpenChange={setShowLicenses}>
+                <CollapsibleTrigger asChild>
+                  <Button type="button" variant="outline" className="w-full justify-between">
+                    <span>Add Licenses (Optional)</span>
+                    {showLicenses ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-4 space-y-4">
+                  {licenses.map((license, index) => (
+                    <div key={index} className="p-4 border border-slate-200 rounded-lg space-y-4">
+                      <div className="flex justify-between items-center">
+                        <h4 className="font-semibold text-sm">License {index + 1}</h4>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => removeLicense(index)}>
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        </Button>
+                      </div>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>License Type</Label>
+                          <Select value={license.license_type} onValueChange={(value) => updateLicense(index, 'license_type', value)}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="MED">MED</SelectItem>
+                              <SelectItem value="PA">PA</SelectItem>
+                              <SelectItem value="AUD">AUD</SelectItem>
+                              <SelectItem value="APRN">APRN</SelectItem>
+                              <SelectItem value="DEA">DEA</SelectItem>
+                              <SelectItem value="CSP">CSP</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Issuing State</Label>
+                          <Input value={license.issuing_state} onChange={(e) => updateLicense(index, 'issuing_state', e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Issue Date</Label>
+                          <Input type="date" value={license.issue_date} onChange={(e) => updateLicense(index, 'issue_date', e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Expiration Date</Label>
+                          <Input type="date" value={license.expiration_date} onChange={(e) => updateLicense(index, 'expiration_date', e.target.value)} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <Button type="button" variant="outline" size="sm" onClick={addLicense}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add License
+                  </Button>
+                </CollapsibleContent>
+              </Collapsible>
+
+              <Collapsible open={showCME} onOpenChange={setShowCME}>
+                <CollapsibleTrigger asChild>
+                  <Button type="button" variant="outline" className="w-full justify-between">
+                    <span>Add CME Records (Optional)</span>
+                    {showCME ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-4 space-y-4">
+                  {cmeRecords.map((cme, index) => (
+                    <div key={index} className="p-4 border border-slate-200 rounded-lg space-y-4">
+                      <div className="flex justify-between items-center">
+                        <h4 className="font-semibold text-sm">CME Record {index + 1}</h4>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => removeCME(index)}>
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        </Button>
+                      </div>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Course Name</Label>
+                          <Input value={cme.course_name} onChange={(e) => updateCME(index, 'course_name', e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Credits</Label>
+                          <Input type="number" step="0.5" value={cme.credits} onChange={(e) => updateCME(index, 'credits', parseFloat(e.target.value))} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Completion Date</Label>
+                          <Input type="date" value={cme.completion_date} onChange={(e) => updateCME(index, 'completion_date', e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Category</Label>
+                          <Select value={cme.category} onValueChange={(value) => updateCME(index, 'category', value)}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Category 1">Category 1</SelectItem>
+                              <SelectItem value="Category 2">Category 2</SelectItem>
+                              <SelectItem value="Other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2 md:col-span-2">
+                          <Label>Provider Organization</Label>
+                          <Input value={cme.provider_organization} onChange={(e) => updateCME(index, 'provider_organization', e.target.value)} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <Button type="button" variant="outline" size="sm" onClick={addCME}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add CME Record
+                  </Button>
+                </CollapsibleContent>
+              </Collapsible>
+            </>
+          )}
         </CardContent>
         <CardFooter className="border-t border-slate-100 p-6 flex justify-end gap-3">
           <Button type="button" variant="outline" onClick={onCancel}>
