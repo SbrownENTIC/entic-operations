@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -6,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Pencil } from "lucide-react"; // Added Pencil icon
+import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { differenceInDays, format, parseISO } from "date-fns";
 import PrivilegeForm from "../components/privileges/PrivilegeForm";
 
@@ -14,6 +13,8 @@ export default function ClinicalPrivileges() {
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingPrivilege, setEditingPrivilege] = useState(null);
+  const [sortField, setSortField] = useState('expiration_date');
+  const [sortDirection, setSortDirection] = useState('asc');
   const queryClient = useQueryClient();
 
   const { data: privileges = [] } = useQuery({
@@ -52,17 +53,56 @@ export default function ClinicalPrivileges() {
     }
   };
 
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
   const privilegesWithProviders = privileges.map(priv => ({
     ...priv,
     provider: providers.find(p => p.id === priv.provider_id),
-    daysUntilExpiration: differenceInDays(parseISO(priv.expiration_date), new Date())
+    daysUntilExpiration: differenceInDays(parseISO(priv.expiration_date), new Date()),
+    providerName: providers.find(p => p.id === priv.provider_id)?.full_name || ''
   }));
 
   const filteredPrivileges = privilegesWithProviders.filter(priv =>
     priv.provider?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     priv.facility_name?.toLowerCase().includes(searchTerm.toLowerCase())
-    // Removed privilege_type from search criteria
   );
+
+  const sortedPrivileges = [...filteredPrivileges].sort((a, b) => {
+    let aValue, bValue;
+    
+    if (sortField === 'providerName') {
+      aValue = a.providerName;
+      bValue = b.providerName;
+    } else if (sortField === 'daysUntilExpiration') {
+      aValue = a.daysUntilExpiration;
+      bValue = b.daysUntilExpiration;
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    } else if (sortField === 'granted_date' || sortField === 'expiration_date') {
+      aValue = new Date(a[sortField]);
+      bValue = new Date(b[sortField]);
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    } else {
+      aValue = a[sortField] || '';
+      bValue = b[sortField] || '';
+    }
+    
+    const comparison = aValue.toString().toLowerCase().localeCompare(bValue.toString().toLowerCase());
+    return sortDirection === 'asc' ? comparison : -comparison;
+  });
+
+  const SortIcon = ({ field }) => {
+    if (sortField !== field) return <ArrowUpDown className="w-4 h-4 ml-1 inline" />;
+    return sortDirection === 'asc' ? 
+      <ArrowUp className="w-4 h-4 ml-1 inline" /> : 
+      <ArrowDown className="w-4 h-4 ml-1 inline" />;
+  };
 
   return (
     <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
@@ -114,17 +154,41 @@ export default function ClinicalPrivileges() {
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Provider</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Facility</th>
-                    {/* Removed Privilege Type header */}
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Granted</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Expires</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Status</th>
-                    <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th> {/* Added Actions header */}
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('providerName')}
+                    >
+                      Provider <SortIcon field="providerName" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('facility_name')}
+                    >
+                      Facility <SortIcon field="facility_name" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('granted_date')}
+                    >
+                      Granted <SortIcon field="granted_date" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('expiration_date')}
+                    >
+                      Expires <SortIcon field="expiration_date" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('status')}
+                    >
+                      Status <SortIcon field="status" />
+                    </th>
+                    <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredPrivileges.map((priv) => {
+                  {sortedPrivileges.map((priv) => {
                     const isExpired = priv.daysUntilExpiration <= 0;
                     const isExpiringSoon = priv.daysUntilExpiration > 0 && priv.daysUntilExpiration <= 30;
 
@@ -134,7 +198,6 @@ export default function ClinicalPrivileges() {
                           <p className="font-medium text-slate-900">{priv.provider?.full_name}</p>
                         </td>
                         <td className="p-4 text-slate-600">{priv.facility_name}</td>
-                        {/* Removed Privilege Type data cell */}
                         <td className="p-4 text-slate-600">
                           {format(parseISO(priv.granted_date), 'MMM d, yyyy')}
                         </td>
@@ -149,7 +212,7 @@ export default function ClinicalPrivileges() {
                             {isExpired ? 'Expired' : isExpiringSoon ? `${priv.daysUntilExpiration}d` : 'Active'}
                           </Badge>
                         </td>
-                        <td className="p-4 text-right"> {/* Added Actions data cell */}
+                        <td className="p-4 text-right">
                           <Button 
                             variant="ghost" 
                             size="sm"
@@ -166,7 +229,7 @@ export default function ClinicalPrivileges() {
                   })}
                 </tbody>
               </table>
-              {filteredPrivileges.length === 0 && (
+              {sortedPrivileges.length === 0 && (
                 <div className="text-center py-12 text-slate-500">
                   No privileges found
                 </div>

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -6,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Pencil, Trash2, Check, X as XIcon } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, Check, X as XIcon, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import ProviderForm from "../components/providers/ProviderForm";
@@ -26,6 +25,8 @@ export default function Providers() {
   const [searchTerm, setSearchTerm] = useState("");
   const [editingProvider, setEditingProvider] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [sortField, setSortField] = useState('full_name');
+  const [sortDirection, setSortDirection] = useState('asc');
   const queryClient = useQueryClient();
 
   const { data: providers = [], isLoading } = useQuery({
@@ -73,13 +74,41 @@ export default function Providers() {
     }
   };
 
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
   const filteredProviders = providers.filter(provider =>
     provider.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     provider.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     provider.role?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const sortedProviders = [...filteredProviders].sort((a, b) => {
+    const aValue = a[sortField] || '';
+    const bValue = b[sortField] || '';
+    
+    if (sortField === 'flu_vaccine_year') {
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    }
+    
+    const comparison = aValue.toString().toLowerCase().localeCompare(bValue.toString().toLowerCase());
+    return sortDirection === 'asc' ? comparison : -comparison;
+  });
+
   const currentYear = new Date().getFullYear();
+
+  const SortIcon = ({ field }) => {
+    if (sortField !== field) return <ArrowUpDown className="w-4 h-4 ml-1 inline" />;
+    return sortDirection === 'asc' ? 
+      <ArrowUp className="w-4 h-4 ml-1 inline" /> : 
+      <ArrowDown className="w-4 h-4 ml-1 inline" />;
+  };
 
   return (
     <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
@@ -130,17 +159,47 @@ export default function Providers() {
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Name</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Email</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Phone</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Role</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Status</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Flu Vaccine</th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('full_name')}
+                    >
+                      Name <SortIcon field="full_name" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('email')}
+                    >
+                      Email <SortIcon field="email" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('phone')}
+                    >
+                      Phone <SortIcon field="phone" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('role')}
+                    >
+                      Role <SortIcon field="role" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('status')}
+                    >
+                      Status <SortIcon field="status" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('flu_vaccine_year')}
+                    >
+                      Flu Vaccine <SortIcon field="flu_vaccine_year" />
+                    </th>
                     <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredProviders.map((provider) => {
+                  {sortedProviders.map((provider) => {
                     const showFluVaccine = provider.role === 'ENT DM';
                     const fluVaccineCurrent = provider.flu_vaccine_year === currentYear;
                     
@@ -208,7 +267,7 @@ export default function Providers() {
                   })}
                 </tbody>
               </table>
-              {filteredProviders.length === 0 && (
+              {sortedProviders.length === 0 && (
                 <div className="text-center py-12 text-slate-500">
                   No providers found
                 </div>

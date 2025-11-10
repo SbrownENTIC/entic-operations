@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -6,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, AlertTriangle, Pencil } from "lucide-react";
+import { Plus, Search, AlertTriangle, Pencil, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { differenceInDays, format, parseISO } from "date-fns";
 import LicenseForm from "../components/licenses/LicenseForm";
 
@@ -14,6 +13,8 @@ export default function Licenses() {
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingLicense, setEditingLicense] = useState(null);
+  const [sortField, setSortField] = useState('expiration_date');
+  const [sortDirection, setSortDirection] = useState('asc');
   const queryClient = useQueryClient();
 
   const { data: licenses = [] } = useQuery({
@@ -110,10 +111,20 @@ export default function Licenses() {
     }
   };
 
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
   const licensesWithProviders = licenses.map(license => ({
     ...license,
     provider: providers.find(p => p.id === license.provider_id),
-    daysUntilExpiration: differenceInDays(parseISO(license.expiration_date), new Date())
+    daysUntilExpiration: differenceInDays(parseISO(license.expiration_date), new Date()),
+    providerName: providers.find(p => p.id === license.provider_id)?.full_name || ''
   }));
 
   const filteredLicenses = licensesWithProviders.filter(license =>
@@ -121,6 +132,36 @@ export default function Licenses() {
     license.license_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     license.internal_license_number?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const sortedLicenses = [...filteredLicenses].sort((a, b) => {
+    let aValue, bValue;
+    
+    if (sortField === 'providerName') {
+      aValue = a.providerName;
+      bValue = b.providerName;
+    } else if (sortField === 'daysUntilExpiration') {
+      aValue = a.daysUntilExpiration;
+      bValue = b.daysUntilExpiration;
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    } else if (sortField === 'expiration_date') {
+      aValue = new Date(a.expiration_date);
+      bValue = new Date(b.expiration_date);
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    } else {
+      aValue = a[sortField] || '';
+      bValue = b[sortField] || '';
+    }
+    
+    const comparison = aValue.toString().toLowerCase().localeCompare(bValue.toString().toLowerCase());
+    return sortDirection === 'asc' ? comparison : -comparison;
+  });
+
+  const SortIcon = ({ field }) => {
+    if (sortField !== field) return <ArrowUpDown className="w-4 h-4 ml-1 inline" />;
+    return sortDirection === 'asc' ? 
+      <ArrowUp className="w-4 h-4 ml-1 inline" /> : 
+      <ArrowDown className="w-4 h-4 ml-1 inline" />;
+  };
 
   return (
     <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
@@ -172,17 +213,47 @@ export default function Licenses() {
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Provider</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">License Type</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Internal #</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Expiration</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Days Until</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Status</th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('providerName')}
+                    >
+                      Provider <SortIcon field="providerName" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('license_type')}
+                    >
+                      License Type <SortIcon field="license_type" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('internal_license_number')}
+                    >
+                      Internal # <SortIcon field="internal_license_number" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('expiration_date')}
+                    >
+                      Expiration <SortIcon field="expiration_date" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('daysUntilExpiration')}
+                    >
+                      Days Until <SortIcon field="daysUntilExpiration" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('status')}
+                    >
+                      Status <SortIcon field="status" />
+                    </th>
                     <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredLicenses.map((license) => {
+                  {sortedLicenses.map((license) => {
                     const isExpired = license.daysUntilExpiration <= 0;
                     const isExpiringSoon = license.daysUntilExpiration > 0 && license.daysUntilExpiration <= 30;
 
@@ -237,7 +308,7 @@ export default function Licenses() {
                   })}
                 </tbody>
               </table>
-              {filteredLicenses.length === 0 && (
+              {sortedLicenses.length === 0 && (
                 <div className="text-center py-12 text-slate-500">
                   No licenses found
                 </div>
