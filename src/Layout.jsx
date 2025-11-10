@@ -11,7 +11,8 @@ import {
   DollarSign,
   FileText,
   CreditCard,
-  ShieldCheck
+  ShieldCheck,
+  Boxes
 } from "lucide-react";
 import {
   Sidebar,
@@ -52,6 +53,11 @@ const navigationItems = [
     title: "Licenses",
     url: createPageUrl("Licenses"),
     icon: ShieldCheck,
+  },
+  {
+    title: "Supply Catalog",
+    url: createPageUrl("Supplies"),
+    icon: Boxes,
   },
   {
     title: "Supply Orders",

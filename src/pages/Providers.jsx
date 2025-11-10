@@ -1,20 +1,30 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Pencil } from "lucide-react"; // Added Pencil import
+import { Plus, Search, Eye, Pencil, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import ProviderForm from "../components/providers/ProviderForm";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function Providers() {
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingProvider, setEditingProvider] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: providers = [], isLoading } = useQuery({
@@ -40,6 +50,14 @@ export default function Providers() {
     }
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.Provider.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['providers'] });
+      setDeleteConfirm(null);
+    }
+  });
+
   const handleSubmit = (data) => {
     if (editingProvider) {
       updateMutation.mutate({ id: editingProvider.id, data });
@@ -51,8 +69,7 @@ export default function Providers() {
   const filteredProviders = providers.filter(provider =>
     provider.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     provider.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    provider.specialty?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    provider.phone?.toLowerCase().includes(searchTerm.toLowerCase()) // Added phone to search term
+    provider.specialty?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -106,7 +123,7 @@ export default function Providers() {
                   <tr>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Name</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Email</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Phone</th> {/* Added Phone column */}
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Phone</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Specialty</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Status</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Flu Vaccine</th>
@@ -120,7 +137,7 @@ export default function Providers() {
                         <p className="font-medium text-slate-900">{provider.full_name}</p>
                       </td>
                       <td className="p-4 text-slate-600">{provider.email}</td>
-                      <td className="p-4 text-slate-600">{provider.phone || '-'}</td> {/* Display provider phone */}
+                      <td className="p-4 text-slate-600">{provider.phone || '-'}</td>
                       <td className="p-4 text-slate-600">{provider.specialty || '-'}</td>
                       <td className="p-4">
                         <Badge variant={provider.status === 'active' ? 'default' : 'secondary'}>
@@ -144,13 +161,21 @@ export default function Providers() {
                               setShowForm(true);
                             }}
                           >
-                            <Pencil className="w-4 h-4" /> {/* Edit button */}
+                            <Pencil className="w-4 h-4" />
                           </Button>
                           <Link to={createPageUrl(`ProviderDetail?id=${provider.id}`)}>
                             <Button variant="ghost" size="sm">
                               <Eye className="w-4 h-4" />
                             </Button>
                           </Link>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => setDeleteConfirm(provider)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -166,6 +191,26 @@ export default function Providers() {
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Provider</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {deleteConfirm?.full_name}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteMutation.mutate(deleteConfirm.id)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

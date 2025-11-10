@@ -9,6 +9,7 @@ import OnCallSchedule from './pages/OnCallSchedule';
 import OutsideIncome from './pages/OutsideIncome';
 import Invoices from './pages/Invoices';
 import Payments from './pages/Payments';
+import Supplies from './pages/Supplies';
 import Layout from './Layout.jsx';
 
 
@@ -24,6 +25,7 @@ export const PAGES = {
     "OutsideIncome": OutsideIncome,
     "Invoices": Invoices,
     "Payments": Payments,
+    "Supplies": Supplies,
 }
 
 export const pagesConfig = {
