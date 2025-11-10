@@ -2,19 +2,18 @@ import React from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Mail, Phone, Calendar, Award, GraduationCap, ShieldCheck, Syringe } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Mail, Phone, Award, GraduationCap, ShieldCheck, CheckCircle2, XCircle } from "lucide-react";
+import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { format, parseISO, differenceInDays } from "date-fns";
+import { differenceInDays, format, parseISO } from "date-fns";
 
 export default function ProviderDetail() {
-  const navigate = useNavigate();
   const urlParams = new URLSearchParams(window.location.search);
   const providerId = urlParams.get('id');
 
-  const { data: provider, isLoading } = useQuery({
+  const { data: provider, isLoading: providerLoading } = useQuery({
     queryKey: ['provider', providerId],
     queryFn: async () => {
       const providers = await base44.entities.Provider.list();
@@ -25,219 +24,301 @@ export default function ProviderDetail() {
   const { data: privileges = [] } = useQuery({
     queryKey: ['privileges', providerId],
     queryFn: async () => {
-      const all = await base44.entities.ClinicalPrivilege.list();
-      return all.filter(p => p.provider_id === providerId);
+      const allPrivileges = await base44.entities.ClinicalPrivilege.list();
+      return allPrivileges.filter(p => p.provider_id === providerId);
     }
   });
 
-  const { data: cmes = [] } = useQuery({
-    queryKey: ['cmes', providerId],
+  const { data: cmeRecords = [] } = useQuery({
+    queryKey: ['cme', providerId],
     queryFn: async () => {
-      const all = await base44.entities.CME.list('-completion_date');
-      return all.filter(c => c.provider_id === providerId);
+      const allCME = await base44.entities.CME.list();
+      return allCME.filter(c => c.provider_id === providerId);
     }
   });
 
   const { data: licenses = [] } = useQuery({
     queryKey: ['licenses', providerId],
     queryFn: async () => {
-      const all = await base44.entities.License.list();
-      return all.filter(l => l.provider_id === providerId);
+      const allLicenses = await base44.entities.License.list();
+      return allLicenses.filter(l => l.provider_id === providerId);
     }
   });
 
-  if (isLoading || !provider) {
-    return <div className="p-8">Loading...</div>;
+  if (providerLoading) {
+    return (
+      <div className="p-6 md:p-8 bg-slate-50 min-h-screen flex items-center justify-center">
+        <p className="text-slate-600">Loading...</p>
+      </div>
+    );
   }
 
-  const totalCMECredits = cmes.reduce((sum, cme) => sum + (cme.credits || 0), 0);
+  if (!provider) {
+    return (
+      <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
+        <p className="text-slate-600">Provider not found</p>
+      </div>
+    );
+  }
+
+  const totalCMECredits = cmeRecords.reduce((sum, cme) => sum + (cme.credits || 0), 0);
+  const currentYear = new Date().getFullYear();
+  const fluVaccineCurrent = provider.flu_vaccine_year === currentYear;
+  const isDoctor = provider.full_name?.toLowerCase().startsWith('dr.') || provider.full_name?.toLowerCase().includes('dr ');
+  const cmeCompliant = totalCMECredits >= 3;
 
   return (
     <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center gap-4">
-          <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
+          <Link to={createPageUrl("Providers")}>
+            <Button variant="outline" size="icon">
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+          </Link>
           <div>
             <h1 className="text-3xl font-bold text-slate-900">{provider.full_name}</h1>
-            <p className="text-slate-600">{provider.specialty || 'Medical Provider'}</p>
+            <p className="text-slate-600 mt-1">{provider.role || 'Provider'}</p>
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-3 gap-6">
           <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="border-b border-slate-100">
-              <CardTitle className="text-lg">Provider Information</CardTitle>
+            <CardHeader>
+              <CardTitle className="text-lg">Contact Information</CardTitle>
             </CardHeader>
-            <CardContent className="p-6 space-y-4">
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Mail className="w-5 h-5 text-slate-400" />
+                <div>
+                  <p className="text-sm text-slate-500">Email</p>
+                  <p className="text-slate-900">{provider.email}</p>
+                </div>
+              </div>
+              {provider.phone && (
+                <div className="flex items-center gap-3">
+                  <Phone className="w-5 h-5 text-slate-400" />
+                  <div>
+                    <p className="text-sm text-slate-500">Phone</p>
+                    <p className="text-slate-900">{provider.phone}</p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-lg">Status</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div>
-                <p className="text-sm text-slate-500 mb-1">Status</p>
+                <p className="text-sm text-slate-500 mb-2">Employment Status</p>
                 <Badge variant={provider.status === 'active' ? 'default' : 'secondary'}>
                   {provider.status}
                 </Badge>
               </div>
-
-              <div className="flex items-center gap-2 text-slate-700">
-                <Mail className="w-4 h-4 text-slate-400" />
-                <span className="text-sm">{provider.email}</span>
-              </div>
-
-              {provider.phone && (
-                <div className="flex items-center gap-2 text-slate-700">
-                  <Phone className="w-4 h-4 text-slate-400" />
-                  <span className="text-sm">{provider.phone}</span>
+              {provider.role === 'ENT DM' && (
+                <div>
+                  <p className="text-sm text-slate-500 mb-2">Flu Vaccine ({currentYear})</p>
+                  <div className="flex items-center gap-2">
+                    {fluVaccineCurrent && provider.flu_vaccine_date ? (
+                      <>
+                        <CheckCircle2 className="w-5 h-5 text-green-600" />
+                        <span className="text-sm text-slate-700">{provider.flu_vaccine_date}</span>
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="w-5 h-5 text-red-600" />
+                        <span className="text-sm text-slate-500">Not current</span>
+                      </>
+                    )}
+                  </div>
                 </div>
               )}
-
-              {provider.hire_date && (
-                <div className="flex items-center gap-2 text-slate-700">
-                  <Calendar className="w-4 h-4 text-slate-400" />
-                  <span className="text-sm">Hired {format(parseISO(provider.hire_date), 'MMM d, yyyy')}</span>
-                </div>
-              )}
-
-              <div className="pt-4 border-t border-slate-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <Syringe className="w-4 h-4 text-slate-400" />
-                  <p className="text-sm font-medium text-slate-700">Flu Vaccine</p>
-                </div>
-                {provider.flu_vaccine_year === new Date().getFullYear() ? (
-                  <Badge className="bg-green-100 text-green-800">
-                    ✓ Up to date ({provider.flu_vaccine_year})
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="text-orange-600 border-orange-300">
-                    Update needed
-                  </Badge>
-                )}
-              </div>
             </CardContent>
           </Card>
 
-          <Card className="lg:col-span-2 border-slate-200 shadow-sm">
-            <CardHeader className="border-b border-slate-100">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-blue-600" />
-                  Licenses
-                </CardTitle>
-                <Link to={createPageUrl(`Licenses?provider=${providerId}`)}>
-                  <Button variant="outline" size="sm">View All</Button>
-                </Link>
+          {isDoctor && (
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg">CME Compliance</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <p className="text-sm text-slate-500 mb-2">Total CME Credits</p>
+                  <p className="text-3xl font-bold text-blue-600">{totalCMECredits.toFixed(1)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500 mb-2">Compliance Status</p>
+                  <div className="flex items-center gap-2">
+                    {cmeCompliant ? (
+                      <>
+                        <CheckCircle2 className="w-5 h-5 text-green-600" />
+                        <Badge className="bg-green-600">Compliant (≥3 credits)</Badge>
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="w-5 h-5 text-red-600" />
+                        <Badge variant="destructive">Non-Compliant (&lt;3 credits)</Badge>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="border-b border-slate-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-blue-600" />
+                <CardTitle>Licenses ({licenses.length})</CardTitle>
               </div>
-            </CardHeader>
-            <CardContent className="p-6">
-              {licenses.length > 0 ? (
-                <div className="grid md:grid-cols-2 gap-4">
-                  {licenses.map(license => {
+              <Link to={createPageUrl("Licenses")}>
+                <Button variant="outline" size="sm">View All</Button>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Type</th>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Internal #</th>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Expiration</th>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {licenses.map((license) => {
                     const daysUntil = differenceInDays(parseISO(license.expiration_date), new Date());
-                    const isExpiringSoon = daysUntil > 0 && daysUntil <= 30;
                     const isExpired = daysUntil <= 0;
+                    const isExpiringSoon = daysUntil > 0 && daysUntil <= 30;
 
                     return (
-                      <div key={license.id} className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-                        <div className="flex justify-between items-start mb-2">
-                          <p className="font-medium text-slate-900">{license.license_type}</p>
+                      <tr key={license.id} className="border-b border-slate-100">
+                        <td className="p-4">
+                          <Badge variant="outline" className="font-mono">{license.license_type}</Badge>
+                        </td>
+                        <td className="p-4 text-slate-600 font-mono text-sm">{license.internal_license_number}</td>
+                        <td className="p-4 text-slate-600">{format(parseISO(license.expiration_date), 'MMM d, yyyy')}</td>
+                        <td className="p-4">
                           <Badge 
                             variant={isExpired ? "destructive" : isExpiringSoon ? "outline" : "secondary"}
                             className={isExpiringSoon && !isExpired ? "border-orange-300 text-orange-700" : ""}
                           >
                             {isExpired ? 'Expired' : isExpiringSoon ? `${daysUntil}d` : 'Active'}
                           </Badge>
-                        </div>
-                        <p className="text-xs text-slate-500 mb-1">
-                          Generic #: {license.generic_license_number}
-                        </p>
-                        <p className="text-xs text-slate-600">
-                          Expires: {format(parseISO(license.expiration_date), 'MMM d, yyyy')}
-                        </p>
-                      </div>
+                        </td>
+                      </tr>
                     );
                   })}
+                </tbody>
+              </table>
+              {licenses.length === 0 && (
+                <div className="text-center py-8 text-slate-500">
+                  No licenses found
                 </div>
-              ) : (
-                <p className="text-slate-500 text-center py-4">No licenses recorded</p>
               )}
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        <div className="grid lg:grid-cols-2 gap-6">
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="border-b border-slate-100">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Award className="w-5 h-5 text-purple-600" />
-                  Clinical Privileges
-                </CardTitle>
-                <Link to={createPageUrl(`ClinicalPrivileges?provider=${providerId}`)}>
-                  <Button variant="outline" size="sm">View All</Button>
-                </Link>
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="border-b border-slate-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Award className="w-5 h-5 text-blue-600" />
+                <CardTitle>Clinical Privileges ({privileges.length})</CardTitle>
               </div>
-            </CardHeader>
-            <CardContent className="p-6">
-              {privileges.length > 0 ? (
-                <div className="space-y-3">
-                  {privileges.slice(0, 5).map(priv => (
-                    <div key={priv.id} className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-medium text-slate-900">{priv.facility_name}</p>
-                          <p className="text-sm text-slate-600">{priv.privilege_type}</p>
-                        </div>
-                        <Badge variant="secondary" className="text-xs">
-                          {format(parseISO(priv.expiration_date), 'MMM yyyy')}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-slate-500 text-center py-4">No privileges recorded</p>
-              )}
-            </CardContent>
-          </Card>
+              <Link to={createPageUrl("ClinicalPrivileges")}>
+                <Button variant="outline" size="sm">View All</Button>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Facility</th>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Granted</th>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Expires</th>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {privileges.map((priv) => {
+                    const daysUntil = differenceInDays(parseISO(priv.expiration_date), new Date());
+                    const isExpired = daysUntil <= 0;
+                    const isExpiringSoon = daysUntil > 0 && daysUntil <= 30;
 
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="border-b border-slate-100">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <GraduationCap className="w-5 h-5 text-green-600" />
-                  CME Credits
-                </CardTitle>
-                <Link to={createPageUrl(`CMETracking?provider=${providerId}`)}>
-                  <Button variant="outline" size="sm">View All</Button>
-                </Link>
-              </div>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
-                <p className="text-sm text-slate-600 mb-1">Total CME Credits</p>
-                <p className="text-3xl font-bold text-green-600">{totalCMECredits}</p>
-              </div>
-              {cmes.length > 0 ? (
-                <div className="space-y-3">
-                  {cmes.slice(0, 4).map(cme => (
-                    <div key={cme.id} className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <p className="font-medium text-slate-900 text-sm">{cme.course_name}</p>
-                          <p className="text-xs text-slate-500">
-                            {format(parseISO(cme.completion_date), 'MMM d, yyyy')}
-                          </p>
-                        </div>
-                        <Badge variant="secondary">{cme.credits} credits</Badge>
-                      </div>
-                    </div>
-                  ))}
+                    return (
+                      <tr key={priv.id} className="border-b border-slate-100">
+                        <td className="p-4 text-slate-900">{priv.facility_name}</td>
+                        <td className="p-4 text-slate-600">{format(parseISO(priv.granted_date), 'MMM d, yyyy')}</td>
+                        <td className="p-4 text-slate-600">{format(parseISO(priv.expiration_date), 'MMM d, yyyy')}</td>
+                        <td className="p-4">
+                          <Badge 
+                            variant={isExpired ? "destructive" : isExpiringSoon ? "outline" : "secondary"}
+                            className={isExpiringSoon && !isExpired ? "border-orange-300 text-orange-700" : ""}
+                          >
+                            {isExpired ? 'Expired' : isExpiringSoon ? `${daysUntil}d` : 'Active'}
+                          </Badge>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {privileges.length === 0 && (
+                <div className="text-center py-8 text-slate-500">
+                  No privileges found
                 </div>
-              ) : (
-                <p className="text-slate-500 text-center py-4">No CME credits recorded</p>
               )}
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="border-b border-slate-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <GraduationCap className="w-5 h-5 text-blue-600" />
+                <CardTitle>CME Credits ({cmeRecords.length} courses)</CardTitle>
+              </div>
+              <Link to={createPageUrl("CMETracking")}>
+                <Button variant="outline" size="sm">View All</Button>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="mb-4">
+              <p className="text-sm text-slate-500">Total Credits Earned</p>
+              <p className="text-3xl font-bold text-blue-600">{totalCMECredits.toFixed(1)} credits</p>
+            </div>
+            <div className="space-y-3">
+              {cmeRecords.slice(0, 5).map((cme) => (
+                <div key={cme.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                  <div>
+                    <p className="font-medium text-slate-900">{cme.course_name}</p>
+                    <p className="text-sm text-slate-500">{format(parseISO(cme.completion_date), 'MMM d, yyyy')}</p>
+                  </div>
+                  <Badge variant="outline">{cme.credits} credits</Badge>
+                </div>
+              ))}
+            </div>
+            {cmeRecords.length === 0 && (
+              <div className="text-center py-8 text-slate-500">
+                No CME records found
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
