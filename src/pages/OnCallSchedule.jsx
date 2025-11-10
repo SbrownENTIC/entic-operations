@@ -110,7 +110,13 @@ export default function OnCallSchedule() {
     if (isSameDay(scheduleStart, dayStart)) return true;
     
     // First day of the week (Sunday) if schedule continues from previous week
-    if (day.getDay() === 0 && dayStart > scheduleStart) return true;
+    if (day.getDay() === 0) {
+      // Check if schedule started before this week and is still active on this day
+      const prevDaySchedules = getSchedulesForDay(new Date(dayStart.getTime() - 86400000)); // Previous day
+      const todaySchedules = getSchedulesForDay(day);
+      return todaySchedules.some(s => s.id === schedule.id) && 
+             prevDaySchedules.some(s => s.id === schedule.id);
+    }
     
     return false;
   };
@@ -123,12 +129,13 @@ export default function OnCallSchedule() {
     const dayIndex = weekDays.findIndex(d => isSameDay(d, day));
     let span = 0;
     
+    // Count consecutive days from this day forward within the week that the schedule covers
     for (let i = dayIndex; i < weekDays.length; i++) {
       const currentDay = startOfDay(weekDays[i]);
       if (currentDay >= scheduleStart && currentDay <= scheduleEnd) {
         span++;
       } else {
-        break;
+        break; // Stop if we hit a day not covered by the schedule
       }
     }
     
