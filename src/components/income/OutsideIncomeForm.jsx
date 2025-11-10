@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +12,7 @@ import { X, Plus, Trash2 } from "lucide-react";
 export default function OutsideIncomeForm({ income, providers, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = useState({
     provider_id: '',
+    program_location_id: '',
     facility_name: '',
     work_dates: [''],
     days_worked: 0,
@@ -17,6 +20,11 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
     total_amount: 0,
     status: 'pending',
     notes: ''
+  });
+
+  const { data: programLocations = [] } = useQuery({
+    queryKey: ['program-locations'],
+    queryFn: () => base44.entities.ProgramLocation.list('program_location')
   });
 
   useEffect(() => {
@@ -37,6 +45,20 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
       total_amount: total 
     }));
   }, [formData.work_dates, formData.rate]);
+
+  useEffect(() => {
+    // Auto-populate rate when program location is selected
+    if (formData.program_location_id) {
+      const selectedLocation = programLocations.find(pl => pl.id === formData.program_location_id);
+      if (selectedLocation && selectedLocation.daily_rate) {
+        setFormData(prev => ({
+          ...prev,
+          rate: selectedLocation.daily_rate,
+          facility_name: selectedLocation.program_location
+        }));
+      }
+    }
+  }, [formData.program_location_id, programLocations]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -94,12 +116,28 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="facility_name">Facility Name *</Label>
+              <Label htmlFor="program_location_id">Program/Location</Label>
+              <Select value={formData.program_location_id} onValueChange={(value) => setFormData({ ...formData, program_location_id: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select program/location" />
+                </SelectTrigger>
+                <SelectContent>
+                  {programLocations.map(location => (
+                    <SelectItem key={location.id} value={location.id}>
+                      {location.program_location}
+                      {location.daily_rate > 0 && ` - $${location.daily_rate}/day`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="facility_name">Facility Name</Label>
               <Input
                 id="facility_name"
                 value={formData.facility_name}
                 onChange={(e) => setFormData({ ...formData, facility_name: e.target.value })}
-                required
               />
             </div>
 

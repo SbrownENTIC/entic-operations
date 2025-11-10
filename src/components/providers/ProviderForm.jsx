@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,15 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { X } from "lucide-react";
-
-const PROGRAM_LOCATIONS = [
-  "St. Francis",
-  "Hartford Healthcare",
-  "Yale New Haven",
-  "Trinity Health",
-  "Connecticut Children's",
-  "Other"
-];
 
 export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = useState({
@@ -28,6 +21,11 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
     flu_vaccine_year: new Date().getFullYear(),
     flu_vaccine_date: '',
     notes: ''
+  });
+
+  const { data: programLocations = [] } = useQuery({
+    queryKey: ['program-locations'],
+    queryFn: () => base44.entities.ProgramLocation.list('program_location')
   });
 
   useEffect(() => {
@@ -44,12 +42,12 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
     onSubmit(formData);
   };
 
-  const toggleLocation = (location) => {
+  const toggleLocation = (locationId) => {
     setFormData(prev => ({
       ...prev,
-      program_locations: prev.program_locations.includes(location)
-        ? prev.program_locations.filter(l => l !== location)
-        : [...prev.program_locations, location]
+      program_locations: prev.program_locations.includes(locationId)
+        ? prev.program_locations.filter(l => l !== locationId)
+        : [...prev.program_locations, locationId]
     }));
   };
 
@@ -148,19 +146,22 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
 
             <div className="space-y-2 md:col-span-2">
               <Label>Program/Locations</Label>
-              <div className="grid grid-cols-2 gap-3 p-4 border border-slate-200 rounded-lg">
-                {PROGRAM_LOCATIONS.map(location => (
-                  <div key={location} className="flex items-center space-x-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 border border-slate-200 rounded-lg max-h-64 overflow-y-auto">
+                {programLocations.map(location => (
+                  <div key={location.id} className="flex items-start space-x-2">
                     <Checkbox
-                      id={location}
-                      checked={formData.program_locations.includes(location)}
-                      onCheckedChange={() => toggleLocation(location)}
+                      id={location.id}
+                      checked={formData.program_locations.includes(location.id)}
+                      onCheckedChange={() => toggleLocation(location.id)}
                     />
                     <label
-                      htmlFor={location}
+                      htmlFor={location.id}
                       className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                     >
-                      {location}
+                      <div>{location.program_location}</div>
+                      {location.daily_rate > 0 && (
+                        <div className="text-xs text-slate-500">${location.daily_rate}/day</div>
+                      )}
                     </label>
                   </div>
                 ))}
