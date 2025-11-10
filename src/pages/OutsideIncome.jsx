@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -205,13 +206,12 @@ export default function OutsideIncome() {
                       <td className="p-4 text-slate-600">{income.facility_name}</td>
                       <td className="p-4 text-slate-600">
                         {income.work_dates && income.work_dates.length > 0 ? (
-                          <div className="text-sm">
-                            {income.work_dates.slice(0, 2).map((date, idx) => (
-                              <div key={idx}>{format(parseISO(date), 'MMM d, yyyy')}</div>
+                          <div className="text-sm max-h-32 overflow-y-auto">
+                            {income.work_dates.map((date, idx) => (
+                              <div key={idx} className="py-0.5">
+                                {format(parseISO(date), 'MMM d, yyyy')}
+                              </div>
                             ))}
-                            {income.work_dates.length > 2 && (
-                              <div className="text-slate-500">+{income.work_dates.length - 2} more</div>
-                            )}
                           </div>
                         ) : '-'}
                       </td>
