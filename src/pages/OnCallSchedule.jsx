@@ -67,6 +67,17 @@ export default function OnCallSchedule() {
     setShowForm(true);
   };
 
+  // Helper function to check if a time string represents midnight
+  const isMidnight = (timeStr) => {
+    if (!timeStr) return false;
+    const normalized = timeStr.toLowerCase().trim();
+    return normalized === '00:00' || 
+           normalized === '12:00 am' || 
+           normalized === '12:00am' ||
+           normalized === '0:00' ||
+           normalized === '00:00:00';
+  };
+
   // Assign consistent colors to providers
   const providerColorMap = useMemo(() => {
     const map = {};
@@ -101,12 +112,12 @@ export default function OnCallSchedule() {
       const endDate = startOfDay(parseISO(schedule.end_date));
       
       // Determine the last active day for the schedule
-      // If end_time is something other than midnight (like 08:00), 
+      // If end_time is something other than midnight, 
       // the shift ends BEFORE the full end_date day
       let lastActiveDay = endDate;
       
-      // Check if end_time is not midnight (00:00)
-      if (schedule.end_time && schedule.end_time !== '00:00' && schedule.end_time !== '12:00 AM') {
+      // Check if end_time exists and is not midnight
+      if (schedule.end_time && !isMidnight(schedule.end_time)) {
         // The shift ends during the end_date, so the last full active day is the day before
         lastActiveDay = addDays(endDate, -1);
       }
@@ -142,7 +153,7 @@ export default function OnCallSchedule() {
     
     // Determine the last active day
     let lastActiveDay = endDate;
-    if (schedule.end_time && schedule.end_time !== '00:00' && schedule.end_time !== '12:00 AM') {
+    if (schedule.end_time && !isMidnight(schedule.end_time)) {
       lastActiveDay = addDays(endDate, -1);
     }
     
