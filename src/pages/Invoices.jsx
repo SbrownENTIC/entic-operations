@@ -29,6 +29,11 @@ export default function Invoices() {
     queryFn: () => base44.entities.OutsideIncome.list()
   });
 
+  const { data: providers = [] } = useQuery({
+    queryKey: ['providers'],
+    queryFn: () => base44.entities.Provider.list()
+  });
+
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const create = urlParams.get('create');
@@ -82,9 +87,15 @@ export default function Invoices() {
     }
   };
 
-  const filteredInvoices = invoices.filter(invoice =>
+  const invoicesWithProviders = invoices.map(invoice => ({
+    ...invoice,
+    provider: providers.find(p => p.id === invoice.staff_member_id)
+  }));
+
+  const filteredInvoices = invoicesWithProviders.filter(invoice =>
     invoice.program_group?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    invoice.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase())
+    invoice.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    invoice.provider?.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const statusColors = {
@@ -154,6 +165,7 @@ export default function Invoices() {
                   <tr>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Invoice #</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Program Group</th>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Provider</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Date</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Total</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Paid</th>
@@ -167,6 +179,7 @@ export default function Invoices() {
                     <tr key={invoice.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                       <td className="p-4 font-medium text-slate-900">{invoice.invoice_number || '-'}</td>
                       <td className="p-4 text-slate-600">{invoice.program_group}</td>
+                      <td className="p-4 text-slate-900">{invoice.provider?.full_name || '-'}</td>
                       <td className="p-4 text-slate-600">
                         {format(parseISO(invoice.invoice_date), 'MMM d, yyyy')}
                       </td>
