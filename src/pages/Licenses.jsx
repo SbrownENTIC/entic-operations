@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, AlertTriangle } from "lucide-react";
+import { Plus, Search, AlertTriangle, Pencil } from "lucide-react";
 import { differenceInDays, format, parseISO } from "date-fns";
 import LicenseForm from "../components/licenses/LicenseForm";
 
@@ -26,7 +26,17 @@ export default function Licenses() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.License.create(data),
+    mutationFn: async (data) => {
+      // Generate internal license number
+      const sameLicenseType = licenses.filter(l => l.license_type === data.license_type);
+      const nextId = sameLicenseType.length + 1;
+      const internalNumber = `${data.license_type}-${String(nextId).padStart(3, '0')}`;
+      
+      return base44.entities.License.create({
+        ...data,
+        internal_license_number: internalNumber
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['licenses'] });
       setShowForm(false);
@@ -59,7 +69,7 @@ export default function Licenses() {
           await base44.integrations.Core.SendEmail({
             to: provider.email,
             subject: `License Expiration Reminder - 30 Days`,
-            body: `Dear ${provider.full_name},\n\nThis is a reminder that your ${license.license_type} license (Generic #: ${license.generic_license_number}) will expire in 30 days on ${format(parseISO(license.expiration_date), 'MMMM d, yyyy')}.\n\nPlease take action to renew your license.\n\nBest regards,\nMedPractice Management`
+            body: `Dear ${provider.full_name},\n\nThis is a reminder that your ${license.license_type} license (Internal #: ${license.internal_license_number}) will expire in 30 days on ${format(parseISO(license.expiration_date), 'MMMM d, yyyy')}.\n\nPlease take action to renew your license.\n\nBest regards,\nMedPractice Management`
           });
           await base44.entities.License.update(license.id, { reminder_30_sent: true });
         }
@@ -69,7 +79,7 @@ export default function Licenses() {
           await base44.integrations.Core.SendEmail({
             to: provider.email,
             subject: `License Expiration Reminder - 14 Days`,
-            body: `Dear ${provider.full_name},\n\nThis is a reminder that your ${license.license_type} license (Generic #: ${license.generic_license_number}) will expire in 14 days on ${format(parseISO(license.expiration_date), 'MMMM d, yyyy')}.\n\nPlease take immediate action to renew your license.\n\nBest regards,\nMedPractice Management`
+            body: `Dear ${provider.full_name},\n\nThis is a reminder that your ${license.license_type} license (Internal #: ${license.internal_license_number}) will expire in 14 days on ${format(parseISO(license.expiration_date), 'MMMM d, yyyy')}.\n\nPlease take immediate action to renew your license.\n\nBest regards,\nMedPractice Management`
           });
           await base44.entities.License.update(license.id, { reminder_14_sent: true });
         }
@@ -79,7 +89,7 @@ export default function Licenses() {
           await base44.integrations.Core.SendEmail({
             to: provider.email,
             subject: `URGENT: License Expiration Reminder - 7 Days`,
-            body: `Dear ${provider.full_name},\n\nURGENT: Your ${license.license_type} license (Generic #: ${license.generic_license_number}) will expire in 7 days on ${format(parseISO(license.expiration_date), 'MMMM d, yyyy')}.\n\nPlease renew your license immediately to avoid any disruptions.\n\nBest regards,\nMedPractice Management`
+            body: `Dear ${provider.full_name},\n\nURGENT: Your ${license.license_type} license (Internal #: ${license.internal_license_number}) will expire in 7 days on ${format(parseISO(license.expiration_date), 'MMMM d, yyyy')}.\n\nPlease renew your license immediately to avoid any disruptions.\n\nBest regards,\nMedPractice Management`
           });
           await base44.entities.License.update(license.id, { reminder_7_sent: true });
         }
@@ -108,7 +118,7 @@ export default function Licenses() {
   const filteredLicenses = licensesWithProviders.filter(license =>
     license.provider?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     license.license_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    license.generic_license_number?.toLowerCase().includes(searchTerm.toLowerCase())
+    license.internal_license_number?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -163,11 +173,12 @@ export default function Licenses() {
                   <tr>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Provider</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">License Type</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Generic #</th>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Internal #</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">State</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Expiration</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Status</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Days Until</th>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Status</th>
+                    <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -180,11 +191,27 @@ export default function Licenses() {
                         <td className="p-4">
                           <p className="font-medium text-slate-900">{license.provider?.full_name}</p>
                         </td>
-                        <td className="p-4 text-slate-600">{license.license_type}</td>
-                        <td className="p-4 text-slate-600 font-mono text-sm">{license.generic_license_number}</td>
+                        <td className="p-4">
+                          <Badge variant="outline" className="font-mono">
+                            {license.license_type}
+                          </Badge>
+                        </td>
+                        <td className="p-4 text-slate-600 font-mono text-sm">{license.internal_license_number}</td>
                         <td className="p-4 text-slate-600">{license.issuing_state || '-'}</td>
                         <td className="p-4 text-slate-600">
                           {format(parseISO(license.expiration_date), 'MMM d, yyyy')}
+                        </td>
+                        <td className="p-4">
+                          {isExpired ? (
+                            <span className="text-red-600 font-medium flex items-center gap-1">
+                              <AlertTriangle className="w-4 h-4" />
+                              Expired
+                            </span>
+                          ) : isExpiringSoon ? (
+                            <span className="text-orange-600 font-semibold">{license.daysUntilExpiration} days</span>
+                          ) : (
+                            <span className="text-slate-600 font-medium">{license.daysUntilExpiration} days</span>
+                          )}
                         </td>
                         <td className="p-4">
                           <Badge 
@@ -194,17 +221,17 @@ export default function Licenses() {
                             {isExpired ? 'Expired' : isExpiringSoon ? 'Expiring Soon' : 'Active'}
                           </Badge>
                         </td>
-                        <td className="p-4">
-                          {isExpired ? (
-                            <span className="text-red-600 font-medium flex items-center gap-1">
-                              <AlertTriangle className="w-4 h-4" />
-                              Expired
-                            </span>
-                          ) : isExpiringSoon ? (
-                            <span className="text-orange-600 font-medium">{license.daysUntilExpiration} days</span>
-                          ) : (
-                            <span className="text-slate-600">{license.daysUntilExpiration} days</span>
-                          )}
+                        <td className="p-4 text-right">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                              setEditingLicense(license);
+                              setShowForm(true);
+                            }}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
                         </td>
                       </tr>
                     );

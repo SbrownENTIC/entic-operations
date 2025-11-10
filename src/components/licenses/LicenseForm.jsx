@@ -10,16 +10,12 @@ import { X } from "lucide-react";
 export default function LicenseForm({ license, providers, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = useState({
     provider_id: '',
-    license_type: 'Medical',
-    generic_license_number: '',
+    license_type: 'MED',
     issuing_state: '',
     issue_date: '',
     expiration_date: '',
     status: 'active',
     document_url: '',
-    reminder_30_sent: false,
-    reminder_14_sent: false,
-    reminder_7_sent: false,
     notes: ''
   });
 
@@ -70,24 +66,24 @@ export default function LicenseForm({ license, providers, onSubmit, onCancel, is
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Medical">Medical</SelectItem>
-                  <SelectItem value="Audiology">Audiology</SelectItem>
-                  <SelectItem value="Controlled Substance">Controlled Substance</SelectItem>
-                  <SelectItem value="DEA">DEA</SelectItem>
+                  <SelectItem value="MED">MED - Medical License</SelectItem>
+                  <SelectItem value="PA">PA - Physician Assistant</SelectItem>
+                  <SelectItem value="AUD">AUD - Audiology</SelectItem>
+                  <SelectItem value="APRN">APRN - Advanced Practice RN</SelectItem>
+                  <SelectItem value="DEA">DEA - Drug Enforcement</SelectItem>
+                  <SelectItem value="CSP">CSP - Controlled Substance</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="generic_license_number">Generic License Number *</Label>
-              <Input
-                id="generic_license_number"
-                value={formData.generic_license_number}
-                onChange={(e) => setFormData({ ...formData, generic_license_number: e.target.value })}
-                placeholder="e.g., GEN-2024-001"
-                required
-              />
-            </div>
+            {license && (
+              <div className="space-y-2">
+                <Label>Internal License Number</Label>
+                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 font-mono text-sm">
+                  {license.internal_license_number}
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="issuing_state">Issuing State</Label>
@@ -95,7 +91,6 @@ export default function LicenseForm({ license, providers, onSubmit, onCancel, is
                 id="issuing_state"
                 value={formData.issuing_state}
                 onChange={(e) => setFormData({ ...formData, issuing_state: e.target.value })}
-                placeholder="e.g., CA, NY"
               />
             </div>
 
@@ -134,13 +129,14 @@ export default function LicenseForm({ license, providers, onSubmit, onCancel, is
               </Select>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 md:col-span-2">
               <Label htmlFor="document_url">Document URL</Label>
               <Input
                 id="document_url"
+                type="url"
+                placeholder="https://..."
                 value={formData.document_url}
                 onChange={(e) => setFormData({ ...formData, document_url: e.target.value })}
-                placeholder="https://..."
               />
             </div>
 

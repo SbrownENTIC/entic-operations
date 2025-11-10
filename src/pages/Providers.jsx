@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, Check, X as XIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import ProviderForm from "../components/providers/ProviderForm";
@@ -69,8 +69,10 @@ export default function Providers() {
   const filteredProviders = providers.filter(provider =>
     provider.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     provider.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    provider.specialty?.toLowerCase().includes(searchTerm.toLowerCase())
+    provider.role?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const currentYear = new Date().getFullYear();
 
   return (
     <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
@@ -124,62 +126,79 @@ export default function Providers() {
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Name</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Email</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Phone</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Specialty</th>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Role</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Status</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Flu Vaccine</th>
                     <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredProviders.map((provider) => (
-                    <tr key={provider.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                      <td className="p-4">
-                        <p className="font-medium text-slate-900">{provider.full_name}</p>
-                      </td>
-                      <td className="p-4 text-slate-600">{provider.email}</td>
-                      <td className="p-4 text-slate-600">{provider.phone || '-'}</td>
-                      <td className="p-4 text-slate-600">{provider.specialty || '-'}</td>
-                      <td className="p-4">
-                        <Badge variant={provider.status === 'active' ? 'default' : 'secondary'}>
-                          {provider.status}
-                        </Badge>
-                      </td>
-                      <td className="p-4">
-                        {provider.flu_vaccine_year === new Date().getFullYear() ? (
-                          <Badge className="bg-green-100 text-green-800">✓ {provider.flu_vaccine_year}</Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-slate-500">-</Badge>
-                        )}
-                      </td>
-                      <td className="p-4 text-right">
-                        <div className="flex gap-2 justify-end">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => {
-                              setEditingProvider(provider);
-                              setShowForm(true);
-                            }}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Link to={createPageUrl(`ProviderDetail?id=${provider.id}`)}>
-                            <Button variant="ghost" size="sm">
-                              <Eye className="w-4 h-4" />
+                  {filteredProviders.map((provider) => {
+                    const showFluVaccine = provider.role === 'ENT DM';
+                    const fluVaccineCurrent = provider.flu_vaccine_year === currentYear;
+                    
+                    return (
+                      <tr key={provider.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td className="p-4">
+                          <p className="font-medium text-slate-900">{provider.full_name}</p>
+                        </td>
+                        <td className="p-4 text-slate-600">{provider.email}</td>
+                        <td className="p-4 text-slate-600">{provider.phone || '-'}</td>
+                        <td className="p-4 text-slate-600">{provider.role || '-'}</td>
+                        <td className="p-4">
+                          <Badge variant={provider.status === 'active' ? 'default' : 'secondary'}>
+                            {provider.status}
+                          </Badge>
+                        </td>
+                        <td className="p-4">
+                          {showFluVaccine ? (
+                            <div className="flex items-center gap-2">
+                              {fluVaccineCurrent && provider.flu_vaccine_date ? (
+                                <>
+                                  <Check className="w-5 h-5 text-green-600" />
+                                  <span className="text-sm text-slate-700">{provider.flu_vaccine_date}</span>
+                                </>
+                              ) : (
+                                <>
+                                  <XIcon className="w-5 h-5 text-red-600" />
+                                  <span className="text-sm text-slate-500">Not current</span>
+                                </>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-sm text-slate-400">N/A</span>
+                          )}
+                        </td>
+                        <td className="p-4 text-right">
+                          <div className="flex gap-2 justify-end">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                setEditingProvider(provider);
+                                setShowForm(true);
+                              }}
+                            >
+                              <Pencil className="w-4 h-4" />
                             </Button>
-                          </Link>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => setDeleteConfirm(provider)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            <Link to={createPageUrl(`ProviderDetail?id=${provider.id}`)}>
+                              <Button variant="ghost" size="sm">
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                            </Link>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => setDeleteConfirm(provider)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
               {filteredProviders.length === 0 && (
