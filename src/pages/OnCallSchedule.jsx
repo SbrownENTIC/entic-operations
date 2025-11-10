@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
-import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, addMonths, subMonths, isSameDay, startOfWeek, endOfWeek, startOfDay, isAfter } from "date-fns";
+import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, addMonths, subMonths, isSameDay, startOfWeek, endOfWeek, startOfDay, addDays } from "date-fns";
 import OnCallForm from "../components/oncall/OnCallForm";
 
 const PROVIDER_COLORS = [
@@ -95,10 +95,24 @@ export default function OnCallSchedule() {
 
   const getSchedulesForDay = (day) => {
     const dayStart = startOfDay(day);
+    
     return schedulesWithProviders.filter(schedule => {
       const start = startOfDay(parseISO(schedule.start_date));
-      const end = startOfDay(parseISO(schedule.end_date));
-      return dayStart >= start && dayStart <= end;
+      const endDate = startOfDay(parseISO(schedule.end_date));
+      
+      // Determine the last active day for the schedule
+      // If end_time is something other than midnight (like 08:00), 
+      // the shift ends BEFORE the full end_date day
+      let lastActiveDay = endDate;
+      
+      // Check if end_time is not midnight (00:00)
+      if (schedule.end_time && schedule.end_time !== '00:00' && schedule.end_time !== '12:00 AM') {
+        // The shift ends during the end_date, so the last full active day is the day before
+        lastActiveDay = addDays(endDate, -1);
+      }
+      
+      // Check if this day falls within the active range
+      return dayStart >= start && dayStart <= lastActiveDay;
     });
   };
 
@@ -123,22 +137,22 @@ export default function OnCallSchedule() {
 
   const getScheduleSpan = (schedule, day, weekDays) => {
     const scheduleStart = startOfDay(parseISO(schedule.start_date));
-    const scheduleEnd = startOfDay(parseISO(schedule.end_date));
+    const endDate = startOfDay(parseISO(schedule.end_date));
     const dayStart = startOfDay(day);
     
-    const dayIndex = weekDays.findIndex(d => isSameDay(d, day));
-    
-    // If the schedule starts and ends on the same day, only span 1 day
-    if (isSameDay(scheduleStart, scheduleEnd)) {
-      return 1;
+    // Determine the last active day
+    let lastActiveDay = endDate;
+    if (schedule.end_time && schedule.end_time !== '00:00' && schedule.end_time !== '12:00 AM') {
+      lastActiveDay = addDays(endDate, -1);
     }
     
+    const dayIndex = weekDays.findIndex(d => isSameDay(d, day));
     let span = 0;
     
     // Count consecutive days from this day forward within the week that the schedule covers
     for (let i = dayIndex; i < weekDays.length; i++) {
       const currentDay = startOfDay(weekDays[i]);
-      if (currentDay >= scheduleStart && currentDay <= scheduleEnd) {
+      if (currentDay >= scheduleStart && currentDay <= lastActiveDay) {
         span++;
       } else {
         break; // Stop if we hit a day not covered by the schedule
