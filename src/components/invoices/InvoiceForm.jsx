@@ -206,11 +206,36 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
           [type === 'draft' ? 'draft_invoice_url' : 'approved_invoice_url']: file_url
         };
         
-        // For UConn invoices, auto-update status based on upload type
+        // Auto-update status based on program group and upload type
         if (prev.program_group === 'UConn') {
+          // UConn logic (existing)
           if (type === 'draft') {
             updates.status = 'draft';
           } else if (type === 'approved') {
+            updates.status = 'sent_to_vendor';
+            updates.sent_to_vendor_at = new Date().toISOString();
+            updates.invoice_sent_to_vendor = true;
+          }
+        } else if (prev.program_group === 'St. Francis') {
+          // St. Francis: Draft invoice → Sent to Vendor
+          if (type === 'draft') {
+            updates.status = 'sent_to_vendor';
+            updates.sent_to_vendor_at = new Date().toISOString();
+            updates.invoice_sent_to_vendor = true;
+          } else if (type === 'approved') {
+            updates.status = 'sent_to_vendor';
+            updates.sent_to_vendor_at = new Date().toISOString();
+            updates.invoice_sent_to_vendor = true;
+          }
+        } else {
+          // Other program groups (NOT UConn or St. Francis)
+          if (type === 'draft' && !prev.approved_invoice_url) {
+            // Draft only (no approved invoice) → Sent for Approval
+            updates.status = 'sent_for_approval';
+            updates.sent_for_approval_at = new Date().toISOString();
+            updates.invoice_sent_for_approval = true;
+          } else if (type === 'approved') {
+            // Approved invoice → Sent to Vendor
             updates.status = 'sent_to_vendor';
             updates.sent_to_vendor_at = new Date().toISOString();
             updates.invoice_sent_to_vendor = true;
@@ -475,6 +500,16 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                   Uploading will auto-update status to "Draft"
                 </p>
               )}
+              {formData.program_group === 'St. Francis' && (
+                <p className="text-xs text-slate-500">
+                  Uploading will auto-update status to "Sent to Vendor"
+                </p>
+              )}
+              {formData.program_group && formData.program_group !== 'UConn' && formData.program_group !== 'St. Francis' && (
+                <p className="text-xs text-slate-500">
+                  Uploading will auto-update status to "Sent for Approval"
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -495,11 +530,9 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                   </Button>
                 )}
               </div>
-              {formData.program_group === 'UConn' && (
-                <p className="text-xs text-slate-500">
-                  Uploading will auto-update status to "Sent to Vendor" with timestamp
-                </p>
-              )}
+              <p className="text-xs text-slate-500">
+                Uploading will auto-update status to "Sent to Vendor"
+              </p>
             </div>
           </div>
 
