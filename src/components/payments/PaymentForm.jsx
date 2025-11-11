@@ -108,12 +108,17 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
 
             <div className="space-y-2">
               <Label htmlFor="payer">Payer *</Label>
-              <Input
-                id="payer"
-                value={formData.payer}
-                onChange={(e) => setFormData({ ...formData, payer: e.target.value })}
-                required
-              />
+              <Select value={formData.payer} onValueChange={(value) => setFormData({ ...formData, payer: value })} required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select payer" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="St. Francis">St. Francis</SelectItem>
+                  <SelectItem value="UConn">UConn</SelectItem>
+                  <SelectItem value="Manchester / ECHN">Manchester / ECHN</SelectItem>
+                  <SelectItem value="Hartford Hospital">Hartford Hospital</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
