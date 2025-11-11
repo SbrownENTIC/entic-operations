@@ -85,8 +85,8 @@ export default function Dashboard() {
     return daysSinceSent > 30 && inv.status !== 'paid_to_entic' && inv.status !== 'provider_paid';
   }).length;
 
-  // CME compliance for doctors
-  const doctors = providers.filter(p => p.role === 'ENT DM' && p.status === 'active');
+  // CME compliance for doctors - Filter by ENT MD role
+  const doctors = providers.filter(p => p.role === 'ENT MD' && p.status === 'active');
   const cmeByProvider = {};
   cmeRecords.forEach(record => {
     if (!cmeByProvider[record.provider_id]) {
