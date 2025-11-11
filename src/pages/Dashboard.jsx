@@ -40,6 +40,10 @@ export default function Dashboard() {
 
   // License expiration tracking
   const today = new Date();
+  const licensesExpiring90Days = licenses.filter(l => {
+    const days = differenceInDays(parseISO(l.expiration_date), today);
+    return days > 0 && days <= 90;
+  });
   const licensesExpiring60Days = licenses.filter(l => {
     const days = differenceInDays(parseISO(l.expiration_date), today);
     return days > 0 && days <= 60;
@@ -207,30 +211,36 @@ export default function Dashboard() {
         </div>
 
         {/* License Expirations Detail */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <LicenseExpirationCard
-            title="Licenses Expiring in 7 Days"
+            title="Expiring in 7 Days"
             licenses={licensesExpiring7Days}
             providers={providers}
             severity="high"
           />
           <LicenseExpirationCard
-            title="Licenses Expiring in 14 Days"
+            title="Expiring in 14 Days"
             licenses={licensesExpiring14Days}
             providers={providers}
             severity="medium"
           />
           <LicenseExpirationCard
-            title="Licenses Expiring in 30 Days"
+            title="Expiring in 30 Days"
             licenses={licensesExpiring30Days}
             providers={providers}
             severity="low"
           />
           <LicenseExpirationCard
-            title="Licenses Expiring in 60 Days"
+            title="Expiring in 60 Days"
             licenses={licensesExpiring60Days}
             providers={providers}
             severity="info"
+          />
+          <LicenseExpirationCard
+            title="Expiring in 90 Days"
+            licenses={licensesExpiring90Days}
+            providers={providers}
+            severity="light"
           />
         </div>
 
@@ -312,50 +322,58 @@ function LicenseExpirationCard({ title, licenses, providers, severity }) {
     high: 'border-red-200 bg-red-50',
     medium: 'border-orange-200 bg-orange-50',
     low: 'border-yellow-200 bg-yellow-50',
-    info: 'border-blue-200 bg-blue-50'
+    info: 'border-blue-200 bg-blue-50',
+    light: 'border-slate-200 bg-slate-50'
   };
 
   return (
     <Card className={`border shadow-sm ${severityColors[severity]}`}>
       <CardHeader className="border-b border-slate-100 bg-white">
         <div className="flex items-center gap-2">
-          <AlertTriangle className={`w-5 h-5 ${
+          <AlertTriangle className={`w-4 h-4 ${
             severity === 'high' ? 'text-red-600' : 
             severity === 'medium' ? 'text-orange-600' : 
             severity === 'low' ? 'text-yellow-600' :
-            'text-blue-600'
+            severity === 'info' ? 'text-blue-600' :
+            'text-slate-600'
           }`} />
-          <CardTitle className="text-lg">{title}</CardTitle>
+          <CardTitle className="text-sm">{title}</CardTitle>
         </div>
       </CardHeader>
       <CardContent className="p-4 bg-white">
         {licenses.length > 0 ? (
-          <div className="space-y-3">
-            {licenses.map(license => {
+          <div className="space-y-2">
+            {licenses.slice(0, 3).map(license => {
               const provider = providers.find(p => p.id === license.provider_id);
               const daysUntil = differenceInDays(parseISO(license.expiration_date), new Date());
               return (
-                <div key={license.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
-                  <div className="flex-1">
-                    <p className="font-medium text-slate-900">{provider?.full_name}</p>
-                    <p className="text-sm text-slate-600">
-                      {license.license_type} - Expires {format(parseISO(license.expiration_date), 'MMM d, yyyy')}
+                <div key={license.id} className="flex items-center justify-between p-2 bg-slate-50 rounded border border-slate-200">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-slate-900 text-sm truncate">{provider?.full_name}</p>
+                    <p className="text-xs text-slate-600">
+                      {license.license_type}
                     </p>
                   </div>
-                  <Badge variant="outline" className={`${
+                  <Badge variant="outline" className={`text-xs ml-2 ${
                     daysUntil <= 7 ? 'border-red-300 text-red-700' : 
                     daysUntil <= 14 ? 'border-orange-300 text-orange-700' : 
                     daysUntil <= 30 ? 'border-yellow-300 text-yellow-700' :
-                    'border-blue-300 text-blue-700'
+                    daysUntil <= 60 ? 'border-blue-300 text-blue-700' :
+                    'border-slate-300 text-slate-700'
                   }`}>
-                    {daysUntil} days
+                    {daysUntil}d
                   </Badge>
                 </div>
               );
             })}
+            {licenses.length > 3 && (
+              <p className="text-xs text-slate-500 text-center pt-1">
+                +{licenses.length - 3} more
+              </p>
+            )}
           </div>
         ) : (
-          <p className="text-center py-4 text-slate-500">No licenses expiring in this period</p>
+          <p className="text-center py-4 text-slate-500 text-sm">None expiring</p>
         )}
       </CardContent>
     </Card>
