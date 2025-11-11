@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -157,29 +158,30 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
         amount_expected: prev.amount_expected - (income?.total_amount || 0)
       }));
     } else {
-      // When adding income, auto-update program group and staff member if not set
-      let updates = {
-        outside_income_ids: [...prev.outside_income_ids, incomeId],
-        days_worked: prev.days_worked + (income?.days_worked || 0),
-        subtotal: prev.subtotal + (income?.total_amount || 0),
-        total: prev.total + (income?.total_amount || 0),
-        amount_expected: prev.amount_expected + (income?.total_amount || 0)
-      };
-      
-      // Auto-set program group and staff member from first selected income
-      if (formData.outside_income_ids.length === 0) {
-        if (income?.program_location_id) {
-          const programLocation = programLocations.find(pl => pl.id === income.program_location_id);
-          if (programLocation) {
-            updates.program_group = programLocation.program_group || '';
+      setFormData(prev => {
+        // When adding income, auto-update program group and staff member if not set
+        let updates = {
+          outside_income_ids: [...prev.outside_income_ids, incomeId],
+          days_worked: prev.days_worked + (income?.days_worked || 0),
+          subtotal: prev.subtotal + (income?.total_amount || 0),
+          total: prev.total + (income?.total_amount || 0),
+          amount_expected: prev.amount_expected + (income?.total_amount || 0)
+        };
+        
+        // Auto-set program group and staff member from first selected income
+        if (prev.outside_income_ids.length === 0) { // Only auto-set if no incomes were previously selected
+          if (income?.program_location_id) {
+            const programLocation = programLocations.find(pl => pl.id === income.program_location_id);
+            if (programLocation) {
+              updates.program_group = programLocation.program_group || '';
+            }
+          }
+          if (income?.provider_id) {
+            updates.staff_member_id = income.provider_id;
           }
         }
-        if (income?.provider_id) {
-          updates.staff_member_id = income.provider_id;
-        }
-      }
-      
-      setFormData(prev => ({ ...prev, ...updates }));
+        return { ...prev, ...updates };
+      });
     }
   };
 
@@ -475,21 +477,34 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
           {pendingIncomes.length > 0 && (
             <div className="space-y-3">
               <Label>Outside Income Records</Label>
-              <div className="border border-slate-200 rounded-lg p-4 max-h-64 overflow-y-auto space-y-2">
+              <div className="border border-slate-200 rounded-lg p-4 max-h-96 overflow-y-auto space-y-2">
                 {pendingIncomes.map(income => {
                   const provider = providers.find(p => p.id === income.provider_id);
                   return (
-                    <div key={income.id} className="flex items-center space-x-2 p-2 hover:bg-slate-50 rounded">
+                    <div key={income.id} className="flex items-start space-x-2 p-3 hover:bg-slate-50 rounded border border-slate-100">
                       <Checkbox
                         id={income.id}
                         checked={formData.outside_income_ids.includes(income.id)}
                         onCheckedChange={() => toggleIncome(income.id)}
+                        className="mt-1"
                       />
                       <label htmlFor={income.id} className="flex-1 text-sm cursor-pointer">
-                        <div className="font-medium">{provider?.full_name}</div>
-                        <div className="text-slate-500">
+                        <div className="font-medium text-slate-900">{provider?.full_name}</div>
+                        <div className="text-slate-600">
                           {income.facility_name} - {income.days_worked} days - ${income.total_amount?.toFixed(2)}
                         </div>
+                        {income.work_dates && income.work_dates.length > 0 && (
+                          <div className="mt-2 text-xs text-slate-500">
+                            <span className="font-medium">Dates worked:</span>
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {income.work_dates.map((date, idx) => (
+                                <span key={idx} className="inline-block bg-slate-100 px-2 py-0.5 rounded">
+                                  {format(parseISO(date), 'MMM d, yyyy')}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </label>
                     </div>
                   );
