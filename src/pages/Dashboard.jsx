@@ -303,6 +303,21 @@ export default function Dashboard() {
         {/* Financial Overview - Total */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card 
+            className="border-slate-200 shadow-sm bg-gradient-to-br from-orange-50 to-white cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={() => openFinancialDetail('outstanding')}
+          >
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-slate-600">Outstanding to ENTIC</CardTitle>
+              <Clock className="w-5 h-5 text-orange-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-orange-700">{formatCurrency(outstandingToENTIC)}</div>
+              <p className="text-xs text-slate-500 mt-1">Awaiting payment from clients</p>
+              <p className="text-xs text-blue-600 mt-2 hover:underline">Click to view details →</p>
+            </CardContent>
+          </Card>
+
+          <Card 
             className="border-slate-200 shadow-sm bg-gradient-to-br from-green-50 to-white cursor-pointer hover:shadow-lg transition-shadow"
             onClick={() => openFinancialDetail('paidToENTIC')}
           >
@@ -331,21 +346,6 @@ export default function Dashboard() {
               <p className="text-xs text-blue-600 mt-2 hover:underline">Click to view details →</p>
             </CardContent>
           </Card>
-
-          <Card 
-            className="border-slate-200 shadow-sm bg-gradient-to-br from-orange-50 to-white cursor-pointer hover:shadow-lg transition-shadow"
-            onClick={() => openFinancialDetail('outstanding')}
-          >
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Outstanding to ENTIC</CardTitle>
-              <Clock className="w-5 h-5 text-orange-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-orange-700">{formatCurrency(outstandingToENTIC)}</div>
-              <p className="text-xs text-slate-500 mt-1">Awaiting payment from clients</p>
-              <p className="text-xs text-blue-600 mt-2 hover:underline">Click to view details →</p>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Financial Overview by Program/Location */}
@@ -365,9 +365,9 @@ export default function Dashboard() {
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Program/Location</th>
+                    <th className="text-right p-4 text-sm font-semibold text-slate-700">Outstanding to ENTIC</th>
                     <th className="text-right p-4 text-sm font-semibold text-slate-700">Paid to ENTIC</th>
                     <th className="text-right p-4 text-sm font-semibold text-slate-700">Owed to Providers</th>
-                    <th className="text-right p-4 text-sm font-semibold text-slate-700">Outstanding to ENTIC</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -376,6 +376,12 @@ export default function Dashboard() {
                     return (
                       <tr key={program} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                         <td className="p-4 font-medium text-slate-900">{program}</td>
+                        <td 
+                          className="p-4 text-right font-medium text-orange-700 cursor-pointer hover:underline"
+                          onClick={() => openFinancialDetail('outstanding', program)}
+                        >
+                          {formatCurrency(data.outstanding)}
+                        </td>
                         <td 
                           className="p-4 text-right font-medium text-green-700 cursor-pointer hover:underline"
                           onClick={() => openFinancialDetail('paidToENTIC', program)}
@@ -388,12 +394,6 @@ export default function Dashboard() {
                         >
                           {formatCurrency(data.owedToProviders)}
                         </td>
-                        <td 
-                          className="p-4 text-right font-medium text-orange-700 cursor-pointer hover:underline"
-                          onClick={() => openFinancialDetail('outstanding', program)}
-                        >
-                          {formatCurrency(data.outstanding)}
-                        </td>
                       </tr>
                     );
                   })}
@@ -401,6 +401,12 @@ export default function Dashboard() {
                 <tfoot className="bg-slate-50 border-t-2 border-slate-300">
                   <tr>
                     <td className="p-4 font-bold text-slate-900">Total</td>
+                    <td 
+                      className="p-4 text-right font-bold text-orange-700 cursor-pointer hover:underline"
+                      onClick={() => openFinancialDetail('outstanding')}
+                    >
+                      {formatCurrency(outstandingToENTIC)}
+                    </td>
                     <td 
                       className="p-4 text-right font-bold text-green-700 cursor-pointer hover:underline"
                       onClick={() => openFinancialDetail('paidToENTIC')}
@@ -412,12 +418,6 @@ export default function Dashboard() {
                       onClick={() => openFinancialDetail('owedToProviders')}
                     >
                       {formatCurrency(totalOwedToProviders)}
-                    </td>
-                    <td 
-                      className="p-4 text-right font-bold text-orange-700 cursor-pointer hover:underline"
-                      onClick={() => openFinancialDetail('outstanding')}
-                    >
-                      {formatCurrency(outstandingToENTIC)}
                     </td>
                   </tr>
                 </tfoot>
