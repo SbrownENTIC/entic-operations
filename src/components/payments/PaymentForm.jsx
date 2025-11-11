@@ -10,7 +10,7 @@ import { X, Plus, Trash2 } from "lucide-react";
 export default function PaymentForm({ payment, invoices, providers, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = useState({
     payment_date: '',
-    amount: 0,
+    total_amount: 0,
     payment_method: 'check',
     reference_number: '',
     payer: '',
@@ -68,7 +68,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
   };
 
   const totalAllocated = formData.allocations.reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
-  const unallocated = (formData.amount || 0) - totalAllocated;
+  const unallocated = (formData.total_amount || 0) - totalAllocated;
 
   return (
     <Card className="border-slate-200 shadow-sm">
@@ -95,13 +95,13 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="amount">Total Amount *</Label>
+              <Label htmlFor="total_amount">Total Amount *</Label>
               <Input
-                id="amount"
+                id="total_amount"
                 type="number"
                 step="0.01"
-                value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) })}
+                value={formData.total_amount}
+                onChange={(e) => setFormData({ ...formData, total_amount: parseFloat(e.target.value) })}
                 required
               />
             </div>
