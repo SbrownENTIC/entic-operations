@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -6,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Pencil, Trash2, DollarSign } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, DollarSign, Download } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import PaymentForm from "../components/payments/PaymentForm";
 import PaymentDetailModal from "../components/payments/PaymentDetailModal";
@@ -201,6 +200,74 @@ export default function Payments() {
     }
   };
 
+  // Export allocations to CSV
+  const exportAllocations = () => {
+    // Build CSV data with provider names
+    const rows = [];
+    rows.push(['Payment Date', 'Payer', 'Payment Method', 'Reference Number', 'Payment Total', 'Payment Status', 'Invoice Number', 'Program Group', 'Provider Name', 'Allocation Amount', 'Allocation Notes']);
+    
+    payments.forEach(payment => {
+      if (payment.allocations && payment.allocations.length > 0) {
+        payment.allocations.forEach(allocation => {
+          const invoice = invoices.find(inv => inv.id === allocation.invoice_id);
+          const provider = providers.find(p => p.id === allocation.provider_id);
+          
+          rows.push([
+            format(parseISO(payment.payment_date), 'yyyy-MM-dd'),
+            payment.payer || '',
+            payment.payment_method || '',
+            payment.reference_number || '',
+            payment.total_amount || 0,
+            payment.status || '',
+            invoice?.invoice_number || '',
+            invoice?.program_group || '',
+            provider?.full_name || '',
+            allocation.amount || 0,
+            allocation.notes || ''
+          ]);
+        });
+      } else {
+        // Payment with no allocations
+        rows.push([
+          format(parseISO(payment.payment_date), 'yyyy-MM-dd'),
+          payment.payer || '',
+          payment.payment_method || '',
+          payment.reference_number || '',
+          payment.total_amount || 0,
+          payment.status || '',
+          '',
+          '',
+          '',
+          '',
+          ''
+        ]);
+      }
+    });
+    
+    // Convert to CSV string
+    const csvContent = rows.map(row => 
+      row.map(cell => {
+        const cellStr = String(cell);
+        // Escape quotes and wrap in quotes if contains comma, quote, or newline
+        if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+          return '"' + cellStr.replace(/"/g, '""') + '"';
+        }
+        return cellStr;
+      }).join(',')
+    ).join('\n');
+    
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `payment_allocations_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Format currency with commas
   const formatCurrency = (amount) => {
     return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -229,16 +296,26 @@ export default function Payments() {
             <h1 className="text-3xl font-bold text-slate-900">Payments</h1>
             <p className="text-slate-600 mt-1">Track and allocate payments to invoices</p>
           </div>
-          <Button
-            onClick={() => {
-              setEditingPayment(null);
-              setShowForm(true);
-            }}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Record Payment
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              onClick={exportAllocations}
+              variant="outline"
+              className="border-blue-600 text-blue-600 hover:bg-blue-50"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Export Allocations
+            </Button>
+            <Button
+              onClick={() => {
+                setEditingPayment(null);
+                setShowForm(true);
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Record Payment
+            </Button>
+          </div>
         </div>
 
         {/* Total Payments Summary Card */}
