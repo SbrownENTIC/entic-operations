@@ -80,7 +80,14 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
   const handleSubmit = (e) => {
     e.preventDefault();
     const cleanedDates = formData.work_dates.filter(d => d);
-    onSubmit({ ...formData, work_dates: cleanedDates });
+    
+    // For Hartford Hospital, work_dates are optional
+    const submissionData = { 
+      ...formData, 
+      work_dates: cleanedDates.length > 0 ? cleanedDates : []
+    };
+    
+    onSubmit(submissionData);
   };
 
   const addWorkDate = () => {
@@ -222,7 +229,10 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
 
           <div>
             <div className="flex items-center justify-between mb-3">
-              <Label>Work Dates *</Label>
+              <Label>
+                Work Dates {!isHartfordHospital && '*'}
+                {isHartfordHospital && <span className="text-xs text-slate-500 font-normal ml-2">(Optional for Hartford Hospital)</span>}
+              </Label>
               <Button type="button" variant="outline" size="sm" onClick={addWorkDate}>
                 <Plus className="w-4 h-4 mr-2" />
                 Add Date
@@ -236,6 +246,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
                     value={date}
                     onChange={(e) => updateWorkDate(index, e.target.value)}
                     className="flex-1"
+                    required={!isHartfordHospital && index === 0}
                   />
                   {formData.work_dates.length > 1 && (
                     <Button type="button" variant="ghost" size="icon" onClick={() => removeWorkDate(index)}>
