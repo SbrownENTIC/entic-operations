@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Search, Pencil, Trash2, FileText, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { parseISO, format } from "date-fns";
 import OutsideIncomeForm from "../components/income/OutsideIncomeForm";
 import {
   AlertDialog,
@@ -104,6 +105,30 @@ export default function OutsideIncome() {
     navigate(`${createPageUrl('Invoices')}?create=true&incomes=${incomeIds}`);
   };
 
+  // Get month from work dates
+  const getWorkMonth = (income) => {
+    if (!income.work_dates || income.work_dates.length === 0) return '-';
+    
+    try {
+      // Get unique months from work dates
+      const months = new Set();
+      income.work_dates.forEach(dateStr => {
+        const date = parseISO(dateStr);
+        months.add(format(date, 'MMM yyyy'));
+      });
+      
+      const monthArray = Array.from(months);
+      if (monthArray.length === 1) {
+        return monthArray[0];
+      } else if (monthArray.length > 1) {
+        return monthArray.join(', ');
+      }
+      return '-';
+    } catch (error) {
+      return '-';
+    }
+  };
+
   // Format currency with commas
   const formatCurrency = (amount) => {
     return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -147,14 +172,16 @@ export default function OutsideIncome() {
       providerName: providers.find(p => p.id === income.provider_id)?.full_name || '',
       isHartfordRVU: isHartfordHospitalRVU(income),
       isDirectorship: isDirectorship(income),
-      programLocation: location
+      programLocation: location,
+      workMonth: getWorkMonth(income)
     };
   });
 
   const filteredIncomes = incomesWithProviders.filter(income =>
     income.provider?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     income.facility_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    income.invoice_month?.toLowerCase().includes(searchTerm.toLowerCase())
+    income.invoice_month?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    income.workMonth?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const sortedIncomes = [...filteredIncomes].sort((a, b) => {
@@ -163,6 +190,9 @@ export default function OutsideIncome() {
     if (sortField === 'providerName') {
       aValue = a.providerName;
       bValue = b.providerName;
+    } else if (sortField === 'workMonth') {
+      aValue = a.workMonth;
+      bValue = b.workMonth;
     } else if (sortField === 'days_worked' || sortField === 'total_rvus' || sortField === 'rate' || sortField === 'total_amount') {
       aValue = a[sortField] || 0;
       bValue = b[sortField] || 0;
@@ -295,6 +325,12 @@ export default function OutsideIncome() {
                       </th>
                       <th 
                         className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                        onClick={() => handleSort('workMonth')}
+                      >
+                        Work Month <SortIcon field="workMonth" />
+                      </th>
+                      <th 
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                         onClick={() => handleSort('days_worked')}
                       >
                         Days/RVUs <SortIcon field="days_worked" />
@@ -341,6 +377,7 @@ export default function OutsideIncome() {
                           {income.provider?.full_name || '-'}
                         </td>
                         <td className="p-4 text-slate-600">{income.facility_name || '-'}</td>
+                        <td className="p-4 text-slate-600 font-medium">{income.workMonth}</td>
                         <td className="p-4 text-slate-600 font-medium">
                           {income.isHartfordRVU ? (
                             <span className="text-blue-600">{formatNumber(income.total_rvus)} RVUs</span>
