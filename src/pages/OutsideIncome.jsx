@@ -32,12 +32,12 @@ export default function OutsideIncome() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const { data: incomes = [] } = useQuery({
+  const { data: incomes = [], isLoading: incomesLoading } = useQuery({
     queryKey: ['outside-income'],
     queryFn: () => base44.entities.OutsideIncome.list('-created_date')
   });
 
-  const { data: providers = [] } = useQuery({
+  const { data: providers = [], isLoading: providersLoading } = useQuery({
     queryKey: ['providers'],
     queryFn: () => base44.entities.Provider.list()
   });
@@ -103,6 +103,17 @@ export default function OutsideIncome() {
   const formatCurrency = (amount) => {
     return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
+
+  // Only process data when both queries have loaded
+  if (incomesLoading || providersLoading) {
+    return (
+      <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center py-12 text-slate-500">Loading...</div>
+        </div>
+      </div>
+    );
+  }
 
   const incomesWithProviders = incomes.map(income => ({
     ...income,
