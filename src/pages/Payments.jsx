@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -42,6 +42,32 @@ export default function Payments() {
     queryKey: ['providers'],
     queryFn: () => base44.entities.Provider.list()
   });
+
+  // Auto-update existing payments with calculated unallocated_amount and status
+  useEffect(() => {
+    const updateExistingPayments = async () => {
+      if (payments.length === 0) return;
+      
+      for (const payment of payments) {
+        const totalAllocated = payment.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
+        const unallocated = (payment.total_amount || 0) - totalAllocated;
+        const newStatus = unallocated === 0 ? 'entic_paid' : payment.status;
+        
+        // Only update if values have changed
+        if (payment.unallocated_amount !== unallocated || (unallocated === 0 && payment.status !== 'entic_paid')) {
+          await base44.entities.Payment.update(payment.id, {
+            unallocated_amount: unallocated,
+            status: newStatus
+          });
+        }
+      }
+      
+      // Refresh the payments list after updates
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+    };
+    
+    updateExistingPayments();
+  }, [payments.length]); // Only run when payments list length changes
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
