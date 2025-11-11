@@ -9,10 +9,18 @@ import { Users, AlertTriangle, Award, FileText, GraduationCap, DollarSign, Check
 import { differenceInDays, parseISO, format } from "date-fns";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import FinancialDetailModal from "../components/dashboard/FinancialDetailModal";
 
 export default function Dashboard() {
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState('');
+  const [modalState, setModalState] = useState({
+    isOpen: false,
+    title: '',
+    invoices: [],
+    type: '',
+    programGroup: null
+  });
 
   const { data: providers = [] } = useQuery({
     queryKey: ['providers'],
@@ -50,6 +58,61 @@ export default function Dashboard() {
     } finally {
       setSyncing(false);
     }
+  };
+
+  const openFinancialDetail = (type, programGroup = null) => {
+    let filteredInvoices = [];
+    let title = '';
+
+    if (type === 'paidToENTIC') {
+      filteredInvoices = invoices.filter(inv => 
+        inv.status === 'paid_to_entic' || inv.status === 'provider_paid'
+      );
+      if (programGroup) {
+        filteredInvoices = filteredInvoices.filter(inv => inv.program_group === programGroup);
+        title = `Paid to ENTIC - ${programGroup}`;
+      } else {
+        title = 'Total Paid to ENTIC';
+      }
+    } else if (type === 'owedToProviders') {
+      filteredInvoices = invoices.filter(inv => 
+        (inv.status === 'paid_to_entic' || inv.status === 'provider_paid') && !inv.provider_paid
+      );
+      if (programGroup) {
+        filteredInvoices = filteredInvoices.filter(inv => inv.program_group === programGroup);
+        title = `Owed to Providers - ${programGroup}`;
+      } else {
+        title = 'Total Owed to Providers';
+      }
+    } else if (type === 'outstanding') {
+      filteredInvoices = invoices.filter(inv => 
+        inv.status !== 'paid_to_entic' && inv.status !== 'provider_paid'
+      );
+      if (programGroup) {
+        filteredInvoices = filteredInvoices.filter(inv => inv.program_group === programGroup);
+        title = `Outstanding to ENTIC - ${programGroup}`;
+      } else {
+        title = 'Total Outstanding to ENTIC';
+      }
+    }
+
+    setModalState({
+      isOpen: true,
+      title,
+      invoices: filteredInvoices,
+      type,
+      programGroup
+    });
+  };
+
+  const closeModal = () => {
+    setModalState({
+      isOpen: false,
+      title: '',
+      invoices: [],
+      type: '',
+      programGroup: null
+    });
   };
 
   // Provider counts
@@ -239,7 +302,10 @@ export default function Dashboard() {
 
         {/* Financial Overview - Total */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="border-slate-200 shadow-sm bg-gradient-to-br from-green-50 to-white">
+          <Card 
+            className="border-slate-200 shadow-sm bg-gradient-to-br from-green-50 to-white cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={() => openFinancialDetail('paidToENTIC')}
+          >
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-slate-600">Total Paid to ENTIC</CardTitle>
               <CheckCircle2 className="w-5 h-5 text-green-600" />
@@ -247,10 +313,14 @@ export default function Dashboard() {
             <CardContent>
               <div className="text-3xl font-bold text-green-700">{formatCurrency(totalPaidToENTIC)}</div>
               <p className="text-xs text-slate-500 mt-1">Payments received from clients</p>
+              <p className="text-xs text-blue-600 mt-2 hover:underline">Click to view details →</p>
             </CardContent>
           </Card>
 
-          <Card className="border-slate-200 shadow-sm bg-gradient-to-br from-blue-50 to-white">
+          <Card 
+            className="border-slate-200 shadow-sm bg-gradient-to-br from-blue-50 to-white cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={() => openFinancialDetail('owedToProviders')}
+          >
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-slate-600">Owed to Providers</CardTitle>
               <DollarSign className="w-5 h-5 text-blue-600" />
@@ -258,10 +328,14 @@ export default function Dashboard() {
             <CardContent>
               <div className="text-3xl font-bold text-blue-700">{formatCurrency(totalOwedToProviders)}</div>
               <p className="text-xs text-slate-500 mt-1">Received but not yet paid out</p>
+              <p className="text-xs text-blue-600 mt-2 hover:underline">Click to view details →</p>
             </CardContent>
           </Card>
 
-          <Card className="border-slate-200 shadow-sm bg-gradient-to-br from-orange-50 to-white">
+          <Card 
+            className="border-slate-200 shadow-sm bg-gradient-to-br from-orange-50 to-white cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={() => openFinancialDetail('outstanding')}
+          >
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-slate-600">Outstanding to ENTIC</CardTitle>
               <Clock className="w-5 h-5 text-orange-600" />
@@ -269,6 +343,7 @@ export default function Dashboard() {
             <CardContent>
               <div className="text-3xl font-bold text-orange-700">{formatCurrency(outstandingToENTIC)}</div>
               <p className="text-xs text-slate-500 mt-1">Awaiting payment from clients</p>
+              <p className="text-xs text-blue-600 mt-2 hover:underline">Click to view details →</p>
             </CardContent>
           </Card>
         </div>
@@ -279,7 +354,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>Financial Overview by Program/Location</CardTitle>
-                <p className="text-sm text-slate-500 mt-1">Detailed breakdown of finances per program</p>
+                <p className="text-sm text-slate-500 mt-1">Detailed breakdown of finances per program (click amounts for details)</p>
               </div>
               <Building2 className="w-6 h-6 text-slate-400" />
             </div>
@@ -301,9 +376,24 @@ export default function Dashboard() {
                     return (
                       <tr key={program} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                         <td className="p-4 font-medium text-slate-900">{program}</td>
-                        <td className="p-4 text-right font-medium text-green-700">{formatCurrency(data.paidToENTIC)}</td>
-                        <td className="p-4 text-right font-medium text-blue-700">{formatCurrency(data.owedToProviders)}</td>
-                        <td className="p-4 text-right font-medium text-orange-700">{formatCurrency(data.outstanding)}</td>
+                        <td 
+                          className="p-4 text-right font-medium text-green-700 cursor-pointer hover:underline"
+                          onClick={() => openFinancialDetail('paidToENTIC', program)}
+                        >
+                          {formatCurrency(data.paidToENTIC)}
+                        </td>
+                        <td 
+                          className="p-4 text-right font-medium text-blue-700 cursor-pointer hover:underline"
+                          onClick={() => openFinancialDetail('owedToProviders', program)}
+                        >
+                          {formatCurrency(data.owedToProviders)}
+                        </td>
+                        <td 
+                          className="p-4 text-right font-medium text-orange-700 cursor-pointer hover:underline"
+                          onClick={() => openFinancialDetail('outstanding', program)}
+                        >
+                          {formatCurrency(data.outstanding)}
+                        </td>
                       </tr>
                     );
                   })}
@@ -311,9 +401,24 @@ export default function Dashboard() {
                 <tfoot className="bg-slate-50 border-t-2 border-slate-300">
                   <tr>
                     <td className="p-4 font-bold text-slate-900">Total</td>
-                    <td className="p-4 text-right font-bold text-green-700">{formatCurrency(totalPaidToENTIC)}</td>
-                    <td className="p-4 text-right font-bold text-blue-700">{formatCurrency(totalOwedToProviders)}</td>
-                    <td className="p-4 text-right font-bold text-orange-700">{formatCurrency(outstandingToENTIC)}</td>
+                    <td 
+                      className="p-4 text-right font-bold text-green-700 cursor-pointer hover:underline"
+                      onClick={() => openFinancialDetail('paidToENTIC')}
+                    >
+                      {formatCurrency(totalPaidToENTIC)}
+                    </td>
+                    <td 
+                      className="p-4 text-right font-bold text-blue-700 cursor-pointer hover:underline"
+                      onClick={() => openFinancialDetail('owedToProviders')}
+                    >
+                      {formatCurrency(totalOwedToProviders)}
+                    </td>
+                    <td 
+                      className="p-4 text-right font-bold text-orange-700 cursor-pointer hover:underline"
+                      onClick={() => openFinancialDetail('outstanding')}
+                    >
+                      {formatCurrency(outstandingToENTIC)}
+                    </td>
                   </tr>
                 </tfoot>
               </table>
@@ -418,6 +523,16 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <FinancialDetailModal
+        isOpen={modalState.isOpen}
+        onClose={closeModal}
+        title={modalState.title}
+        invoices={modalState.invoices}
+        providers={providers}
+        type={modalState.type}
+        programGroup={modalState.programGroup}
+      />
     </div>
   );
 }
