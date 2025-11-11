@@ -120,6 +120,11 @@ export default function Invoices() {
     }
   };
 
+  // Format currency with commas
+  const formatCurrency = (amount) => {
+    return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
   const invoicesWithProviders = invoices.map(invoice => ({
     ...invoice,
     provider: providers.find(p => p.id === invoice.staff_member_id)
@@ -228,13 +233,13 @@ export default function Invoices() {
                         {format(parseISO(invoice.invoice_date), 'MMM d, yyyy')}
                       </td>
                       <td className="p-4 font-medium text-slate-900">
-                        ${invoice.total?.toFixed(2)}
+                        ${formatCurrency(invoice.total || 0)}
                       </td>
                       <td className="p-4 text-green-600 font-medium">
-                        ${(invoice.amount_received || 0).toFixed(2)}
+                        ${formatCurrency(invoice.amount_received || 0)}
                       </td>
                       <td className="p-4 font-medium text-slate-900">
-                        ${((invoice.total || 0) - (invoice.amount_received || 0)).toFixed(2)}
+                        ${formatCurrency((invoice.total || 0) - (invoice.amount_received || 0))}
                       </td>
                       <td className="p-4">
                         <Badge className={statusColors[invoice.status]}>

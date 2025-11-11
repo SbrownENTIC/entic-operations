@@ -86,6 +86,11 @@ export default function OutsideIncome() {
     );
   };
 
+  // Format currency with commas
+  const formatCurrency = (amount) => {
+    return (amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
   const incomesWithProviders = incomes.map(income => ({
     ...income,
     provider: providers.find(p => p.id === income.provider_id)
@@ -217,7 +222,7 @@ export default function OutsideIncome() {
                       </td>
                       <td className="p-4 text-slate-600">{income.days_worked || 0}</td>
                       <td className="p-4 font-medium text-slate-900">
-                        ${income.total_amount?.toFixed(2)}
+                        ${formatCurrency(income.total_amount || 0)}
                       </td>
                       <td className="p-4">
                         <Badge className={statusColors[income.status]}>

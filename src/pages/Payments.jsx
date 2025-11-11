@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -200,6 +201,11 @@ export default function Payments() {
     }
   };
 
+  // Format currency with commas
+  const formatCurrency = (amount) => {
+    return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
   const filteredPayments = payments.filter(payment =>
     payment.payer?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     payment.reference_number?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -285,7 +291,7 @@ export default function Payments() {
                         {payment.reference_number || '-'}
                       </td>
                       <td className="p-4 font-medium text-green-600">
-                        ${payment.total_amount?.toFixed(2) || '0.00'}
+                        ${formatCurrency(payment.total_amount || 0)}
                       </td>
                       <td className="p-4">
                         <Badge className={statusColors[payment.status]}>

@@ -6,8 +6,8 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Pencil } from "lucide-react"; // Added Pencil import
-import { format, parseISO } from "date-fns";
+import { Plus, Search, Pencil } from "lucide-react";
+import { format, parseISO } = "date-fns";
 import SupplyOrderForm from "../components/supplies/SupplyOrderForm";
 
 export default function SupplyOrders() {
@@ -47,10 +47,15 @@ export default function SupplyOrders() {
     }
   };
 
+  // Format currency with commas
+  const formatCurrency = (amount) => {
+    return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
   const filteredOrders = orders.filter(order =>
     order.vendor?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     order.order_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.location?.toLowerCase().includes(searchTerm.toLowerCase()) // Added location to search
+    order.location?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const statusColors = {
@@ -111,12 +116,12 @@ export default function SupplyOrders() {
                   <tr>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Order #</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Vendor</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Location</th> {/* Added Location header */}
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Location</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Order Date</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Expected</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Status</th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Amount</th>
-                    <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th> {/* Added Actions header */}
+                    <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -124,7 +129,7 @@ export default function SupplyOrders() {
                     <tr key={order.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                       <td className="p-4 font-medium text-slate-900">{order.order_number || '-'}</td>
                       <td className="p-4 text-slate-600">{order.vendor}</td>
-                      <td className="p-4 text-slate-600">{order.location || '-'}</td> {/* Added Location data */}
+                      <td className="p-4 text-slate-600">{order.location || '-'}</td>
                       <td className="p-4 text-slate-600">
                         {format(parseISO(order.order_date), 'MMM d, yyyy')}
                       </td>
@@ -137,9 +142,9 @@ export default function SupplyOrders() {
                         </Badge>
                       </td>
                       <td className="p-4 font-medium text-slate-900">
-                        ${order.total_amount?.toFixed(2) || '0.00'}
+                        ${formatCurrency(order.total_amount || 0)}
                       </td>
-                      <td className="p-4 text-right"> {/* Added Actions column */}
+                      <td className="p-4 text-right">
                         <Button
                           variant="ghost"
                           size="sm"

@@ -14,6 +14,11 @@ export default function PaymentDetailModal({ payment, invoices, providers, onClo
     entic_paid: "bg-blue-100 text-blue-800"
   };
 
+  // Format currency with commas
+  const formatCurrency = (amount) => {
+    return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -52,7 +57,7 @@ export default function PaymentDetailModal({ payment, invoices, providers, onClo
             <div>
               <p className="text-sm text-slate-500">Total Amount</p>
               <p className="text-2xl font-bold text-green-600">
-                ${payment.total_amount?.toFixed(2) || '0.00'}
+                ${formatCurrency(payment.total_amount || 0)}
               </p>
             </div>
             
@@ -70,7 +75,7 @@ export default function PaymentDetailModal({ payment, invoices, providers, onClo
               <div className="text-sm">
                 <span className="text-slate-500">Unallocated: </span>
                 <span className={`font-bold ${unallocated > 0 ? 'text-orange-600' : 'text-green-600'}`}>
-                  ${unallocated.toFixed(2)}
+                  ${formatCurrency(unallocated)}
                 </span>
               </div>
             </div>
@@ -105,7 +110,7 @@ export default function PaymentDetailModal({ payment, invoices, providers, onClo
                         <div>
                           <p className="text-xs text-slate-500">Amount</p>
                           <p className="text-lg font-bold text-green-600">
-                            ${allocation.amount?.toFixed(2) || '0.00'}
+                            ${formatCurrency(allocation.amount || 0)}
                           </p>
                         </div>
                       </div>
