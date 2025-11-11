@@ -96,6 +96,11 @@ export default function Dashboard() {
 
   const doctorsCompliant = doctors.filter(doc => (cmeByProvider[doc.id] || 0) >= 10).length;
 
+  // Format currency with commas
+  const formatCurrency = (amount) => {
+    return '$' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
   return (
     <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -167,7 +172,7 @@ export default function Dashboard() {
               <CheckCircle2 className="w-5 h-5 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-green-700">${totalPaidToENTIC.toFixed(2)}</div>
+              <div className="text-3xl font-bold text-green-700">{formatCurrency(totalPaidToENTIC)}</div>
               <p className="text-xs text-slate-500 mt-1">Payments received from clients</p>
             </CardContent>
           </Card>
@@ -178,7 +183,7 @@ export default function Dashboard() {
               <DollarSign className="w-5 h-5 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-blue-700">${totalOwedToProviders.toFixed(2)}</div>
+              <div className="text-3xl font-bold text-blue-700">{formatCurrency(totalOwedToProviders)}</div>
               <p className="text-xs text-slate-500 mt-1">Received but not yet paid out</p>
             </CardContent>
           </Card>
@@ -189,7 +194,7 @@ export default function Dashboard() {
               <Clock className="w-5 h-5 text-orange-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-orange-700">${outstandingToENTIC.toFixed(2)}</div>
+              <div className="text-3xl font-bold text-orange-700">{formatCurrency(outstandingToENTIC)}</div>
               <p className="text-xs text-slate-500 mt-1">Awaiting payment from clients</p>
             </CardContent>
           </Card>
