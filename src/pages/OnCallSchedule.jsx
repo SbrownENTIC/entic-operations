@@ -3,8 +3,8 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
-import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, addMonths, subMonths, isSameDay, startOfWeek, endOfWeek, startOfDay, addDays } from "date-fns";
+import { Plus, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, addMonths, subMonths, isSameDay, startOfWeek, endOfWeek, startOfDay, addDays, differenceInDays } from "date-fns";
 import OnCallForm from "../components/oncall/OnCallForm";
 
 const PROVIDER_COLORS = [
@@ -24,6 +24,8 @@ export default function OnCallSchedule() {
   const [showForm, setShowForm] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState('');
   const queryClient = useQueryClient();
 
   const { data: schedules = [] } = useQuery({
@@ -36,10 +38,25 @@ export default function OnCallSchedule() {
     queryFn: () => base44.entities.Provider.list()
   });
 
+  const { data: programLocations = [] } = useQuery({
+    queryKey: ['program-locations'],
+    queryFn: () => base44.entities.ProgramLocation.list()
+  });
+
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.OnCallSchedule.create(data),
+    mutationFn: async (data) => {
+      const schedule = await base44.entities.OnCallSchedule.create(data);
+      
+      // Auto-create outside income for St. Francis schedules
+      if (data.location?.toLowerCase().includes('st. francis') || data.location?.toLowerCase().includes('st francis')) {
+        await createOutsideIncomeFromSchedule(schedule, data);
+      }
+      
+      return schedule;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['oncall-schedules'] });
+      queryClient.invalidateQueries({ queryKey: ['outside-income'] });
       setShowForm(false);
       setEditingSchedule(null);
     }
@@ -54,6 +71,47 @@ export default function OnCallSchedule() {
     }
   });
 
+  const createOutsideIncomeFromSchedule = async (schedule, data) => {
+    // Find St. Francis program location
+    const stFrancisLocation = programLocations.find(pl => 
+      pl.program_group?.toLowerCase().includes('st. francis') || 
+      pl.program_group?.toLowerCase().includes('st francis')
+    );
+    
+    if (!stFrancisLocation) {
+      console.warn('St. Francis program location not found');
+      return;
+    }
+    
+    // Calculate work dates and days
+    const startDate = parseISO(data.start_date);
+    const endDate = parseISO(data.end_date);
+    
+    // Determine last active day based on end_time
+    let lastActiveDay = endDate;
+    if (data.end_time && !isMidnight(data.end_time)) {
+      lastActiveDay = addDays(endDate, -1);
+    }
+    
+    const workDates = eachDayOfInterval({ start: startDate, end: lastActiveDay });
+    const daysWorked = workDates.length;
+    const rate = stFrancisLocation.daily_rate || 0;
+    const totalAmount = daysWorked * rate;
+    
+    // Create outside income record
+    await base44.entities.OutsideIncome.create({
+      provider_id: data.provider_id,
+      program_location_id: stFrancisLocation.id,
+      facility_name: data.location || 'St. Francis',
+      work_dates: workDates.map(d => format(d, 'yyyy-MM-dd')),
+      days_worked: daysWorked,
+      rate: rate,
+      total_amount: totalAmount,
+      status: 'pending',
+      notes: `Auto-generated from on-call schedule ${data.start_date} to ${data.end_date}`
+    });
+  };
+
   const handleSubmit = (data) => {
     if (editingSchedule) {
       updateMutation.mutate({ id: editingSchedule.id, data });
@@ -65,6 +123,20 @@ export default function OnCallSchedule() {
   const handleEditSchedule = (schedule) => {
     setEditingSchedule(schedule);
     setShowForm(true);
+  };
+
+  const handleSync2026StFrancis = async () => {
+    setSyncing(true);
+    setSyncMessage('');
+    try {
+      const response = await base44.functions.invoke('sync2026StFrancis', {});
+      setSyncMessage(response.data.message);
+      queryClient.invalidateQueries({ queryKey: ['outside-income'] });
+    } catch (error) {
+      setSyncMessage('Error syncing 2026 St. Francis schedules: ' + error.message);
+    } finally {
+      setSyncing(false);
+    }
   };
 
   // Helper function to check if a time string represents midnight
@@ -181,17 +253,36 @@ export default function OnCallSchedule() {
             <h1 className="text-3xl font-bold text-slate-900">On-Call Schedule</h1>
             <p className="text-slate-600 mt-1">Manage provider on-call schedules</p>
           </div>
-          <Button
-            onClick={() => {
-              setEditingSchedule(null);
-              setShowForm(true);
-            }}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Schedule
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              onClick={handleSync2026StFrancis}
+              disabled={syncing}
+              variant="outline"
+              className="gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Syncing...' : 'Sync 2026 St. Francis'}
+            </Button>
+            <Button
+              onClick={() => {
+                setEditingSchedule(null);
+                setShowForm(true);
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Schedule
+            </Button>
+          </div>
         </div>
+
+        {syncMessage && (
+          <Card className="border-blue-200 bg-blue-50">
+            <CardContent className="p-4">
+              <p className="text-sm text-blue-900">{syncMessage}</p>
+            </CardContent>
+          </Card>
+        )}
 
         {showForm && (
           <OnCallForm
