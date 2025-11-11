@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,7 +11,7 @@ export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel
   const [formData, setFormData] = useState({
     provider_id: '',
     facility_name: '',
-    granted_date: '',
+    granted_date: new Date().toISOString().split('T')[0],
     expiration_date: '',
     status: 'active',
     notes: ''
@@ -29,18 +28,28 @@ export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel
     onSubmit(formData);
   };
 
+  const facilities = [
+    "Bloomfield",
+    "Hartford Hospital",
+    "St. Francis",
+    "UConn",
+    "Manchester / ECHN",
+    "CCMC",
+    "CTSC- CT Surgery Center"
+  ];
+
   return (
     <Card className="border-slate-200 shadow-sm">
       <CardHeader className="border-b border-slate-100">
         <div className="flex items-center justify-between">
-          <CardTitle>{privilege ? 'Edit Privilege' : 'Add New Privilege'}</CardTitle>
+          <CardTitle>{privilege ? 'Edit Clinical Privilege' : 'Add Clinical Privilege'}</CardTitle>
           <Button variant="ghost" size="icon" onClick={onCancel}>
             <X className="w-4 h-4" />
           </Button>
         </div>
       </CardHeader>
       <form onSubmit={handleSubmit}>
-        <CardContent className="p-6">
+        <CardContent className="p-6 space-y-6">
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="provider_id">Provider *</Label>
@@ -59,25 +68,17 @@ export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="facility_name">Facility Name *</Label>
-              <Input
-                id="facility_name"
-                value={formData.facility_name}
-                onChange={(e) => setFormData({ ...formData, facility_name: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+              <Label htmlFor="facility_name">Facility *</Label>
+              <Select value={formData.facility_name} onValueChange={(value) => setFormData({ ...formData, facility_name: value })}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select facility" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="expired">Expired</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
+                  {facilities.map(facility => (
+                    <SelectItem key={facility} value={facility}>
+                      {facility}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -93,7 +94,7 @@ export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel
               />
             </div>
 
-            <div className="space-y-2 md:col-span-2">
+            <div className="space-y-2">
               <Label htmlFor="expiration_date">Expiration Date *</Label>
               <Input
                 id="expiration_date"
@@ -104,15 +105,29 @@ export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel
               />
             </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                rows={3}
-              />
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="expired">Expired</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="notes">Notes</Label>
+            <Textarea
+              id="notes"
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              rows={3}
+            />
           </div>
         </CardContent>
         <CardFooter className="border-t border-slate-100 p-6 flex justify-end gap-3">
