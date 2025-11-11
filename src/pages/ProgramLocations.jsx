@@ -165,48 +165,57 @@ export default function ProgramLocations() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              {Object.entries(groupedLocations).map(([groupName, locations]) => (
-                <div key={groupName} className="border-b border-slate-200 last:border-b-0">
-                  <div className="bg-slate-100 px-4 py-3">
-                    <h3 className="font-semibold text-slate-900 flex items-center gap-2">
-                      {groupName}
-                      <Badge variant="outline" className="font-normal">
-                        {locations.length} {locations.length === 1 ? 'location' : 'locations'}
-                      </Badge>
-                    </h3>
-                  </div>
-                  <table className="w-full">
-                    {groupName === Object.keys(groupedLocations)[0] && (
-                      <thead className="bg-slate-50 border-b border-slate-200">
-                        <tr>
-                          <th 
-                            className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                            onClick={() => handleSort('program_location')}
-                          >
-                            Program/Location <SortIcon field="program_location" />
-                          </th>
-                          <th 
-                            className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                            onClick={() => handleSort('program_type')}
-                          >
-                            Type <SortIcon field="program_type" />
-                          </th>
-                          <th 
-                            className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                            onClick={() => handleSort('daily_rate')}
-                          >
-                            Daily Rate <SortIcon field="daily_rate" />
-                          </th>
-                          <th className="text-left p-4 text-sm font-semibold text-slate-700">
-                            Invoice Counter
-                          </th>
-                          <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th>
-                        </tr>
-                      </thead>
-                    )}
-                    <tbody>
+              <table className="w-full">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('program_group')}
+                    >
+                      Program Group <SortIcon field="program_group" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('program_location')}
+                    >
+                      Program/Location <SortIcon field="program_location" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('program_type')}
+                    >
+                      Type <SortIcon field="program_type" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('daily_rate')}
+                    >
+                      Daily Rate <SortIcon field="daily_rate" />
+                    </th>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700">
+                      Invoice Counter
+                    </th>
+                    <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(groupedLocations).map(([groupName, locations]) => (
+                    <React.Fragment key={groupName}>
+                      <tr className="bg-slate-100">
+                        <td colSpan="6" className="px-4 py-2">
+                          <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+                            {groupName}
+                            <Badge variant="outline" className="font-normal">
+                              {locations.length} {locations.length === 1 ? 'location' : 'locations'}
+                            </Badge>
+                          </h3>
+                        </td>
+                      </tr>
                       {locations.map((location) => (
                         <tr key={location.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                          <td className="p-4 text-slate-600">
+                            {location.program_group}
+                          </td>
                           <td className="p-4">
                             <p className="font-medium text-slate-900">{location.program_location}</p>
                           </td>
@@ -245,10 +254,10 @@ export default function ProgramLocations() {
                           </td>
                         </tr>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
-              ))}
+                    </React.Fragment>
+                  ))}
+                </tbody>
+              </table>
               {sortedLocations.length === 0 && (
                 <div className="text-center py-12 text-slate-500">
                   No program locations found
