@@ -40,6 +40,10 @@ export default function Dashboard() {
 
   // License expiration tracking
   const today = new Date();
+  const licensesExpiring60Days = licenses.filter(l => {
+    const days = differenceInDays(parseISO(l.expiration_date), today);
+    return days > 0 && days <= 60;
+  });
   const licensesExpiring30Days = licenses.filter(l => {
     const days = differenceInDays(parseISO(l.expiration_date), today);
     return days > 0 && days <= 30;
@@ -128,11 +132,11 @@ export default function Dashboard() {
 
           <Card className="border-slate-200 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Licenses Expiring (30d)</CardTitle>
-              <AlertTriangle className="w-4 h-4 text-orange-600" />
+              <CardTitle className="text-sm font-medium text-slate-600">Licenses Expiring (60d)</CardTitle>
+              <AlertTriangle className="w-4 h-4 text-yellow-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-slate-900">{licensesExpiring30Days.length}</div>
+              <div className="text-3xl font-bold text-slate-900">{licensesExpiring60Days.length}</div>
               <Link to={createPageUrl("Licenses")} className="text-xs text-blue-600 hover:underline">
                 View licenses →
               </Link>
@@ -203,7 +207,7 @@ export default function Dashboard() {
         </div>
 
         {/* License Expirations Detail */}
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           <LicenseExpirationCard
             title="Licenses Expiring in 7 Days"
             licenses={licensesExpiring7Days}
@@ -221,6 +225,12 @@ export default function Dashboard() {
             licenses={licensesExpiring30Days}
             providers={providers}
             severity="low"
+          />
+          <LicenseExpirationCard
+            title="Licenses Expiring in 60 Days"
+            licenses={licensesExpiring60Days}
+            providers={providers}
+            severity="info"
           />
         </div>
 
@@ -301,7 +311,8 @@ function LicenseExpirationCard({ title, licenses, providers, severity }) {
   const severityColors = {
     high: 'border-red-200 bg-red-50',
     medium: 'border-orange-200 bg-orange-50',
-    low: 'border-yellow-200 bg-yellow-50'
+    low: 'border-yellow-200 bg-yellow-50',
+    info: 'border-blue-200 bg-blue-50'
   };
 
   return (
@@ -311,7 +322,8 @@ function LicenseExpirationCard({ title, licenses, providers, severity }) {
           <AlertTriangle className={`w-5 h-5 ${
             severity === 'high' ? 'text-red-600' : 
             severity === 'medium' ? 'text-orange-600' : 
-            'text-yellow-600'
+            severity === 'low' ? 'text-yellow-600' :
+            'text-blue-600'
           }`} />
           <CardTitle className="text-lg">{title}</CardTitle>
         </div>
@@ -333,7 +345,8 @@ function LicenseExpirationCard({ title, licenses, providers, severity }) {
                   <Badge variant="outline" className={`${
                     daysUntil <= 7 ? 'border-red-300 text-red-700' : 
                     daysUntil <= 14 ? 'border-orange-300 text-orange-700' : 
-                    'border-yellow-300 text-yellow-700'
+                    daysUntil <= 30 ? 'border-yellow-300 text-yellow-700' :
+                    'border-blue-300 text-blue-700'
                   }`}>
                     {daysUntil} days
                   </Badge>
