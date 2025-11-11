@@ -5,7 +5,7 @@ Deno.serve(async (req) => {
         const base44 = createClientFromRequest(req);
         
         // CC recipients for all reminder emails
-        const ccRecipients = ['HEldridge@enticmd.com', 'Steve.brown@enticmd.com'];
+        const ccRecipients = ['Steve.brown@enticmd.com'];
         
         // Fetch all licenses and providers
         const licenses = await base44.asServiceRole.entities.License.list();
