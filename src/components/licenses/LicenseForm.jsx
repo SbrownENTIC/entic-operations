@@ -10,7 +10,7 @@ import { X } from "lucide-react";
 export default function LicenseForm({ license, providers, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = useState({
     provider_id: '',
-    license_type: 'MED',
+    license_type: '',
     issue_date: '',
     expiration_date: '',
     status: 'active',
@@ -33,14 +33,14 @@ export default function LicenseForm({ license, providers, onSubmit, onCancel, is
     <Card className="border-slate-200 shadow-sm">
       <CardHeader className="border-b border-slate-100">
         <div className="flex items-center justify-between">
-          <CardTitle>{license ? 'Edit License' : 'Add New License'}</CardTitle>
+          <CardTitle>{license ? 'Edit License' : 'Add License'}</CardTitle>
           <Button variant="ghost" size="icon" onClick={onCancel}>
             <X className="w-4 h-4" />
           </Button>
         </div>
       </CardHeader>
       <form onSubmit={handleSubmit}>
-        <CardContent className="p-6">
+        <CardContent className="p-6 space-y-6">
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="provider_id">Provider *</Label>
@@ -62,25 +62,28 @@ export default function LicenseForm({ license, providers, onSubmit, onCancel, is
               <Label htmlFor="license_type">License Type *</Label>
               <Select value={formData.license_type} onValueChange={(value) => setFormData({ ...formData, license_type: value })}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select license type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="MED">MED - Medical License</SelectItem>
-                  <SelectItem value="PA">PA - Physician Assistant</SelectItem>
-                  <SelectItem value="AUD">AUD - Audiology</SelectItem>
-                  <SelectItem value="APRN">APRN - Advanced Practice RN</SelectItem>
-                  <SelectItem value="DEA">DEA - Drug Enforcement</SelectItem>
-                  <SelectItem value="CSP">CSP - Controlled Substance</SelectItem>
+                  <SelectItem value="Medical License">Medical License (MED)</SelectItem>
+                  <SelectItem value="Physician Assistant-Certified">Physician Assistant-Certified (PA)</SelectItem>
+                  <SelectItem value="Audiologist License">Audiologist License (AUD)</SelectItem>
+                  <SelectItem value="APRN License">APRN License (APRN)</SelectItem>
+                  <SelectItem value="DEA License">DEA License (DEA)</SelectItem>
+                  <SelectItem value="Controlled Substance Practitioner License">Controlled Substance Practitioner License (CSP)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {license && (
               <div className="space-y-2">
-                <Label>Internal License Number</Label>
-                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 font-mono text-sm">
-                  {license.internal_license_number}
-                </div>
+                <Label htmlFor="internal_license_number">Internal License Number</Label>
+                <Input
+                  id="internal_license_number"
+                  value={license.internal_license_number || ''}
+                  disabled
+                  className="bg-slate-100"
+                />
               </div>
             )}
 
@@ -113,32 +116,32 @@ export default function LicenseForm({ license, providers, onSubmit, onCancel, is
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="expired">Expired</SelectItem>
                   <SelectItem value="pending_renewal">Pending Renewal</SelectItem>
+                  <SelectItem value="expired">Expired</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="space-y-2 md:col-span-2">
+            <div className="space-y-2">
               <Label htmlFor="document_url">Document URL</Label>
               <Input
                 id="document_url"
                 type="url"
-                placeholder="https://..."
                 value={formData.document_url}
                 onChange={(e) => setFormData({ ...formData, document_url: e.target.value })}
+                placeholder="https://..."
               />
             </div>
+          </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                rows={3}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="notes">Notes</Label>
+            <Textarea
+              id="notes"
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              rows={3}
+            />
           </div>
         </CardContent>
         <CardFooter className="border-t border-slate-100 p-6 flex justify-end gap-3">
