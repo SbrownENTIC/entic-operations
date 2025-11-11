@@ -153,7 +153,8 @@ export default function OutsideIncome() {
 
   const filteredIncomes = incomesWithProviders.filter(income =>
     income.provider?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    income.facility_name?.toLowerCase().includes(searchTerm.toLowerCase())
+    income.facility_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    income.invoice_month?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const sortedIncomes = [...filteredIncomes].sort((a, b) => {
@@ -312,6 +313,12 @@ export default function OutsideIncome() {
                       </th>
                       <th 
                         className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                        onClick={() => handleSort('invoice_month')}
+                      >
+                        Invoice Month <SortIcon field="invoice_month" />
+                      </th>
+                      <th 
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                         onClick={() => handleSort('status')}
                       >
                         Status <SortIcon field="status" />
@@ -353,6 +360,9 @@ export default function OutsideIncome() {
                         </td>
                         <td className="p-4 font-medium text-green-600">
                           ${formatCurrency(income.total_amount || 0)}
+                        </td>
+                        <td className="p-4 text-slate-600">
+                          {income.invoice_month || '-'}
                         </td>
                         <td className="p-4">
                           <Badge className={statusColors[income.status]}>

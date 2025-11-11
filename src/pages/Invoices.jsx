@@ -62,11 +62,12 @@ export default function Invoices() {
     mutationFn: async (data) => {
       const invoice = await base44.entities.Invoice.create(data);
       
-      // Update outside income records with invoice_id
+      // Update outside income records with invoice_id and invoice_month
       if (data.outside_income_ids && data.outside_income_ids.length > 0) {
         for (const incomeId of data.outside_income_ids) {
           await base44.entities.OutsideIncome.update(incomeId, {
             invoice_id: invoice.id,
+            invoice_month: data.month || '',
             status: 'invoiced'
           });
         }
@@ -84,9 +85,23 @@ export default function Invoices() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Invoice.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      const invoice = await base44.entities.Invoice.update(id, data);
+      
+      // Update outside income records with invoice_month if changed
+      if (data.outside_income_ids && data.outside_income_ids.length > 0) {
+        for (const incomeId of data.outside_income_ids) {
+          await base44.entities.OutsideIncome.update(incomeId, {
+            invoice_month: data.month || ''
+          });
+        }
+      }
+      
+      return invoice;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['outside-income'] });
       setShowForm(false);
       setEditingInvoice(null);
     }
@@ -99,6 +114,7 @@ export default function Invoices() {
         for (const incomeId of invoice.outside_income_ids) {
           await base44.entities.OutsideIncome.update(incomeId, {
             invoice_id: null,
+            invoice_month: null,
             status: 'pending'
           });
         }
