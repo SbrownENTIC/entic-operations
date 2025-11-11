@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, AlertTriangle, Award, FileText, GraduationCap, DollarSign, CheckCircle2, Clock, Building2, RefreshCw } from "lucide-react";
+import { Users, AlertTriangle, Award, FileText, GraduationCap, DollarSign, CheckCircle2, Clock, Building2, RefreshCw, Wallet } from "lucide-react";
 import { differenceInDays, parseISO, format } from "date-fns";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -47,6 +47,11 @@ export default function Dashboard() {
     queryFn: () => base44.entities.CME.list()
   });
 
+  const { data: payments = [] } = useQuery({
+    queryKey: ['payments'],
+    queryFn: () => base44.entities.Payment.list()
+  });
+
   const handleSyncInvoiceMonths = async () => {
     setSyncing(true);
     setSyncMessage('');
@@ -65,7 +70,7 @@ export default function Dashboard() {
     let title = '';
 
     if (type === 'paidToENTIC') {
-      filteredInvoices = invoices.filter(inv => 
+      filteredInvoices = invoices.filter(inv =>
         inv.status === 'paid_to_entic' || inv.status === 'provider_paid'
       );
       if (programGroup) {
@@ -75,7 +80,7 @@ export default function Dashboard() {
         title = 'Total Paid to ENTIC';
       }
     } else if (type === 'owedToProviders') {
-      filteredInvoices = invoices.filter(inv => 
+      filteredInvoices = invoices.filter(inv =>
         (inv.status === 'paid_to_entic' || inv.status === 'provider_paid') && !inv.provider_paid
       );
       if (programGroup) {
@@ -85,7 +90,7 @@ export default function Dashboard() {
         title = 'Total Owed to Providers';
       }
     } else if (type === 'outstanding') {
-      filteredInvoices = invoices.filter(inv => 
+      filteredInvoices = invoices.filter(inv =>
         inv.status !== 'paid_to_entic' && inv.status !== 'provider_paid'
       );
       if (programGroup) {
@@ -156,11 +161,15 @@ export default function Dashboard() {
     .filter(inv => inv.status !== 'paid_to_entic' && inv.status !== 'provider_paid')
     .reduce((sum, inv) => sum + ((inv.amount_expected || inv.total || 0) - (inv.amount_received || 0)), 0);
 
+  // Calculate unallocated payments
+  const totalPaymentsReceived = payments.reduce((sum, payment) => sum + (payment.total_amount || 0), 0);
+  const unallocatedPayments = totalPaymentsReceived - totalPaidToENTIC;
+
   // Financial metrics by Program/Location
   const financialsByProgram = {};
   invoices.forEach(inv => {
     const program = inv.program_group || 'Unassigned';
-    
+
     if (!financialsByProgram[program]) {
       financialsByProgram[program] = {
         paidToENTIC: 0,
@@ -168,11 +177,11 @@ export default function Dashboard() {
         outstanding: 0
       };
     }
-    
+
     // Paid to ENTIC
     if (inv.status === 'paid_to_entic' || inv.status === 'provider_paid') {
       financialsByProgram[program].paidToENTIC += (inv.amount_received || 0);
-      
+
       // Owed to Providers (received but not paid to provider yet)
       if (!inv.provider_paid) {
         financialsByProgram[program].owedToProviders += (inv.amount_received || 0);
@@ -188,8 +197,8 @@ export default function Dashboard() {
   const programsSorted = Object.keys(financialsByProgram).sort();
 
   // Invoice tracking
-  const pendingInvoices = invoices.filter(inv => 
-    inv.status === 'pending_providers_approval' || 
+  const pendingInvoices = invoices.filter(inv =>
+    inv.status === 'pending_providers_approval' ||
     inv.status === 'pending_providers_time' ||
     inv.status === 'sent_for_approval'
   ).length;
@@ -226,7 +235,7 @@ export default function Dashboard() {
             <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
             <p className="text-slate-600 mt-1">Overview of your medical practice</p>
           </div>
-          <Button 
+          <Button
             onClick={handleSyncInvoiceMonths}
             disabled={syncing}
             variant="outline"
@@ -301,8 +310,8 @@ export default function Dashboard() {
         </div>
 
         {/* Financial Overview - Total */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card 
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card
             className="border-slate-200 shadow-sm bg-gradient-to-br from-orange-50 to-white cursor-pointer hover:shadow-lg transition-shadow"
             onClick={() => openFinancialDetail('outstanding')}
           >
@@ -317,7 +326,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card 
+          <Card
             className="border-slate-200 shadow-sm bg-gradient-to-br from-green-50 to-white cursor-pointer hover:shadow-lg transition-shadow"
             onClick={() => openFinancialDetail('paidToENTIC')}
           >
@@ -332,7 +341,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card 
+          <Card
             className="border-slate-200 shadow-sm bg-gradient-to-br from-blue-50 to-white cursor-pointer hover:shadow-lg transition-shadow"
             onClick={() => openFinancialDetail('owedToProviders')}
           >
@@ -346,6 +355,20 @@ export default function Dashboard() {
               <p className="text-xs text-blue-600 mt-2 hover:underline">Click to view details →</p>
             </CardContent>
           </Card>
+
+          <Link to={createPageUrl("Payments")} className="block">
+            <Card className="border-slate-200 shadow-sm bg-gradient-to-br from-purple-50 to-white cursor-pointer hover:shadow-lg transition-shadow h-full">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-slate-600">Unallocated Payments</CardTitle>
+                <Wallet className="w-5 h-5 text-purple-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-purple-700">{formatCurrency(unallocatedPayments)}</div>
+                <p className="text-xs text-slate-500 mt-1">Payments pending allocation</p>
+                <p className="text-xs text-blue-600 mt-2 hover:underline">Click to allocate →</p>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
 
         {/* Financial Overview by Program/Location */}
@@ -376,19 +399,19 @@ export default function Dashboard() {
                     return (
                       <tr key={program} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                         <td className="p-4 font-medium text-slate-900">{program}</td>
-                        <td 
+                        <td
                           className="p-4 text-right font-medium text-orange-700 cursor-pointer hover:underline"
                           onClick={() => openFinancialDetail('outstanding', program)}
                         >
                           {formatCurrency(data.outstanding)}
                         </td>
-                        <td 
+                        <td
                           className="p-4 text-right font-medium text-green-700 cursor-pointer hover:underline"
                           onClick={() => openFinancialDetail('paidToENTIC', program)}
                         >
                           {formatCurrency(data.paidToENTIC)}
                         </td>
-                        <td 
+                        <td
                           className="p-4 text-right font-medium text-blue-700 cursor-pointer hover:underline"
                           onClick={() => openFinancialDetail('owedToProviders', program)}
                         >
@@ -401,19 +424,19 @@ export default function Dashboard() {
                 <tfoot className="bg-slate-50 border-t-2 border-slate-300">
                   <tr>
                     <td className="p-4 font-bold text-slate-900">Total</td>
-                    <td 
+                    <td
                       className="p-4 text-right font-bold text-orange-700 cursor-pointer hover:underline"
                       onClick={() => openFinancialDetail('outstanding')}
                     >
                       {formatCurrency(outstandingToENTIC)}
                     </td>
-                    <td 
+                    <td
                       className="p-4 text-right font-bold text-green-700 cursor-pointer hover:underline"
                       onClick={() => openFinancialDetail('paidToENTIC')}
                     >
                       {formatCurrency(totalPaidToENTIC)}
                     </td>
-                    <td 
+                    <td
                       className="p-4 text-right font-bold text-blue-700 cursor-pointer hover:underline"
                       onClick={() => openFinancialDetail('owedToProviders')}
                     >
@@ -550,8 +573,8 @@ function LicenseExpirationCard({ title, licenses, providers, severity }) {
       <CardHeader className="border-b border-slate-100 bg-white">
         <div className="flex items-center gap-2">
           <AlertTriangle className={`w-4 h-4 ${
-            severity === 'high' ? 'text-red-600' : 
-            severity === 'medium' ? 'text-orange-600' : 
+            severity === 'high' ? 'text-red-600' :
+            severity === 'medium' ? 'text-orange-600' :
             severity === 'low' ? 'text-yellow-600' :
             'text-blue-600'
           }`} />
@@ -573,8 +596,8 @@ function LicenseExpirationCard({ title, licenses, providers, severity }) {
                     </p>
                   </div>
                   <Badge variant="outline" className={`text-xs ml-2 ${
-                    daysUntil <= 7 ? 'border-red-300 text-red-700' : 
-                    daysUntil <= 14 ? 'border-orange-300 text-orange-700' : 
+                    daysUntil <= 7 ? 'border-red-300 text-red-700' :
+                    daysUntil <= 14 ? 'border-orange-300 text-orange-700' :
                     daysUntil <= 30 ? 'border-yellow-300 text-yellow-700' :
                     'border-blue-300 text-blue-700'
                   }`}>
