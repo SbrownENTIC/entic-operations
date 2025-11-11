@@ -28,12 +28,24 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
     queryFn: () => base44.entities.ProgramLocation.list('program_location')
   });
 
-  // Check if Hartford Hospital is selected
-  const isHartfordHospital = formData.facility_name?.toLowerCase().includes('hartford hospital') || 
-                             formData.program_location_id && programLocations.find(pl => 
-                               pl.id === formData.program_location_id && 
-                               pl.program_group?.toLowerCase().includes('hartford hospital')
-                             );
+  // Check if Hartford Hospital RVU-based program (exclude Directorship)
+  const isHartfordHospitalRVU = () => {
+    const selectedLocation = programLocations.find(pl => pl.id === formData.program_location_id);
+    
+    if (selectedLocation) {
+      const isHartford = selectedLocation.program_group?.toLowerCase().includes('hartford hospital');
+      const isDirectorship = selectedLocation.program_type === 'Directorship' || 
+                            selectedLocation.program_location?.toLowerCase().includes('directorship');
+      return isHartford && !isDirectorship;
+    }
+    
+    // Fallback to facility name check (exclude directorship)
+    const isHartford = formData.facility_name?.toLowerCase().includes('hartford hospital');
+    const isDirectorship = formData.facility_name?.toLowerCase().includes('directorship');
+    return isHartford && !isDirectorship;
+  };
+
+  const isHartfordHospitalRVUBased = isHartfordHospitalRVU();
 
   useEffect(() => {
     if (income) {
@@ -47,21 +59,32 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
   }, [income]);
 
   useEffect(() => {
-    // Calculate total based on Hartford Hospital or not
+    // Calculate total based on program type
     let total;
-    if (isHartfordHospital) {
+    if (isHartfordHospitalRVUBased) {
+      // RVU-based calculation for Hartford Hospital (non-Directorship)
       total = (formData.total_rvus || 0) * (formData.rate || 0);
     } else {
-      const days = formData.work_dates.filter(d => d).length;
-      total = days * (formData.rate || 0);
-      setFormData(prev => ({ ...prev, days_worked: days }));
+      // For Directorship and other programs, use rate directly or multiply by days
+      const selectedLocation = programLocations.find(pl => pl.id === formData.program_location_id);
+      const isDirectorship = selectedLocation?.program_type === 'Directorship';
+      
+      if (isDirectorship) {
+        // For Directorship, rate is the monthly amount (no multiplication needed)
+        total = formData.rate || 0;
+      } else {
+        // For other programs, multiply by days worked
+        const days = formData.work_dates.filter(d => d).length;
+        total = days * (formData.rate || 0);
+        setFormData(prev => ({ ...prev, days_worked: days }));
+      }
     }
     
     setFormData(prev => ({ 
       ...prev, 
       total_amount: total 
     }));
-  }, [formData.work_dates, formData.rate, formData.total_rvus, isHartfordHospital]);
+  }, [formData.work_dates, formData.rate, formData.total_rvus, isHartfordHospitalRVUBased, formData.program_location_id, programLocations]);
 
   useEffect(() => {
     // Auto-populate rate and facility when program location is selected
@@ -81,7 +104,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
     e.preventDefault();
     const cleanedDates = formData.work_dates.filter(d => d);
     
-    // For Hartford Hospital, work_dates are optional
+    // For Hartford Hospital RVU-based, work_dates are optional
     const submissionData = { 
       ...formData, 
       work_dates: cleanedDates.length > 0 ? cleanedDates : []
@@ -109,6 +132,10 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
     newDates[index] = value;
     setFormData({ ...formData, work_dates: newDates });
   };
+
+  // Determine program type for UI
+  const selectedLocation = programLocations.find(pl => pl.id === formData.program_location_id);
+  const isDirectorship = selectedLocation?.program_type === 'Directorship';
 
   return (
     <Card className="border-slate-200 shadow-sm">
@@ -146,12 +173,17 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
                   <SelectValue placeholder="Select program/location" />
                 </SelectTrigger>
                 <SelectContent>
-                  {programLocations.map(location => (
-                    <SelectItem key={location.id} value={location.id}>
-                      {location.program_location}
-                      {location.daily_rate > 0 && ` - $${location.daily_rate}${location.program_group?.toLowerCase().includes('hartford hospital') ? '/RVU' : '/day'}`}
-                    </SelectItem>
-                  ))}
+                  {programLocations.map(location => {
+                    const isHartfordRVU = location.program_group?.toLowerCase().includes('hartford hospital') && 
+                                         location.program_type !== 'Directorship';
+                    const rateLabel = location.program_type === 'Directorship' ? '/month' : (isHartfordRVU ? '/RVU' : '/day');
+                    return (
+                      <SelectItem key={location.id} value={location.id}>
+                        {location.program_location}
+                        {location.daily_rate > 0 && ` - $${location.daily_rate}${rateLabel}`}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
@@ -165,7 +197,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
               />
             </div>
 
-            {isHartfordHospital ? (
+            {isHartfordHospitalRVUBased ? (
               <div className="space-y-2">
                 <Label htmlFor="total_rvus">Total RVUs *</Label>
                 <Input
@@ -177,18 +209,18 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
                   required
                 />
               </div>
-            ) : (
+            ) : !isDirectorship ? (
               <div className="space-y-2">
                 <Label>Days Worked</Label>
                 <div className="text-lg font-semibold text-slate-900 p-2 bg-slate-50 rounded-md">
                   {formData.days_worked}
                 </div>
               </div>
-            )}
+            ) : null}
 
             <div className="space-y-2">
               <Label htmlFor="rate">
-                {isHartfordHospital ? 'Rate per RVU ($)' : 'Daily Rate ($)'}
+                {isHartfordHospitalRVUBased ? 'Rate per RVU ($)' : isDirectorship ? 'Monthly Rate ($)' : 'Daily Rate ($)'}
               </Label>
               <Input
                 id="rate"
@@ -205,8 +237,10 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
                 ${formData.total_amount.toFixed(2)}
               </div>
               <p className="text-xs text-slate-500">
-                {isHartfordHospital 
+                {isHartfordHospitalRVUBased 
                   ? `${formData.total_rvus} RVUs × $${formData.rate.toFixed(2)} = $${formData.total_amount.toFixed(2)}`
+                  : isDirectorship 
+                  ? `Monthly rate: $${formData.rate.toFixed(2)}`
                   : `${formData.days_worked} days × $${formData.rate.toFixed(2)} = $${formData.total_amount.toFixed(2)}`
                 }
               </p>
@@ -230,8 +264,8 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
           <div>
             <div className="flex items-center justify-between mb-3">
               <Label>
-                Work Dates {!isHartfordHospital && '*'}
-                {isHartfordHospital && <span className="text-xs text-slate-500 font-normal ml-2">(Optional for Hartford Hospital)</span>}
+                Work Dates {!isHartfordHospitalRVUBased && !isDirectorship && '*'}
+                {(isHartfordHospitalRVUBased || isDirectorship) && <span className="text-xs text-slate-500 font-normal ml-2">(Optional)</span>}
               </Label>
               <Button type="button" variant="outline" size="sm" onClick={addWorkDate}>
                 <Plus className="w-4 h-4 mr-2" />
@@ -246,7 +280,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
                     value={date}
                     onChange={(e) => updateWorkDate(index, e.target.value)}
                     className="flex-1"
-                    required={!isHartfordHospital && index === 0}
+                    required={!isHartfordHospitalRVUBased && !isDirectorship && index === 0}
                   />
                   {formData.work_dates.length > 1 && (
                     <Button type="button" variant="ghost" size="icon" onClick={() => removeWorkDate(index)}>

@@ -42,6 +42,11 @@ export default function OutsideIncome() {
     queryFn: () => base44.entities.Provider.list()
   });
 
+  const { data: programLocations = [], isLoading: locationsLoading } = useQuery({
+    queryKey: ['program-locations'],
+    queryFn: () => base44.entities.ProgramLocation.list()
+  });
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.OutsideIncome.create(data),
     onSuccess: () => {
@@ -109,20 +114,42 @@ export default function OutsideIncome() {
     return (num || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
-  // Check if income is Hartford Hospital
-  const isHartfordHospital = (income) => {
-    return income.facility_name?.toLowerCase().includes('hartford hospital');
+  // Check if income is Hartford Hospital RVU-based (exclude Directorship)
+  const isHartfordHospitalRVU = (income) => {
+    const location = programLocations.find(pl => pl.id === income.program_location_id);
+    
+    if (location) {
+      const isHartford = location.program_group?.toLowerCase().includes('hartford hospital');
+      const isDirectorship = location.program_type === 'Directorship';
+      return isHartford && !isDirectorship;
+    }
+    
+    // Fallback to facility name
+    const isHartford = income.facility_name?.toLowerCase().includes('hartford hospital');
+    const isDirectorship = income.facility_name?.toLowerCase().includes('directorship');
+    return isHartford && !isDirectorship;
+  };
+
+  // Check if income is a Directorship program
+  const isDirectorship = (income) => {
+    const location = programLocations.find(pl => pl.id === income.program_location_id);
+    return location?.program_type === 'Directorship';
   };
 
   // Wait for data to load before processing
-  const isLoading = incomesLoading || providersLoading;
+  const isLoading = incomesLoading || providersLoading || locationsLoading;
 
-  const incomesWithProviders = isLoading ? [] : incomes.map(income => ({
-    ...income,
-    provider: providers.find(p => p.id === income.provider_id),
-    providerName: providers.find(p => p.id === income.provider_id)?.full_name || '',
-    isHartford: isHartfordHospital(income)
-  }));
+  const incomesWithProviders = isLoading ? [] : incomes.map(income => {
+    const location = programLocations.find(pl => pl.id === income.program_location_id);
+    return {
+      ...income,
+      provider: providers.find(p => p.id === income.provider_id),
+      providerName: providers.find(p => p.id === income.provider_id)?.full_name || '',
+      isHartfordRVU: isHartfordHospitalRVU(income),
+      isDirectorship: isDirectorship(income),
+      programLocation: location
+    };
+  });
 
   const filteredIncomes = incomesWithProviders.filter(income =>
     income.provider?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -308,15 +335,21 @@ export default function OutsideIncome() {
                         </td>
                         <td className="p-4 text-slate-600">{income.facility_name || '-'}</td>
                         <td className="p-4 text-slate-600 font-medium">
-                          {income.isHartford ? (
+                          {income.isHartfordRVU ? (
                             <span className="text-blue-600">{formatNumber(income.total_rvus)} RVUs</span>
+                          ) : income.isDirectorship ? (
+                            <span className="text-slate-400">—</span>
                           ) : (
                             <span>{income.days_worked || 0} days</span>
                           )}
                         </td>
                         <td className="p-4 text-slate-600">
                           ${formatCurrency(income.rate || 0)}
-                          {income.isHartford && <span className="text-xs text-slate-500">/RVU</span>}
+                          {income.isHartfordRVU ? (
+                            <span className="text-xs text-slate-500">/RVU</span>
+                          ) : income.isDirectorship ? (
+                            <span className="text-xs text-slate-500">/month</span>
+                          ) : null}
                         </td>
                         <td className="p-4 font-medium text-green-600">
                           ${formatCurrency(income.total_amount || 0)}
