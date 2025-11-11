@@ -88,14 +88,21 @@ export default function Payments() {
     const updateData = async () => {
       if (payments.length === 0 || invoices.length === 0) return;
       
-      // Update payment unallocated amounts (no status changes)
+      // Update payment unallocated amounts and auto-set to cleared when fully allocated
       for (const payment of payments) {
         const totalAllocated = payment.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
         const unallocated = (payment.total_amount || 0) - totalAllocated;
         
-        if (payment.unallocated_amount !== unallocated) {
+        // Auto-update to cleared if fully allocated
+        let newStatus = payment.status;
+        if (unallocated === 0 && totalAllocated > 0 && payment.status === 'pending') {
+          newStatus = 'cleared';
+        }
+        
+        if (payment.unallocated_amount !== unallocated || payment.status !== newStatus) {
           await base44.entities.Payment.update(payment.id, {
-            unallocated_amount: unallocated
+            unallocated_amount: unallocated,
+            status: newStatus
           });
         }
       }
@@ -116,9 +123,16 @@ export default function Payments() {
       const totalAllocated = data.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
       const unallocated = data.total_amount - totalAllocated;
       
+      // Auto-set to cleared if fully allocated
+      let status = data.status;
+      if (unallocated === 0 && totalAllocated > 0 && status === 'pending') {
+        status = 'cleared';
+      }
+      
       const payment = await base44.entities.Payment.create({
         ...data,
-        unallocated_amount: unallocated
+        unallocated_amount: unallocated,
+        status: status
       });
       
       // Update invoice statuses based on allocations
@@ -139,9 +153,16 @@ export default function Payments() {
       const totalAllocated = data.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
       const unallocated = data.total_amount - totalAllocated;
       
+      // Auto-set to cleared if fully allocated
+      let status = data.status;
+      if (unallocated === 0 && totalAllocated > 0 && status === 'pending') {
+        status = 'cleared';
+      }
+      
       const payment = await base44.entities.Payment.update(id, {
         ...data,
-        unallocated_amount: unallocated
+        unallocated_amount: unallocated,
+        status: status
       });
       
       // Update invoice statuses based on allocations
