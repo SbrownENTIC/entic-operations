@@ -30,7 +30,8 @@ Deno.serve(async (req) => {
             // Send 30-day reminder
             if (daysUntil === 30 && !license.reminder_30_sent) {
                 const subject = `Automatic Reminder: Your ${license.license_type} expires on ${expirationDateFormatted}`;
-                const body = `Hi ${provider.full_name},
+                const body = 
+                `Hi ${provider.full_name},
 
 Just a quick reminder that your ${license.license_type} is set to expire on ${expirationDateFormatted}.
 
