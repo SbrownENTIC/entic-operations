@@ -51,7 +51,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
     if (field === 'invoice_id') {
       const invoice = invoices.find(inv => inv.id === value);
       if (invoice) {
-        const balance = (invoice.total || 0) - (invoice.amount_received || 0);
+        const balance = (invoice.amount_expected || 0) - (invoice.amount_received || 0);
         newAllocations[index] = { 
           ...newAllocations[index], 
           invoice_id: value,
