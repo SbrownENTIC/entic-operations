@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -202,11 +201,24 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
 
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       
-      setFormData(prev => ({
-        ...prev,
-        [type === 'draft' ? 'draft_invoice_url' : 'approved_invoice_url']: file_url,
-        status: type === 'draft' ? 'draft' : 'approved'
-      }));
+      setFormData(prev => {
+        const updates = {
+          [type === 'draft' ? 'draft_invoice_url' : 'approved_invoice_url']: file_url
+        };
+        
+        // For UConn invoices, auto-update status based on upload type
+        if (prev.program_group === 'UConn') {
+          if (type === 'draft') {
+            updates.status = 'draft';
+          } else if (type === 'approved') {
+            updates.status = 'sent_to_vendor';
+            updates.sent_to_vendor_at = new Date().toISOString();
+            updates.invoice_sent_to_vendor = true;
+          }
+        }
+        
+        return { ...prev, ...updates };
+      });
     } catch (error) {
       console.error('Upload failed:', error);
     } finally {
@@ -458,6 +470,11 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                   </Button>
                 )}
               </div>
+              {formData.program_group === 'UConn' && (
+                <p className="text-xs text-slate-500">
+                  Uploading will auto-update status to "Draft"
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -478,6 +495,11 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                   </Button>
                 )}
               </div>
+              {formData.program_group === 'UConn' && (
+                <p className="text-xs text-slate-500">
+                  Uploading will auto-update status to "Sent to Vendor" with timestamp
+                </p>
+              )}
             </div>
           </div>
 
