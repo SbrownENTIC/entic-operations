@@ -5,7 +5,9 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Plus, Trash2 } from "lucide-react";
+import { X, Plus, Trash2, Search } from "lucide-react";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export default function PaymentForm({ payment, invoices, providers, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = useState({
@@ -18,6 +20,8 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
     status: 'pending',
     notes: ''
   });
+
+  const [openComboboxes, setOpenComboboxes] = useState({});
 
   useEffect(() => {
     if (payment) {
@@ -65,6 +69,10 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
     }
     
     setFormData({ ...formData, allocations: newAllocations });
+  };
+
+  const toggleCombobox = (index, isOpen) => {
+    setOpenComboboxes(prev => ({ ...prev, [index]: isOpen }));
   };
 
   const totalAllocated = formData.allocations.reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
@@ -188,26 +196,60 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                     <div className="grid grid-cols-12 gap-3 items-end">
                       <div className="col-span-5">
                         <Label className="text-xs">Invoice</Label>
-                        <Select 
-                          value={allocation.invoice_id} 
-                          onValueChange={(value) => updateAllocation(index, 'invoice_id', value)}
-                        >
-                          <SelectTrigger className="mt-1">
-                            <SelectValue placeholder="Select invoice" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {invoices.map(invoice => {
-                              const provider = providers.find(p => p.id === invoice.staff_member_id);
-                              const providerName = provider?.full_name || 'Unknown';
-                              const displayText = `${invoice.invoice_number || 'N/A'} - ${invoice.program_group || 'N/A'}${invoice.month ? ` (${invoice.month})` : ''} - ${providerName}`;
-                              return (
-                                <SelectItem key={invoice.id} value={invoice.id}>
-                                  {displayText}
-                                </SelectItem>
-                              );
-                            })}
-                          </SelectContent>
-                        </Select>
+                        <Popover open={openComboboxes[index]} onOpenChange={(open) => toggleCombobox(index, open)}>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className="w-full justify-between mt-1 h-10 text-left font-normal"
+                            >
+                              {selectedInvoice ? (
+                                <span className="truncate">
+                                  {selectedInvoice.invoice_number || 'N/A'} - {selectedInvoice.program_group || 'N/A'}
+                                </span>
+                              ) : (
+                                <span className="text-slate-500">Search invoice...</span>
+                              )}
+                              <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[400px] p-0" align="start">
+                            <Command>
+                              <CommandInput placeholder="Search by invoice #, program, provider..." className="h-9" />
+                              <CommandEmpty>No invoice found.</CommandEmpty>
+                              <CommandGroup className="max-h-64 overflow-auto">
+                                {invoices.map(invoice => {
+                                  const provider = providers.find(p => p.id === invoice.staff_member_id);
+                                  const providerName = provider?.full_name || 'Unknown';
+                                  const balance = (invoice.amount_expected || invoice.total || 0) - (invoice.amount_received || 0);
+                                  const displayText = `${invoice.invoice_number || 'N/A'} - ${invoice.program_group || 'N/A'}${invoice.month ? ` (${invoice.month})` : ''} - ${providerName}`;
+                                  
+                                  return (
+                                    <CommandItem
+                                      key={invoice.id}
+                                      value={`${invoice.invoice_number} ${invoice.program_group} ${invoice.month} ${providerName}`}
+                                      onSelect={() => {
+                                        updateAllocation(index, 'invoice_id', invoice.id);
+                                        toggleCombobox(index, false);
+                                      }}
+                                      className="cursor-pointer"
+                                    >
+                                      <div className="flex flex-col w-full">
+                                        <div className="flex items-center justify-between">
+                                          <span className="font-medium">{displayText}</span>
+                                          <span className="text-xs text-slate-500 ml-2">${balance.toFixed(2)}</span>
+                                        </div>
+                                        {invoice.status && (
+                                          <span className="text-xs text-slate-500 capitalize">{invoice.status.replace(/_/g, ' ')}</span>
+                                        )}
+                                      </div>
+                                    </CommandItem>
+                                  );
+                                })}
+                              </CommandGroup>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
                       </div>
                       
                       <div className="col-span-3">
