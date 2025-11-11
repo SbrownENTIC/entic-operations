@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, DollarSign } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import PaymentForm from "../components/payments/PaymentForm";
 import PaymentDetailModal from "../components/payments/PaymentDetailModal";
@@ -211,6 +211,9 @@ export default function Payments() {
     payment.reference_number?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Calculate total of all payments
+  const totalPayments = filteredPayments.reduce((sum, payment) => sum + (payment.total_amount || 0), 0);
+
   const statusColors = {
     pending: "bg-yellow-100 text-yellow-800",
     cleared: "bg-green-100 text-green-800",
@@ -237,6 +240,24 @@ export default function Payments() {
             Record Payment
           </Button>
         </div>
+
+        {/* Total Payments Summary Card */}
+        <Card className="border-slate-200 shadow-sm bg-gradient-to-br from-green-50 to-white">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600">Total Payments</p>
+                <div className="text-4xl font-bold text-green-700 mt-2">
+                  ${formatCurrency(totalPayments)}
+                </div>
+                <p className="text-sm text-slate-500 mt-1">
+                  {filteredPayments.length} payment{filteredPayments.length !== 1 ? 's' : ''}
+                </p>
+              </div>
+              <DollarSign className="w-16 h-16 text-green-600 opacity-20" />
+            </div>
+          </CardContent>
+        </Card>
 
         {showForm && (
           <PaymentForm

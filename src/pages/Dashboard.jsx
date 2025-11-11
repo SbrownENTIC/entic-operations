@@ -1,3 +1,4 @@
+
 import React from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -94,8 +95,8 @@ export default function Dashboard() {
     cmeByProvider[record.provider_id] += record.credits || 0;
   });
 
-  const doctorsCompliant = doctors.filter(doc => (cmeByProvider[doc.id] || 0) >= 10).length;
-  const doctorsNonCompliant = doctors.filter(doc => (cmeByProvider[doc.id] || 0) < 10);
+  const doctorsCompliant = doctors.filter(doc => (cmeByProvider[doc.id] || 0) >= 3).length;
+  const doctorsNonCompliant = doctors.filter(doc => (cmeByProvider[doc.id] || 0) < 3);
 
   // Format currency with commas
   const formatCurrency = (amount) => {
@@ -229,7 +230,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>CME Non-Compliance - Doctors Requiring Attention</CardTitle>
-                <p className="text-sm text-slate-500 mt-1">Doctors must earn 10+ CME credits</p>
+                <p className="text-sm text-slate-500 mt-1">Doctors must earn 3+ CME credits</p>
               </div>
               <GraduationCap className="w-6 h-6 text-slate-400" />
             </div>
