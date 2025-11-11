@@ -46,7 +46,25 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
 
   const updateAllocation = (index, field, value) => {
     const newAllocations = [...formData.allocations];
-    newAllocations[index] = { ...newAllocations[index], [field]: value };
+    
+    // If updating invoice_id, auto-populate provider and amount
+    if (field === 'invoice_id') {
+      const invoice = invoices.find(inv => inv.id === value);
+      if (invoice) {
+        const balance = (invoice.total || 0) - (invoice.amount_received || 0);
+        newAllocations[index] = { 
+          ...newAllocations[index], 
+          invoice_id: value,
+          provider_id: invoice.staff_member_id,
+          amount: balance
+        };
+      } else {
+        newAllocations[index] = { ...newAllocations[index], [field]: value };
+      }
+    } else {
+      newAllocations[index] = { ...newAllocations[index], [field]: value };
+    }
+    
     setFormData({ ...formData, allocations: newAllocations });
   };
 
