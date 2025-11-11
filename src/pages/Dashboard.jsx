@@ -3,10 +3,10 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, AlertTriangle, FileText, CheckCircle2, Clock, DollarSign, GraduationCap, XCircle } from "lucide-react";
+import { Users, AlertTriangle, Award, FileText, GraduationCap, DollarSign, CheckCircle2, Clock } from "lucide-react";
+import { differenceInDays, parseISO, format } from "date-fns";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { differenceInDays, format, parseISO } from "date-fns";
 
 export default function Dashboard() {
   const { data: providers = [] } = useQuery({
@@ -34,104 +34,67 @@ export default function Dashboard() {
     queryFn: () => base44.entities.CME.list()
   });
 
+  // Provider counts
   const activeProviders = providers.filter(p => p.status === 'active').length;
-  
-  const expiring90DaysLicenses = licenses.filter(l => {
-    const days = differenceInDays(parseISO(l.expiration_date), new Date());
-    return days > 0 && days <= 90;
+
+  // License expiration tracking
+  const today = new Date();
+  const licensesExpiring30Days = licenses.filter(l => {
+    const days = differenceInDays(parseISO(l.expiration_date), today);
+    return days > 0 && days <= 30;
+  });
+  const licensesExpiring14Days = licenses.filter(l => {
+    const days = differenceInDays(parseISO(l.expiration_date), today);
+    return days > 0 && days <= 14;
+  });
+  const licensesExpiring7Days = licenses.filter(l => {
+    const days = differenceInDays(parseISO(l.expiration_date), today);
+    return days > 0 && days <= 7;
   });
 
-  const expiring60DaysLicenses = licenses.filter(l => {
-    const days = differenceInDays(parseISO(l.expiration_date), new Date());
-    return days > 0 && days <= 60;
-  });
-
-  const expiring30DaysLicenses = licenses.filter(l => {
-    const days = differenceInDays(parseISO(l.expiration_date), new Date());
+  // Privilege expiration tracking
+  const privilegesExpiring30Days = privileges.filter(p => {
+    const days = differenceInDays(parseISO(p.expiration_date), today);
     return days > 0 && days <= 30;
   });
 
-  const expiring15DaysLicenses = licenses.filter(l => {
-    const days = differenceInDays(parseISO(l.expiration_date), new Date());
-    return days > 0 && days <= 15;
-  });
+  // Financial metrics
+  const totalPaidToENTIC = invoices
+    .filter(inv => inv.status === 'paid_to_entic' || inv.status === 'provider_paid')
+    .reduce((sum, inv) => sum + (inv.amount_received || 0), 0);
 
-  const expiringPrivileges = privileges.filter(p => {
-    const days = differenceInDays(parseISO(p.expiration_date), new Date());
-    return days > 0 && days <= 30;
-  }).length;
+  const totalOwedToProviders = invoices
+    .filter(inv => (inv.status === 'paid_to_entic' || inv.status === 'provider_paid') && !inv.provider_paid)
+    .reduce((sum, inv) => sum + (inv.amount_received || 0), 0);
 
-  const pendingInvoices = invoices.filter(i => 
-    i.status === 'draft' || 
-    i.status === 'pending_providers_approval' || 
-    i.status === 'sent_for_approval'
+  const outstandingToENTIC = invoices
+    .filter(inv => inv.status !== 'paid_to_entic' && inv.status !== 'provider_paid')
+    .reduce((sum, inv) => sum + ((inv.amount_expected || inv.total || 0) - (inv.amount_received || 0)), 0);
+
+  // Invoice tracking
+  const pendingInvoices = invoices.filter(inv => 
+    inv.status === 'pending_providers_approval' || 
+    inv.status === 'pending_providers_time' ||
+    inv.status === 'sent_for_approval'
   ).length;
 
-  const overdueInvoices = invoices.filter(i => {
-    if (!i.invoice_date) return false;
-    const days = differenceInDays(new Date(), parseISO(i.invoice_date));
-    return days > 30 && i.status !== 'paid_to_entic' && i.status !== 'provider_paid';
+  const overdueInvoices = invoices.filter(inv => {
+    if (!inv.sent_to_vendor_at) return false;
+    const daysSinceSent = differenceInDays(today, parseISO(inv.sent_to_vendor_at));
+    return daysSinceSent > 30 && inv.status !== 'paid_to_entic' && inv.status !== 'provider_paid';
   }).length;
 
-  // Calculate CME compliance for doctors
-  const doctors = providers.filter(p => 
-    p.full_name?.toLowerCase().startsWith('dr.') || 
-    p.full_name?.toLowerCase().includes('dr ')
-  );
-
-  const cmeComplianceByProvider = doctors.map(doctor => {
-    const doctorCME = cmeRecords.filter(c => c.provider_id === doctor.id);
-    const totalCredits = doctorCME.reduce((sum, cme) => sum + (cme.credits || 0), 0);
-    return {
-      provider: doctor,
-      totalCredits,
-      isCompliant: totalCredits >= 3
-    };
+  // CME compliance for doctors
+  const doctors = providers.filter(p => p.role === 'ENT DM' && p.status === 'active');
+  const cmeByProvider = {};
+  cmeRecords.forEach(record => {
+    if (!cmeByProvider[record.provider_id]) {
+      cmeByProvider[record.provider_id] = 0;
+    }
+    cmeByProvider[record.provider_id] += record.credits || 0;
   });
 
-  const compliantDoctors = cmeComplianceByProvider.filter(d => d.isCompliant).length;
-  const nonCompliantDoctors = cmeComplianceByProvider.filter(d => !d.isCompliant).length;
-
-  const LicenseExpirationCard = ({ title, licenses, bgColor, borderColor, textColor, daysLabel }) => (
-    <Card className="border-slate-200 shadow-sm">
-      <CardHeader className={`border-b ${borderColor} ${bgColor}`}>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm">{title}</CardTitle>
-          <Badge variant="outline" className={`${textColor} font-bold`}>
-            {licenses.length}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="p-4">
-        <div className="space-y-2 max-h-64 overflow-y-auto">
-          {licenses
-            .sort((a, b) => new Date(a.expiration_date) - new Date(b.expiration_date))
-            .map(license => {
-              const provider = providers.find(p => p.id === license.provider_id);
-              const daysUntil = differenceInDays(parseISO(license.expiration_date), new Date());
-              
-              return (
-                <Link key={license.id} to={createPageUrl(`ProviderDetail?id=${provider?.id}`)}>
-                  <div className="flex justify-between items-center p-2 bg-slate-50 rounded hover:bg-slate-100 transition-colors">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-slate-900 text-sm truncate">{provider?.full_name}</p>
-                      <p className="text-xs text-slate-600">{license.license_type} - {license.internal_license_number}</p>
-                    </div>
-                    <div className="text-right ml-2">
-                      <p className={`font-semibold text-sm ${textColor}`}>{daysUntil}d</p>
-                      <p className="text-xs text-slate-500">{format(parseISO(license.expiration_date), 'MMM d')}</p>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-          {licenses.length === 0 && (
-            <p className="text-center text-slate-500 py-6 text-sm">No licenses {daysLabel}</p>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
+  const doctorsCompliant = doctors.filter(doc => (cmeByProvider[doc.id] || 0) >= 10).length;
 
   return (
     <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
@@ -141,189 +104,231 @@ export default function Dashboard() {
           <p className="text-slate-600 mt-1">Overview of your medical practice</p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Link to={createPageUrl("Providers")}>
-            <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-slate-600">Active Providers</CardTitle>
-                <Users className="w-5 h-5 text-blue-600" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-slate-900">{activeProviders}</p>
-              </CardContent>
-            </Card>
-          </Link>
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-slate-600">Active Providers</CardTitle>
+              <Users className="w-4 h-4 text-blue-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-slate-900">{activeProviders}</div>
+              <Link to={createPageUrl("Providers")} className="text-xs text-blue-600 hover:underline">
+                View all providers →
+              </Link>
+            </CardContent>
+          </Card>
 
-          <Link to={createPageUrl("Licenses")}>
-            <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-slate-600">Licenses (90d)</CardTitle>
-                <AlertTriangle className="w-5 h-5 text-blue-500" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-blue-600">{expiring90DaysLicenses.length}</p>
-                <p className="text-xs text-slate-500 mt-1">Within 90 days</p>
-              </CardContent>
-            </Card>
-          </Link>
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-slate-600">Licenses Expiring (30d)</CardTitle>
+              <AlertTriangle className="w-4 h-4 text-orange-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-slate-900">{licensesExpiring30Days.length}</div>
+              <Link to={createPageUrl("Licenses")} className="text-xs text-blue-600 hover:underline">
+                View licenses →
+              </Link>
+            </CardContent>
+          </Card>
 
-          <Link to={createPageUrl("ClinicalPrivileges")}>
-            <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-slate-600">Expiring Privileges</CardTitle>
-                <AlertTriangle className="w-5 h-5 text-orange-600" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-orange-600">{expiringPrivileges}</p>
-                <p className="text-xs text-slate-500 mt-1">Within 30 days</p>
-              </CardContent>
-            </Card>
-          </Link>
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-slate-600">Privileges Expiring (30d)</CardTitle>
+              <Award className="w-4 h-4 text-purple-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-slate-900">{privilegesExpiring30Days.length}</div>
+              <Link to={createPageUrl("ClinicalPrivileges")} className="text-xs text-blue-600 hover:underline">
+                View privileges →
+              </Link>
+            </CardContent>
+          </Card>
 
-          <Link to={createPageUrl("Invoices")}>
-            <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-slate-600">Pending Invoices</CardTitle>
-                <FileText className="w-5 h-5 text-blue-600" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-blue-600">{pendingInvoices}</p>
-              </CardContent>
-            </Card>
-          </Link>
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-slate-600">Pending Invoices</CardTitle>
+              <FileText className="w-4 h-4 text-yellow-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-slate-900">{pendingInvoices}</div>
+              <Link to={createPageUrl("Invoices")} className="text-xs text-blue-600 hover:underline">
+                View invoices →
+              </Link>
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-6">
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <GraduationCap className="w-5 h-5 text-blue-600" />
-                <CardTitle>CME Compliance (Doctors)</CardTitle>
-              </div>
+        {/* Financial Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="border-slate-200 shadow-sm bg-gradient-to-br from-green-50 to-white">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-slate-600">Total Paid to ENTIC</CardTitle>
+              <CheckCircle2 className="w-5 h-5 text-green-600" />
             </CardHeader>
-            <CardContent className="p-6">
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <CheckCircle2 className="w-5 h-5 text-green-600" />
-                    <p className="text-sm font-medium text-green-900">Compliant</p>
-                  </div>
-                  <p className="text-3xl font-bold text-green-600">{compliantDoctors}</p>
-                  <p className="text-xs text-green-700 mt-1">≥3 credits</p>
-                </div>
+            <CardContent>
+              <div className="text-3xl font-bold text-green-700">${totalPaidToENTIC.toFixed(2)}</div>
+              <p className="text-xs text-slate-500 mt-1">Payments received from clients</p>
+            </CardContent>
+          </Card>
 
-                <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <XCircle className="w-5 h-5 text-red-600" />
-                    <p className="text-sm font-medium text-red-900">Non-Compliant</p>
-                  </div>
-                  <p className="text-3xl font-bold text-red-600">{nonCompliantDoctors}</p>
-                  <p className="text-xs text-red-700 mt-1">&lt;3 credits</p>
-                </div>
+          <Card className="border-slate-200 shadow-sm bg-gradient-to-br from-blue-50 to-white">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-slate-600">Owed to Providers</CardTitle>
+              <DollarSign className="w-5 h-5 text-blue-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-blue-700">${totalOwedToProviders.toFixed(2)}</div>
+              <p className="text-xs text-slate-500 mt-1">Received but not yet paid out</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-slate-200 shadow-sm bg-gradient-to-br from-orange-50 to-white">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-slate-600">Outstanding to ENTIC</CardTitle>
+              <Clock className="w-5 h-5 text-orange-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-orange-700">${outstandingToENTIC.toFixed(2)}</div>
+              <p className="text-xs text-slate-500 mt-1">Awaiting payment from clients</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* License Expirations Detail */}
+        <div className="grid md:grid-cols-2 gap-6">
+          <LicenseExpirationCard
+            title="Licenses Expiring in 7 Days"
+            licenses={licensesExpiring7Days}
+            providers={providers}
+            severity="high"
+          />
+          <LicenseExpirationCard
+            title="Licenses Expiring in 14 Days"
+            licenses={licensesExpiring14Days}
+            providers={providers}
+            severity="medium"
+          />
+        </div>
+
+        {/* CME Compliance */}
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="border-b border-slate-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>CME Compliance by Doctor</CardTitle>
+                <p className="text-sm text-slate-500 mt-1">Doctors must earn 10+ CME credits</p>
               </div>
-
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                <p className="text-sm font-semibold text-slate-700 mb-3">Doctor Details:</p>
-                {cmeComplianceByProvider.map(({ provider, totalCredits, isCompliant }) => (
-                  <Link key={provider.id} to={createPageUrl(`ProviderDetail?id=${provider.id}`)}>
-                    <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                      <div className="flex items-center gap-3">
-                        {isCompliant ? (
-                          <CheckCircle2 className="w-5 h-5 text-green-600" />
-                        ) : (
-                          <XCircle className="w-5 h-5 text-red-600" />
-                        )}
-                        <p className="font-medium text-slate-900">{provider.full_name}</p>
-                      </div>
-                      <Badge variant={isCompliant ? "default" : "destructive"}>
-                        {totalCredits.toFixed(1)} credits
-                      </Badge>
+              <GraduationCap className="w-6 h-6 text-slate-400" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="mb-4">
+              <div className="text-2xl font-bold text-slate-900">
+                {doctorsCompliant} / {doctors.length}
+              </div>
+              <p className="text-sm text-slate-600">Doctors compliant</p>
+            </div>
+            <div className="space-y-3">
+              {doctors.map(doctor => {
+                const credits = cmeByProvider[doctor.id] || 0;
+                const isCompliant = credits >= 10;
+                return (
+                  <div key={doctor.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                    <div className="flex-1">
+                      <p className="font-medium text-slate-900">{doctor.full_name}</p>
+                      <p className="text-sm text-slate-600">{credits} CME credits</p>
                     </div>
-                  </Link>
-                ))}
-                {cmeComplianceByProvider.length === 0 && (
-                  <p className="text-sm text-slate-500 text-center py-4">No doctors found</p>
-                )}
+                    <Badge variant={isCompliant ? "default" : "secondary"}>
+                      {isCompliant ? 'Compliant' : 'Non-compliant'}
+                    </Badge>
+                  </div>
+                );
+              })}
+              {doctors.length === 0 && (
+                <p className="text-center py-4 text-slate-500">No active doctors found</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Invoice Summary */}
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="border-b border-slate-100">
+            <CardTitle>Invoice Summary</CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                <div className="text-3xl font-bold text-yellow-700">{pendingInvoices}</div>
+                <p className="text-sm text-slate-600 mt-1">Pending Invoices</p>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="border-b border-slate-100">
-              <CardTitle>Invoice Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="grid md:grid-cols-3 gap-4">
-                <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Clock className="w-5 h-5 text-yellow-600" />
-                    <p className="text-sm font-medium text-yellow-900">Pending</p>
-                  </div>
-                  <p className="text-3xl font-bold text-yellow-600">{pendingInvoices}</p>
-                </div>
-
-                <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <AlertTriangle className="w-5 h-5 text-red-600" />
-                    <p className="text-sm font-medium text-red-900">Overdue</p>
-                  </div>
-                  <p className="text-3xl font-bold text-red-600">{overdueInvoices}</p>
-                  <p className="text-xs text-red-700 mt-1">&gt;30 days old</p>
-                </div>
-
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <DollarSign className="w-5 h-5 text-blue-600" />
-                    <p className="text-sm font-medium text-blue-900">Total</p>
-                  </div>
-                  <p className="text-3xl font-bold text-blue-600">{invoices.length}</p>
-                </div>
+              <div className="text-center p-4 bg-red-50 rounded-lg">
+                <div className="text-3xl font-bold text-red-700">{overdueInvoices}</div>
+                <p className="text-sm text-slate-600 mt-1">Overdue (30+ days)</p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-bold text-slate-900 mb-4">License Expirations</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <LicenseExpirationCard
-              title="Expiring in 90 Days"
-              licenses={expiring90DaysLicenses}
-              bgColor="bg-blue-50"
-              borderColor="border-blue-200"
-              textColor="text-blue-600"
-              daysLabel="expiring in 90 days"
-            />
-
-            <LicenseExpirationCard
-              title="Expiring in 60 Days"
-              licenses={expiring60DaysLicenses}
-              bgColor="bg-green-50"
-              borderColor="border-green-200"
-              textColor="text-green-600"
-              daysLabel="expiring in 60 days"
-            />
-
-            <LicenseExpirationCard
-              title="Expiring in 30 Days"
-              licenses={expiring30DaysLicenses}
-              bgColor="bg-yellow-50"
-              borderColor="border-yellow-200"
-              textColor="text-yellow-600"
-              daysLabel="expiring in 30 days"
-            />
-
-            <LicenseExpirationCard
-              title="Expiring in 15 Days"
-              licenses={expiring15DaysLicenses}
-              bgColor="bg-red-50"
-              borderColor="border-red-200"
-              textColor="text-red-600"
-              daysLabel="expiring in 15 days"
-            />
-          </div>
-        </div>
+              <div className="text-center p-4 bg-green-50 rounded-lg">
+                <div className="text-3xl font-bold text-green-700">
+                  {invoices.filter(inv => inv.status === 'paid_to_entic' || inv.status === 'provider_paid').length}
+                </div>
+                <p className="text-sm text-slate-600 mt-1">Paid Invoices</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
+  );
+}
+
+function LicenseExpirationCard({ title, licenses, providers, severity }) {
+  const severityColors = {
+    high: 'border-red-200 bg-red-50',
+    medium: 'border-orange-200 bg-orange-50',
+    low: 'border-yellow-200 bg-yellow-50'
+  };
+
+  return (
+    <Card className={`border shadow-sm ${severityColors[severity]}`}>
+      <CardHeader className="border-b border-slate-100 bg-white">
+        <div className="flex items-center gap-2">
+          <AlertTriangle className={`w-5 h-5 ${
+            severity === 'high' ? 'text-red-600' : 
+            severity === 'medium' ? 'text-orange-600' : 
+            'text-yellow-600'
+          }`} />
+          <CardTitle className="text-lg">{title}</CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent className="p-4 bg-white">
+        {licenses.length > 0 ? (
+          <div className="space-y-3">
+            {licenses.map(license => {
+              const provider = providers.find(p => p.id === license.provider_id);
+              const daysUntil = differenceInDays(parseISO(license.expiration_date), new Date());
+              return (
+                <div key={license.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+                  <div className="flex-1">
+                    <p className="font-medium text-slate-900">{provider?.full_name}</p>
+                    <p className="text-sm text-slate-600">
+                      {license.license_type} - Expires {format(parseISO(license.expiration_date), 'MMM d, yyyy')}
+                    </p>
+                  </div>
+                  <Badge variant="outline" className={`${
+                    daysUntil <= 7 ? 'border-red-300 text-red-700' : 
+                    daysUntil <= 14 ? 'border-orange-300 text-orange-700' : 
+                    'border-yellow-300 text-yellow-700'
+                  }`}>
+                    {daysUntil} days
+                  </Badge>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-center py-4 text-slate-500">No licenses expiring in this period</p>
+        )}
+      </CardContent>
+    </Card>
   );
 }
