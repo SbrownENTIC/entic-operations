@@ -95,6 +95,7 @@ export default function Dashboard() {
   });
 
   const doctorsCompliant = doctors.filter(doc => (cmeByProvider[doc.id] || 0) >= 10).length;
+  const doctorsNonCompliant = doctors.filter(doc => (cmeByProvider[doc.id] || 0) < 10);
 
   // Format currency with commas
   const formatCurrency = (amount) => {
@@ -201,7 +202,7 @@ export default function Dashboard() {
         </div>
 
         {/* License Expirations Detail */}
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-3 gap-6">
           <LicenseExpirationCard
             title="Licenses Expiring in 7 Days"
             licenses={licensesExpiring7Days}
@@ -214,14 +215,20 @@ export default function Dashboard() {
             providers={providers}
             severity="medium"
           />
+          <LicenseExpirationCard
+            title="Licenses Expiring in 30 Days"
+            licenses={licensesExpiring30Days}
+            providers={providers}
+            severity="low"
+          />
         </div>
 
-        {/* CME Compliance */}
+        {/* CME Compliance - Only Non-Compliant Doctors */}
         <Card className="border-slate-200 shadow-sm">
           <CardHeader className="border-b border-slate-100">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>CME Compliance by Doctor</CardTitle>
+                <CardTitle>CME Non-Compliance - Doctors Requiring Attention</CardTitle>
                 <p className="text-sm text-slate-500 mt-1">Doctors must earn 10+ CME credits</p>
               </div>
               <GraduationCap className="w-6 h-6 text-slate-400" />
@@ -234,26 +241,29 @@ export default function Dashboard() {
               </div>
               <p className="text-sm text-slate-600">Doctors compliant</p>
             </div>
-            <div className="space-y-3">
-              {doctors.map(doctor => {
-                const credits = cmeByProvider[doctor.id] || 0;
-                const isCompliant = credits >= 10;
-                return (
-                  <div key={doctor.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                    <div className="flex-1">
-                      <p className="font-medium text-slate-900">{doctor.full_name}</p>
-                      <p className="text-sm text-slate-600">{credits} CME credits</p>
+            {doctorsNonCompliant.length > 0 ? (
+              <div className="space-y-3">
+                {doctorsNonCompliant.map(doctor => {
+                  const credits = cmeByProvider[doctor.id] || 0;
+                  return (
+                    <div key={doctor.id} className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-200">
+                      <div className="flex-1">
+                        <p className="font-medium text-slate-900">{doctor.full_name}</p>
+                        <p className="text-sm text-slate-600">{credits} CME credits</p>
+                      </div>
+                      <Badge variant="secondary" className="bg-red-100 text-red-800">
+                        Non-compliant
+                      </Badge>
                     </div>
-                    <Badge variant={isCompliant ? "default" : "secondary"}>
-                      {isCompliant ? 'Compliant' : 'Non-compliant'}
-                    </Badge>
-                  </div>
-                );
-              })}
-              {doctors.length === 0 && (
-                <p className="text-center py-4 text-slate-500">No active doctors found</p>
-              )}
-            </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-8 bg-green-50 rounded-lg border border-green-200">
+                <CheckCircle2 className="w-12 h-12 text-green-600 mx-auto mb-2" />
+                <p className="text-green-700 font-medium">All doctors are CME compliant!</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
