@@ -40,10 +40,6 @@ export default function Dashboard() {
 
   // License expiration tracking
   const today = new Date();
-  const licensesExpiring90Days = licenses.filter(l => {
-    const days = differenceInDays(parseISO(l.expiration_date), today);
-    return days > 0 && days <= 90;
-  });
   const licensesExpiring60Days = licenses.filter(l => {
     const days = differenceInDays(parseISO(l.expiration_date), today);
     return days > 0 && days <= 60;
@@ -211,7 +207,7 @@ export default function Dashboard() {
         </div>
 
         {/* License Expirations Detail */}
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <LicenseExpirationCard
             title="Expiring in 7 Days"
             licenses={licensesExpiring7Days}
@@ -235,12 +231,6 @@ export default function Dashboard() {
             licenses={licensesExpiring60Days}
             providers={providers}
             severity="info"
-          />
-          <LicenseExpirationCard
-            title="Expiring in 90 Days"
-            licenses={licensesExpiring90Days}
-            providers={providers}
-            severity="light"
           />
         </div>
 
@@ -322,8 +312,7 @@ function LicenseExpirationCard({ title, licenses, providers, severity }) {
     high: 'border-red-200 bg-red-50',
     medium: 'border-orange-200 bg-orange-50',
     low: 'border-yellow-200 bg-yellow-50',
-    info: 'border-blue-200 bg-blue-50',
-    light: 'border-slate-200 bg-slate-50'
+    info: 'border-blue-200 bg-blue-50'
   };
 
   return (
@@ -334,8 +323,7 @@ function LicenseExpirationCard({ title, licenses, providers, severity }) {
             severity === 'high' ? 'text-red-600' : 
             severity === 'medium' ? 'text-orange-600' : 
             severity === 'low' ? 'text-yellow-600' :
-            severity === 'info' ? 'text-blue-600' :
-            'text-slate-600'
+            'text-blue-600'
           }`} />
           <CardTitle className="text-sm">{title}</CardTitle>
         </div>
@@ -358,8 +346,7 @@ function LicenseExpirationCard({ title, licenses, providers, severity }) {
                     daysUntil <= 7 ? 'border-red-300 text-red-700' : 
                     daysUntil <= 14 ? 'border-orange-300 text-orange-700' : 
                     daysUntil <= 30 ? 'border-yellow-300 text-yellow-700' :
-                    daysUntil <= 60 ? 'border-blue-300 text-blue-700' :
-                    'border-slate-300 text-slate-700'
+                    'border-blue-300 text-blue-700'
                   }`}>
                     {daysUntil}d
                   </Badge>
