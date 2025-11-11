@@ -51,16 +51,11 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
     if (field === 'invoice_id') {
       const invoice = invoices.find(inv => inv.id === value);
       if (invoice) {
-        // Calculate balance: amount_expected - amount_received
-        const amountExpected = parseFloat(invoice.amount_expected) || 0;
-        const amountReceived = parseFloat(invoice.amount_received) || 0;
-        const balance = amountExpected - amountReceived;
-        
         newAllocations[index] = { 
           ...newAllocations[index], 
           invoice_id: value,
           provider_id: invoice.staff_member_id || '',
-          amount: balance > 0 ? balance : 0
+          amount: parseFloat(invoice.amount_expected) || 0
         };
       } else {
         newAllocations[index] = { ...newAllocations[index], [field]: value };
