@@ -1,10 +1,9 @@
-
 import React from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, AlertTriangle, Award, FileText, GraduationCap, DollarSign, CheckCircle2, Clock } from "lucide-react";
+import { Users, AlertTriangle, Award, FileText, GraduationCap, DollarSign, CheckCircle2, Clock, Building2 } from "lucide-react";
 import { differenceInDays, parseISO, format } from "date-fns";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -63,7 +62,7 @@ export default function Dashboard() {
     return days > 0 && days <= 30;
   });
 
-  // Financial metrics
+  // Financial metrics - Total
   const totalPaidToENTIC = invoices
     .filter(inv => inv.status === 'paid_to_entic' || inv.status === 'provider_paid')
     .reduce((sum, inv) => sum + (inv.amount_received || 0), 0);
@@ -75,6 +74,37 @@ export default function Dashboard() {
   const outstandingToENTIC = invoices
     .filter(inv => inv.status !== 'paid_to_entic' && inv.status !== 'provider_paid')
     .reduce((sum, inv) => sum + ((inv.amount_expected || inv.total || 0) - (inv.amount_received || 0)), 0);
+
+  // Financial metrics by Program/Location
+  const financialsByProgram = {};
+  invoices.forEach(inv => {
+    const program = inv.program_group || 'Unassigned';
+    
+    if (!financialsByProgram[program]) {
+      financialsByProgram[program] = {
+        paidToENTIC: 0,
+        owedToProviders: 0,
+        outstanding: 0
+      };
+    }
+    
+    // Paid to ENTIC
+    if (inv.status === 'paid_to_entic' || inv.status === 'provider_paid') {
+      financialsByProgram[program].paidToENTIC += (inv.amount_received || 0);
+      
+      // Owed to Providers (received but not paid to provider yet)
+      if (!inv.provider_paid) {
+        financialsByProgram[program].owedToProviders += (inv.amount_received || 0);
+      }
+    } else {
+      // Outstanding to ENTIC
+      const outstanding = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
+      financialsByProgram[program].outstanding += outstanding;
+    }
+  });
+
+  // Sort programs by name
+  const programsSorted = Object.keys(financialsByProgram).sort();
 
   // Invoice tracking
   const pendingInvoices = invoices.filter(inv => 
@@ -170,7 +200,7 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Financial Overview */}
+        {/* Financial Overview - Total */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="border-slate-200 shadow-sm bg-gradient-to-br from-green-50 to-white">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -205,6 +235,54 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Financial Overview by Program/Location */}
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="border-b border-slate-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Financial Overview by Program/Location</CardTitle>
+                <p className="text-sm text-slate-500 mt-1">Detailed breakdown of finances per program</p>
+              </div>
+              <Building2 className="w-6 h-6 text-slate-400" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Program/Location</th>
+                    <th className="text-right p-4 text-sm font-semibold text-slate-700">Paid to ENTIC</th>
+                    <th className="text-right p-4 text-sm font-semibold text-slate-700">Owed to Providers</th>
+                    <th className="text-right p-4 text-sm font-semibold text-slate-700">Outstanding to ENTIC</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {programsSorted.map((program) => {
+                    const data = financialsByProgram[program];
+                    return (
+                      <tr key={program} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td className="p-4 font-medium text-slate-900">{program}</td>
+                        <td className="p-4 text-right font-medium text-green-700">{formatCurrency(data.paidToENTIC)}</td>
+                        <td className="p-4 text-right font-medium text-blue-700">{formatCurrency(data.owedToProviders)}</td>
+                        <td className="p-4 text-right font-medium text-orange-700">{formatCurrency(data.outstanding)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot className="bg-slate-50 border-t-2 border-slate-300">
+                  <tr>
+                    <td className="p-4 font-bold text-slate-900">Total</td>
+                    <td className="p-4 text-right font-bold text-green-700">{formatCurrency(totalPaidToENTIC)}</td>
+                    <td className="p-4 text-right font-bold text-blue-700">{formatCurrency(totalOwedToProviders)}</td>
+                    <td className="p-4 text-right font-bold text-orange-700">{formatCurrency(outstandingToENTIC)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* License Expirations Detail */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
