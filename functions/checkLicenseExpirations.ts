@@ -30,7 +30,8 @@ Deno.serve(async (req) => {
             // Send 30-day reminder
             if (daysUntil === 30 && !license.reminder_30_sent) {
                 const subject = `Automatic Reminder: Your ${license.license_type} expires on ${expirationDateFormatted}`;
-                const body = `Hi ${provider.full_name},
+                const body = 
+                `Hi ${provider.full_name},
 
 Just a quick reminder that your ${license.license_type} is set to expire on ${expirationDateFormatted}.
 
@@ -40,8 +41,7 @@ Best,
 
 Steve Brown
 
-The Operations Team
-`;
+The Operations Team `;
 
                 // Send to provider
                 await base44.asServiceRole.integrations.Core.SendEmail({
@@ -71,7 +71,8 @@ ${body}`
             // Send 14-day reminder
             if (daysUntil === 14 && !license.reminder_14_sent) {
                 const subject = `Automatic Reminder Action Needed: Your ${license.license_type} is set to expire on ${expirationDateFormatted}`;
-                const body = `Hi ${provider.full_name},
+                const body = 
+                `Hi ${provider.full_name},
 
 We wanted to let you know that your ${license.license_type} is set to expire on ${expirationDateFormatted}, which is coming up in just two weeks!
 
@@ -81,8 +82,7 @@ Best,
 
 Steve Brown
 
-The Operations Team
-`;
+The Operations Team `;
 
                 // Send to provider
                 await base44.asServiceRole.integrations.Core.SendEmail({
@@ -112,7 +112,8 @@ ${body}`
             // Send 7-day reminder
             if (daysUntil === 7 && !license.reminder_7_sent) {
                 const subject = `Automatic Notification Urgent Action Needed: Your ${license.license_type} expires on ${expirationDateFormatted}`;
-                const body = `Hi ${provider.full_name},
+                const body = 
+                `Hi ${provider.full_name},
 
 This is an urgent reminder that your ${license.license_type} will expire on ${expirationDateFormatted} - just one week away!
 
@@ -122,8 +123,7 @@ Best,
 
 Steve Brown
 
-The Operations Team
-`;
+The Operations Team `;
 
                 // Send to provider
                 await base44.asServiceRole.integrations.Core.SendEmail({
