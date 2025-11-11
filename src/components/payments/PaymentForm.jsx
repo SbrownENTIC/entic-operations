@@ -169,11 +169,14 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                         <SelectValue placeholder="Select invoice" />
                       </SelectTrigger>
                       <SelectContent>
-                        {invoices.filter(inv => inv.status !== 'paid').map(invoice => (
-                          <SelectItem key={invoice.id} value={invoice.id}>
-                            {invoice.invoice_number || invoice.facility_name} - ${invoice.balance?.toFixed(2)}
-                          </SelectItem>
-                        ))}
+                        {invoices.filter(inv => inv.status !== 'paid').map(invoice => {
+                          const displayText = `${invoice.invoice_number || 'N/A'} - ${invoice.program_group || 'N/A'}${invoice.month ? ` (${invoice.month})` : ''} - $${invoice.balance?.toFixed(2)}`;
+                          return (
+                            <SelectItem key={invoice.id} value={invoice.id}>
+                              {displayText}
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                   </div>
