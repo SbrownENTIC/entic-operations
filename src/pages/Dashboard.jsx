@@ -1,14 +1,19 @@
-import React from "react";
+
+import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, AlertTriangle, Award, FileText, GraduationCap, DollarSign, CheckCircle2, Clock, Building2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Users, AlertTriangle, Award, FileText, GraduationCap, DollarSign, CheckCircle2, Clock, Building2, RefreshCw } from "lucide-react";
 import { differenceInDays, parseISO, format } from "date-fns";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
 export default function Dashboard() {
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState('');
+
   const { data: providers = [] } = useQuery({
     queryKey: ['providers'],
     queryFn: () => base44.entities.Provider.list()
@@ -33,6 +38,19 @@ export default function Dashboard() {
     queryKey: ['cme'],
     queryFn: () => base44.entities.CME.list()
   });
+
+  const handleSyncInvoiceMonths = async () => {
+    setSyncing(true);
+    setSyncMessage('');
+    try {
+      const response = await base44.functions.invoke('syncInvoiceMonths', {});
+      setSyncMessage(response.data.message);
+    } catch (error) {
+      setSyncMessage('Error syncing invoice months: ' + error.message);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   // Provider counts
   const activeProviders = providers.filter(p => p.status === 'active').length;
@@ -140,10 +158,29 @@ export default function Dashboard() {
   return (
     <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
-          <p className="text-slate-600 mt-1">Overview of your medical practice</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
+            <p className="text-slate-600 mt-1">Overview of your medical practice</p>
+          </div>
+          <Button 
+            onClick={handleSyncInvoiceMonths}
+            disabled={syncing}
+            variant="outline"
+            className="gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Syncing...' : 'Sync Invoice Months'}
+          </Button>
         </div>
+
+        {syncMessage && (
+          <Card className="border-blue-200 bg-blue-50">
+            <CardContent className="p-4">
+              <p className="text-sm text-blue-900">{syncMessage}</p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
