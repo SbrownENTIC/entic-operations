@@ -5,14 +5,25 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { differenceInDays, format, parseISO } from "date-fns";
 import PrivilegeForm from "../components/privileges/PrivilegeForm";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function ClinicalPrivileges() {
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingPrivilege, setEditingPrivilege] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [sortField, setSortField] = useState('expiration_date');
   const [sortDirection, setSortDirection] = useState('asc');
   const queryClient = useQueryClient();
@@ -42,6 +53,14 @@ export default function ClinicalPrivileges() {
       queryClient.invalidateQueries({ queryKey: ['privileges'] });
       setShowForm(false);
       setEditingPrivilege(null);
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.ClinicalPrivilege.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['privileges'] });
+      setDeleteConfirm(null);
     }
   });
 
@@ -213,16 +232,26 @@ export default function ClinicalPrivileges() {
                           </Badge>
                         </td>
                         <td className="p-4 text-right">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => {
-                              setEditingPrivilege(priv);
-                              setShowForm(true);
-                            }}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
+                          <div className="flex gap-2 justify-end">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                setEditingPrivilege(priv);
+                                setShowForm(true);
+                              }}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => setDeleteConfirm(priv)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -238,6 +267,26 @@ export default function ClinicalPrivileges() {
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Clinical Privilege</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the privilege for {deleteConfirm?.provider?.full_name} at {deleteConfirm?.facility_name}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteMutation.mutate(deleteConfirm.id)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
