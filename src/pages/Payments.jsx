@@ -43,17 +43,57 @@ export default function Payments() {
     queryFn: () => base44.entities.Provider.list()
   });
 
-  // Auto-update existing payments with calculated unallocated_amount and status
-  useEffect(() => {
-    const updateExistingPayments = async () => {
-      if (payments.length === 0) return;
+  // Recalculate invoice amounts from all payment allocations
+  const recalculateInvoiceAmounts = async () => {
+    if (invoices.length === 0 || payments.length === 0) return;
+    
+    // Create a map of invoice totals from all payment allocations
+    const invoiceTotals = {};
+    
+    for (const payment of payments) {
+      if (payment.allocations) {
+        for (const allocation of payment.allocations) {
+          if (allocation.invoice_id) {
+            invoiceTotals[allocation.invoice_id] = (invoiceTotals[allocation.invoice_id] || 0) + (allocation.amount || 0);
+          }
+        }
+      }
+    }
+    
+    // Update each invoice with the correct amount_received and status
+    for (const invoice of invoices) {
+      const amountReceived = invoiceTotals[invoice.id] || 0;
+      const balance = (invoice.amount_expected || 0) - amountReceived;
       
+      // Determine status based on payment
+      let newStatus = invoice.status;
+      if (balance === 0 && amountReceived > 0) {
+        newStatus = 'paid_to_entic';
+      } else if (amountReceived > 0 && balance > 0) {
+        newStatus = 'partial';
+      }
+      
+      // Only update if values changed
+      if (invoice.amount_received !== amountReceived || invoice.status !== newStatus) {
+        await base44.entities.Invoice.update(invoice.id, {
+          amount_received: amountReceived,
+          status: newStatus
+        });
+      }
+    }
+  };
+
+  // Auto-update existing payments and recalculate invoices
+  useEffect(() => {
+    const updateData = async () => {
+      if (payments.length === 0 || invoices.length === 0) return;
+      
+      // Update payment unallocated amounts and status
       for (const payment of payments) {
         const totalAllocated = payment.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
         const unallocated = (payment.total_amount || 0) - totalAllocated;
         const newStatus = unallocated === 0 ? 'entic_paid' : payment.status;
         
-        // Only update if values have changed
         if (payment.unallocated_amount !== unallocated || (unallocated === 0 && payment.status !== 'entic_paid')) {
           await base44.entities.Payment.update(payment.id, {
             unallocated_amount: unallocated,
@@ -62,20 +102,21 @@ export default function Payments() {
         }
       }
       
-      // Refresh the payments list after updates
+      // Recalculate all invoice amounts from scratch
+      await recalculateInvoiceAmounts();
+      
+      // Refresh data
       queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
     };
     
-    updateExistingPayments();
-  }, [payments.length]); // Only run when payments list length changes
+    updateData();
+  }, [payments.length, invoices.length]);
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      // Calculate unallocated amount
       const totalAllocated = data.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
       const unallocated = data.total_amount - totalAllocated;
-      
-      // Auto-update status to entic_paid if fully allocated
       const status = unallocated === 0 ? 'entic_paid' : data.status;
       
       const payment = await base44.entities.Payment.create({
@@ -84,21 +125,8 @@ export default function Payments() {
         status: status
       });
       
-      // Update invoices with payment amounts
-      if (data.allocations && data.allocations.length > 0) {
-        for (const allocation of data.allocations) {
-          if (allocation.invoice_id) {
-            const invoice = invoices.find(inv => inv.id === allocation.invoice_id);
-            if (invoice) {
-              const newAmountReceived = (invoice.amount_received || 0) + allocation.amount;
-              
-              await base44.entities.Invoice.update(allocation.invoice_id, {
-                amount_received: newAmountReceived
-              });
-            }
-          }
-        }
-      }
+      // Recalculate invoice amounts
+      await recalculateInvoiceAmounts();
       
       return payment;
     },
@@ -112,18 +140,20 @@ export default function Payments() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }) => {
-      // Calculate unallocated amount
       const totalAllocated = data.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
       const unallocated = data.total_amount - totalAllocated;
-      
-      // Auto-update status to entic_paid if fully allocated
       const status = unallocated === 0 ? 'entic_paid' : data.status;
       
-      return base44.entities.Payment.update(id, {
+      const payment = await base44.entities.Payment.update(id, {
         ...data,
         unallocated_amount: unallocated,
         status: status
       });
+      
+      // Recalculate invoice amounts
+      await recalculateInvoiceAmounts();
+      
+      return payment;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payments'] });
@@ -135,23 +165,10 @@ export default function Payments() {
 
   const deleteMutation = useMutation({
     mutationFn: async (payment) => {
-      // Reverse invoice updates
-      if (payment.allocations && payment.allocations.length > 0) {
-        for (const allocation of payment.allocations) {
-          if (allocation.invoice_id) {
-            const invoice = invoices.find(inv => inv.id === allocation.invoice_id);
-            if (invoice) {
-              const newAmountReceived = Math.max(0, (invoice.amount_received || 0) - allocation.amount);
-              
-              await base44.entities.Invoice.update(allocation.invoice_id, {
-                amount_received: newAmountReceived
-              });
-            }
-          }
-        }
-      }
-      
       await base44.entities.Payment.delete(payment.id);
+      
+      // Recalculate invoice amounts after deletion
+      await recalculateInvoiceAmounts();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payments'] });

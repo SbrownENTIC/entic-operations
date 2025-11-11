@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -140,7 +141,15 @@ export default function Invoices() {
     approved: "bg-green-100 text-green-800",
     sent_to_vendor: "bg-blue-100 text-blue-800",
     paid_to_entic: "bg-green-100 text-green-800",
-    provider_paid: "bg-green-100 text-green-800"
+    provider_paid: "bg-green-100 text-green-800",
+    partial: "bg-blue-100 text-blue-800"
+  };
+
+  const getStatusLabel = (invoice) => {
+    if (invoice.status === 'paid_to_entic') return 'Paid to ENTIC';
+    if (invoice.status === 'provider_paid') return 'Provider Paid';
+    if (invoice.status === 'partial') return 'Partial';
+    return invoice.status?.replace(/_/g, ' ');
   };
 
   return (
@@ -229,7 +238,7 @@ export default function Invoices() {
                       </td>
                       <td className="p-4">
                         <Badge className={statusColors[invoice.status]}>
-                          {invoice.status?.replace(/_/g, ' ')}
+                          {getStatusLabel(invoice)}
                         </Badge>
                       </td>
                       <td className="p-4 text-right">
