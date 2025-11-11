@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X } from "lucide-react";
+import { differenceInDays, parseISO } from "date-fns";
 
 export default function LicenseForm({ license, providers, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = useState({
@@ -26,7 +27,21 @@ export default function LicenseForm({ license, providers, onSubmit, onCancel, is
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(formData);
+    
+    // Check if expiration date is more than 90 days away
+    const today = new Date();
+    const expirationDate = new Date(formData.expiration_date);
+    const daysUntil = differenceInDays(expirationDate, today);
+    
+    // If more than 90 days, reset all reminder flags
+    const dataToSubmit = { ...formData };
+    if (daysUntil > 90) {
+      dataToSubmit.reminder_30_sent = false;
+      dataToSubmit.reminder_14_sent = false;
+      dataToSubmit.reminder_7_sent = false;
+    }
+    
+    onSubmit(dataToSubmit);
   };
 
   return (
