@@ -41,7 +41,8 @@ Best,
 
 Steve Brown
 
-The Operations Team `;
+The Operations Team 
+`;
 
                 // Send to provider
                 await base44.asServiceRole.integrations.Core.SendEmail({
@@ -82,7 +83,8 @@ Best,
 
 Steve Brown
 
-The Operations Team `;
+The Operations Team 
+`;
 
                 // Send to provider
                 await base44.asServiceRole.integrations.Core.SendEmail({
@@ -123,7 +125,8 @@ Best,
 
 Steve Brown
 
-The Operations Team `;
+The Operations Team 
+`;
 
                 // Send to provider
                 await base44.asServiceRole.integrations.Core.SendEmail({
