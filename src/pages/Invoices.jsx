@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -6,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -28,6 +27,8 @@ export default function Invoices() {
   const [editingInvoice, setEditingInvoice] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [preselectedIncomes, setPreselectedIncomes] = useState([]);
+  const [sortField, setSortField] = useState('invoice_date');
+  const [sortDirection, setSortDirection] = useState('desc');
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -120,6 +121,15 @@ export default function Invoices() {
     }
   };
 
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
   // Format currency with commas
   const formatCurrency = (amount) => {
     return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -127,7 +137,9 @@ export default function Invoices() {
 
   const invoicesWithProviders = invoices.map(invoice => ({
     ...invoice,
-    provider: providers.find(p => p.id === invoice.staff_member_id)
+    provider: providers.find(p => p.id === invoice.staff_member_id),
+    providerName: providers.find(p => p.id === invoice.staff_member_id)?.full_name || '',
+    balance: (invoice.total || 0) - (invoice.amount_received || 0)
   }));
 
   const filteredInvoices = invoicesWithProviders.filter(invoice =>
@@ -136,6 +148,36 @@ export default function Invoices() {
     invoice.provider?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     invoice.month?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const sortedInvoices = [...filteredInvoices].sort((a, b) => {
+    let aValue, bValue;
+    
+    if (sortField === 'providerName') {
+      aValue = a.providerName;
+      bValue = b.providerName;
+    } else if (sortField === 'invoice_date') {
+      aValue = new Date(a.invoice_date);
+      bValue = new Date(b.invoice_date);
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    } else if (sortField === 'total' || sortField === 'amount_received' || sortField === 'balance') {
+      aValue = a[sortField] || 0;
+      bValue = b[sortField] || 0;
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    } else {
+      aValue = a[sortField] || '';
+      bValue = b[sortField] || '';
+    }
+    
+    const comparison = aValue.toString().toLowerCase().localeCompare(bValue.toString().toLowerCase());
+    return sortDirection === 'asc' ? comparison : -comparison;
+  });
+
+  const SortIcon = ({ field }) => {
+    if (sortField !== field) return <ArrowUpDown className="w-4 h-4 ml-1 inline" />;
+    return sortDirection === 'asc' ? 
+      <ArrowUp className="w-4 h-4 ml-1 inline" /> : 
+      <ArrowDown className="w-4 h-4 ml-1 inline" />;
+  };
 
   const statusColors = {
     not_started: "bg-gray-100 text-gray-800",
@@ -210,20 +252,65 @@ export default function Invoices() {
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Invoice #</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Program Group</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Provider</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Month</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Date</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Total</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Paid</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Balance</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Status</th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('invoice_number')}
+                    >
+                      Invoice # <SortIcon field="invoice_number" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('program_group')}
+                    >
+                      Program Group <SortIcon field="program_group" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('providerName')}
+                    >
+                      Provider <SortIcon field="providerName" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('month')}
+                    >
+                      Month <SortIcon field="month" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('invoice_date')}
+                    >
+                      Date <SortIcon field="invoice_date" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('total')}
+                    >
+                      Total <SortIcon field="total" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('amount_received')}
+                    >
+                      Paid <SortIcon field="amount_received" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('balance')}
+                    >
+                      Balance <SortIcon field="balance" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('status')}
+                    >
+                      Status <SortIcon field="status" />
+                    </th>
                     <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredInvoices.map((invoice) => (
+                  {sortedInvoices.map((invoice) => (
                     <tr key={invoice.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                       <td className="p-4 font-medium text-slate-900">{invoice.invoice_number || '-'}</td>
                       <td className="p-4 text-slate-600">{invoice.program_group}</td>
@@ -239,7 +326,7 @@ export default function Invoices() {
                         ${formatCurrency(invoice.amount_received || 0)}
                       </td>
                       <td className="p-4 font-medium text-slate-900">
-                        ${formatCurrency((invoice.total || 0) - (invoice.amount_received || 0))}
+                        ${formatCurrency(invoice.balance)}
                       </td>
                       <td className="p-4">
                         <Badge className={statusColors[invoice.status]}>
@@ -273,7 +360,7 @@ export default function Invoices() {
                   ))}
                 </tbody>
               </table>
-              {filteredInvoices.length === 0 && (
+              {sortedInvoices.length === 0 && (
                 <div className="text-center py-12 text-slate-500">
                   No invoices found
                 </div>

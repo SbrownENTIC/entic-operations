@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -6,8 +5,8 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, FileText, Pencil, Trash2 } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, Search, Pencil, Trash2, FileText, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import OutsideIncomeForm from "../components/income/OutsideIncomeForm";
@@ -26,8 +25,10 @@ export default function OutsideIncome() {
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingIncome, setEditingIncome] = useState(null);
-  const [selectedIncomes, setSelectedIncomes] = useState([]);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [selectedIncomes, setSelectedIncomes] = useState([]);
+  const [sortField, setSortField] = useState('created_date');
+  const [sortDirection, setSortDirection] = useState('desc');
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -75,25 +76,38 @@ export default function OutsideIncome() {
     }
   };
 
-  const handleCreateInvoice = () => {
-    if (selectedIncomes.length === 0) return;
-    navigate(createPageUrl(`Invoices?create=true&incomes=${selectedIncomes.join(',')}`));
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
   };
 
-  const toggleSelection = (id) => {
-    setSelectedIncomes(prev =>
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+  const toggleSelection = (incomeId) => {
+    setSelectedIncomes(prev => 
+      prev.includes(incomeId) 
+        ? prev.filter(id => id !== incomeId)
+        : [...prev, incomeId]
     );
+  };
+
+  const createInvoiceFromSelected = () => {
+    if (selectedIncomes.length === 0) return;
+    const incomeIds = selectedIncomes.join(',');
+    navigate(`${createPageUrl('Invoices')}?create=true&incomes=${incomeIds}`);
   };
 
   // Format currency with commas
   const formatCurrency = (amount) => {
-    return (amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
   const incomesWithProviders = incomes.map(income => ({
     ...income,
-    provider: providers.find(p => p.id === income.provider_id)
+    provider: providers.find(p => p.id === income.provider_id),
+    providerName: providers.find(p => p.id === income.provider_id)?.full_name || ''
   }));
 
   const filteredIncomes = incomesWithProviders.filter(income =>
@@ -101,11 +115,48 @@ export default function OutsideIncome() {
     income.facility_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const sortedIncomes = [...filteredIncomes].sort((a, b) => {
+    let aValue, bValue;
+    
+    if (sortField === 'providerName') {
+      aValue = a.providerName;
+      bValue = b.providerName;
+    } else if (sortField === 'days_worked' || sortField === 'rate' || sortField === 'total_amount') {
+      aValue = a[sortField] || 0;
+      bValue = b[sortField] || 0;
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    } else if (sortField === 'created_date') {
+      aValue = new Date(a.created_date);
+      bValue = new Date(b.created_date);
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    } else {
+      aValue = a[sortField] || '';
+      bValue = b[sortField] || '';
+    }
+    
+    const comparison = aValue.toString().toLowerCase().localeCompare(bValue.toString().toLowerCase());
+    return sortDirection === 'asc' ? comparison : -comparison;
+  });
+
+  const SortIcon = ({ field }) => {
+    if (sortField !== field) return <ArrowUpDown className="w-4 h-4 ml-1 inline" />;
+    return sortDirection === 'asc' ? 
+      <ArrowUp className="w-4 h-4 ml-1 inline" /> : 
+      <ArrowDown className="w-4 h-4 ml-1 inline" />;
+  };
+
   const statusColors = {
     pending: "bg-yellow-100 text-yellow-800",
     invoiced: "bg-blue-100 text-blue-800",
     paid: "bg-green-100 text-green-800"
   };
+
+  const pendingIncomes = sortedIncomes.filter(income => income.status === 'pending');
+  const canCreateInvoice = selectedIncomes.length > 0 && 
+    selectedIncomes.every(id => {
+      const income = incomes.find(inc => inc.id === id);
+      return income && income.status === 'pending';
+    });
 
   return (
     <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
@@ -113,14 +164,15 @@ export default function OutsideIncome() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Outside Income</h1>
-            <p className="text-slate-600 mt-1">Track provider work at external facilities</p>
+            <p className="text-slate-600 mt-1">Track work performed at external facilities</p>
           </div>
           <div className="flex gap-3">
             {selectedIncomes.length > 0 && (
               <Button
-                onClick={handleCreateInvoice}
+                onClick={createInvoiceFromSelected}
+                disabled={!canCreateInvoice}
                 variant="outline"
-                className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
+                className="border-blue-600 text-blue-600 hover:bg-blue-50"
               >
                 <FileText className="w-4 h-4 mr-2" />
                 Create Invoice ({selectedIncomes.length})
@@ -142,7 +194,6 @@ export default function OutsideIncome() {
         {showForm && (
           <OutsideIncomeForm
             income={editingIncome}
-            providers={providers}
             onSubmit={handleSubmit}
             onCancel={() => {
               setShowForm(false);
@@ -157,7 +208,7 @@ export default function OutsideIncome() {
             <div className="flex items-center gap-4">
               <Search className="w-5 h-5 text-slate-400" />
               <Input
-                placeholder="Search income records..."
+                placeholder="Search outside income..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="max-w-md border-slate-200"
@@ -169,59 +220,77 @@ export default function OutsideIncome() {
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
-                    <th className="p-4 w-12">
-                      <input
-                        type="checkbox"
-                        checked={selectedIncomes.length === filteredIncomes.filter(i => i.status === 'pending').length && filteredIncomes.some(i => i.status === 'pending')}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedIncomes(filteredIncomes.filter(i => i.status === 'pending').map(i => i.id));
-                          } else {
-                            setSelectedIncomes([]);
-                          }
-                        }}
-                        className="w-4 h-4"
-                      />
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700 w-12">
+                      {pendingIncomes.length > 0 && (
+                        <Checkbox
+                          checked={pendingIncomes.every(inc => selectedIncomes.includes(inc.id))}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedIncomes(pendingIncomes.map(inc => inc.id));
+                            } else {
+                              setSelectedIncomes([]);
+                            }
+                          }}
+                        />
+                      )}
                     </th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Provider</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Facility</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Work Dates</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Days</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Amount</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Status</th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('providerName')}
+                    >
+                      Provider <SortIcon field="providerName" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('facility_name')}
+                    >
+                      Facility <SortIcon field="facility_name" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('days_worked')}
+                    >
+                      Days <SortIcon field="days_worked" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('rate')}
+                    >
+                      Rate <SortIcon field="rate" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('total_amount')}
+                    >
+                      Total <SortIcon field="total_amount" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('status')}
+                    >
+                      Status <SortIcon field="status" />
+                    </th>
                     <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredIncomes.map((income) => (
+                  {sortedIncomes.map((income) => (
                     <tr key={income.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                       <td className="p-4">
                         {income.status === 'pending' && (
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             checked={selectedIncomes.includes(income.id)}
-                            onChange={() => toggleSelection(income.id)}
-                            className="w-4 h-4"
+                            onCheckedChange={() => toggleSelection(income.id)}
                           />
                         )}
                       </td>
-                      <td className="p-4">
-                        <p className="font-medium text-slate-900">{income.provider?.full_name}</p>
-                      </td>
-                      <td className="p-4 text-slate-600">{income.facility_name}</td>
-                      <td className="p-4 text-slate-600">
-                        {income.work_dates && income.work_dates.length > 0 ? (
-                          <div className="text-sm max-h-32 overflow-y-auto">
-                            {income.work_dates.map((date, idx) => (
-                              <div key={idx} className="py-0.5">
-                                {format(parseISO(date), 'MMM d, yyyy')}
-                              </div>
-                            ))}
-                          </div>
-                        ) : '-'}
-                      </td>
-                      <td className="p-4 text-slate-600">{income.days_worked || 0}</td>
                       <td className="p-4 font-medium text-slate-900">
+                        {income.provider?.full_name || '-'}
+                      </td>
+                      <td className="p-4 text-slate-600">{income.facility_name || '-'}</td>
+                      <td className="p-4 text-slate-600">{income.days_worked || 0}</td>
+                      <td className="p-4 text-slate-600">${formatCurrency(income.rate || 0)}</td>
+                      <td className="p-4 font-medium text-green-600">
                         ${formatCurrency(income.total_amount || 0)}
                       </td>
                       <td className="p-4">
@@ -255,9 +324,9 @@ export default function OutsideIncome() {
                   ))}
                 </tbody>
               </table>
-              {filteredIncomes.length === 0 && (
+              {sortedIncomes.length === 0 && (
                 <div className="text-center py-12 text-slate-500">
-                  No income records found
+                  No outside income records found
                 </div>
               )}
             </div>
@@ -268,9 +337,9 @@ export default function OutsideIncome() {
       <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Outside Income</AlertDialogTitle>
+            <AlertDialogTitle>Delete Income Record</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this income record for {deleteConfirm?.provider?.full_name} at {deleteConfirm?.facility_name}? This action cannot be undone.
+              Are you sure you want to delete this outside income record? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

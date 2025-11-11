@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Pencil, Trash2, DollarSign, Download } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, DollarSign, Download, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import PaymentForm from "../components/payments/PaymentForm";
 import PaymentDetailModal from "../components/payments/PaymentDetailModal";
@@ -26,6 +26,8 @@ export default function Payments() {
   const [editingPayment, setEditingPayment] = useState(null);
   const [viewingPayment, setViewingPayment] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [sortField, setSortField] = useState('payment_date');
+  const [sortDirection, setSortDirection] = useState('desc');
   const queryClient = useQueryClient();
 
   const { data: payments = [] } = useQuery({
@@ -200,6 +202,15 @@ export default function Payments() {
     }
   };
 
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
   // Export allocations to CSV
   const exportAllocations = () => {
     // Build CSV data with provider names
@@ -278,8 +289,35 @@ export default function Payments() {
     payment.reference_number?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const sortedPayments = [...filteredPayments].sort((a, b) => {
+    let aValue, bValue;
+    
+    if (sortField === 'payment_date') {
+      aValue = new Date(a.payment_date);
+      bValue = new Date(b.payment_date);
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    } else if (sortField === 'total_amount') {
+      aValue = a.total_amount || 0;
+      bValue = b.total_amount || 0;
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    } else {
+      aValue = a[sortField] || '';
+      bValue = b[sortField] || '';
+    }
+    
+    const comparison = aValue.toString().toLowerCase().localeCompare(bValue.toString().toLowerCase());
+    return sortDirection === 'asc' ? comparison : -comparison;
+  });
+
+  const SortIcon = ({ field }) => {
+    if (sortField !== field) return <ArrowUpDown className="w-4 h-4 ml-1 inline" />;
+    return sortDirection === 'asc' ? 
+      <ArrowUp className="w-4 h-4 ml-1 inline" /> : 
+      <ArrowDown className="w-4 h-4 ml-1 inline" />;
+  };
+
   // Calculate total of all payments
-  const totalPayments = filteredPayments.reduce((sum, payment) => sum + (payment.total_amount || 0), 0);
+  const totalPayments = sortedPayments.reduce((sum, payment) => sum + (payment.total_amount || 0), 0);
 
   const statusColors = {
     pending: "bg-yellow-100 text-yellow-800",
@@ -328,7 +366,7 @@ export default function Payments() {
                   ${formatCurrency(totalPayments)}
                 </div>
                 <p className="text-sm text-slate-500 mt-1">
-                  {filteredPayments.length} payment{filteredPayments.length !== 1 ? 's' : ''}
+                  {sortedPayments.length} payment{sortedPayments.length !== 1 ? 's' : ''}
                 </p>
               </div>
               <DollarSign className="w-16 h-16 text-green-600 opacity-20" />
@@ -367,18 +405,48 @@ export default function Payments() {
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Payment Date</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Payer</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Method</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Reference</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Amount</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Status</th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('payment_date')}
+                    >
+                      Payment Date <SortIcon field="payment_date" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('payer')}
+                    >
+                      Payer <SortIcon field="payer" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('payment_method')}
+                    >
+                      Method <SortIcon field="payment_method" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('reference_number')}
+                    >
+                      Reference <SortIcon field="reference_number" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('total_amount')}
+                    >
+                      Amount <SortIcon field="total_amount" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('status')}
+                    >
+                      Status <SortIcon field="status" />
+                    </th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Allocations</th>
                     <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredPayments.map((payment) => (
+                  {sortedPayments.map((payment) => (
                     <tr key={payment.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                       <td className="p-4 text-slate-600">
                         {format(parseISO(payment.payment_date), 'MMM d, yyyy')}
@@ -432,7 +500,7 @@ export default function Payments() {
                   ))}
                 </tbody>
               </table>
-              {filteredPayments.length === 0 && (
+              {sortedPayments.length === 0 && (
                 <div className="text-center py-12 text-slate-500">
                   No payments found
                 </div>

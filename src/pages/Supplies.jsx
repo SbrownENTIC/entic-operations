@@ -4,13 +4,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Pencil } from "lucide-react";
+import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import SupplyForm from "../components/supplies/SupplyForm";
 
 export default function Supplies() {
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingSupply, setEditingSupply] = useState(null);
+  const [sortField, setSortField] = useState('item_name');
+  const [sortDirection, setSortDirection] = useState('asc');
   const queryClient = useQueryClient();
 
   const { data: supplies = [] } = useQuery({
@@ -44,12 +46,44 @@ export default function Supplies() {
     }
   };
 
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
   const filteredSupplies = supplies.filter(supply =>
     supply.item_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     supply.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     supply.vendor?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     supply.vendor_item_number?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const sortedSupplies = [...filteredSupplies].sort((a, b) => {
+    let aValue, bValue;
+    
+    if (sortField === 'current_price') {
+      aValue = a.current_price || 0;
+      bValue = b.current_price || 0;
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    } else {
+      aValue = a[sortField] || '';
+      bValue = b[sortField] || '';
+    }
+    
+    const comparison = aValue.toString().toLowerCase().localeCompare(bValue.toString().toLowerCase());
+    return sortDirection === 'asc' ? comparison : -comparison;
+  });
+
+  const SortIcon = ({ field }) => {
+    if (sortField !== field) return <ArrowUpDown className="w-4 h-4 ml-1 inline" />;
+    return sortDirection === 'asc' ? 
+      <ArrowUp className="w-4 h-4 ml-1 inline" /> : 
+      <ArrowDown className="w-4 h-4 ml-1 inline" />;
+  };
 
   return (
     <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
@@ -100,17 +134,47 @@ export default function Supplies() {
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Item Name</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Vendor</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Vendor Item #</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Description</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Current Price</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Unit</th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('item_name')}
+                    >
+                      Item Name <SortIcon field="item_name" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('vendor')}
+                    >
+                      Vendor <SortIcon field="vendor" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('vendor_item_number')}
+                    >
+                      Vendor Item # <SortIcon field="vendor_item_number" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('description')}
+                    >
+                      Description <SortIcon field="description" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('current_price')}
+                    >
+                      Current Price <SortIcon field="current_price" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('unit')}
+                    >
+                      Unit <SortIcon field="unit" />
+                    </th>
                     <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredSupplies.map((supply) => (
+                  {sortedSupplies.map((supply) => (
                     <tr key={supply.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                       <td className="p-4 font-medium text-slate-900">{supply.item_name}</td>
                       <td className="p-4 text-slate-600">{supply.vendor || 'Staples'}</td>
@@ -134,7 +198,7 @@ export default function Supplies() {
                   ))}
                 </tbody>
               </table>
-              {filteredSupplies.length === 0 && (
+              {sortedSupplies.length === 0 && (
                 <div className="text-center py-12 text-slate-500">
                   No supplies found
                 </div>
