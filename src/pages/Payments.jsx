@@ -43,8 +43,8 @@ export default function Payments() {
     queryFn: () => base44.entities.Provider.list()
   });
 
-  // Recalculate invoice amounts from all payment allocations
-  const recalculateInvoiceAmounts = async () => {
+  // Update invoice amounts and statuses based on all payment allocations
+  const updateInvoiceStatuses = async () => {
     if (invoices.length === 0 || payments.length === 0) return;
     
     // Create a map of invoice totals from all payment allocations
@@ -63,11 +63,11 @@ export default function Payments() {
     // Update each invoice with the correct amount_received and status
     for (const invoice of invoices) {
       const amountReceived = invoiceTotals[invoice.id] || 0;
-      const balance = (invoice.amount_expected || 0) - amountReceived;
+      const balance = (invoice.amount_expected || invoice.total || 0) - amountReceived;
       
       // Determine status based on payment
       let newStatus = invoice.status;
-      if (balance === 0 && amountReceived > 0) {
+      if (balance <= 0 && amountReceived > 0) {
         newStatus = 'paid_to_entic';
       } else if (amountReceived > 0 && balance > 0) {
         newStatus = 'partial';
@@ -83,27 +83,25 @@ export default function Payments() {
     }
   };
 
-  // Auto-update existing payments and recalculate invoices
+  // Auto-update on page load to sync existing data
   useEffect(() => {
     const updateData = async () => {
       if (payments.length === 0 || invoices.length === 0) return;
       
-      // Update payment unallocated amounts and status
+      // Update payment unallocated amounts (no status changes)
       for (const payment of payments) {
         const totalAllocated = payment.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
         const unallocated = (payment.total_amount || 0) - totalAllocated;
-        const newStatus = unallocated === 0 ? 'entic_paid' : payment.status;
         
-        if (payment.unallocated_amount !== unallocated || (unallocated === 0 && payment.status !== 'entic_paid')) {
+        if (payment.unallocated_amount !== unallocated) {
           await base44.entities.Payment.update(payment.id, {
-            unallocated_amount: unallocated,
-            status: newStatus
+            unallocated_amount: unallocated
           });
         }
       }
       
-      // Recalculate all invoice amounts from scratch
-      await recalculateInvoiceAmounts();
+      // Update all invoice statuses based on allocations
+      await updateInvoiceStatuses();
       
       // Refresh data
       queryClient.invalidateQueries({ queryKey: ['payments'] });
@@ -117,16 +115,14 @@ export default function Payments() {
     mutationFn: async (data) => {
       const totalAllocated = data.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
       const unallocated = data.total_amount - totalAllocated;
-      const status = unallocated === 0 ? 'entic_paid' : data.status;
       
       const payment = await base44.entities.Payment.create({
         ...data,
-        unallocated_amount: unallocated,
-        status: status
+        unallocated_amount: unallocated
       });
       
-      // Recalculate invoice amounts
-      await recalculateInvoiceAmounts();
+      // Update invoice statuses based on allocations
+      await updateInvoiceStatuses();
       
       return payment;
     },
@@ -142,16 +138,14 @@ export default function Payments() {
     mutationFn: async ({ id, data }) => {
       const totalAllocated = data.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
       const unallocated = data.total_amount - totalAllocated;
-      const status = unallocated === 0 ? 'entic_paid' : data.status;
       
       const payment = await base44.entities.Payment.update(id, {
         ...data,
-        unallocated_amount: unallocated,
-        status: status
+        unallocated_amount: unallocated
       });
       
-      // Recalculate invoice amounts
-      await recalculateInvoiceAmounts();
+      // Update invoice statuses based on allocations
+      await updateInvoiceStatuses();
       
       return payment;
     },
@@ -167,8 +161,8 @@ export default function Payments() {
     mutationFn: async (payment) => {
       await base44.entities.Payment.delete(payment.id);
       
-      // Recalculate invoice amounts after deletion
-      await recalculateInvoiceAmounts();
+      // Update invoice statuses after deletion
+      await updateInvoiceStatuses();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payments'] });

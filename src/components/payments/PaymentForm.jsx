@@ -55,7 +55,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
           ...newAllocations[index], 
           invoice_id: value,
           provider_id: invoice.staff_member_id || '',
-          amount: parseFloat(invoice.amount_expected) || 0
+          amount: parseFloat(invoice.amount_expected || invoice.total) || 0
         };
       } else {
         newAllocations[index] = { ...newAllocations[index], [field]: value };
@@ -152,10 +152,8 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="cleared">Cleared</SelectItem>
                   <SelectItem value="reversed">Reversed</SelectItem>
-                  <SelectItem value="entic_paid">ENTIC Paid</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-slate-500">Status auto-updates to "ENTIC Paid" when fully allocated</p>
             </div>
           </div>
 
