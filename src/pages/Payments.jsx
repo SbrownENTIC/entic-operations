@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -30,17 +31,17 @@ export default function Payments() {
   const [sortDirection, setSortDirection] = useState('desc');
   const queryClient = useQueryClient();
 
-  const { data: payments = [] } = useQuery({
+  const { data: payments = [], isLoading: paymentsLoading } = useQuery({
     queryKey: ['payments'],
     queryFn: () => base44.entities.Payment.list('-payment_date')
   });
 
-  const { data: invoices = [] } = useQuery({
+  const { data: invoices = [], isLoading: invoicesLoading } = useQuery({
     queryKey: ['invoices'],
     queryFn: () => base44.entities.Invoice.list()
   });
 
-  const { data: providers = [] } = useQuery({
+  const { data: providers = [], isLoading: providersLoading } = useQuery({
     queryKey: ['providers'],
     queryFn: () => base44.entities.Provider.list()
   });
@@ -88,7 +89,8 @@ export default function Payments() {
   // Auto-update on page load to sync existing data
   useEffect(() => {
     const updateData = async () => {
-      if (payments.length === 0 || invoices.length === 0) return;
+      // Only run if all data is loaded and not empty
+      if (paymentsLoading || invoicesLoading || providersLoading || payments.length === 0 || invoices.length === 0) return;
       
       // Update payment unallocated amounts and auto-set to cleared when fully allocated
       for (const payment of payments) {
@@ -117,8 +119,14 @@ export default function Payments() {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
     };
     
-    updateData();
-  }, [payments.length, invoices.length]);
+    // Debounce or add a dependency to ensure this runs after initial data fetch is stable
+    const timer = setTimeout(() => {
+      updateData();
+    }, 500); // Small delay to ensure all queries have settled
+
+    return () => clearTimeout(timer);
+    
+  }, [payments.length, invoices.length, paymentsLoading, invoicesLoading, providersLoading]); // Include loading states in dependency array
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
@@ -283,6 +291,17 @@ export default function Payments() {
   const formatCurrency = (amount) => {
     return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
+
+  // Only process data when all queries have loaded
+  if (paymentsLoading || invoicesLoading || providersLoading) {
+    return (
+      <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center py-12 text-slate-500">Loading...</div>
+        </div>
+      </div>
+    );
+  }
 
   const filteredPayments = payments.filter(payment =>
     payment.payer?.toLowerCase().includes(searchTerm.toLowerCase()) ||

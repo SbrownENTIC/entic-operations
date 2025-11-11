@@ -32,7 +32,7 @@ export default function Invoices() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const { data: invoices = [] } = useQuery({
+  const { data: invoices = [], isLoading: invoicesLoading } = useQuery({
     queryKey: ['invoices'],
     queryFn: () => base44.entities.Invoice.list('-invoice_date')
   });
@@ -42,7 +42,7 @@ export default function Invoices() {
     queryFn: () => base44.entities.OutsideIncome.list()
   });
 
-  const { data: providers = [] } = useQuery({
+  const { data: providers = [], isLoading: providersLoading } = useQuery({
     queryKey: ['providers'],
     queryFn: () => base44.entities.Provider.list()
   });
@@ -134,6 +134,17 @@ export default function Invoices() {
   const formatCurrency = (amount) => {
     return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
+
+  // Only process data when both queries have loaded
+  if (invoicesLoading || providersLoading) {
+    return (
+      <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center py-12 text-slate-500">Loading...</div>
+        </div>
+      </div>
+    );
+  }
 
   const invoicesWithProviders = invoices.map(invoice => ({
     ...invoice,
