@@ -113,6 +113,13 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
     }
   }, [formData.staff_member_id, providers]);
 
+  // Auto-update status when provider_paid checkbox is checked
+  useEffect(() => {
+    if (formData.provider_paid && formData.status !== 'provider_paid') {
+      setFormData(prev => ({ ...prev, status: 'provider_paid' }));
+    }
+  }, [formData.provider_paid]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
