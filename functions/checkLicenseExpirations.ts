@@ -30,8 +30,7 @@ Deno.serve(async (req) => {
             // Send 30-day reminder
             if (daysUntil === 30 && !license.reminder_30_sent) {
                 const subject = `Automatic Reminder: Your ${license.license_type} expires on ${expirationDateFormatted}`;
-                const body = 
-                `Hi ${provider.full_name},
+                const body = `Hi ${provider.full_name},
 
 Just a quick reminder that your ${license.license_type} is set to expire on ${expirationDateFormatted}.
 
@@ -41,7 +40,8 @@ Best,
 
 Steve Brown
 
-The Operations Team`;
+The Operations Team
+`;
 
                 // Send to provider
                 await base44.asServiceRole.integrations.Core.SendEmail({
@@ -81,7 +81,8 @@ Best,
 
 Steve Brown
 
-The Operations Team`;
+The Operations Team
+`;
 
                 // Send to provider
                 await base44.asServiceRole.integrations.Core.SendEmail({
@@ -121,7 +122,8 @@ Best,
 
 Steve Brown
 
-The Operations Team`;
+The Operations Team
+`;
 
                 // Send to provider
                 await base44.asServiceRole.integrations.Core.SendEmail({
