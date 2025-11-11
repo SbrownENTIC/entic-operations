@@ -15,7 +15,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
     program_location_id: '',
     facility_name: '',
     work_dates: [''],
-    days_worked: 0,
+    total_rvus: 0,
     rate: 0,
     total_amount: 0,
     status: 'pending',
@@ -31,20 +31,19 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
     if (income) {
       setFormData({
         ...income,
-        work_dates: income.work_dates || ['']
+        work_dates: income.work_dates || [''],
+        total_rvus: income.total_rvus || 0
       });
     }
   }, [income]);
 
   useEffect(() => {
-    const days = formData.work_dates.filter(d => d).length;
-    const total = days * (formData.rate || 0);
+    const total = (formData.total_rvus || 0) * (formData.rate || 0);
     setFormData(prev => ({ 
       ...prev, 
-      days_worked: days,
       total_amount: total 
     }));
-  }, [formData.work_dates, formData.rate]);
+  }, [formData.total_rvus, formData.rate]);
 
   useEffect(() => {
     // Auto-populate rate when program location is selected
@@ -125,7 +124,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
                   {programLocations.map(location => (
                     <SelectItem key={location.id} value={location.id}>
                       {location.program_location}
-                      {location.daily_rate > 0 && ` - $${location.daily_rate}/day`}
+                      {location.daily_rate > 0 && ` - $${location.daily_rate}/RVU`}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -142,21 +141,26 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="rate">Daily Rate ($)</Label>
+              <Label htmlFor="total_rvus">Total RVUs *</Label>
+              <Input
+                id="total_rvus"
+                type="number"
+                step="0.01"
+                value={formData.total_rvus}
+                onChange={(e) => setFormData({ ...formData, total_rvus: parseFloat(e.target.value) || 0 })}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="rate">Rate per RVU ($)</Label>
               <Input
                 id="rate"
                 type="number"
                 step="0.01"
                 value={formData.rate}
-                onChange={(e) => setFormData({ ...formData, rate: parseFloat(e.target.value) })}
+                onChange={(e) => setFormData({ ...formData, rate: parseFloat(e.target.value) || 0 })}
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Days Worked</Label>
-              <div className="text-lg font-semibold text-slate-900">
-                {formData.days_worked}
-              </div>
             </div>
 
             <div className="space-y-2">
@@ -164,6 +168,9 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
               <div className="text-2xl font-bold text-green-600">
                 ${formData.total_amount.toFixed(2)}
               </div>
+              <p className="text-xs text-slate-500">
+                {formData.total_rvus} RVUs × ${formData.rate.toFixed(2)} = ${formData.total_amount.toFixed(2)}
+              </p>
             </div>
 
             <div className="space-y-2">
