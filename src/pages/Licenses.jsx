@@ -66,12 +66,14 @@ export default function Licenses() {
         
         if (!provider) continue;
 
+        const expirationDate = format(parseISO(license.expiration_date), 'MMMM d, yyyy');
+
         // Send 30-day reminder
         if (daysUntil === 30 && !license.reminder_30_sent) {
           await base44.integrations.Core.SendEmail({
             to: provider.email,
-            subject: `License Expiration Reminder - 30 Days`,
-            body: `Dear ${provider.full_name},\n\nThis is a reminder that your ${license.license_type} license (Internal #: ${license.internal_license_number}) will expire in 30 days on ${format(parseISO(license.expiration_date), 'MMMM d, yyyy')}.\n\nPlease take action to renew your license.\n\nBest regards,\nMedPractice Management`
+            subject: `Automatic Reminder: Your ${license.license_type} expires on ${expirationDate}`,
+            body: `Hi ${provider.full_name},\n\nJust a quick reminder that your ${license.license_type} is set to expire on ${expirationDate}\n\nPlease make sure to begin any necessary renewal steps. If you've already taken care of this, please send us a copy of the renewed license to us to have on file for compliance.\n\nBest,\n\nSteve Brown\n\nThe Operations Team`
           });
           await base44.entities.License.update(license.id, { reminder_30_sent: true });
         }
@@ -80,8 +82,8 @@ export default function Licenses() {
         if (daysUntil === 14 && !license.reminder_14_sent) {
           await base44.integrations.Core.SendEmail({
             to: provider.email,
-            subject: `License Expiration Reminder - 14 Days`,
-            body: `Dear ${provider.full_name},\n\nThis is a reminder that your ${license.license_type} license (Internal #: ${license.internal_license_number}) will expire in 14 days on ${format(parseISO(license.expiration_date), 'MMMM d, yyyy')}.\n\nPlease take immediate action to renew your license.\n\nBest regards,\nMedPractice Management`
+            subject: `Automatic Reminder Action Needed: Your ${license.license_type} is set to expire on ${expirationDate}`,
+            body: `Hi ${provider.full_name},\n\nWe wanted to let you know that your ${license.license_type} is set to expire on ${expirationDate}, which is coming up in just two weeks!\n\nIf you haven't started the renewal process, now's the time! If you've already submitted your renewal, please send us a copy so we can keep everything up to date for compliance.\n\nBest,\n\nSteve Brown\n\nThe Operations Team`
           });
           await base44.entities.License.update(license.id, { reminder_14_sent: true });
         }
@@ -90,8 +92,8 @@ export default function Licenses() {
         if (daysUntil === 7 && !license.reminder_7_sent) {
           await base44.integrations.Core.SendEmail({
             to: provider.email,
-            subject: `URGENT: License Expiration Reminder - 7 Days`,
-            body: `Dear ${provider.full_name},\n\nURGENT: Your ${license.license_type} license (Internal #: ${license.internal_license_number}) will expire in 7 days on ${format(parseISO(license.expiration_date), 'MMMM d, yyyy')}.\n\nPlease renew your license immediately to avoid any disruptions.\n\nBest regards,\nMedPractice Management`
+            subject: `Automatic Notification Urgent Action Needed: Your ${license.license_type} expires on ${expirationDate}`,
+            body: `Hi ${provider.full_name},\n\nThis is an urgent reminder that your ${license.license_type} will expire on ${expirationDate}- just one week away!\n\nIf you haven't completed your renewal, please do so as soon as possible to avoid any interruption in compliance. If you have already renewed, please reply with a copy so we can have it on file for compliance purposes.\n\nBest,\n\nSteve Brown\n\nThe Operations Team`
           });
           await base44.entities.License.update(license.id, { reminder_7_sent: true });
         }
