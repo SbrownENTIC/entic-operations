@@ -51,12 +51,16 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
     if (field === 'invoice_id') {
       const invoice = invoices.find(inv => inv.id === value);
       if (invoice) {
-        const balance = (invoice.amount_expected || 0) - (invoice.amount_received || 0);
+        // Calculate balance: amount_expected - amount_received
+        const amountExpected = parseFloat(invoice.amount_expected) || 0;
+        const amountReceived = parseFloat(invoice.amount_received) || 0;
+        const balance = amountExpected - amountReceived;
+        
         newAllocations[index] = { 
           ...newAllocations[index], 
           invoice_id: value,
-          provider_id: invoice.staff_member_id,
-          amount: balance
+          provider_id: invoice.staff_member_id || '',
+          amount: balance > 0 ? balance : 0
         };
       } else {
         newAllocations[index] = { ...newAllocations[index], [field]: value };
@@ -175,69 +179,64 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
             </div>
             
             <div className="space-y-3">
-              {formData.allocations.map((allocation, index) => (
-                <div key={index} className="grid grid-cols-12 gap-3 items-end p-3 bg-slate-50 rounded-lg border border-slate-200">
-                  <div className="col-span-5">
-                    <Label className="text-xs">Invoice</Label>
-                    <Select 
-                      value={allocation.invoice_id} 
-                      onValueChange={(value) => updateAllocation(index, 'invoice_id', value)}
-                    >
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Select invoice" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {invoices.filter(inv => inv.status !== 'paid').map(invoice => {
-                          const provider = providers.find(p => p.id === invoice.staff_member_id);
-                          const providerName = provider?.full_name || 'Unknown';
-                          const displayText = `${invoice.invoice_number || 'N/A'} - ${invoice.program_group || 'N/A'}${invoice.month ? ` (${invoice.month})` : ''} - ${providerName}`;
-                          return (
-                            <SelectItem key={invoice.id} value={invoice.id}>
-                              {displayText}
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
+              {formData.allocations.map((allocation, index) => {
+                const selectedInvoice = invoices.find(inv => inv.id === allocation.invoice_id);
+                const selectedProvider = providers.find(p => p.id === allocation.provider_id);
+                
+                return (
+                  <div key={index} className="grid grid-cols-12 gap-3 items-end p-3 bg-slate-50 rounded-lg border border-slate-200">
+                    <div className="col-span-5">
+                      <Label className="text-xs">Invoice</Label>
+                      <Select 
+                        value={allocation.invoice_id} 
+                        onValueChange={(value) => updateAllocation(index, 'invoice_id', value)}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select invoice" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {invoices.filter(inv => inv.status !== 'paid').map(invoice => {
+                            const provider = providers.find(p => p.id === invoice.staff_member_id);
+                            const providerName = provider?.full_name || 'Unknown';
+                            const displayText = `${invoice.invoice_number || 'N/A'} - ${invoice.program_group || 'N/A'}${invoice.month ? ` (${invoice.month})` : ''} - ${providerName}`;
+                            return (
+                              <SelectItem key={invoice.id} value={invoice.id}>
+                                {displayText}
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="col-span-3">
+                      <Label className="text-xs">Provider</Label>
+                      <Input
+                        className="mt-1 bg-slate-100"
+                        value={selectedProvider?.full_name || 'Select invoice first'}
+                        readOnly
+                      />
+                    </div>
+                    
+                    <div className="col-span-3">
+                      <Label className="text-xs">Amount</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        className="mt-1"
+                        value={allocation.amount || 0}
+                        onChange={(e) => updateAllocation(index, 'amount', parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
+                    
+                    <div className="col-span-1">
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removeAllocation(index)}>
+                        <Trash2 className="w-4 h-4 text-red-500" />
+                      </Button>
+                    </div>
                   </div>
-                  
-                  <div className="col-span-3">
-                    <Label className="text-xs">Provider</Label>
-                    <Select 
-                      value={allocation.provider_id} 
-                      onValueChange={(value) => updateAllocation(index, 'provider_id', value)}
-                    >
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Optional" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {providers.map(provider => (
-                          <SelectItem key={provider.id} value={provider.id}>
-                            {provider.full_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="col-span-3">
-                    <Label className="text-xs">Amount</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      className="mt-1"
-                      value={allocation.amount}
-                      onChange={(e) => updateAllocation(index, 'amount', parseFloat(e.target.value))}
-                    />
-                  </div>
-                  
-                  <div className="col-span-1">
-                    <Button type="button" variant="ghost" size="icon" onClick={() => removeAllocation(index)}>
-                      <Trash2 className="w-4 h-4 text-red-500" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
