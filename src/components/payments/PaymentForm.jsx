@@ -9,7 +9,7 @@ import { X, Plus, Trash2 } from "lucide-react";
 
 export default function PaymentForm({ payment, invoices, providers, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = useState({
-    payment_date: '',
+    payment_date: new Date().toISOString().split('T')[0],
     total_amount: 0,
     payment_method: 'check',
     reference_number: '',
@@ -33,7 +33,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
   const addAllocation = () => {
     setFormData({
       ...formData,
-      allocations: [...formData.allocations, { invoice_id: '', provider_id: '', amount: 0 }]
+      allocations: [...formData.allocations, { invoice_id: '', provider_id: '', amount: 0, notes: '' }]
     });
   };
 
@@ -152,8 +152,10 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="cleared">Cleared</SelectItem>
                   <SelectItem value="reversed">Reversed</SelectItem>
+                  <SelectItem value="entic_paid">ENTIC Paid</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-slate-500">Status auto-updates to "ENTIC Paid" when fully allocated</p>
             </div>
           </div>
 
@@ -162,7 +164,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
               <div>
                 <Label>Payment Allocations</Label>
                 <p className="text-sm text-slate-500 mt-1">
-                  Unallocated: <span className={unallocated < 0 ? "text-red-600 font-medium" : "text-slate-700 font-medium"}>
+                  Unallocated: <span className={unallocated < 0 ? "text-red-600 font-medium" : unallocated === 0 ? "text-green-600 font-medium" : "text-orange-600 font-medium"}>
                     ${unallocated.toFixed(2)}
                   </span>
                 </p>
@@ -179,55 +181,67 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                 const selectedProvider = providers.find(p => p.id === allocation.provider_id);
                 
                 return (
-                  <div key={index} className="grid grid-cols-12 gap-3 items-end p-3 bg-slate-50 rounded-lg border border-slate-200">
-                    <div className="col-span-5">
-                      <Label className="text-xs">Invoice</Label>
-                      <Select 
-                        value={allocation.invoice_id} 
-                        onValueChange={(value) => updateAllocation(index, 'invoice_id', value)}
-                      >
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Select invoice" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {invoices.filter(inv => inv.status !== 'paid').map(invoice => {
-                            const provider = providers.find(p => p.id === invoice.staff_member_id);
-                            const providerName = provider?.full_name || 'Unknown';
-                            const displayText = `${invoice.invoice_number || 'N/A'} - ${invoice.program_group || 'N/A'}${invoice.month ? ` (${invoice.month})` : ''} - ${providerName}`;
-                            return (
-                              <SelectItem key={invoice.id} value={invoice.id}>
-                                {displayText}
-                              </SelectItem>
-                            );
-                          })}
-                        </SelectContent>
-                      </Select>
+                  <div key={index} className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-3">
+                    <div className="grid grid-cols-12 gap-3 items-end">
+                      <div className="col-span-5">
+                        <Label className="text-xs">Invoice</Label>
+                        <Select 
+                          value={allocation.invoice_id} 
+                          onValueChange={(value) => updateAllocation(index, 'invoice_id', value)}
+                        >
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Select invoice" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {invoices.map(invoice => {
+                              const provider = providers.find(p => p.id === invoice.staff_member_id);
+                              const providerName = provider?.full_name || 'Unknown';
+                              const displayText = `${invoice.invoice_number || 'N/A'} - ${invoice.program_group || 'N/A'}${invoice.month ? ` (${invoice.month})` : ''} - ${providerName}`;
+                              return (
+                                <SelectItem key={invoice.id} value={invoice.id}>
+                                  {displayText}
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="col-span-3">
+                        <Label className="text-xs">Provider</Label>
+                        <Input
+                          className="mt-1 bg-slate-100"
+                          value={selectedProvider?.full_name || 'Select invoice first'}
+                          readOnly
+                        />
+                      </div>
+                      
+                      <div className="col-span-3">
+                        <Label className="text-xs">Amount</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          className="mt-1"
+                          value={allocation.amount || 0}
+                          onChange={(e) => updateAllocation(index, 'amount', parseFloat(e.target.value) || 0)}
+                        />
+                      </div>
+                      
+                      <div className="col-span-1">
+                        <Button type="button" variant="ghost" size="icon" onClick={() => removeAllocation(index)}>
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        </Button>
+                      </div>
                     </div>
                     
-                    <div className="col-span-3">
-                      <Label className="text-xs">Provider</Label>
+                    <div>
+                      <Label className="text-xs">Allocation Notes</Label>
                       <Input
-                        className="mt-1 bg-slate-100"
-                        value={selectedProvider?.full_name || 'Select invoice first'}
-                        readOnly
-                      />
-                    </div>
-                    
-                    <div className="col-span-3">
-                      <Label className="text-xs">Amount</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
                         className="mt-1"
-                        value={allocation.amount || 0}
-                        onChange={(e) => updateAllocation(index, 'amount', parseFloat(e.target.value) || 0)}
+                        placeholder="Optional notes for this allocation"
+                        value={allocation.notes || ''}
+                        onChange={(e) => updateAllocation(index, 'notes', e.target.value)}
                       />
-                    </div>
-                    
-                    <div className="col-span-1">
-                      <Button type="button" variant="ghost" size="icon" onClick={() => removeAllocation(index)}>
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      </Button>
                     </div>
                   </div>
                 );
@@ -236,7 +250,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
+            <Label htmlFor="notes">Payment Notes</Label>
             <Textarea
               id="notes"
               value={formData.notes}
