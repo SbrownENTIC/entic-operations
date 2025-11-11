@@ -15,6 +15,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
     program_location_id: '',
     facility_name: '',
     work_dates: [''],
+    days_worked: 0,
     total_rvus: 0,
     rate: 0,
     total_amount: 0,
@@ -27,33 +28,50 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
     queryFn: () => base44.entities.ProgramLocation.list('program_location')
   });
 
+  // Check if Hartford Hospital is selected
+  const isHartfordHospital = formData.facility_name?.toLowerCase().includes('hartford hospital') || 
+                             formData.program_location_id && programLocations.find(pl => 
+                               pl.id === formData.program_location_id && 
+                               pl.program_group?.toLowerCase().includes('hartford hospital')
+                             );
+
   useEffect(() => {
     if (income) {
       setFormData({
         ...income,
         work_dates: income.work_dates || [''],
+        days_worked: income.days_worked || 0,
         total_rvus: income.total_rvus || 0
       });
     }
   }, [income]);
 
   useEffect(() => {
-    const total = (formData.total_rvus || 0) * (formData.rate || 0);
+    // Calculate total based on Hartford Hospital or not
+    let total;
+    if (isHartfordHospital) {
+      total = (formData.total_rvus || 0) * (formData.rate || 0);
+    } else {
+      const days = formData.work_dates.filter(d => d).length;
+      total = days * (formData.rate || 0);
+      setFormData(prev => ({ ...prev, days_worked: days }));
+    }
+    
     setFormData(prev => ({ 
       ...prev, 
       total_amount: total 
     }));
-  }, [formData.total_rvus, formData.rate]);
+  }, [formData.work_dates, formData.rate, formData.total_rvus, isHartfordHospital]);
 
   useEffect(() => {
-    // Auto-populate rate when program location is selected
+    // Auto-populate rate and facility when program location is selected
     if (formData.program_location_id) {
       const selectedLocation = programLocations.find(pl => pl.id === formData.program_location_id);
-      if (selectedLocation && selectedLocation.daily_rate) {
+      if (selectedLocation) {
         setFormData(prev => ({
           ...prev,
-          rate: selectedLocation.daily_rate,
-          facility_name: selectedLocation.program_location
+          rate: selectedLocation.daily_rate || 0,
+          facility_name: selectedLocation.program_location || prev.facility_name
         }));
       }
     }
@@ -124,7 +142,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
                   {programLocations.map(location => (
                     <SelectItem key={location.id} value={location.id}>
                       {location.program_location}
-                      {location.daily_rate > 0 && ` - $${location.daily_rate}/RVU`}
+                      {location.daily_rate > 0 && ` - $${location.daily_rate}${location.program_group?.toLowerCase().includes('hartford hospital') ? '/RVU' : '/day'}`}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -140,20 +158,31 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="total_rvus">Total RVUs *</Label>
-              <Input
-                id="total_rvus"
-                type="number"
-                step="0.01"
-                value={formData.total_rvus}
-                onChange={(e) => setFormData({ ...formData, total_rvus: parseFloat(e.target.value) || 0 })}
-                required
-              />
-            </div>
+            {isHartfordHospital ? (
+              <div className="space-y-2">
+                <Label htmlFor="total_rvus">Total RVUs *</Label>
+                <Input
+                  id="total_rvus"
+                  type="number"
+                  step="0.01"
+                  value={formData.total_rvus}
+                  onChange={(e) => setFormData({ ...formData, total_rvus: parseFloat(e.target.value) || 0 })}
+                  required
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>Days Worked</Label>
+                <div className="text-lg font-semibold text-slate-900 p-2 bg-slate-50 rounded-md">
+                  {formData.days_worked}
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
-              <Label htmlFor="rate">Rate per RVU ($)</Label>
+              <Label htmlFor="rate">
+                {isHartfordHospital ? 'Rate per RVU ($)' : 'Daily Rate ($)'}
+              </Label>
               <Input
                 id="rate"
                 type="number"
@@ -169,7 +198,10 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
                 ${formData.total_amount.toFixed(2)}
               </div>
               <p className="text-xs text-slate-500">
-                {formData.total_rvus} RVUs × ${formData.rate.toFixed(2)} = ${formData.total_amount.toFixed(2)}
+                {isHartfordHospital 
+                  ? `${formData.total_rvus} RVUs × $${formData.rate.toFixed(2)} = $${formData.total_amount.toFixed(2)}`
+                  : `${formData.days_worked} days × $${formData.rate.toFixed(2)} = $${formData.total_amount.toFixed(2)}`
+                }
               </p>
             </div>
 

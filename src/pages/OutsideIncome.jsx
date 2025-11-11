@@ -104,9 +104,14 @@ export default function OutsideIncome() {
     return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
-  // Format RVUs with decimals
-  const formatRVUs = (rvus) => {
-    return (rvus || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // Format numbers with decimals
+  const formatNumber = (num) => {
+    return (num || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  // Check if income is Hartford Hospital
+  const isHartfordHospital = (income) => {
+    return income.facility_name?.toLowerCase().includes('hartford hospital');
   };
 
   // Wait for data to load before processing
@@ -115,7 +120,8 @@ export default function OutsideIncome() {
   const incomesWithProviders = isLoading ? [] : incomes.map(income => ({
     ...income,
     provider: providers.find(p => p.id === income.provider_id),
-    providerName: providers.find(p => p.id === income.provider_id)?.full_name || ''
+    providerName: providers.find(p => p.id === income.provider_id)?.full_name || '',
+    isHartford: isHartfordHospital(income)
   }));
 
   const filteredIncomes = incomesWithProviders.filter(income =>
@@ -129,7 +135,7 @@ export default function OutsideIncome() {
     if (sortField === 'providerName') {
       aValue = a.providerName;
       bValue = b.providerName;
-    } else if (sortField === 'total_rvus' || sortField === 'rate' || sortField === 'total_amount') {
+    } else if (sortField === 'days_worked' || sortField === 'total_rvus' || sortField === 'rate' || sortField === 'total_amount') {
       aValue = a[sortField] || 0;
       bValue = b[sortField] || 0;
       return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
@@ -261,15 +267,15 @@ export default function OutsideIncome() {
                       </th>
                       <th 
                         className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                        onClick={() => handleSort('total_rvus')}
+                        onClick={() => handleSort('days_worked')}
                       >
-                        Total RVUs <SortIcon field="total_rvus" />
+                        Days/RVUs <SortIcon field="days_worked" />
                       </th>
                       <th 
                         className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                         onClick={() => handleSort('rate')}
                       >
-                        Rate/RVU <SortIcon field="rate" />
+                        Rate <SortIcon field="rate" />
                       </th>
                       <th 
                         className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
@@ -301,8 +307,17 @@ export default function OutsideIncome() {
                           {income.provider?.full_name || '-'}
                         </td>
                         <td className="p-4 text-slate-600">{income.facility_name || '-'}</td>
-                        <td className="p-4 text-slate-600 font-medium">{formatRVUs(income.total_rvus)}</td>
-                        <td className="p-4 text-slate-600">${formatCurrency(income.rate || 0)}</td>
+                        <td className="p-4 text-slate-600 font-medium">
+                          {income.isHartford ? (
+                            <span className="text-blue-600">{formatNumber(income.total_rvus)} RVUs</span>
+                          ) : (
+                            <span>{income.days_worked || 0} days</span>
+                          )}
+                        </td>
+                        <td className="p-4 text-slate-600">
+                          ${formatCurrency(income.rate || 0)}
+                          {income.isHartford && <span className="text-xs text-slate-500">/RVU</span>}
+                        </td>
                         <td className="p-4 font-medium text-green-600">
                           ${formatCurrency(income.total_amount || 0)}
                         </td>
