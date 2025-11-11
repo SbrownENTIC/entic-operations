@@ -424,6 +424,9 @@ export default function Payments() {
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700 w-16">
+                      #
+                    </th>
                     <th 
                       className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                       onClick={() => handleSort('payment_date')}
@@ -465,8 +468,11 @@ export default function Payments() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedPayments.map((payment) => (
+                  {sortedPayments.map((payment, index) => (
                     <tr key={payment.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                      <td className="p-4 text-slate-500 font-medium">
+                        {index + 1}
+                      </td>
                       <td className="p-4 text-slate-600">
                         {format(parseISO(payment.payment_date), 'MMM d, yyyy')}
                       </td>
