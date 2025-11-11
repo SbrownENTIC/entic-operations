@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -104,18 +105,10 @@ export default function OutsideIncome() {
     return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
-  // Only process data when both queries have loaded
-  if (incomesLoading || providersLoading) {
-    return (
-      <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center py-12 text-slate-500">Loading...</div>
-        </div>
-      </div>
-    );
-  }
+  // Wait for data to load before processing
+  const isLoading = incomesLoading || providersLoading;
 
-  const incomesWithProviders = incomes.map(income => ({
+  const incomesWithProviders = isLoading ? [] : incomes.map(income => ({
     ...income,
     provider: providers.find(p => p.id === income.provider_id),
     providerName: providers.find(p => p.id === income.provider_id)?.full_name || ''
@@ -165,7 +158,7 @@ export default function OutsideIncome() {
   const pendingIncomes = sortedIncomes.filter(income => income.status === 'pending');
   const canCreateInvoice = selectedIncomes.length > 0 && 
     selectedIncomes.every(id => {
-      const income = incomes.find(inc => inc.id === id);
+      const income = incomes.find(inc => inc.id === id); // Use original `incomes` to find by ID
       return income && income.status === 'pending';
     });
 
@@ -195,6 +188,7 @@ export default function OutsideIncome() {
                 setShowForm(true);
               }}
               className="bg-blue-600 hover:bg-blue-700"
+              disabled={providersLoading}
             >
               <Plus className="w-4 h-4 mr-2" />
               Add Income
@@ -202,9 +196,10 @@ export default function OutsideIncome() {
           </div>
         </div>
 
-        {showForm && (
+        {showForm && !providersLoading && (
           <OutsideIncomeForm
             income={editingIncome}
+            providers={providers}
             onSubmit={handleSubmit}
             onCancel={() => {
               setShowForm(false);
@@ -227,120 +222,124 @@ export default function OutsideIncome() {
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-slate-50 border-b border-slate-200">
-                  <tr>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700 w-12">
-                      {pendingIncomes.length > 0 && (
-                        <Checkbox
-                          checked={pendingIncomes.every(inc => selectedIncomes.includes(inc.id))}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedIncomes(pendingIncomes.map(inc => inc.id));
-                            } else {
-                              setSelectedIncomes([]);
-                            }
-                          }}
-                        />
-                      )}
-                    </th>
-                    <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                      onClick={() => handleSort('providerName')}
-                    >
-                      Provider <SortIcon field="providerName" />
-                    </th>
-                    <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                      onClick={() => handleSort('facility_name')}
-                    >
-                      Facility <SortIcon field="facility_name" />
-                    </th>
-                    <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                      onClick={() => handleSort('days_worked')}
-                    >
-                      Days <SortIcon field="days_worked" />
-                    </th>
-                    <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                      onClick={() => handleSort('rate')}
-                    >
-                      Rate <SortIcon field="rate" />
-                    </th>
-                    <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                      onClick={() => handleSort('total_amount')}
-                    >
-                      Total <SortIcon field="total_amount" />
-                    </th>
-                    <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                      onClick={() => handleSort('status')}
-                    >
-                      Status <SortIcon field="status" />
-                    </th>
-                    <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedIncomes.map((income) => (
-                    <tr key={income.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                      <td className="p-4">
-                        {income.status === 'pending' && (
+            {isLoading ? (
+              <div className="text-center py-12 text-slate-500">Loading...</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                      <th className="text-left p-4 text-sm font-semibold text-slate-700 w-12">
+                        {pendingIncomes.length > 0 && (
                           <Checkbox
-                            checked={selectedIncomes.includes(income.id)}
-                            onCheckedChange={() => toggleSelection(income.id)}
+                            checked={pendingIncomes.every(inc => selectedIncomes.includes(inc.id))}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedIncomes(pendingIncomes.map(inc => inc.id));
+                              } else {
+                                setSelectedIncomes([]);
+                              }
+                            }}
                           />
                         )}
-                      </td>
-                      <td className="p-4 font-medium text-slate-900">
-                        {income.provider?.full_name || '-'}
-                      </td>
-                      <td className="p-4 text-slate-600">{income.facility_name || '-'}</td>
-                      <td className="p-4 text-slate-600">{income.days_worked || 0}</td>
-                      <td className="p-4 text-slate-600">${formatCurrency(income.rate || 0)}</td>
-                      <td className="p-4 font-medium text-green-600">
-                        ${formatCurrency(income.total_amount || 0)}
-                      </td>
-                      <td className="p-4">
-                        <Badge className={statusColors[income.status]}>
-                          {income.status}
-                        </Badge>
-                      </td>
-                      <td className="p-4 text-right">
-                        <div className="flex gap-2 justify-end">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => {
-                              setEditingIncome(income);
-                              setShowForm(true);
-                            }}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => setDeleteConfirm(income)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </td>
+                      </th>
+                      <th 
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                        onClick={() => handleSort('providerName')}
+                      >
+                        Provider <SortIcon field="providerName" />
+                      </th>
+                      <th 
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                        onClick={() => handleSort('facility_name')}
+                      >
+                        Facility <SortIcon field="facility_name" />
+                      </th>
+                      <th 
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                        onClick={() => handleSort('days_worked')}
+                      >
+                        Days <SortIcon field="days_worked" />
+                      </th>
+                      <th 
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                        onClick={() => handleSort('rate')}
+                      >
+                        Rate <SortIcon field="rate" />
+                      </th>
+                      <th 
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                        onClick={() => handleSort('total_amount')}
+                      >
+                        Total <SortIcon field="total_amount" />
+                      </th>
+                      <th 
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                        onClick={() => handleSort('status')}
+                      >
+                        Status <SortIcon field="status" />
+                      </th>
+                      <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-              {sortedIncomes.length === 0 && (
-                <div className="text-center py-12 text-slate-500">
-                  No outside income records found
-                </div>
-              )}
-            </div>
+                  </thead>
+                  <tbody>
+                    {sortedIncomes.map((income) => (
+                      <tr key={income.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td className="p-4">
+                          {income.status === 'pending' && (
+                            <Checkbox
+                              checked={selectedIncomes.includes(income.id)}
+                              onCheckedChange={() => toggleSelection(income.id)}
+                            />
+                          )}
+                        </td>
+                        <td className="p-4 font-medium text-slate-900">
+                          {income.provider?.full_name || '-'}
+                        </td>
+                        <td className="p-4 text-slate-600">{income.facility_name || '-'}</td>
+                        <td className="p-4 text-slate-600">{income.days_worked || 0}</td>
+                        <td className="p-4 text-slate-600">${formatCurrency(income.rate || 0)}</td>
+                        <td className="p-4 font-medium text-green-600">
+                          ${formatCurrency(income.total_amount || 0)}
+                        </td>
+                        <td className="p-4">
+                          <Badge className={statusColors[income.status]}>
+                            {income.status}
+                          </Badge>
+                        </td>
+                        <td className="p-4 text-right">
+                          <div className="flex gap-2 justify-end">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                setEditingIncome(income);
+                                setShowForm(true);
+                              }}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => setDeleteConfirm(income)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {sortedIncomes.length === 0 && (
+                  <div className="text-center py-12 text-slate-500">
+                    No outside income records found
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
