@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -65,6 +66,27 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
   // Get unique program groups
   const programGroups = [...new Set(programLocations.map(pl => pl.program_group).filter(Boolean))].sort();
 
+  // Extract month from invoice number
+  const extractMonthFromInvoiceNumber = (invoiceNumber) => {
+    if (!invoiceNumber) return '';
+    
+    const monthPatterns = [
+      /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\b/i,
+      /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\.?\s+(\d{4})\b/i
+    ];
+    
+    for (const pattern of monthPatterns) {
+      const match = invoiceNumber.match(pattern);
+      if (match) {
+        // Capitalize the first letter of the month
+        const monthName = match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
+        return `${monthName} ${match[2]}`;
+      }
+    }
+    
+    return '';
+  };
+
   useEffect(() => {
     if (invoice) {
       setFormData(invoice);
@@ -98,6 +120,14 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
     }
   }, [invoice, preselectedIncomes, incomes, programLocations]);
 
+  // Auto-extract month from invoice number
+  useEffect(() => {
+    const extractedMonth = extractMonthFromInvoiceNumber(formData.invoice_number);
+    if (extractedMonth && !formData.month) {
+      setFormData(prev => ({ ...prev, month: extractedMonth }));
+    }
+  }, [formData.invoice_number, formData.month]); // Added formData.month to dependencies to avoid infinite loop if month is manually changed
+
   useEffect(() => {
     const balance = (formData.amount_expected || 0) - (formData.amount_received || 0);
     setFormData(prev => ({ ...prev, under_over_amount: balance }));
@@ -117,7 +147,14 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
     if (formData.provider_paid && formData.status !== 'provider_paid') {
       setFormData(prev => ({ ...prev, status: 'provider_paid' }));
     }
-  }, [formData.provider_paid]);
+  }, [formData.provider_paid, formData.status]); // Added formData.status to dependencies
+
+  // Auto-update status when invoice_sent_to_vendor checkbox is checked
+  useEffect(() => {
+    if (formData.invoice_sent_to_vendor && formData.status !== 'sent_to_vendor' && formData.status !== 'paid_to_entic' && formData.status !== 'provider_paid') {
+      setFormData(prev => ({ ...prev, status: 'sent_to_vendor' }));
+    }
+  }, [formData.invoice_sent_to_vendor, formData.status]); // Added formData.status to dependencies
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -139,12 +176,19 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
     }
     
     // Set timestamps based on checkboxes
+    // Only set if the checkbox is checked AND the timestamp wasn't previously set (i.e., this is the first time it's checked)
     if (finalData.invoice_sent_for_approval && !invoice?.sent_for_approval_at && finalData.program_group !== 'St. Francis') {
       finalData.sent_for_approval_at = new Date().toISOString();
+    } else if (!finalData.invoice_sent_for_approval) {
+      // If unchecked, clear the timestamp if it's not from the original invoice
+      finalData.sent_for_approval_at = invoice?.sent_for_approval_at || null;
     }
     
     if (finalData.invoice_sent_to_vendor && !invoice?.sent_to_vendor_at && finalData.program_group !== 'St. Francis') {
       finalData.sent_to_vendor_at = new Date().toISOString();
+    } else if (!finalData.invoice_sent_to_vendor) {
+      // If unchecked, clear the timestamp if it's not from the original invoice
+      finalData.sent_to_vendor_at = invoice?.sent_to_vendor_at || null;
     }
     
     onSubmit(finalData);
@@ -223,6 +267,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
             updates.sent_to_vendor_at = new Date().toISOString();
             updates.invoice_sent_to_vendor = true;
           } else if (type === 'approved') {
+            // Even if approved, St. Francis workflow might just keep it at sent_to_vendor
             updates.status = 'sent_to_vendor';
             updates.sent_to_vendor_at = new Date().toISOString();
             updates.invoice_sent_to_vendor = true;
@@ -335,7 +380,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
               <Label htmlFor="month">Month</Label>
               <Input
                 id="month"
-                placeholder="e.g., January 2024"
+                placeholder="e.g., January 2024 (auto-filled from invoice #)"
                 value={formData.month}
                 onChange={(e) => setFormData({ ...formData, month: e.target.value })}
               />
