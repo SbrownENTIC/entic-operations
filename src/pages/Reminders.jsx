@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -83,7 +84,7 @@ The Operations Team`;
         await base44.integrations.Core.SendEmail({
           to: recipient,
           subject: reminder.email_subject,
-          body: emailBody,
+          body: emailBody + '\n\n\n', // Added three newlines here
           from_name: 'MedPractice Reminders'
         });
       }

@@ -204,7 +204,10 @@ ${formData.oncall_provider_list} ${formData.oncall_provider_list.includes(',') ?
  
 Best Regards,
 Steve Brown  
-The Operations Team`;
+The Operations Team
+
+
+`;
 
       setFormData(prev => ({ ...prev, email_body: template }));
     }
@@ -253,7 +256,10 @@ ${formData.oncall_provider_list ? formData.oncall_provider_list : '(On-Call Prov
  
 Best Regards,
 Steve Brown  
-The Operations Team`;
+The Operations Team
+
+
+`;
 
     setFormData({
       ...formData,

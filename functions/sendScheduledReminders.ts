@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
             from_name: 'ENTIC Medical Practice',
             to: recipient,
             subject: reminder.email_subject,
-            body: reminder.email_body.replace(/\n/g, '<br>')
+            body: reminder.email_body.replace(/\n/g, '<br>') + '<br><br><br>'
           });
         }
         
