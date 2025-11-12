@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Pencil, Trash2, DollarSign, Download, ArrowUpDown, ArrowUp, ArrowDown, AlertCircle } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, DollarSign, Download, ArrowUpDown, ArrowUp, ArrowDown, AlertCircle, RefreshCw } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import PaymentForm from "../components/payments/PaymentForm";
 import PaymentDetailModal from "../components/payments/PaymentDetailModal";
@@ -30,6 +30,8 @@ export default function Payments() {
   const [sortField, setSortField] = useState('payment_date');
   const [sortDirection, setSortDirection] = useState('desc');
   const [filterUnallocated, setFilterUnallocated] = useState(false);
+  const [updatingMonths, setUpdatingMonths] = useState(false);
+  const [updateMessage, setUpdateMessage] = useState('');
   const queryClient = useQueryClient();
 
   const { data: payments = [], isLoading: paymentsLoading } = useQuery({
@@ -232,6 +234,20 @@ export default function Payments() {
     }
   };
 
+  const handleUpdatePaymentMonths = async () => {
+    setUpdatingMonths(true);
+    setUpdateMessage('');
+    try {
+      const response = await base44.functions.invoke('updatePaymentMonths', {});
+      setUpdateMessage(response.data.message);
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+    } catch (error) {
+      setUpdateMessage('Error updating payment months: ' + error.message);
+    } finally {
+      setUpdatingMonths(false);
+    }
+  };
+
   // Export allocations to CSV
   const exportAllocations = () => {
     // Build CSV data with provider names and payment month
@@ -375,6 +391,15 @@ export default function Payments() {
           </div>
           <div className="flex gap-3">
             <Button
+              onClick={handleUpdatePaymentMonths}
+              disabled={updatingMonths}
+              variant="outline"
+              className="gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${updatingMonths ? 'animate-spin' : ''}`} />
+              {updatingMonths ? 'Updating...' : 'Update Payment Months'}
+            </Button>
+            <Button
               onClick={exportAllocations}
               variant="outline"
               className="border-blue-600 text-blue-600 hover:bg-blue-50"
@@ -394,6 +419,14 @@ export default function Payments() {
             </Button>
           </div>
         </div>
+
+        {updateMessage && (
+          <Card className="border-blue-200 bg-blue-50">
+            <CardContent className="p-4">
+              <p className="text-sm text-blue-900">{updateMessage}</p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
