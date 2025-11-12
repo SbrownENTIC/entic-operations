@@ -87,8 +87,9 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
         
         const onCallProviders = providerIds.map(id => providers.find(p => p.id === id)).filter(Boolean);
         
+        // Build matched lists - keep phone in same order as provider name (even if empty)
         const providerNames = onCallProviders.map(p => p.full_name).join(', ');
-        const phoneNumbers = onCallProviders.map(p => p.phone).filter(Boolean).join(', ');
+        const phoneNumbers = onCallProviders.map(p => p.phone || 'N/A').join(', ');
         
         if (providerNames && providerNames !== formData.oncall_provider_list) {
           setFormData(prev => ({ 
@@ -181,6 +182,32 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
       }
     }
   }, [formData.closure_date, formData.holiday_name, formData.reminder_type, manuallyEdited.email_subject]);
+
+  // Auto-apply holiday template for email body when all required fields are available
+  useEffect(() => {
+    if (formData.reminder_type === 'Holiday' && 
+        formData.closure_date && 
+        formData.reopen_date && 
+        formData.holiday_name && 
+        formData.oncall_provider_list && 
+        formData.oncall_phone_list &&
+        !formData.email_body) {  // Only auto-apply if email body is empty
+      
+      const template = `Good Morning All,
+ 
+This email is to notify you that our office will be closed on ${format(parseISO(formData.closure_date), 'MMMM d, yyyy')} for the ${formData.holiday_name} Holiday.
+
+The offices will re-open at 8am on ${format(parseISO(formData.reopen_date), 'MMMM d, yyyy')}.
+
+${formData.oncall_provider_list} ${formData.oncall_provider_list.includes(',') ? 'are' : 'is'} the on-call provider${formData.oncall_provider_list.includes(',') ? 's' : ''} and can be reached at ${formData.oncall_phone_list}.
+ 
+Best Regards,
+Steve Brown  
+Operations Project Coordinator`;
+
+      setFormData(prev => ({ ...prev, email_body: template }));
+    }
+  }, [formData.reminder_type, formData.closure_date, formData.reopen_date, formData.holiday_name, formData.oncall_provider_list, formData.oncall_phone_list, formData.email_body]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
