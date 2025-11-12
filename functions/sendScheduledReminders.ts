@@ -1,8 +1,12 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
+import { Resend } from 'npm:resend@3.2.0';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    
+    // Initialize Resend with API key
+    const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
     
     // Verify authentication (optional but good practice for scheduled tasks)
     const isAuthenticated = await base44.auth.isAuthenticated();
