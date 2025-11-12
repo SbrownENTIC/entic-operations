@@ -40,7 +40,6 @@ Deno.serve(async (req) => {
         // Send email to each recipient
         for (const recipient of reminder.recipients) {
           await base44.asServiceRole.integrations.Core.SendEmail({
-            from_name: 'ENTIC Medical Practice',
             to: recipient,
             subject: reminder.email_subject,
             body: reminder.email_body
