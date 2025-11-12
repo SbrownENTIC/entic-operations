@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -25,6 +24,16 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
   });
 
   const [openComboboxes, setOpenComboboxes] = useState({});
+
+  const payerOptions = [
+    'St. Francis',
+    'Manchester / ECHN',
+    'UConn',
+    'CCMC',
+    'Bloomfield',
+    'CTSC- CT Surgery Center',
+    'Hartford Hospital'
+  ];
 
   useEffect(() => {
     if (payment) {
@@ -141,12 +150,21 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
               <label className="text-sm font-medium text-slate-700 mb-1 block">
                 Payer *
               </label>
-              <Input
+              <Select
                 value={formData.payer}
-                onChange={(e) => setFormData({ ...formData, payer: e.target.value })}
-                placeholder="Who made the payment"
-                required
-              />
+                onValueChange={(value) => setFormData({ ...formData, payer: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select payer" />
+                </SelectTrigger>
+                <SelectContent>
+                  {payerOptions.map(payer => (
+                    <SelectItem key={payer} value={payer}>
+                      {payer}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
