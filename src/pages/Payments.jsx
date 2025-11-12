@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -49,23 +48,34 @@ export default function Payments() {
     queryFn: () => base44.entities.Provider.list()
   });
 
-  // Check for showUnallocated URL parameter
+  // Check for URL parameters to auto-open a payment in edit mode
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const showUnallocated = urlParams.get('showUnallocated');
+    const editPaymentId = urlParams.get('edit');
     
     if (showUnallocated === 'true') {
       setFilterUnallocated(true);
-      // Clear URL params after processing
+    }
+    
+    if (editPaymentId && payments.length > 0) {
+      const paymentToEdit = payments.find(p => p.id === editPaymentId);
+      if (paymentToEdit) {
+        setEditingPayment(paymentToEdit);
+        setShowForm(true);
+      }
+    }
+    
+    // Clear URL params after processing
+    if (showUnallocated || editPaymentId) {
       window.history.replaceState({}, '', window.location.pathname);
     }
-  }, []);
+  }, [payments]);
 
   // Update invoice amounts and statuses based on all payment allocations
   const updateInvoiceStatuses = async () => {
     if (invoices.length === 0 || payments.length === 0) return;
     
-    // Create a map of invoice totals from all payment allocations
     const invoiceTotals = {};
     
     for (const payment of payments) {
@@ -78,13 +88,11 @@ export default function Payments() {
       }
     }
     
-    // Update each invoice with the correct amount_received and status
     for (const invoice of invoices) {
       const amountReceived = invoiceTotals[invoice.id] || 0;
       const amountExpected = invoice.amount_expected || invoice.total || 0;
       const balance = amountExpected - amountReceived;
       
-      // Determine status based on payment
       let newStatus = invoice.status;
       if (balance <= 0 && amountReceived > 0) {
         newStatus = 'paid_to_entic';
@@ -94,7 +102,6 @@ export default function Payments() {
         newStatus = 'pending';
       }
       
-      // Only update if values changed, and NEVER update amount_expected
       if (invoice.amount_received !== amountReceived || invoice.status !== newStatus) {
         await base44.entities.Invoice.update(invoice.id, {
           amount_received: amountReceived,
@@ -107,15 +114,12 @@ export default function Payments() {
   // Auto-update on page load to sync existing data
   useEffect(() => {
     const updateData = async () => {
-      // Only run if all data is loaded and not empty
       if (paymentsLoading || invoicesLoading || providersLoading || payments.length === 0 || invoices.length === 0) return;
       
-      // Update payment unallocated amounts and auto-set to cleared when fully allocated
       for (const payment of payments) {
         const totalAllocated = payment.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
         const unallocated = (payment.total_amount || 0) - totalAllocated;
         
-        // Auto-update to cleared if fully allocated
         let newStatus = payment.status;
         if (unallocated === 0 && totalAllocated > 0 && payment.status === 'pending') {
           newStatus = 'cleared';
@@ -131,18 +135,15 @@ export default function Payments() {
         }
       }
       
-      // Update all invoice statuses based on allocations
       await updateInvoiceStatuses();
       
-      // Refresh data
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
     };
     
-    // Debounce or add a dependency to ensure this runs after initial data fetch is stable
     const timer = setTimeout(() => {
       updateData();
-    }, 500); // Small delay to ensure all queries have settled
+    }, 500);
 
     return () => clearTimeout(timer);
     
@@ -153,7 +154,6 @@ export default function Payments() {
       const totalAllocated = data.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
       const unallocated = data.total_amount - totalAllocated;
       
-      // Auto-calculate payment_month from allocations
       const months = new Set();
       if (data.allocations) {
         data.allocations.forEach(allocation => {
@@ -167,7 +167,6 @@ export default function Payments() {
       }
       const paymentMonth = Array.from(months).sort().join(', ');
       
-      // Auto-set to cleared if fully allocated
       let status = data.status;
       if (unallocated === 0 && totalAllocated > 0 && status === 'pending') {
         status = 'cleared';
@@ -180,7 +179,6 @@ export default function Payments() {
         status: status
       });
       
-      // Update invoice statuses based on allocations
       await updateInvoiceStatuses();
       
       return payment;
@@ -198,7 +196,6 @@ export default function Payments() {
       const totalAllocated = data.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
       const unallocated = data.total_amount - totalAllocated;
       
-      // Auto-calculate payment_month from allocations
       const months = new Set();
       if (data.allocations) {
         data.allocations.forEach(allocation => {
@@ -212,7 +209,6 @@ export default function Payments() {
       }
       const paymentMonth = Array.from(months).sort().join(', ');
       
-      // Auto-set to cleared if fully allocated
       let status = data.status;
       if (unallocated === 0 && totalAllocated > 0 && status === 'pending') {
         status = 'cleared';
@@ -227,7 +223,6 @@ export default function Payments() {
         status: status
       });
       
-      // Update invoice statuses based on allocations
       await updateInvoiceStatuses();
       
       return payment;
@@ -244,7 +239,6 @@ export default function Payments() {
     mutationFn: async (payment) => {
       await base44.entities.Payment.delete(payment.id);
       
-      // Update invoice statuses after deletion
       await updateInvoiceStatuses();
     },
     onSuccess: () => {
@@ -256,7 +250,6 @@ export default function Payments() {
 
   const unallocateMutation = useMutation({
     mutationFn: async ({ payment, allocationToRemove }) => {
-      // Remove the allocation from the payment
       const updatedAllocations = (payment.allocations || []).filter(
         a => !(a.invoice_id === allocationToRemove.invoice_id && 
               a.provider_id === allocationToRemove.provider_id && 
@@ -266,7 +259,6 @@ export default function Payments() {
       const totalAllocated = updatedAllocations.reduce((sum, a) => sum + (a.amount || 0), 0);
       const unallocated = (payment.total_amount || 0) - totalAllocated;
       
-      // Auto-calculate payment_month from remaining allocations
       const months = new Set();
       if (updatedAllocations.length > 0) {
         updatedAllocations.forEach(allocation => {
@@ -280,7 +272,6 @@ export default function Payments() {
       }
       const paymentMonth = Array.from(months).sort().join(', ');
       
-      // Auto-set to cleared if fully allocated, otherwise pending if there's unallocated amount
       let status = payment.status;
       if (unallocated === 0 && totalAllocated > 0) {
         status = 'cleared';
@@ -295,13 +286,12 @@ export default function Payments() {
         status: status
       });
       
-      // Update invoice statuses based on new allocations
       await updateInvoiceStatuses();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      setViewingPayment(null); // Close modal or refresh viewingPayment data
+      setViewingPayment(null);
     }
   });
 
@@ -347,7 +337,6 @@ export default function Payments() {
 
   // Export allocations to CSV
   const exportAllocations = () => {
-    // Build CSV data with provider names and payment month
     const rows = [];
     rows.push(['Payment Date', 'Payment Month', 'Payer', 'Payment Method', 'Reference Number', 'Payment Total', 'Payment Status', 'Invoice Number', 'Program Group', 'Provider Name', 'Allocation Amount', 'Allocation Notes']);
     
@@ -373,7 +362,6 @@ export default function Payments() {
           ]);
         });
       } else {
-        // Payment with no allocations
         rows.push([
           format(parseISO(payment.payment_date), 'yyyy-MM-dd'),
           payment.payment_month || '',
@@ -391,11 +379,9 @@ export default function Payments() {
       }
     });
     
-    // Convert to CSV string
     const csvContent = rows.map(row => 
       row.map(cell => {
         const cellStr = String(cell);
-        // Escape quotes and wrap in quotes if contains comma, quote, or newline
         if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
           return '"' + cellStr.replace(/"/g, '""') + '"';
         }
@@ -403,7 +389,6 @@ export default function Payments() {
       }).join(',')
     ).join('\n');
     
-    // Create and download file
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
@@ -467,7 +452,6 @@ export default function Payments() {
       <ArrowDown className="w-4 h-4 ml-1 inline" />;
   };
 
-  // Calculate total of all payments
   const totalPayments = sortedPayments.reduce((sum, payment) => sum + (payment.total_amount || 0), 0);
   const totalUnallocated = sortedPayments.reduce((sum, payment) => sum + (payment.unallocated_amount || 0), 0);
 

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -8,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { X, Upload, AlertCircle, ExternalLink } from "lucide-react";
+import { X, Upload, AlertCircle, ExternalLink, Edit } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -341,25 +342,27 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                       </div>
                     </div>
                     <div className="mt-2 pt-2 border-t border-orange-100 flex gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          // Open Payments page in new tab with this payment highlighted
-                          window.open(`${createPageUrl("Payments")}?highlight=${item.payment.id}`, '_blank');
-                        }}
-                        className="text-xs gap-1"
+                      <a
+                        href={`${createPageUrl("Payments")}?edit=${item.payment.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
                       >
-                        <ExternalLink className="w-3 h-3" />
-                        Open in Payments page
-                      </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="text-xs gap-1"
+                        >
+                          <Edit className="w-3 h-3" />
+                          Edit this payment
+                        </Button>
+                      </a>
                     </div>
                   </div>
                 ))}
                 <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
                   <p className="text-sm text-blue-900 font-medium">
-                    💡 To fix incorrect allocations: Click "Open in Payments page" above, then click the <strong>Edit (pencil)</strong> icon on that payment to adjust the allocation amounts.
+                    💡 To fix incorrect allocations: Click "Edit this payment" above to adjust the allocation amounts in a new tab.
                   </p>
                 </div>
               </CardContent>
