@@ -135,8 +135,6 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
     setCmeRecords(newCME);
   };
 
-  const showFluVaccine = formData.role === 'ENT DM';
-
   return (
     <Card className="border-slate-200 shadow-sm">
       <CardHeader className="border-b border-slate-100">
@@ -215,29 +213,25 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
               <p className="text-xs text-slate-500">Provider will automatically become inactive on this date</p>
             </div>
 
-            {showFluVaccine && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="flu_vaccine_year">Flu Vaccine Year</Label>
-                  <Input
-                    id="flu_vaccine_year"
-                    type="number"
-                    value={formData.flu_vaccine_year}
-                    onChange={(e) => setFormData({ ...formData, flu_vaccine_year: parseInt(e.target.value) })}
-                  />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="flu_vaccine_year">Flu Vaccine Year</Label>
+              <Input
+                id="flu_vaccine_year"
+                type="number"
+                value={formData.flu_vaccine_year}
+                onChange={(e) => setFormData({ ...formData, flu_vaccine_year: parseInt(e.target.value) })}
+              />
+            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="flu_vaccine_date">Flu Vaccine Date</Label>
-                  <Input
-                    id="flu_vaccine_date"
-                    type="date"
-                    value={formData.flu_vaccine_date}
-                    onChange={(e) => setFormData({ ...formData, flu_vaccine_date: e.target.value })}
-                  />
-                </div>
-              </>
-            )}
+            <div className="space-y-2">
+              <Label htmlFor="flu_vaccine_date">Flu Vaccine Date</Label>
+              <Input
+                id="flu_vaccine_date"
+                type="date"
+                value={formData.flu_vaccine_date}
+                onChange={(e) => setFormData({ ...formData, flu_vaccine_date: e.target.value })}
+              />
+            </div>
 
             <div className="space-y-2 md:col-span-2">
               <Label>Program/Locations</Label>
