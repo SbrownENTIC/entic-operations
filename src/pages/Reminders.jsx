@@ -75,7 +75,7 @@ ${reminder.oncall_provider_list || '(On-Call Provider)'} on call during office c
  
 Best Regards,
 Steve Brown  
-Operations Project Coordinator`;
+The Operations Team`;
       }
       
       // Send emails to all recipients
