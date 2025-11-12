@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -233,9 +234,9 @@ export default function Payments() {
 
   // Export allocations to CSV
   const exportAllocations = () => {
-    // Build CSV data with provider names
+    // Build CSV data with provider names and payment month
     const rows = [];
-    rows.push(['Payment Date', 'Payer', 'Payment Method', 'Reference Number', 'Payment Total', 'Payment Status', 'Invoice Number', 'Program Group', 'Provider Name', 'Allocation Amount', 'Allocation Notes']);
+    rows.push(['Payment Date', 'Payment Month', 'Payer', 'Payment Method', 'Reference Number', 'Payment Total', 'Payment Status', 'Invoice Number', 'Program Group', 'Provider Name', 'Allocation Amount', 'Allocation Notes']);
     
     payments.forEach(payment => {
       if (payment.allocations && payment.allocations.length > 0) {
@@ -245,6 +246,7 @@ export default function Payments() {
           
           rows.push([
             format(parseISO(payment.payment_date), 'yyyy-MM-dd'),
+            payment.payment_month || '',
             payment.payer || '',
             payment.payment_method || '',
             payment.reference_number || '',
@@ -261,6 +263,7 @@ export default function Payments() {
         // Payment with no allocations
         rows.push([
           format(parseISO(payment.payment_date), 'yyyy-MM-dd'),
+          payment.payment_month || '',
           payment.payer || '',
           payment.payment_method || '',
           payment.reference_number || '',
@@ -481,6 +484,12 @@ export default function Payments() {
                     </th>
                     <th 
                       className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('payment_month')}
+                    >
+                      Month <SortIcon field="payment_month" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                       onClick={() => handleSort('payer')}
                     >
                       Payer <SortIcon field="payer" />
@@ -526,6 +535,9 @@ export default function Payments() {
                       </td>
                       <td className="p-4 text-slate-600">
                         {format(parseISO(payment.payment_date), 'MMM d, yyyy')}
+                      </td>
+                      <td className="p-4 text-slate-600">
+                        {payment.payment_month || '-'}
                       </td>
                       <td className="p-4 font-medium text-slate-900">{payment.payer}</td>
                       <td className="p-4 text-slate-600">{payment.payment_method?.replace(/_/g, ' ')}</td>

@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect } from "react";
+import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Label } from "@/components/ui/label"; // Keep Label for allocations section
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,14 +13,15 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 
 export default function PaymentForm({ payment, invoices, providers, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = useState({
-    payment_date: new Date().toISOString().split('T')[0],
-    total_amount: 0,
-    payment_method: 'check',
-    reference_number: '',
-    payer: '',
-    allocations: [],
-    status: 'pending',
-    notes: ''
+    payment_date: payment?.payment_date || format(new Date(), 'yyyy-MM-dd'),
+    payment_month: payment?.payment_month || '',
+    total_amount: payment?.total_amount || 0,
+    payment_method: payment?.payment_method || 'check',
+    reference_number: payment?.reference_number || '',
+    payer: payment?.payer || '',
+    allocations: payment?.allocations || [],
+    status: payment?.status || 'pending',
+    notes: payment?.notes || ''
   });
 
   const [openComboboxes, setOpenComboboxes] = useState({});
@@ -79,22 +82,18 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
   const unallocated = (formData.total_amount || 0) - totalAllocated;
 
   return (
-    <Card className="border-slate-200 shadow-sm">
-      <CardHeader className="border-b border-slate-100">
-        <div className="flex items-center justify-between">
-          <CardTitle>{payment ? 'Edit Payment' : 'Record New Payment'}</CardTitle>
-          <Button variant="ghost" size="icon" onClick={onCancel}>
-            <X className="w-4 h-4" />
-          </Button>
-        </div>
+    <Card className="border-blue-200 bg-blue-50/30">
+      <CardHeader>
+        <CardTitle>{payment ? 'Edit Payment' : 'Record New Payment'}</CardTitle>
       </CardHeader>
-      <form onSubmit={handleSubmit}>
-        <CardContent className="p-6 space-y-6">
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="payment_date">Payment Date *</Label>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-1 block">
+                Payment Date *
+              </label>
               <Input
-                id="payment_date"
                 type="date"
                 value={formData.payment_date}
                 onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })}
@@ -102,36 +101,52 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="total_amount">Total Amount *</Label>
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-1 block">
+                Payment Month
+              </label>
               <Input
-                id="total_amount"
-                type="number"
-                step="0.01"
-                value={formData.total_amount}
-                onChange={(e) => setFormData({ ...formData, total_amount: parseFloat(e.target.value) })}
+                type="text"
+                placeholder="e.g., October 2025"
+                value={formData.payment_month}
+                onChange={(e) => setFormData({ ...formData, payment_month: e.target.value })}
+              />
+              <p className="text-xs text-slate-500 mt-1">Month this payment is for</p>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-1 block">
+                Payer *
+              </label>
+              <Input
+                value={formData.payer}
+                onChange={(e) => setFormData({ ...formData, payer: e.target.value })}
+                placeholder="Who made the payment"
                 required
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="payer">Payer *</Label>
-              <Select value={formData.payer} onValueChange={(value) => setFormData({ ...formData, payer: value })} required>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select payer" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="St. Francis">St. Francis</SelectItem>
-                  <SelectItem value="UConn">UConn</SelectItem>
-                  <SelectItem value="Manchester / ECHN">Manchester / ECHN</SelectItem>
-                  <SelectItem value="Hartford Hospital">Hartford Hospital</SelectItem>
-                </SelectContent>
-              </Select>
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-1 block">
+                Total Amount *
+              </label>
+              <Input
+                type="number"
+                step="0.01"
+                value={formData.total_amount}
+                onChange={(e) => setFormData({ ...formData, total_amount: parseFloat(e.target.value) || 0 })}
+                required
+              />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="payment_method">Payment Method</Label>
-              <Select value={formData.payment_method} onValueChange={(value) => setFormData({ ...formData, payment_method: value })}>
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-1 block">
+                Payment Method *
+              </label>
+              <Select
+                value={formData.payment_method}
+                onValueChange={(value) => setFormData({ ...formData, payment_method: value })}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -145,19 +160,25 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="reference_number">Reference Number</Label>
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-1 block">
+                Reference Number
+              </label>
               <Input
-                id="reference_number"
                 value={formData.reference_number}
                 onChange={(e) => setFormData({ ...formData, reference_number: e.target.value })}
-                placeholder="Check # or transaction ID"
+                placeholder="Check number or transaction ID"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-1 block">
+                Status
+              </label>
+              <Select
+                value={formData.status}
+                onValueChange={(value) => setFormData({ ...formData, status: value })}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -165,6 +186,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="cleared">Cleared</SelectItem>
                   <SelectItem value="reversed">Reversed</SelectItem>
+                  <SelectItem value="entic_paid">ENTIC Paid</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -295,7 +317,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Payment Notes</Label>
+            <label className="text-sm font-medium text-slate-700 mb-1 block">Payment Notes</label>
             <Textarea
               id="notes"
               value={formData.notes}

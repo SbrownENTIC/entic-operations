@@ -1,22 +1,17 @@
+
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; // Added Card imports
 import { format, parseISO } from "date-fns";
 import { ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
 export default function PaymentDetailModal({ payment, invoices, providers, onClose }) {
-  const totalAllocated = payment.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
-  const unallocated = (payment.total_amount || 0) - totalAllocated;
-
-  const statusColors = {
-    pending: "bg-yellow-100 text-yellow-800",
-    cleared: "bg-green-100 text-green-800",
-    reversed: "bg-red-100 text-red-800",
-    entic_paid: "bg-blue-100 text-blue-800"
-  };
+  // totalAllocated and unallocated variables are removed as per outline's new structure which uses payment.unallocated_amount
+  // statusColors object is removed as per outline's new badge coloring logic
 
   // Format currency with commas
   const formatCurrency = (amount) => {
@@ -24,64 +19,78 @@ export default function PaymentDetailModal({ payment, invoices, providers, onClo
   };
 
   return (
-    <Dialog open={true} onOpenChange={onClose}>
+    <Dialog open={!!payment} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Payment Details</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6">
-          <div className="grid md:grid-cols-2 gap-6 pb-6 border-b border-slate-200">
-            <div>
-              <p className="text-sm text-slate-500">Payment Date</p>
-              <p className="text-lg font-medium text-slate-900">
-                {format(parseISO(payment.payment_date), 'MMM d, yyyy')}
-              </p>
-            </div>
-            
-            <div>
-              <p className="text-sm text-slate-500">Payer</p>
-              <p className="text-lg font-medium text-slate-900">{payment.payer}</p>
-            </div>
-            
-            <div>
-              <p className="text-sm text-slate-500">Payment Method</p>
-              <p className="text-lg font-medium text-slate-900">
-                {payment.payment_method?.replace(/_/g, ' ') || '-'}
-              </p>
-            </div>
-            
-            <div>
-              <p className="text-sm text-slate-500">Reference Number</p>
-              <p className="text-lg font-medium font-mono text-slate-900">
-                {payment.reference_number || '-'}
-              </p>
-            </div>
-            
-            <div>
-              <p className="text-sm text-slate-500">Total Amount</p>
-              <p className="text-2xl font-bold text-green-600">
-                ${formatCurrency(payment.total_amount || 0)}
-              </p>
-            </div>
-            
-            <div>
-              <p className="text-sm text-slate-500">Status</p>
-              <Badge className={`${statusColors[payment.status]} mt-1`}>
-                {payment.status === 'entic_paid' ? 'ENTIC Paid' : payment.status}
-              </Badge>
-            </div>
-          </div>
+          {/* Payment Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Payment Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-slate-500">Payment Date</p>
+                  <p className="font-medium">
+                    {payment?.payment_date ? format(parseISO(payment.payment_date), 'MMM d, yyyy') : '-'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Payment Month</p>
+                  <p className="font-medium">{payment.payment_month || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Payer</p>
+                  <p className="font-medium">{payment.payer || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Total Amount</p>
+                  <p className="font-medium text-green-600 text-lg">
+                    ${formatCurrency(payment.total_amount || 0)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Payment Method</p>
+                  <p className="font-medium">
+                    {payment.payment_method?.replace(/_/g, ' ') || '-'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Reference Number</p>
+                  <p className="font-medium font-mono">{payment.reference_number || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Status</p>
+                  <Badge className={payment.status === 'cleared' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
+                    {payment.status === 'entic_paid' ? 'ENTIC Paid' : payment.status}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Unallocated Amount</p>
+                  <p className={`font-medium ${payment.unallocated_amount > 0 ? 'text-orange-600' : 'text-slate-600'}`}>
+                    ${formatCurrency(payment.unallocated_amount || 0)}
+                  </p>
+                </div>
+              </div>
+              
+              {payment.notes && (
+                <div className="pt-3 border-t border-slate-200 mt-3"> {/* Added styling for notes section */}
+                  <p className="text-sm text-slate-500">Notes</p>
+                  <p className="text-slate-700">{payment.notes}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
+          {/* Payment Allocations */}
           <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-slate-900">Payment Allocations</h3>
-              <div className="text-sm">
-                <span className="text-slate-500">Unallocated: </span>
-                <span className={`font-bold ${unallocated > 0 ? 'text-orange-600' : 'text-green-600'}`}>
-                  ${formatCurrency(unallocated)}
-                </span>
-              </div>
+              {/* Unallocated amount display moved into Payment Information card */}
             </div>
             
             {payment.allocations && payment.allocations.length > 0 ? (
@@ -143,12 +152,7 @@ export default function PaymentDetailModal({ payment, invoices, providers, onClo
             )}
           </div>
           
-          {payment.notes && (
-            <div className="pt-6 border-t border-slate-200">
-              <p className="text-sm text-slate-500 mb-2">Notes</p>
-              <p className="text-slate-700">{payment.notes}</p>
-            </div>
-          )}
+          {/* Original payment.notes section moved into the Card component */}
         </div>
       </DialogContent>
     </Dialog>
