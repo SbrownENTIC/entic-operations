@@ -52,23 +52,40 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
     enabled: formData.reminder_type === 'Holiday'
   });
 
-  // Auto-populate on-call providers during closure date only (only if not manually edited)
+  // Auto-populate on-call providers during closure period (only if not manually edited)
   useEffect(() => {
-    if (formData.closure_date && formData.reminder_type === 'Holiday' && onCallSchedules.length > 0 
+    if (formData.closure_date && formData.reopen_date && formData.reminder_type === 'Holiday' && onCallSchedules.length > 0 
         && !manuallyEdited.oncall_provider_list && !manuallyEdited.oncall_phone_list) {
       const closureDate = new Date(formData.closure_date + 'T00:00:00');
+      const reopenDate = new Date(formData.reopen_date + 'T00:00:00');
       
-      // Find on-call schedules that overlap with closure date ONLY (not reopen date)
+      // Find on-call schedules that overlap with closure period
       const onCallDuringClosure = onCallSchedules.filter(schedule => {
         const startDate = new Date(schedule.start_date + 'T00:00:00');
         const endDate = new Date(schedule.end_date + 'T00:00:00');
-        return closureDate >= startDate && closureDate <= endDate;
+        return (closureDate >= startDate && closureDate <= endDate) ||
+               (reopenDate >= startDate && reopenDate <= endDate) ||
+               (startDate >= closureDate && startDate <= reopenDate);
       });
 
       if (onCallDuringClosure.length > 0) {
-        // Get unique providers on call
-        const providerIds = [...new Set(onCallDuringClosure.map(s => s.provider_id))];
-        const onCallProviders = providers.filter(p => providerIds.includes(p.id));
+        // Sort schedules by start date to maintain chronological order
+        const sortedSchedules = onCallDuringClosure.sort((a, b) => {
+          return new Date(a.start_date) - new Date(b.start_date);
+        });
+        
+        // Get providers in order of their on-call schedule
+        const providerIds = [];
+        const seenProviders = new Set();
+        
+        sortedSchedules.forEach(schedule => {
+          if (!seenProviders.has(schedule.provider_id)) {
+            providerIds.push(schedule.provider_id);
+            seenProviders.add(schedule.provider_id);
+          }
+        });
+        
+        const onCallProviders = providerIds.map(id => providers.find(p => p.id === id)).filter(Boolean);
         
         const providerNames = onCallProviders.map(p => p.full_name).join(', ');
         const phoneNumbers = onCallProviders.map(p => p.phone).filter(Boolean).join(', ');
@@ -82,7 +99,7 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
         }
       }
     }
-  }, [formData.closure_date, formData.reminder_type, onCallSchedules, providers, manuallyEdited.oncall_provider_list, manuallyEdited.oncall_phone_list]);
+  }, [formData.closure_date, formData.reopen_date, formData.reminder_type, onCallSchedules, providers, manuallyEdited.oncall_provider_list, manuallyEdited.oncall_phone_list]);
 
   useEffect(() => {
     if (reminder) {
