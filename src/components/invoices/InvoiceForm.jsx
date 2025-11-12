@@ -9,8 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { X, Upload } from "lucide-react";
+import { X, Upload, AlertCircle } from "lucide-react"; // Added AlertCircle
 import { format, parseISO } from "date-fns";
+import { Link } from "react-router-dom"; // Added Link
+import { createPageUrl } from "@/utils"; // Added createPageUrl
 
 const INVOICE_STATUSES = [
   { value: "not_started", label: "Not Started" },
@@ -38,7 +40,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
     subtotal: 0,
     total: 0,
     amount_expected: 0,
-    amount_received: 0,
+    amount_received: 0, // This will be auto-calculated for existing invoices
     under_over_amount: 0,
     date_provider_paid: '',
     provider_paid: false,
@@ -63,18 +65,33 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
     queryFn: () => base44.entities.ProgramLocation.list()
   });
 
+  // Fetch all payments to show allocations to this invoice
+  const { data: payments = [] } = useQuery({
+    queryKey: ['payments'],
+    queryFn: () => base44.entities.Payment.list(),
+    enabled: !!invoice // Only fetch when editing an existing invoice
+  });
+
   // Get unique program groups
   const programGroups = [...new Set(programLocations.map(pl => pl.program_group).filter(Boolean))].sort();
+
+  // Find all payment allocations to this invoice
+  const invoiceAllocations = invoice ? payments.filter(payment =>
+    payment.allocations?.some(alloc => alloc.invoice_id === invoice.id)
+  ).map(payment => ({
+    payment,
+    allocation: payment.allocations.find(alloc => alloc.invoice_id === invoice.id)
+  })) : [];
 
   // Extract month from invoice number
   const extractMonthFromInvoiceNumber = (invoiceNumber) => {
     if (!invoiceNumber) return '';
-    
+
     const monthPatterns = [
       /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\b/i,
       /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\.?\s+(\d{4})\b/i
     ];
-    
+
     for (const pattern of monthPatterns) {
       const match = invoiceNumber.match(pattern);
       if (match) {
@@ -83,30 +100,36 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
         return `${monthName} ${match[2]}`;
       }
     }
-    
+
     return '';
   };
 
   useEffect(() => {
     if (invoice) {
-      setFormData(invoice);
+      // Calculate total allocated amount from payments for existing invoice
+      const totalAllocatedAmount = invoiceAllocations.reduce((sum, item) => sum + (item.allocation.amount || 0), 0);
+
+      setFormData({
+        ...invoice,
+        amount_received: totalAllocatedAmount, // Override amount_received from invoice with calculated value
+      });
     } else if (preselectedIncomes.length > 0) {
       const selectedIncomes = incomes.filter(inc => preselectedIncomes.includes(inc.id));
       const totalDays = selectedIncomes.reduce((sum, inc) => sum + (inc.days_worked || 0), 0);
       const totalAmount = selectedIncomes.reduce((sum, inc) => sum + (inc.total_amount || 0), 0);
-      
+
       // Auto-populate program group and staff member from first selected income
       const firstIncome = selectedIncomes[0];
       let programGroup = '';
       let staffMemberId = firstIncome?.provider_id || '';
-      
+
       if (firstIncome?.program_location_id) {
         const programLocation = programLocations.find(pl => pl.id === firstIncome.program_location_id);
         if (programLocation) {
           programGroup = programLocation.program_group || '';
         }
       }
-      
+
       setFormData(prev => ({
         ...prev,
         outside_income_ids: preselectedIncomes,
@@ -118,7 +141,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
         amount_expected: totalAmount
       }));
     }
-  }, [invoice, preselectedIncomes, incomes, programLocations]);
+  }, [invoice, preselectedIncomes, incomes, programLocations, invoiceAllocations]);
 
   // Auto-extract month from invoice number
   useEffect(() => {
@@ -126,7 +149,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
     if (extractedMonth && !formData.month) {
       setFormData(prev => ({ ...prev, month: extractedMonth }));
     }
-  }, [formData.invoice_number, formData.month]); // Added formData.month to dependencies to avoid infinite loop if month is manually changed
+  }, [formData.invoice_number, formData.month]);
 
   useEffect(() => {
     const balance = (formData.amount_expected || 0) - (formData.amount_received || 0);
@@ -147,34 +170,34 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
     if (formData.provider_paid && formData.status !== 'provider_paid') {
       setFormData(prev => ({ ...prev, status: 'provider_paid' }));
     }
-  }, [formData.provider_paid, formData.status]); // Added formData.status to dependencies
+  }, [formData.provider_paid, formData.status]);
 
   // Auto-update status when invoice_sent_to_vendor checkbox is checked
   useEffect(() => {
     if (formData.invoice_sent_to_vendor && formData.status !== 'sent_to_vendor' && formData.status !== 'paid_to_entic' && formData.status !== 'provider_paid') {
       setFormData(prev => ({ ...prev, status: 'sent_to_vendor' }));
     }
-  }, [formData.invoice_sent_to_vendor, formData.status]); // Added formData.status to dependencies
+  }, [formData.invoice_sent_to_vendor, formData.status]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     let finalData = { ...formData };
-    
+
     // Auto-generate invoice number for UConn if not provided
     if (!finalData.invoice_number && finalData.program_group === 'UConn') {
       const uconnLocation = programLocations.find(pl => pl.program_group === 'UConn');
       if (uconnLocation) {
         const nextNumber = (uconnLocation.invoice_counter || 39) + 1;
         finalData.invoice_number = `${nextNumber}`;
-        
+
         // Update the counter in the program location
         await base44.entities.ProgramLocation.update(uconnLocation.id, {
           invoice_counter: nextNumber
         });
       }
     }
-    
+
     // Set timestamps based on checkboxes
     // Only set if the checkbox is checked AND the timestamp wasn't previously set (i.e., this is the first time it's checked)
     if (finalData.invoice_sent_for_approval && !invoice?.sent_for_approval_at && finalData.program_group !== 'St. Francis') {
@@ -183,21 +206,21 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
       // If unchecked, clear the timestamp if it's not from the original invoice
       finalData.sent_for_approval_at = invoice?.sent_for_approval_at || null;
     }
-    
+
     if (finalData.invoice_sent_to_vendor && !invoice?.sent_to_vendor_at && finalData.program_group !== 'St. Francis') {
       finalData.sent_to_vendor_at = new Date().toISOString();
     } else if (!finalData.invoice_sent_to_vendor) {
       // If unchecked, clear the timestamp if it's not from the original invoice
       finalData.sent_to_vendor_at = invoice?.sent_to_vendor_at || null;
     }
-    
+
     onSubmit(finalData);
   };
 
   const toggleIncome = (incomeId) => {
     const income = incomes.find(inc => inc.id === incomeId);
     const isSelected = formData.outside_income_ids.includes(incomeId);
-    
+
     if (isSelected) {
       setFormData(prev => ({
         ...prev,
@@ -217,7 +240,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
           total: prev.total + (income?.total_amount || 0),
           amount_expected: prev.amount_expected + (income?.total_amount || 0)
         };
-        
+
         // Auto-set program group and staff member from first selected income
         if (prev.outside_income_ids.length === 0) { // Only auto-set if no incomes were previously selected
           if (income?.program_location_id) {
@@ -244,12 +267,12 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
       else setUploadingApproved(true);
 
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      
+
       setFormData(prev => {
         const updates = {
           [type === 'draft' ? 'draft_invoice_url' : 'approved_invoice_url']: file_url
         };
-        
+
         // Auto-update status based on program group and upload type
         if (prev.program_group === 'UConn') {
           // UConn logic (existing)
@@ -286,7 +309,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
             updates.invoice_sent_to_vendor = true;
           }
         }
-        
+
         return { ...prev, ...updates };
       });
     } catch (error) {
@@ -311,6 +334,55 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="p-6 space-y-6">
+          {/* Payment Allocations Debug View - ONLY shown when editing an invoice */}
+          {invoice && invoiceAllocations.length > 0 && (
+            <Card className="border-orange-200 bg-orange-50">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-orange-600" />
+                  <CardTitle className="text-sm">Payment Allocations to This Invoice</CardTitle>
+                </div>
+                <p className="text-xs text-slate-600 mt-1">
+                  Total received from {invoiceAllocations.length} payment(s): ${invoiceAllocations.reduce((sum, item) => sum + (item.allocation.amount || 0), 0).toFixed(2)}
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {invoiceAllocations.map((item, idx) => (
+                  <div key={idx} className="p-3 bg-white rounded border border-orange-200">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <p className="font-medium text-slate-900">
+                          Payment from {item.payment.payer} - {format(parseISO(item.payment.payment_date), 'MMM d, yyyy')}
+                        </p>
+                        <p className="text-sm text-slate-600">
+                          Reference: {item.payment.reference_number || 'N/A'}
+                        </p>
+                        <p className="text-sm text-slate-600">
+                          Payment Total: ${item.payment.total_amount?.toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-orange-700">
+                          ${item.allocation.amount?.toFixed(2)}
+                        </p>
+                        <p className="text-xs text-slate-500">allocated to this invoice</p>
+                      </div>
+                    </div>
+                    <div className="mt-2 pt-2 border-t border-orange-100">
+                      <Link
+                        to={createPageUrl("Payments")} // Assuming 'Payments' is the route name for payments list
+                        className="text-xs text-blue-600 hover:underline"
+                        onClick={onCancel} // Close the invoice form when navigating
+                      >
+                        → View/Edit this payment
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
           <div className="grid md:grid-cols-3 gap-6">
             <div className="space-y-2">
               <Label htmlFor="invoice_number">Invoice Number</Label>
@@ -443,21 +515,23 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="amount_received">Amount Received</Label>
+              <Label htmlFor="amount_received">Amount Received (Auto-calculated)</Label>
               <Input
                 id="amount_received"
                 type="number"
                 step="0.01"
                 value={formData.amount_received}
-                onChange={(e) => setFormData({ ...formData, amount_received: parseFloat(e.target.value) })}
+                readOnly
+                className="bg-slate-100"
               />
+              <p className="text-xs text-slate-500">Calculated from payment allocations</p>
             </div>
 
             <div className="space-y-2">
               <Label>Under/Over Amount</Label>
               <div className={`text-xl font-bold p-3 rounded-lg ${
-                formData.under_over_amount > 0 ? 'bg-green-50 text-green-700' : 
-                formData.under_over_amount < 0 ? 'bg-red-50 text-red-700' : 
+                formData.under_over_amount > 0 ? 'bg-green-50 text-green-700' :
+                formData.under_over_amount < 0 ? 'bg-red-50 text-red-700' :
                 'bg-slate-50 text-slate-700'
               }`}>
                 ${formData.under_over_amount.toFixed(2)}
