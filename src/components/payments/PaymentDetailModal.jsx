@@ -1,13 +1,26 @@
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format, parseISO } from "date-fns";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
-export default function PaymentDetailModal({ payment, invoices, providers, onClose }) {
+export default function PaymentDetailModal({ payment, invoices, providers, onClose, onUnallocate }) {
+  const [deleteConfirm, setDeleteConfirm] = React.useState(null);
+
   // Format currency with commas
   const formatCurrency = (amount) => {
     return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -33,151 +46,197 @@ export default function PaymentDetailModal({ payment, invoices, providers, onClo
     partial: "bg-blue-100 text-blue-800"
   };
 
+  const handleUnallocate = (allocation) => {
+    setDeleteConfirm(allocation);
+  };
+
+  const confirmUnallocate = () => {
+    if (deleteConfirm && onUnallocate) {
+      onUnallocate(deleteConfirm);
+      setDeleteConfirm(null);
+    }
+  };
+
   return (
-    <Dialog open={!!payment} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Payment Details</DialogTitle>
-        </DialogHeader>
-        
-        <div className="space-y-6">
-          {/* Payment Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Payment Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-slate-500">Payment Date</p>
-                  <p className="font-medium">
-                    {payment?.payment_date ? format(parseISO(payment.payment_date), 'MMM d, yyyy') : '-'}
-                  </p>
+    <>
+      <Dialog open={!!payment} onOpenChange={onClose}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Payment Details</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Payment Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Payment Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-slate-500">Payment Date</p>
+                    <p className="font-medium">
+                      {payment?.payment_date ? format(parseISO(payment.payment_date), 'MMM d, yyyy') : '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500">Payment Month</p>
+                    <p className="font-medium">{payment.payment_month || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500">Payer</p>
+                    <p className="font-medium">{payment.payer || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500">Total Amount</p>
+                    <p className="font-medium text-green-600 text-lg">
+                      ${formatCurrency(payment.total_amount || 0)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500">Payment Method</p>
+                    <p className="font-medium">
+                      {payment.payment_method?.replace(/_/g, ' ') || '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500">Reference Number</p>
+                    <p className="font-medium font-mono">{payment.reference_number || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500">Status</p>
+                    <Badge className={payment.status === 'cleared' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
+                      {payment.status === 'entic_paid' ? 'ENTIC Paid' : payment.status}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500">Unallocated Amount</p>
+                    <p className={`font-medium ${payment.unallocated_amount > 0 ? 'text-orange-600' : 'text-slate-600'}`}>
+                      ${formatCurrency(payment.unallocated_amount || 0)}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-slate-500">Payment Month</p>
-                  <p className="font-medium">{payment.payment_month || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Payer</p>
-                  <p className="font-medium">{payment.payer || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Total Amount</p>
-                  <p className="font-medium text-green-600 text-lg">
-                    ${formatCurrency(payment.total_amount || 0)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Payment Method</p>
-                  <p className="font-medium">
-                    {payment.payment_method?.replace(/_/g, ' ') || '-'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Reference Number</p>
-                  <p className="font-medium font-mono">{payment.reference_number || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Status</p>
-                  <Badge className={payment.status === 'cleared' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
-                    {payment.status === 'entic_paid' ? 'ENTIC Paid' : payment.status}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Unallocated Amount</p>
-                  <p className={`font-medium ${payment.unallocated_amount > 0 ? 'text-orange-600' : 'text-slate-600'}`}>
-                    ${formatCurrency(payment.unallocated_amount || 0)}
-                  </p>
-                </div>
+                
+                {payment.notes && (
+                  <div className="pt-3 border-t border-slate-200 mt-3">
+                    <p className="text-sm text-slate-500">Notes</p>
+                    <p className="text-slate-700">{payment.notes}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Payment Allocations */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-slate-900">Payment Allocations</h3>
               </div>
               
-              {payment.notes && (
-                <div className="pt-3 border-t border-slate-200 mt-3">
-                  <p className="text-sm text-slate-500">Notes</p>
-                  <p className="text-slate-700">{payment.notes}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+              {payment.allocations && payment.allocations.length > 0 ? (
+                <div className="space-y-3">
+                  {payment.allocations.map((allocation, index) => {
+                    const invoice = invoices.find(inv => inv.id === allocation.invoice_id);
+                    const provider = providers.find(p => p.id === allocation.provider_id);
+                    
+                    return (
+                      <div key={index} className="p-4 bg-slate-50 rounded-lg border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 transition-all group">
+                        <div className="grid md:grid-cols-5 gap-4">
+                          <div>
+                            <p className="text-xs text-slate-500">Invoice</p>
+                            {invoice ? (
+                              <Link 
+                                to={`${createPageUrl("Invoices")}?edit=${invoice.id}`}
+                                className="font-medium text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1"
+                                onClick={onClose}
+                              >
+                                {invoice.invoice_number || 'N/A'}
+                                <ExternalLink className="w-3 h-3" />
+                              </Link>
+                            ) : (
+                              <p className="font-medium text-slate-900">N/A</p>
+                            )}
+                            <p className="text-sm text-slate-600">
+                              {invoice?.program_group || 'N/A'}
+                              {invoice?.month ? ` (${invoice.month})` : ''}
+                            </p>
+                          </div>
+                          
+                          <div>
+                            <p className="text-xs text-slate-500">Provider</p>
+                            <p className="font-medium text-slate-900">
+                              {provider?.full_name || 'Unknown'}
+                            </p>
+                          </div>
+                          
+                          <div>
+                            <p className="text-xs text-slate-500">Amount</p>
+                            <p className="text-lg font-bold text-green-600">
+                              ${formatCurrency(allocation.amount || 0)}
+                            </p>
+                          </div>
+                          
+                          <div>
+                            <p className="text-xs text-slate-500">Invoice Status</p>
+                            {invoice ? (
+                              <Badge className={statusColors[invoice.status]}>
+                                {getStatusLabel(invoice)}
+                              </Badge>
+                            ) : (
+                              <span className="text-sm text-slate-400">N/A</span>
+                            )}
+                          </div>
 
-          {/* Payment Allocations */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-slate-900">Payment Allocations</h3>
-            </div>
-            
-            {payment.allocations && payment.allocations.length > 0 ? (
-              <div className="space-y-3">
-                {payment.allocations.map((allocation, index) => {
-                  const invoice = invoices.find(inv => inv.id === allocation.invoice_id);
-                  const provider = providers.find(p => p.id === allocation.provider_id);
-                  
-                  return (
-                    <div key={index} className="p-4 bg-slate-50 rounded-lg border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 transition-all group">
-                      <div className="grid md:grid-cols-4 gap-4">
-                        <div>
-                          <p className="text-xs text-slate-500">Invoice</p>
-                          {invoice ? (
-                            <Link 
-                              to={`${createPageUrl("Invoices")}?edit=${invoice.id}`}
-                              className="font-medium text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1"
-                              onClick={onClose}
+                          <div className="flex items-end justify-end">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleUnallocate(allocation)}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
                             >
-                              {invoice.invoice_number || 'N/A'}
-                              <ExternalLink className="w-3 h-3" />
-                            </Link>
-                          ) : (
-                            <p className="font-medium text-slate-900">N/A</p>
-                          )}
-                          <p className="text-sm text-slate-600">
-                            {invoice?.program_group || 'N/A'}
-                            {invoice?.month ? ` (${invoice.month})` : ''}
-                          </p>
+                              <Trash2 className="w-4 h-4 mr-1" />
+                              Remove
+                            </Button>
+                          </div>
                         </div>
                         
-                        <div>
-                          <p className="text-xs text-slate-500">Provider</p>
-                          <p className="font-medium text-slate-900">
-                            {provider?.full_name || 'Unknown'}
-                          </p>
-                        </div>
-                        
-                        <div>
-                          <p className="text-xs text-slate-500">Amount</p>
-                          <p className="text-lg font-bold text-green-600">
-                            ${formatCurrency(allocation.amount || 0)}
-                          </p>
-                        </div>
-                        
-                        <div>
-                          <p className="text-xs text-slate-500">Invoice Status</p>
-                          {invoice ? (
-                            <Badge className={statusColors[invoice.status]}>
-                              {getStatusLabel(invoice)}
-                            </Badge>
-                          ) : (
-                            <span className="text-sm text-slate-400">N/A</span>
-                          )}
-                        </div>
+                        {allocation.notes && (
+                          <div className="mt-3 pt-3 border-t border-slate-200">
+                            <p className="text-xs text-slate-500">Notes</p>
+                            <p className="text-sm text-slate-700">{allocation.notes}</p>
+                          </div>
+                        )}
                       </div>
-                      
-                      {allocation.notes && (
-                        <div className="mt-3 pt-3 border-t border-slate-200">
-                          <p className="text-xs text-slate-500">Notes</p>
-                          <p className="text-sm text-slate-700">{allocation.notes}</p>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-center py-8 text-slate-500">No allocations yet</p>
-            )}
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-center py-8 text-slate-500">No allocations yet</p>
+              )}
+            </div>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Allocation</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove this allocation of ${formatCurrency(deleteConfirm?.amount || 0)}? 
+              This will update the payment's unallocated amount and the invoice's received amount.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmUnallocate}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Remove Allocation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

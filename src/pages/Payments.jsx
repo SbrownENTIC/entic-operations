@@ -89,6 +89,8 @@ export default function Payments() {
         newStatus = 'paid_to_entic';
       } else if (amountReceived > 0 && balance > 0) {
         newStatus = 'partial';
+      } else if (amountReceived === 0 && invoice.status !== 'pending' && invoice.status !== 'unpaid') { // If no amount received, revert to pending/unpaid
+        newStatus = 'pending'; // or 'unpaid' depending on desired initial state
       }
       
       // Only update if values changed
@@ -116,6 +118,8 @@ export default function Payments() {
         let newStatus = payment.status;
         if (unallocated === 0 && totalAllocated > 0 && payment.status === 'pending') {
           newStatus = 'cleared';
+        } else if (unallocated > 0 && payment.status === 'cleared') {
+          newStatus = 'pending'; // If it became unallocated, set back to pending
         }
         
         if (payment.unallocated_amount !== unallocated || payment.status !== newStatus) {
@@ -211,6 +215,8 @@ export default function Payments() {
       let status = data.status;
       if (unallocated === 0 && totalAllocated > 0 && status === 'pending') {
         status = 'cleared';
+      } else if (unallocated > 0 && status === 'cleared') {
+        status = 'pending'; // If it became unallocated, set back to pending
       }
       
       const payment = await base44.entities.Payment.update(id, {
@@ -247,6 +253,60 @@ export default function Payments() {
     }
   });
 
+  const unallocateMutation = useMutation({
+    mutationFn: async ({ payment, allocationToRemove }) => {
+      // Remove the allocation from the payment
+      const updatedAllocations = (payment.allocations || []).filter(
+        a => !(a.invoice_id === allocationToRemove.invoice_id && 
+              a.provider_id === allocationToRemove.provider_id && 
+              a.amount === allocationToRemove.amount && 
+              a.notes === allocationToRemove.notes) // Added notes to ensure unique identification in case amount/invoice/provider are identical
+      );
+      
+      const totalAllocated = updatedAllocations.reduce((sum, a) => sum + (a.amount || 0), 0);
+      const unallocated = (payment.total_amount || 0) - totalAllocated;
+      
+      // Auto-calculate payment_month from remaining allocations
+      const months = new Set();
+      if (updatedAllocations.length > 0) {
+        updatedAllocations.forEach(allocation => {
+          if (allocation.invoice_id) {
+            const invoice = invoices.find(inv => inv.id === allocation.invoice_id);
+            if (invoice && invoice.month) {
+              months.add(invoice.month);
+            }
+          }
+        });
+      }
+      const paymentMonth = Array.from(months).sort().join(', ');
+      
+      // Auto-set to cleared if fully allocated, otherwise pending if there's unallocated amount
+      let status = payment.status;
+      if (unallocated === 0 && totalAllocated > 0) {
+        status = 'cleared';
+      } else if (unallocated > 0) {
+        status = 'pending';
+      } else if (totalAllocated === 0 && payment.status === 'cleared') { // If no allocations left
+        status = 'pending'; 
+      }
+      
+      await base44.entities.Payment.update(payment.id, {
+        allocations: updatedAllocations,
+        payment_month: paymentMonth,
+        unallocated_amount: unallocated,
+        status: status
+      });
+      
+      // Update invoice statuses based on new allocations
+      await updateInvoiceStatuses();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      setViewingPayment(null); // Close modal or refresh viewingPayment data
+    }
+  });
+
   const handleSubmit = (data) => {
     if (editingPayment) {
       updateMutation.mutate({ id: editingPayment.id, data });
@@ -275,6 +335,15 @@ export default function Payments() {
       setUpdateMessage('Error updating payment months: ' + error.message);
     } finally {
       setUpdatingMonths(false);
+    }
+  };
+
+  const handleUnallocate = (allocation) => {
+    if (viewingPayment) {
+      unallocateMutation.mutate({
+        payment: viewingPayment,
+        allocationToRemove: allocation
+      });
     }
   };
 
@@ -676,6 +745,7 @@ export default function Payments() {
           invoices={invoices}
           providers={providers}
           onClose={() => setViewingPayment(null)}
+          onUnallocate={handleUnallocate}
         />
       )}
 
