@@ -289,9 +289,8 @@ export default function Dashboard() {
     .filter(inv => inv.status !== 'paid_to_entic' && inv.status !== 'provider_paid')
     .reduce((sum, inv) => sum + ((inv.amount_expected || inv.total || 0) - (inv.amount_received || 0)), 0);
 
-  // Calculate unallocated payments
-  const totalPaymentsReceived = payments.reduce((sum, payment) => sum + (payment.total_amount || 0), 0);
-  const unallocatedPayments = totalPaymentsReceived - totalPaidToENTIC;
+  // Calculate unallocated payments - use the unallocated_amount field from each payment
+  const unallocatedPayments = payments.reduce((sum, payment) => sum + (payment.unallocated_amount || 0), 0);
 
   // Financial metrics by Program/Location
   const financialsByProgram = {};
