@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -51,12 +52,19 @@ export default function Invoices() {
     const urlParams = new URLSearchParams(window.location.search);
     const create = urlParams.get('create');
     const incomeIds = urlParams.get('incomes');
+    const editId = urlParams.get('edit');
     
     if (create === 'true' && incomeIds) {
       setPreselectedIncomes(incomeIds.split(','));
       setShowForm(true);
+    } else if (editId && invoices.length > 0) {
+      const invoiceToEdit = invoices.find(inv => inv.id === editId);
+      if (invoiceToEdit) {
+        setEditingInvoice(invoiceToEdit);
+        setShowForm(true);
+      }
     }
-  }, []);
+  }, [invoices]);
 
   const createMutation = useMutation({
     mutationFn: async (data) => {

@@ -97,7 +97,7 @@ export default function PaymentDetailModal({ payment, invoices, providers, onClo
                           <p className="text-xs text-slate-500">Invoice</p>
                           {invoice ? (
                             <Link 
-                              to={createPageUrl("Invoices")} 
+                              to={`${createPageUrl("Invoices")}?edit=${invoice.id}`}
                               className="font-medium text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1"
                               onClick={onClose}
                             >
