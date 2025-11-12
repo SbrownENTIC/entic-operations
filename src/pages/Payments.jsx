@@ -81,7 +81,8 @@ export default function Payments() {
     // Update each invoice with the correct amount_received and status
     for (const invoice of invoices) {
       const amountReceived = invoiceTotals[invoice.id] || 0;
-      const balance = (invoice.amount_expected || invoice.total || 0) - amountReceived;
+      const amountExpected = invoice.amount_expected || invoice.total || 0;
+      const balance = amountExpected - amountReceived;
       
       // Determine status based on payment
       let newStatus = invoice.status;
@@ -89,11 +90,11 @@ export default function Payments() {
         newStatus = 'paid_to_entic';
       } else if (amountReceived > 0 && balance > 0) {
         newStatus = 'partial';
-      } else if (amountReceived === 0 && invoice.status !== 'pending' && invoice.status !== 'unpaid') { // If no amount received, revert to pending/unpaid
-        newStatus = 'pending'; // or 'unpaid' depending on desired initial state
+      } else if (amountReceived === 0 && invoice.status !== 'pending' && invoice.status !== 'unpaid') {
+        newStatus = 'pending';
       }
       
-      // Only update if values changed
+      // Only update if values changed, and NEVER update amount_expected
       if (invoice.amount_received !== amountReceived || invoice.status !== newStatus) {
         await base44.entities.Invoice.update(invoice.id, {
           amount_received: amountReceived,
@@ -119,7 +120,7 @@ export default function Payments() {
         if (unallocated === 0 && totalAllocated > 0 && payment.status === 'pending') {
           newStatus = 'cleared';
         } else if (unallocated > 0 && payment.status === 'cleared') {
-          newStatus = 'pending'; // If it became unallocated, set back to pending
+          newStatus = 'pending';
         }
         
         if (payment.unallocated_amount !== unallocated || payment.status !== newStatus) {
@@ -216,7 +217,7 @@ export default function Payments() {
       if (unallocated === 0 && totalAllocated > 0 && status === 'pending') {
         status = 'cleared';
       } else if (unallocated > 0 && status === 'cleared') {
-        status = 'pending'; // If it became unallocated, set back to pending
+        status = 'pending';
       }
       
       const payment = await base44.entities.Payment.update(id, {
@@ -259,8 +260,7 @@ export default function Payments() {
       const updatedAllocations = (payment.allocations || []).filter(
         a => !(a.invoice_id === allocationToRemove.invoice_id && 
               a.provider_id === allocationToRemove.provider_id && 
-              a.amount === allocationToRemove.amount && 
-              a.notes === allocationToRemove.notes) // Added notes to ensure unique identification in case amount/invoice/provider are identical
+              a.amount === allocationToRemove.amount)
       );
       
       const totalAllocated = updatedAllocations.reduce((sum, a) => sum + (a.amount || 0), 0);
@@ -286,8 +286,6 @@ export default function Payments() {
         status = 'cleared';
       } else if (unallocated > 0) {
         status = 'pending';
-      } else if (totalAllocated === 0 && payment.status === 'cleared') { // If no allocations left
-        status = 'pending'; 
       }
       
       await base44.entities.Payment.update(payment.id, {

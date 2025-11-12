@@ -4,13 +4,18 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     
+    // Verify user is authenticated
+    const user = await base44.auth.me();
+    if (!user) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     // Fetch all payments and invoices
     const payments = await base44.asServiceRole.entities.Payment.list();
     const invoices = await base44.asServiceRole.entities.Invoice.list();
     
-    // Create a map of invoice totals from all payment allocations
+    // Calculate total received per invoice from payment allocations
     const invoiceTotals = {};
-    
     for (const payment of payments) {
       if (payment.allocations) {
         for (const allocation of payment.allocations) {
@@ -24,35 +29,22 @@ Deno.serve(async (req) => {
     let updatedCount = 0;
     let skippedCount = 0;
     
-    // Update each invoice with the correct amount_received and status
+    // Update each invoice with calculated amount_received and status
     for (const invoice of invoices) {
       const amountReceived = invoiceTotals[invoice.id] || 0;
-      const balance = (invoice.amount_expected || invoice.total || 0) - amountReceived;
+      const amountExpected = invoice.amount_expected || invoice.total || 0;
+      const balance = amountExpected - amountReceived;
       
       // Determine status based on payment
       let newStatus = invoice.status;
-      
-      // If fully paid (balance <= 0 and we received something)
       if (balance <= 0 && amountReceived > 0) {
         newStatus = 'paid_to_entic';
-      } 
-      // If partially paid (received something but balance remains)
-      else if (amountReceived > 0 && balance > 0) {
+      } else if (amountReceived > 0 && balance > 0) {
         newStatus = 'partial';
       }
-      // If no payment received and currently marked as paid_to_entic or partial, revert to previous status
-      else if (amountReceived === 0 && (invoice.status === 'paid_to_entic' || invoice.status === 'partial')) {
-        // Check if it was sent to vendor
-        if (invoice.invoice_sent_to_vendor) {
-          newStatus = 'sent_to_vendor';
-        } else if (invoice.invoice_sent_for_approval) {
-          newStatus = 'sent_for_approval';
-        } else {
-          newStatus = 'draft';
-        }
-      }
       
-      // Only update if values changed
+      // Only update if amount_received or status has changed
+      // NEVER update amount_expected - that's set manually by the user
       if (invoice.amount_received !== amountReceived || invoice.status !== newStatus) {
         await base44.asServiceRole.entities.Invoice.update(invoice.id, {
           amount_received: amountReceived,
@@ -66,16 +58,15 @@ Deno.serve(async (req) => {
     
     return Response.json({
       success: true,
-      message: `Synchronized payments and invoices. Updated ${updatedCount} invoices, skipped ${skippedCount} (already correct).`,
+      message: `Sync complete: ${updatedCount} invoices updated, ${skippedCount} skipped (no changes).`,
       updatedCount,
-      skippedCount,
-      totalInvoices: invoices.length
+      skippedCount
     });
     
   } catch (error) {
-    return Response.json({
-      success: false,
-      error: error.message
+    console.error('Error syncing payments and invoices:', error);
+    return Response.json({ 
+      error: error.message || 'An error occurred during sync'
     }, { status: 500 });
   }
 });
