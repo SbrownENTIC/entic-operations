@@ -61,12 +61,29 @@ export default function Reminders() {
 
   const sendReminderMutation = useMutation({
     mutationFn: async (reminder) => {
+      // Build the email body with dynamic values for holiday reminders
+      let emailBody = reminder.email_body;
+      
+      if (reminder.reminder_type === 'Holiday' && reminder.closure_date) {
+        emailBody = `Good Morning All,
+ 
+This email is to notify you that our office will be closed on ${format(parseISO(reminder.closure_date), 'MMMM d, yyyy')} for the ${reminder.holiday_name || 'Holiday'} Holiday.
+
+The offices will re-open at 8am on ${reminder.reopen_date ? format(parseISO(reminder.reopen_date), 'MMMM d, yyyy') : 'the next business day'}.
+
+${reminder.oncall_provider_list || '(On-Call Provider)'} on call during office closure is the on-call provider and can be reached at ${reminder.oncall_phone_list || '(phone number)'}.
+ 
+Best Regards,
+Steve Brown  
+Operations Project Coordinator`;
+      }
+      
       // Send emails to all recipients
       for (const recipient of reminder.recipients) {
         await base44.integrations.Core.SendEmail({
           to: recipient,
           subject: reminder.email_subject,
-          body: reminder.email_body,
+          body: emailBody,
           from_name: 'MedPractice Reminders'
         });
       }
@@ -269,6 +286,12 @@ export default function Reminders() {
                         <div className="text-sm text-slate-600 truncate max-w-xs">
                           {reminder.email_subject}
                         </div>
+                        {reminder.reminder_type === 'Holiday' && reminder.closure_date && (
+                          <div className="text-xs text-slate-500 mt-1">
+                            Closes: {format(parseISO(reminder.closure_date), 'MMM d, yyyy')}
+                            {reminder.reopen_date && ` • Reopens: ${format(parseISO(reminder.reopen_date), 'MMM d, yyyy')}`}
+                          </div>
+                        )}
                       </td>
                       <td className="p-4">
                         <Badge className={typeColors[reminder.reminder_type]}>

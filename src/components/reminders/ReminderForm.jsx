@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { format, parseISO } from "date-fns";
 
 export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = useState({
@@ -18,6 +19,11 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
     email_body: '',
     recipients: [],
     send_date: '',
+    closure_date: '',
+    reopen_date: '',
+    holiday_name: '',
+    oncall_provider_list: '',
+    oncall_phone_list: '',
     frequency: 'once',
     frequency_count: 1,
     status: 'active',
@@ -67,6 +73,26 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
         recipients: [...formData.recipients, provider.email]
       });
     }
+  };
+
+  const useHolidayTemplate = () => {
+    const template = `Good Morning All,
+ 
+This email is to notify you that our office will be closed on ${formData.closure_date ? format(parseISO(formData.closure_date), 'MMMM d, yyyy') : '(date of Closed)'} for the ${formData.holiday_name || '(Holiday Name)'} Holiday.
+
+The offices will re-open at 8am on ${formData.reopen_date ? format(parseISO(formData.reopen_date), 'MMMM d, yyyy') : '(Re-Open Date)'}.
+
+${formData.oncall_provider_list ? formData.oncall_provider_list : '(On-Call Provider List)'} on call during office closure ${formData.oncall_provider_list ? 'is' : 'are'} the on-call provider${formData.oncall_provider_list && !formData.oncall_provider_list.includes(',') ? '' : 's'} and can be reached at ${formData.oncall_phone_list || '(On-call Phone List)'}.
+ 
+Best Regards,
+Steve Brown  
+Operations Project Coordinator`;
+
+    setFormData({
+      ...formData,
+      email_body: template,
+      email_subject: `Office Closure - ${formData.holiday_name || 'Holiday'}`
+    });
   };
 
   return (
@@ -122,6 +148,7 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
                 onChange={(e) => setFormData({ ...formData, send_date: e.target.value })}
                 required
               />
+              <p className="text-xs text-slate-500">For holidays: last working day before closure</p>
             </div>
 
             <div className="space-y-2">
@@ -184,6 +211,69 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
               </div>
             )}
           </div>
+
+          {formData.reminder_type === 'Holiday' && (
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-semibold text-slate-900">Holiday Closure Details</Label>
+                <Button type="button" onClick={useHolidayTemplate} variant="outline" size="sm">
+                  Use Template
+                </Button>
+              </div>
+              
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="holiday_name">Holiday Name</Label>
+                  <Input
+                    id="holiday_name"
+                    value={formData.holiday_name}
+                    onChange={(e) => setFormData({ ...formData, holiday_name: e.target.value })}
+                    placeholder="e.g., Thanksgiving"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="closure_date">Closure Date</Label>
+                  <Input
+                    id="closure_date"
+                    type="date"
+                    value={formData.closure_date}
+                    onChange={(e) => setFormData({ ...formData, closure_date: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="reopen_date">Re-open Date</Label>
+                  <Input
+                    id="reopen_date"
+                    type="date"
+                    value={formData.reopen_date}
+                    onChange={(e) => setFormData({ ...formData, reopen_date: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="oncall_provider_list">On-Call Provider(s)</Label>
+                  <Input
+                    id="oncall_provider_list"
+                    value={formData.oncall_provider_list}
+                    onChange={(e) => setFormData({ ...formData, oncall_provider_list: e.target.value })}
+                    placeholder="Dr. John Smith"
+                  />
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="oncall_phone_list">On-Call Phone Number(s)</Label>
+                  <Input
+                    id="oncall_phone_list"
+                    value={formData.oncall_phone_list}
+                    onChange={(e) => setFormData({ ...formData, oncall_phone_list: e.target.value })}
+                    placeholder="860-123-4567"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="email_subject">Email Subject *</Label>
