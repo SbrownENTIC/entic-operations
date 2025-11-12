@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Pencil, Trash2, Calendar, ArrowUpDown, ArrowUp, ArrowDown, Download } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, parseISO, differenceInDays, isWithinInterval, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns";
 import TimeOffForm from "../components/timeoff/TimeOffForm";
 import {
@@ -28,6 +29,8 @@ export default function ProviderTimeOff() {
   const [sortDirection, setSortDirection] = useState('asc');
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'calendar'
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedEntries, setSelectedEntries] = useState([]);
+  const [bulkStatus, setBulkStatus] = useState('');
   const queryClient = useQueryClient();
 
   const { data: timeOffEntries = [], isLoading: timeOffLoading } = useQuery({
@@ -66,6 +69,20 @@ export default function ProviderTimeOff() {
     }
   });
 
+  const bulkUpdateMutation = useMutation({
+    mutationFn: async ({ ids, status }) => {
+      const updates = ids.map(id => 
+        base44.entities.ProviderTimeOff.update(id, { status })
+      );
+      return Promise.all(updates);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['provider-timeoff'] });
+      setSelectedEntries([]);
+      setBulkStatus('');
+    }
+  });
+
   const handleSubmit = (data) => {
     if (editingTimeOff) {
       updateMutation.mutate({ id: editingTimeOff.id, data });
@@ -80,6 +97,28 @@ export default function ProviderTimeOff() {
     } else {
       setSortField(field);
       setSortDirection('asc');
+    }
+  };
+
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedEntries(sortedEntries.map(entry => entry.id));
+    } else {
+      setSelectedEntries([]);
+    }
+  };
+
+  const handleSelectEntry = (entryId, checked) => {
+    if (checked) {
+      setSelectedEntries([...selectedEntries, entryId]);
+    } else {
+      setSelectedEntries(selectedEntries.filter(id => id !== entryId));
+    }
+  };
+
+  const handleBulkUpdateStatus = () => {
+    if (selectedEntries.length > 0 && bulkStatus) {
+      bulkUpdateMutation.mutate({ ids: selectedEntries, status: bulkStatus });
     }
   };
 
@@ -264,7 +303,7 @@ export default function ProviderTimeOff() {
 
         {viewMode === 'list' ? (
           <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="border-b border-slate-100">
+            <CardHeader className="border-b border-slate-100 space-y-4">
               <div className="flex items-center gap-4">
                 <Search className="w-5 h-5 text-slate-400" />
                 <Input
@@ -274,12 +313,50 @@ export default function ProviderTimeOff() {
                   className="max-w-md border-slate-200"
                 />
               </div>
+              {selectedEntries.length > 0 && (
+                <div className="flex items-center gap-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <span className="font-medium text-slate-900">
+                    {selectedEntries.length} selected
+                  </span>
+                  <Select value={bulkStatus} onValueChange={setBulkStatus}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Change status..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="declined">Declined</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button 
+                    onClick={handleBulkUpdateStatus}
+                    disabled={!bulkStatus || bulkUpdateMutation.isPending}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    {bulkUpdateMutation.isPending ? 'Updating...' : 'Update Status'}
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => setSelectedEntries([])}
+                  >
+                    Clear Selection
+                  </Button>
+                </div>
+              )}
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-slate-50 border-b border-slate-200">
                     <tr>
+                      <th className="text-left p-4 text-sm font-semibold text-slate-700 w-12">
+                        <input
+                          type="checkbox"
+                          checked={selectedEntries.length === sortedEntries.length && sortedEntries.length > 0}
+                          onChange={(e) => handleSelectAll(e.target.checked)}
+                          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        />
+                      </th>
                       <th 
                         className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                         onClick={() => handleSort('providerName')}
@@ -324,7 +401,15 @@ export default function ProviderTimeOff() {
                   </thead>
                   <tbody>
                     {sortedEntries.map((entry) => (
-                      <tr key={entry.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                      <tr key={entry.id} className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${selectedEntries.includes(entry.id) ? 'bg-blue-50' : ''}`}>
+                        <td className="p-4">
+                          <input
+                            type="checkbox"
+                            checked={selectedEntries.includes(entry.id)}
+                            onChange={(e) => handleSelectEntry(entry.id, e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                          />
+                        </td>
                         <td className="p-4 font-medium text-slate-900">{entry.provider?.full_name}</td>
                         <td className="p-4">
                           <Badge className={typeColors[entry.type]}>
