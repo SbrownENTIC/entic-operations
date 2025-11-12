@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -24,6 +23,7 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
     status: 'active',
     role: '',
     program_locations: [],
+    termination_date: '',
     flu_vaccine_year: new Date().getFullYear(),
     flu_vaccine_date: '',
     notes: ''
@@ -48,7 +48,8 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
     if (provider) {
       setFormData({
         ...provider,
-        program_locations: provider.program_locations || []
+        program_locations: provider.program_locations || [],
+        termination_date: provider.termination_date || ''
       });
     }
   }, [provider]);
@@ -203,6 +204,17 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="termination_date">Termination Date / Last Day of Work</Label>
+              <Input
+                id="termination_date"
+                type="date"
+                value={formData.termination_date}
+                onChange={(e) => setFormData({ ...formData, termination_date: e.target.value })}
+              />
+              <p className="text-xs text-slate-500">Provider will automatically become inactive on this date</p>
+            </div>
+
             {showFluVaccine && (
               <>
                 <div className="space-y-2">
@@ -297,7 +309,6 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
                             </SelectContent>
                           </Select>
                         </div>
-                        {/* Removed Issuing State input */}
                         <div className="space-y-2">
                           <Label>Issue Date</Label>
                           <Input type="date" value={license.issue_date} onChange={(e) => updateLicense(index, 'issue_date', e.target.value)} />
@@ -341,8 +352,7 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
                           <Label>Credits</Label>
                           <Input type="number" step="0.5" value={cme.credits} onChange={(e) => updateCME(index, 'credits', parseFloat(e.target.value))} />
                         </div>
-                        {/* Removed Category and Provider Organization */}
-                        <div className="space-y-2 md:col-span-2"> {/* Added md:col-span-2 */}
+                        <div className="space-y-2 md:col-span-2">
                           <Label>Completion Date</Label>
                           <Input type="date" value={cme.completion_date} onChange={(e) => updateCME(index, 'completion_date', e.target.value)} />
                         </div>
