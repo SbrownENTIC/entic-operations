@@ -59,46 +59,55 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
   }, [income]);
 
   useEffect(() => {
-    // Calculate total based on program type
-    let total;
+    // Calculate total based on program type - but NOT for Hartford Hospital RVU-based
     if (isHartfordHospitalRVUBased) {
-      // RVU-based calculation for Hartford Hospital (non-Directorship)
-      total = (formData.total_rvus || 0) * (formData.rate || 0);
+      // For Hartford Hospital RVU-based, do NOT auto-calculate - allow manual entry
+      return;
+    }
+    
+    let total;
+    // For Directorship and other programs, use rate directly or multiply by days
+    const selectedLocation = programLocations.find(pl => pl.id === formData.program_location_id);
+    const isDirectorship = selectedLocation?.program_type === 'Directorship';
+    
+    if (isDirectorship) {
+      // For Directorship, rate is the monthly amount (no multiplication needed)
+      total = formData.rate || 0;
     } else {
-      // For Directorship and other programs, use rate directly or multiply by days
-      const selectedLocation = programLocations.find(pl => pl.id === formData.program_location_id);
-      const isDirectorship = selectedLocation?.program_type === 'Directorship';
-      
-      if (isDirectorship) {
-        // For Directorship, rate is the monthly amount (no multiplication needed)
-        total = formData.rate || 0;
-      } else {
-        // For other programs, multiply by days worked
-        const days = formData.work_dates.filter(d => d).length;
-        total = days * (formData.rate || 0);
-        setFormData(prev => ({ ...prev, days_worked: days }));
-      }
+      // For other programs, multiply by days worked
+      const days = formData.work_dates.filter(d => d).length;
+      total = days * (formData.rate || 0);
+      setFormData(prev => ({ ...prev, days_worked: days }));
     }
     
     setFormData(prev => ({ 
       ...prev, 
       total_amount: total 
     }));
-  }, [formData.work_dates, formData.rate, formData.total_rvus, isHartfordHospitalRVUBased, formData.program_location_id, programLocations]);
+  }, [formData.work_dates, formData.rate, isHartfordHospitalRVUBased, formData.program_location_id, programLocations]);
 
   useEffect(() => {
     // Auto-populate rate and facility when program location is selected
+    // But NOT for Hartford Hospital RVU-based
     if (formData.program_location_id) {
       const selectedLocation = programLocations.find(pl => pl.id === formData.program_location_id);
       if (selectedLocation) {
+        const updates = {
+          facility_name: selectedLocation.program_location || formData.facility_name
+        };
+        
+        // Only auto-populate rate if NOT Hartford Hospital RVU-based
+        if (!isHartfordHospitalRVUBased) {
+          updates.rate = selectedLocation.daily_rate || 0;
+        }
+        
         setFormData(prev => ({
           ...prev,
-          rate: selectedLocation.daily_rate || 0,
-          facility_name: selectedLocation.program_location || prev.facility_name
+          ...updates
         }));
       }
     }
-  }, [formData.program_location_id, programLocations]);
+  }, [formData.program_location_id, programLocations, isHartfordHospitalRVUBased]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -180,7 +189,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
                     return (
                       <SelectItem key={location.id} value={location.id}>
                         {location.program_location}
-                        {location.daily_rate > 0 && ` - $${location.daily_rate}${rateLabel}`}
+                        {location.daily_rate > 0 && !isHartfordRVU && ` - $${location.daily_rate}${rateLabel}`}
                       </SelectItem>
                     );
                   })}
@@ -218,32 +227,51 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
               </div>
             ) : null}
 
-            <div className="space-y-2">
-              <Label htmlFor="rate">
-                {isHartfordHospitalRVUBased ? 'Rate per RVU ($)' : isDirectorship ? 'Monthly Rate ($)' : 'Daily Rate ($)'}
-              </Label>
-              <Input
-                id="rate"
-                type="number"
-                step="0.01"
-                value={formData.rate}
-                onChange={(e) => setFormData({ ...formData, rate: parseFloat(e.target.value) || 0 })}
-              />
-            </div>
+            {!isHartfordHospitalRVUBased && (
+              <div className="space-y-2">
+                <Label htmlFor="rate">
+                  {isDirectorship ? 'Monthly Rate ($)' : 'Daily Rate ($)'}
+                </Label>
+                <Input
+                  id="rate"
+                  type="number"
+                  step="0.01"
+                  value={formData.rate}
+                  onChange={(e) => setFormData({ ...formData, rate: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+            )}
 
             <div className="space-y-2">
-              <Label>Total Amount *</Label>
-              <div className="text-2xl font-bold text-green-600">
-                ${formData.total_amount.toFixed(2)}
-              </div>
-              <p className="text-xs text-slate-500">
-                {isHartfordHospitalRVUBased 
-                  ? `${formData.total_rvus} RVUs × $${formData.rate.toFixed(2)} = $${formData.total_amount.toFixed(2)}`
-                  : isDirectorship 
-                  ? `Monthly rate: $${formData.rate.toFixed(2)}`
-                  : `${formData.days_worked} days × $${formData.rate.toFixed(2)} = $${formData.total_amount.toFixed(2)}`
-                }
-              </p>
+              <Label htmlFor="total_amount">Total Amount ($) *</Label>
+              {isHartfordHospitalRVUBased ? (
+                <>
+                  <Input
+                    id="total_amount"
+                    type="number"
+                    step="0.01"
+                    value={formData.total_amount}
+                    onChange={(e) => setFormData({ ...formData, total_amount: parseFloat(e.target.value) || 0 })}
+                    required
+                    className="text-lg font-semibold"
+                  />
+                  <p className="text-xs text-slate-500">
+                    Enter the manually calculated amount for {formData.total_rvus} RVUs
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="text-2xl font-bold text-green-600">
+                    ${formData.total_amount.toFixed(2)}
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    {isDirectorship 
+                      ? `Monthly rate: $${formData.rate.toFixed(2)}`
+                      : `${formData.days_worked} days × $${formData.rate.toFixed(2)} = $${formData.total_amount.toFixed(2)}`
+                    }
+                  </p>
+                </>
+              )}
             </div>
 
             <div className="space-y-2">
