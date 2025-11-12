@@ -1,12 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
-import { Resend } from 'npm:resend@3.2.0';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    
-    // Initialize Resend with API key
-    const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
     
     // Get today's date in YYYY-MM-DD format (EST timezone)
     const today = new Date().toLocaleDateString('en-US', { 
@@ -38,13 +34,13 @@ Deno.serve(async (req) => {
     // Process each reminder
     for (const reminder of reminders) {
       try {
-        // Send email to each recipient
+        // Send email to each recipient using Base44's email service
         for (const recipient of reminder.recipients) {
-          await resend.emails.send({
-            from: 'ENTIC Medical Practice <onboarding@resend.dev>',
+          await base44.asServiceRole.integrations.Core.SendEmail({
+            from_name: 'ENTIC Medical Practice',
             to: recipient,
             subject: reminder.email_subject,
-            html: reminder.email_body.replace(/\n/g, '<br>')
+            body: reminder.email_body.replace(/\n/g, '<br>')
           });
         }
         
