@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -157,10 +156,10 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
   }, [formData.staff_member_id, providers]);
 
   useEffect(() => {
-    if (formData.provider_paid && formData.status !== 'provider_paid') {
+    if (formData.provider_paid) {
       setFormData(prev => ({ ...prev, status: 'provider_paid' }));
     }
-  }, [formData.provider_paid, formData.status]);
+  }, [formData.provider_paid]);
 
   useEffect(() => {
     if (formData.invoice_sent_to_vendor && formData.status !== 'sent_to_vendor' && formData.status !== 'paid_to_entic' && formData.status !== 'provider_paid') {
