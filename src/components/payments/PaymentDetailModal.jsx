@@ -1,7 +1,11 @@
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { format, parseISO } from "date-fns";
+import { ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 
 export default function PaymentDetailModal({ payment, invoices, providers, onClose }) {
   const totalAllocated = payment.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
@@ -87,13 +91,22 @@ export default function PaymentDetailModal({ payment, invoices, providers, onClo
                   const provider = providers.find(p => p.id === allocation.provider_id);
                   
                   return (
-                    <div key={index} className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+                    <div key={index} className="p-4 bg-slate-50 rounded-lg border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 transition-all group">
                       <div className="grid md:grid-cols-3 gap-4">
                         <div>
                           <p className="text-xs text-slate-500">Invoice</p>
-                          <p className="font-medium text-slate-900">
-                            {invoice?.invoice_number || 'N/A'}
-                          </p>
+                          {invoice ? (
+                            <Link 
+                              to={createPageUrl("Invoices")} 
+                              className="font-medium text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1"
+                              onClick={onClose}
+                            >
+                              {invoice.invoice_number || 'N/A'}
+                              <ExternalLink className="w-3 h-3" />
+                            </Link>
+                          ) : (
+                            <p className="font-medium text-slate-900">N/A</p>
+                          )}
                           <p className="text-sm text-slate-600">
                             {invoice?.program_group || 'N/A'}
                             {invoice?.month ? ` (${invoice.month})` : ''}
