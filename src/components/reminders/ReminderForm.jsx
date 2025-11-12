@@ -43,6 +43,39 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
     }
   }, [reminder]);
 
+  // Auto-calculate send date when closure date changes
+  useEffect(() => {
+    if (formData.closure_date && formData.reminder_type === 'Holiday') {
+      const closureDate = new Date(formData.closure_date + 'T00:00:00');
+      const weekday = closureDate.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
+      
+      let daysToSubtract;
+      switch (weekday) {
+        case 0: // Sunday
+          daysToSubtract = -2; // -3 + 1 from formula
+          break;
+        case 1: // Monday - send on Friday before
+          daysToSubtract = -3; // Go back to Friday
+          break;
+        case 6: // Saturday
+          daysToSubtract = -1; // -2 + 1 from formula
+          break;
+        default: // Tuesday-Friday
+          daysToSubtract = 0; // -1 + 1 from formula = same day (day before closure)
+          break;
+      }
+      
+      const sendDate = new Date(closureDate);
+      sendDate.setDate(sendDate.getDate() + daysToSubtract);
+      
+      const formattedSendDate = sendDate.toISOString().split('T')[0];
+      
+      if (formattedSendDate !== formData.send_date) {
+        setFormData(prev => ({ ...prev, send_date: formattedSendDate }));
+      }
+    }
+  }, [formData.closure_date, formData.reminder_type]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit(formData);
@@ -147,8 +180,14 @@ Operations Project Coordinator`;
                 value={formData.send_date}
                 onChange={(e) => setFormData({ ...formData, send_date: e.target.value })}
                 required
+                readOnly={formData.reminder_type === 'Holiday' && formData.closure_date}
+                className={formData.reminder_type === 'Holiday' && formData.closure_date ? 'bg-slate-100' : ''}
               />
-              <p className="text-xs text-slate-500">For holidays: last working day before closure</p>
+              <p className="text-xs text-slate-500">
+                {formData.reminder_type === 'Holiday' 
+                  ? 'Auto-calculated: last working day before closure' 
+                  : 'Date when reminder should be sent'}
+              </p>
             </div>
 
             <div className="space-y-2">
