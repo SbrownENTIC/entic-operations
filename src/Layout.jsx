@@ -56,6 +56,11 @@ const navigationItems = [
     icon: ShieldCheck,
   },
   {
+    title: "Time Off & CME",
+    url: createPageUrl("ProviderTimeOff"),
+    icon: Calendar,
+  },
+  {
     title: "Program Locations",
     url: createPageUrl("ProgramLocations"),
     icon: MapPin,
