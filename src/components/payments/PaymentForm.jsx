@@ -32,6 +32,27 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
     }
   }, [payment]);
 
+  // Auto-calculate payment_month from allocations
+  useEffect(() => {
+    if (formData.allocations && formData.allocations.length > 0) {
+      const months = new Set();
+      formData.allocations.forEach(allocation => {
+        if (allocation.invoice_id) {
+          const invoice = invoices.find(inv => inv.id === allocation.invoice_id);
+          if (invoice && invoice.month) {
+            months.add(invoice.month);
+          }
+        }
+      });
+      const paymentMonth = Array.from(months).sort().join(', ');
+      if (paymentMonth !== formData.payment_month) {
+        setFormData(prev => ({ ...prev, payment_month: paymentMonth }));
+      }
+    } else if (formData.payment_month !== '') { // Clear if no allocations
+        setFormData(prev => ({ ...prev, payment_month: '' }));
+    }
+  }, [formData.allocations, invoices, formData.payment_month]); // Include formData.payment_month to avoid infinite loop when setting it
+
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit(formData);
@@ -103,15 +124,17 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
 
             <div>
               <label className="text-sm font-medium text-slate-700 mb-1 block">
-                Payment Month
+                Payment Month (Auto-populated)
               </label>
               <Input
                 type="text"
-                placeholder="e.g., October 2025"
                 value={formData.payment_month}
-                onChange={(e) => setFormData({ ...formData, payment_month: e.target.value })}
+                readOnly
+                disabled
+                placeholder="Will be set from invoice allocations"
+                className="bg-slate-100"
               />
-              <p className="text-xs text-slate-500 mt-1">Month this payment is for</p>
+              <p className="text-xs text-slate-500 mt-1">Automatically set from invoice months</p>
             </div>
 
             <div>
@@ -193,7 +216,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 mt-6"> {/* Added mt-6 for spacing */}
               <div>
                 <Label>Payment Allocations</Label>
                 <p className="text-sm text-slate-500 mt-1">
@@ -316,7 +339,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 mt-6"> {/* Added mt-6 for spacing */}
             <label className="text-sm font-medium text-slate-700 mb-1 block">Payment Notes</label>
             <Textarea
               id="notes"

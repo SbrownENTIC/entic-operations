@@ -148,6 +148,20 @@ export default function Payments() {
       const totalAllocated = data.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
       const unallocated = data.total_amount - totalAllocated;
       
+      // Auto-calculate payment_month from allocations
+      const months = new Set();
+      if (data.allocations) {
+        data.allocations.forEach(allocation => {
+          if (allocation.invoice_id) {
+            const invoice = invoices.find(inv => inv.id === allocation.invoice_id);
+            if (invoice && invoice.month) {
+              months.add(invoice.month);
+            }
+          }
+        });
+      }
+      const paymentMonth = Array.from(months).sort().join(', ');
+      
       // Auto-set to cleared if fully allocated
       let status = data.status;
       if (unallocated === 0 && totalAllocated > 0 && status === 'pending') {
@@ -156,6 +170,7 @@ export default function Payments() {
       
       const payment = await base44.entities.Payment.create({
         ...data,
+        payment_month: paymentMonth,
         unallocated_amount: unallocated,
         status: status
       });
@@ -178,6 +193,20 @@ export default function Payments() {
       const totalAllocated = data.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
       const unallocated = data.total_amount - totalAllocated;
       
+      // Auto-calculate payment_month from allocations
+      const months = new Set();
+      if (data.allocations) {
+        data.allocations.forEach(allocation => {
+          if (allocation.invoice_id) {
+            const invoice = invoices.find(inv => inv.id === allocation.invoice_id);
+            if (invoice && invoice.month) {
+              months.add(invoice.month);
+            }
+          }
+        });
+      }
+      const paymentMonth = Array.from(months).sort().join(', ');
+      
       // Auto-set to cleared if fully allocated
       let status = data.status;
       if (unallocated === 0 && totalAllocated > 0 && status === 'pending') {
@@ -186,6 +215,7 @@ export default function Payments() {
       
       const payment = await base44.entities.Payment.update(id, {
         ...data,
+        payment_month: paymentMonth,
         unallocated_amount: unallocated,
         status: status
       });

@@ -10,39 +10,52 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Fetch all payments
+        // Fetch all payments and invoices
         const payments = await base44.asServiceRole.entities.Payment.list();
+        const invoices = await base44.asServiceRole.entities.Invoice.list();
+        
+        // Create a map of invoice IDs to months
+        const invoiceMonthMap = {};
+        invoices.forEach(invoice => {
+            invoiceMonthMap[invoice.id] = invoice.month || '';
+        });
         
         let updated = 0;
         let skipped = 0;
 
-        // Update each payment with month from payment_date
+        // Update each payment with months from its allocations
         for (const payment of payments) {
-            // Skip if payment_month already exists
-            if (payment.payment_month) {
-                skipped++;
-                continue;
-            }
-
-            // Extract month and year from payment_date
-            const paymentDate = new Date(payment.payment_date);
-            const monthNames = [
-                'January', 'February', 'March', 'April', 'May', 'June',
-                'July', 'August', 'September', 'October', 'November', 'December'
-            ];
-            const monthYear = `${monthNames[paymentDate.getMonth()]} ${paymentDate.getFullYear()}`;
-
-            // Update payment with payment_month
-            await base44.asServiceRole.entities.Payment.update(payment.id, {
-                payment_month: monthYear
-            });
+            // Get unique months from all allocations
+            const months = new Set();
             
-            updated++;
+            if (payment.allocations && payment.allocations.length > 0) {
+                payment.allocations.forEach(allocation => {
+                    if (allocation.invoice_id) {
+                        const invoiceMonth = invoiceMonthMap[allocation.invoice_id];
+                        if (invoiceMonth) {
+                            months.add(invoiceMonth);
+                        }
+                    }
+                });
+            }
+            
+            // Create payment_month string from unique months
+            const paymentMonth = Array.from(months).sort().join(', ');
+            
+            // Only update if payment_month has changed
+            if (payment.payment_month !== paymentMonth) {
+                await base44.asServiceRole.entities.Payment.update(payment.id, {
+                    payment_month: paymentMonth
+                });
+                updated++;
+            } else {
+                skipped++;
+            }
         }
 
         return Response.json({
             success: true,
-            message: `Updated ${updated} payments with payment month. Skipped ${skipped} payments that already had payment_month set.`,
+            message: `Updated ${updated} payments with invoice months from allocations. Skipped ${skipped} payments that were already up to date.`,
             updated,
             skipped
         });
