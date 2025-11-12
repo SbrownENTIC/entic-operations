@@ -403,7 +403,7 @@ export default function OutsideIncome() {
                         </td>
                         <td className="p-4">
                           <Badge className={statusColors[income.status]}>
-                            {income.status}
+                            {income.status?.charAt(0).toUpperCase() + income.status?.slice(1)}
                           </Badge>
                         </td>
                         <td className="p-4 text-right">

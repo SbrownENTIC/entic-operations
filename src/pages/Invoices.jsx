@@ -248,7 +248,7 @@ export default function Invoices() {
     approved: "bg-green-100 text-green-800",
     sent_to_vendor: "bg-blue-100 text-blue-800",
     paid_to_entic: "bg-green-100 text-green-800",
-    provider_paid: "bg-green-100 text-green-800",
+    provider_paid: "bg-purple-100 text-purple-800",
     partial: "bg-blue-100 text-blue-800"
   };
 

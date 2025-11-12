@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -279,7 +278,7 @@ export default function Providers() {
                         <td className="p-4 text-slate-600">{provider.role || '-'}</td>
                         <td className="p-4">
                           <Badge variant={provider.status === 'active' ? 'default' : 'secondary'}>
-                            {provider.status}
+                            {provider.status?.charAt(0).toUpperCase() + provider.status?.slice(1)}
                           </Badge>
                         </td>
                         <td className="p-4 text-slate-600">
