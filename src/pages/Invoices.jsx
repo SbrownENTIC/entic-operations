@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -57,11 +56,15 @@ export default function Invoices() {
     if (create === 'true' && incomeIds) {
       setPreselectedIncomes(incomeIds.split(','));
       setShowForm(true);
+      // Clear URL params after opening form
+      window.history.replaceState({}, '', createPageUrl("Invoices"));
     } else if (editId && invoices.length > 0) {
       const invoiceToEdit = invoices.find(inv => inv.id === editId);
       if (invoiceToEdit) {
         setEditingInvoice(invoiceToEdit);
         setShowForm(true);
+        // Clear URL params after opening form
+        window.history.replaceState({}, '', createPageUrl("Invoices"));
       }
     }
   }, [invoices]);
@@ -152,6 +155,12 @@ export default function Invoices() {
       setSortField(field);
       setSortDirection('asc');
     }
+  };
+
+  const handleCancelForm = () => {
+    setShowForm(false);
+    setEditingInvoice(null);
+    setPreselectedIncomes([]);
   };
 
   // Format currency with commas
@@ -261,11 +270,7 @@ export default function Invoices() {
             incomes={incomes}
             preselectedIncomes={preselectedIncomes}
             onSubmit={handleSubmit}
-            onCancel={() => {
-              setShowForm(false);
-              setEditingInvoice(null);
-              setPreselectedIncomes([]);
-            }}
+            onCancel={handleCancelForm}
             isLoading={createMutation.isPending || updateMutation.isPending}
           />
         )}
