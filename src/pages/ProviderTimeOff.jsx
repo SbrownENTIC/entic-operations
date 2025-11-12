@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -5,9 +6,9 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Pencil, Trash2, Calendar, ArrowUpDown, ArrowUp, ArrowDown, Download } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Calendar, ArrowUpDown, ArrowUp, ArrowDown, Download, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { format, parseISO, differenceInDays, isWithinInterval, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns";
+import { format, parseISO, differenceInDays, isWithinInterval, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getDay } from "date-fns";
 import TimeOffForm from "../components/timeoff/TimeOffForm";
 import {
   AlertDialog,
@@ -19,6 +20,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function ProviderTimeOff() {
   const [showForm, setShowForm] = useState(false);
@@ -31,6 +38,7 @@ export default function ProviderTimeOff() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedEntries, setSelectedEntries] = useState([]);
   const [bulkStatus, setBulkStatus] = useState('');
+  const [viewingDayEntries, setViewingDayEntries] = useState(null); // New state for day entries modal
   const queryClient = useQueryClient();
 
   const { data: timeOffEntries = [], isLoading: timeOffLoading } = useQuery({
@@ -241,9 +249,14 @@ export default function ProviderTimeOff() {
   // Calendar view logic
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
-  const calendarDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  
+  // Add empty cells for days before the start of the month to align with weekday headers
+  const startDayOfWeek = getDay(monthStart); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  const calendarDays = [...Array(startDayOfWeek).fill(null), ...monthDays];
 
   const getEntriesForDay = (day) => {
+    if (!day) return []; // Handle null days for padding
     return sortedEntries.filter(entry => {
       const start = parseISO(entry.start_date);
       const end = parseISO(entry.end_date);
@@ -510,34 +523,46 @@ export default function ProviderTimeOff() {
                   </div>
                 ))}
                 {calendarDays.map((day, index) => {
+                  if (!day) {
+                    // Render empty div for padding before the first day of the month
+                    return <div key={`empty-${index}`} className="min-h-24" />;
+                  }
+                  
                   const dayEntries = getEntriesForDay(day);
                   const isToday = isSameDay(day, new Date());
                   
                   return (
                     <div
                       key={index}
-                      className={`min-h-24 p-2 border rounded-lg ${
+                      className={`min-h-24 p-2 border rounded-lg ${dayEntries.length > 0 ? 'cursor-pointer hover:shadow-md transition-shadow' : ''} ${
                         isToday ? 'bg-blue-50 border-blue-300' : 'bg-white border-slate-200'
                       }`}
+                      onClick={() => dayEntries.length > 0 && setViewingDayEntries({ day, entries: dayEntries })}
                     >
                       <div className={`text-sm font-medium mb-1 ${isToday ? 'text-blue-700' : 'text-slate-700'}`}>
                         {format(day, 'd')}
                       </div>
                       <div className="space-y-1">
-                        {dayEntries.map((entry, idx) => (
+                        {dayEntries.slice(0, 3).map((entry, idx) => (
                           <div
                             key={idx}
-                            className={`text-xs p-1 rounded truncate ${
+                            className={`text-xs p-1.5 rounded ${
                               entry.type === 'time_off' ? 'bg-blue-100 text-blue-800' :
                               entry.type === 'cme' ? 'bg-purple-100 text-purple-800' :
                               entry.type === 'partial_day' ? 'bg-orange-100 text-orange-800' :
                               'bg-green-100 text-green-800'
                             }`}
-                            title={`${entry.provider?.full_name} - ${entry.reason || entry.type}`}
+                            title={`${entry.provider?.full_name} - ${entry.reason || formatType(entry.type)}`}
                           >
-                            {entry.provider?.full_name?.split(' ')[0]}
+                            <div className="font-medium truncate">{entry.provider?.full_name?.split(' ')[0]}</div>
+                            <div className="text-xs opacity-75">{formatType(entry.type)}</div>
                           </div>
                         ))}
+                        {dayEntries.length > 3 && (
+                          <div className="text-xs text-slate-500 font-medium px-1">
+                            +{dayEntries.length - 3} more
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -547,6 +572,80 @@ export default function ProviderTimeOff() {
           </Card>
         )}
       </div>
+
+      {/* Day Entries Modal */}
+      <Dialog open={!!viewingDayEntries} onOpenChange={() => setViewingDayEntries(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {viewingDayEntries && format(viewingDayEntries.day, 'EEEE, MMMM d, yyyy')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 max-h-96 overflow-y-auto pr-2 -mr-2"> {/* Added pr-2 -mr-2 for custom scrollbar spacing */}
+            {viewingDayEntries?.entries.map((entry) => (
+              <div key={entry.id} className="p-4 border border-slate-200 rounded-lg hover:bg-slate-50">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <span className="font-semibold text-slate-900">{entry.provider?.full_name}</span>
+                      <Badge className={typeColors[entry.type]}>
+                        {formatType(entry.type)}
+                      </Badge>
+                      <Badge className={statusColors[entry.status]}>
+                        {formatStatus(entry.status)}
+                      </Badge>
+                    </div>
+                    <div className="text-sm text-slate-600 space-y-1">
+                      <div>
+                        <span className="font-medium">Dates:</span> {format(parseISO(entry.start_date), 'MMM d')} - {format(parseISO(entry.end_date), 'MMM d, yyyy')} ({entry.days} {entry.days === 1 ? 'day' : 'days'})
+                      </div>
+                      {entry.reason && (
+                        <div>
+                          <span className="font-medium">Reason:</span> {entry.reason}
+                        </div>
+                      )}
+                      {entry.partial_day_end_time && (
+                        <div className="text-orange-600">
+                          <span className="font-medium">Ends at:</span> {entry.partial_day_end_time}
+                        </div>
+                      )}
+                      {entry.notes && (
+                        <div>
+                          <span className="font-medium">Notes:</span> {entry.notes}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-1 pl-4">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => {
+                        setEditingTimeOff(entry);
+                        setShowForm(true);
+                        setViewingDayEntries(null); // Close the day entries modal when editing
+                      }}
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => {
+                        setDeleteConfirm(entry);
+                        setViewingDayEntries(null); // Close the day entries modal to show alert dialog
+                      }}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
         <AlertDialogContent>
