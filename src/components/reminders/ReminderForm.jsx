@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -203,7 +204,7 @@ ${formData.oncall_provider_list} ${formData.oncall_provider_list.includes(',') ?
  
 Best Regards,
 Steve Brown  
-Operations Project Coordinator`;
+The Operations Team`;
 
       setFormData(prev => ({ ...prev, email_body: template }));
     }
@@ -252,7 +253,7 @@ ${formData.oncall_provider_list ? formData.oncall_provider_list : '(On-Call Prov
  
 Best Regards,
 Steve Brown  
-Operations Project Coordinator`;
+The Operations Team`;
 
     setFormData({
       ...formData,
