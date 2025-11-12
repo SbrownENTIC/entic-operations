@@ -1,21 +1,36 @@
-
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; // Added Card imports
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format, parseISO } from "date-fns";
 import { ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
 export default function PaymentDetailModal({ payment, invoices, providers, onClose }) {
-  // totalAllocated and unallocated variables are removed as per outline's new structure which uses payment.unallocated_amount
-  // statusColors object is removed as per outline's new badge coloring logic
-
   // Format currency with commas
   const formatCurrency = (amount) => {
     return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  const getStatusLabel = (invoice) => {
+    if (invoice.status === 'paid_to_entic') return 'Paid to ENTIC';
+    if (invoice.status === 'provider_paid') return 'Provider Paid';
+    if (invoice.status === 'partial') return 'Partial';
+    return invoice.status?.replace(/_/g, ' ');
+  };
+
+  const statusColors = {
+    not_started: "bg-gray-100 text-gray-800",
+    draft: "bg-gray-100 text-gray-800",
+    pending_providers_approval: "bg-yellow-100 text-yellow-800",
+    pending_providers_time: "bg-yellow-100 text-yellow-800",
+    sent_for_approval: "bg-blue-100 text-blue-800",
+    approved: "bg-green-100 text-green-800",
+    sent_to_vendor: "bg-blue-100 text-blue-800",
+    paid_to_entic: "bg-green-100 text-green-800",
+    provider_paid: "bg-green-100 text-green-800",
+    partial: "bg-blue-100 text-blue-800"
   };
 
   return (
@@ -78,7 +93,7 @@ export default function PaymentDetailModal({ payment, invoices, providers, onClo
               </div>
               
               {payment.notes && (
-                <div className="pt-3 border-t border-slate-200 mt-3"> {/* Added styling for notes section */}
+                <div className="pt-3 border-t border-slate-200 mt-3">
                   <p className="text-sm text-slate-500">Notes</p>
                   <p className="text-slate-700">{payment.notes}</p>
                 </div>
@@ -90,7 +105,6 @@ export default function PaymentDetailModal({ payment, invoices, providers, onClo
           <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-slate-900">Payment Allocations</h3>
-              {/* Unallocated amount display moved into Payment Information card */}
             </div>
             
             {payment.allocations && payment.allocations.length > 0 ? (
@@ -101,7 +115,7 @@ export default function PaymentDetailModal({ payment, invoices, providers, onClo
                   
                   return (
                     <div key={index} className="p-4 bg-slate-50 rounded-lg border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 transition-all group">
-                      <div className="grid md:grid-cols-3 gap-4">
+                      <div className="grid md:grid-cols-4 gap-4">
                         <div>
                           <p className="text-xs text-slate-500">Invoice</p>
                           {invoice ? (
@@ -135,6 +149,17 @@ export default function PaymentDetailModal({ payment, invoices, providers, onClo
                             ${formatCurrency(allocation.amount || 0)}
                           </p>
                         </div>
+                        
+                        <div>
+                          <p className="text-xs text-slate-500">Invoice Status</p>
+                          {invoice ? (
+                            <Badge className={statusColors[invoice.status]}>
+                              {getStatusLabel(invoice)}
+                            </Badge>
+                          ) : (
+                            <span className="text-sm text-slate-400">N/A</span>
+                          )}
+                        </div>
                       </div>
                       
                       {allocation.notes && (
@@ -151,8 +176,6 @@ export default function PaymentDetailModal({ payment, invoices, providers, onClo
               <p className="text-center py-8 text-slate-500">No allocations yet</p>
             )}
           </div>
-          
-          {/* Original payment.notes section moved into the Card component */}
         </div>
       </DialogContent>
     </Dialog>
