@@ -189,6 +189,16 @@ export default function ProviderTimeOff() {
     declined: "bg-red-100 text-red-800"
   };
 
+  const formatType = (type) => {
+    if (!type) return '';
+    return type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  };
+
+  const formatStatus = (status) => {
+    if (!status) return '';
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
+
   // Calendar view logic
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -318,7 +328,7 @@ export default function ProviderTimeOff() {
                         <td className="p-4 font-medium text-slate-900">{entry.provider?.full_name}</td>
                         <td className="p-4">
                           <Badge className={typeColors[entry.type]}>
-                            {entry.type?.replace(/_/g, ' ')}
+                            {formatType(entry.type)}
                           </Badge>
                         </td>
                         <td className="p-4 text-slate-600">
@@ -338,7 +348,7 @@ export default function ProviderTimeOff() {
                         <td className="p-4 text-slate-600">{entry.reason || '-'}</td>
                         <td className="p-4">
                           <Badge className={statusColors[entry.status]}>
-                            {entry.status}
+                            {formatStatus(entry.status)}
                           </Badge>
                         </td>
                         <td className="p-4 text-right">

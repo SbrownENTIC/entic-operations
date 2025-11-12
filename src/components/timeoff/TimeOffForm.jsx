@@ -86,9 +86,9 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="time_off">Time Off</SelectItem>
-                  <SelectItem value="cme">CME Event</SelectItem>
-                  <SelectItem value="partial_day">Partial Day</SelectItem>
+                  <SelectItem value="time_off">Time off</SelectItem>
+                  <SelectItem value="cme">CME</SelectItem>
+                  <SelectItem value="partial_day">Partial day</SelectItem>
                   <SelectItem value="holiday">Holiday</SelectItem>
                 </SelectContent>
               </Select>
