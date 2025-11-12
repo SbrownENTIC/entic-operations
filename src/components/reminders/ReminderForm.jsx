@@ -30,6 +30,15 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
     notes: ''
   });
 
+  // Track which fields have been manually edited to prevent auto-override
+  const [manuallyEdited, setManuallyEdited] = useState({
+    send_date: false,
+    reopen_date: false,
+    email_subject: false,
+    oncall_provider_list: false,
+    oncall_phone_list: false
+  });
+
   const [newRecipient, setNewRecipient] = useState('');
 
   const { data: providers = [] } = useQuery({
@@ -43,9 +52,10 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
     enabled: formData.reminder_type === 'Holiday'
   });
 
-  // Auto-populate on-call providers during closure period
+  // Auto-populate on-call providers during closure period (only if not manually edited)
   useEffect(() => {
-    if (formData.closure_date && formData.reminder_type === 'Holiday' && onCallSchedules.length > 0) {
+    if (formData.closure_date && formData.reminder_type === 'Holiday' && onCallSchedules.length > 0 
+        && !manuallyEdited.oncall_provider_list && !manuallyEdited.oncall_phone_list) {
       const closureDate = new Date(formData.closure_date + 'T00:00:00');
       
       // Find on-call schedules that overlap with closure date
@@ -72,11 +82,19 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
         }
       }
     }
-  }, [formData.closure_date, formData.reminder_type, onCallSchedules, providers]);
+  }, [formData.closure_date, formData.reminder_type, onCallSchedules, providers, manuallyEdited.oncall_provider_list, manuallyEdited.oncall_phone_list]);
 
   useEffect(() => {
     if (reminder) {
       setFormData(reminder);
+      // Mark all existing fields as manually edited to prevent auto-override on edit
+      setManuallyEdited({
+        send_date: !!reminder.send_date,
+        reopen_date: !!reminder.reopen_date,
+        email_subject: !!reminder.email_subject,
+        oncall_provider_list: !!reminder.oncall_provider_list,
+        oncall_phone_list: !!reminder.oncall_phone_list
+      });
     }
   }, [reminder]);
 
@@ -90,9 +108,9 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
     'Memorial Day': { '2026': '2026-05-26' }
   };
 
-  // Auto-calculate send date when closure date changes
+  // Auto-calculate send date when closure date changes (only if not manually edited)
   useEffect(() => {
-    if (formData.closure_date && formData.reminder_type === 'Holiday') {
+    if (formData.closure_date && formData.reminder_type === 'Holiday' && !manuallyEdited.send_date) {
       const closureDate = new Date(formData.closure_date + 'T00:00:00');
       const weekday = closureDate.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
       
@@ -121,11 +139,11 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
         setFormData(prev => ({ ...prev, send_date: formattedSendDate }));
       }
     }
-  }, [formData.closure_date, formData.reminder_type]);
+  }, [formData.closure_date, formData.reminder_type, manuallyEdited.send_date]);
 
-  // Auto-populate reopen date based on holiday name and closure year
+  // Auto-populate reopen date based on holiday name and closure year (only if not manually edited)
   useEffect(() => {
-    if (formData.closure_date && formData.holiday_name && formData.reminder_type === 'Holiday') {
+    if (formData.closure_date && formData.holiday_name && formData.reminder_type === 'Holiday' && !manuallyEdited.reopen_date) {
       const closureYear = new Date(formData.closure_date).getFullYear().toString();
       const reopenDate = holidayReopenDates[formData.holiday_name]?.[closureYear];
       
@@ -133,11 +151,11 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
         setFormData(prev => ({ ...prev, reopen_date: reopenDate }));
       }
     }
-  }, [formData.closure_date, formData.holiday_name, formData.reminder_type]);
+  }, [formData.closure_date, formData.holiday_name, formData.reminder_type, manuallyEdited.reopen_date]);
 
-  // Auto-set email subject for holidays
+  // Auto-set email subject for holidays (only if not manually edited)
   useEffect(() => {
-    if (formData.closure_date && formData.holiday_name && formData.reminder_type === 'Holiday') {
+    if (formData.closure_date && formData.holiday_name && formData.reminder_type === 'Holiday' && !manuallyEdited.email_subject) {
       const closureDateFormatted = format(parseISO(formData.closure_date), 'M/d/yyyy');
       const subject = `Office Closure Notification: ACCT6650- ${closureDateFormatted}— ${formData.holiday_name} Holiday`;
       
@@ -145,7 +163,7 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
         setFormData(prev => ({ ...prev, email_subject: subject }));
       }
     }
-  }, [formData.closure_date, formData.holiday_name, formData.reminder_type]);
+  }, [formData.closure_date, formData.holiday_name, formData.reminder_type, manuallyEdited.email_subject]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -244,15 +262,21 @@ Operations Project Coordinator`;
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="send_date">Send Date *</Label>
+              <Label htmlFor="send_date">
+                Send Date * 
+                {manuallyEdited.send_date && formData.reminder_type === 'Holiday' && (
+                  <span className="text-blue-600 text-xs ml-2">✏️ Manually edited</span>
+                )}
+              </Label>
               <Input
                 id="send_date"
                 type="date"
                 value={formData.send_date}
-                onChange={(e) => setFormData({ ...formData, send_date: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, send_date: e.target.value });
+                  setManuallyEdited(prev => ({ ...prev, send_date: true }));
+                }}
                 required
-                readOnly={formData.reminder_type === 'Holiday' && formData.closure_date}
-                className={formData.reminder_type === 'Holiday' && formData.closure_date ? 'bg-slate-100' : ''}
               />
               {formData.reminder_type === 'Holiday' && formData.closure_date && (
                 <p className="text-xs text-slate-500">
@@ -262,7 +286,9 @@ Operations Project Coordinator`;
                     if (weekday === 0 || weekday === 6) {
                       return '⚠️ No email sent for weekend closures';
                     }
-                    return 'Auto-calculated: last working day before closure';
+                    return manuallyEdited.send_date 
+                      ? '✏️ Manually overridden - edit as needed' 
+                      : '✨ Auto-calculated: last working day before closure';
                   })()}
                 </p>
               )}
@@ -373,51 +399,79 @@ Operations Project Coordinator`;
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="reopen_date">Re-open Date</Label>
+                  <Label htmlFor="reopen_date">
+                    Re-open Date
+                    {manuallyEdited.reopen_date && formData.reminder_type === 'Holiday' && (
+                      <span className="text-blue-600 text-xs ml-2">✏️ Manually edited</span>
+                    )}
+                  </Label>
                   <Input
                     id="reopen_date"
                     type="date"
                     value={formData.reopen_date}
-                    onChange={(e) => setFormData({ ...formData, reopen_date: e.target.value })}
-                    readOnly={formData.holiday_name && formData.closure_date}
-                    className={formData.holiday_name && formData.closure_date ? 'bg-slate-100' : ''}
+                    onChange={(e) => {
+                      setFormData({ ...formData, reopen_date: e.target.value });
+                      setManuallyEdited(prev => ({ ...prev, reopen_date: true }));
+                    }}
                   />
                   {formData.holiday_name && formData.closure_date && (
-                    <p className="text-xs text-slate-500">Auto-populated based on holiday</p>
+                    <p className="text-xs text-slate-500">
+                      {manuallyEdited.reopen_date 
+                        ? '✏️ Manually overridden - edit as needed' 
+                        : '✨ Auto-populated based on holiday'}
+                    </p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="oncall_provider_list">On-Call Provider(s)</Label>
+                  <Label htmlFor="oncall_provider_list">
+                    On-Call Provider(s)
+                    {manuallyEdited.oncall_provider_list && formData.reminder_type === 'Holiday' && (
+                      <span className="text-blue-600 text-xs ml-2">✏️ Manually edited</span>
+                    )}
+                  </Label>
                   <Input
                     id="oncall_provider_list"
                     value={formData.oncall_provider_list}
-                    onChange={(e) => setFormData({ ...formData, oncall_provider_list: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, oncall_provider_list: e.target.value });
+                      setManuallyEdited(prev => ({ ...prev, oncall_provider_list: true }));
+                    }}
                     placeholder="Dr. John Smith"
-                    readOnly={formData.closure_date}
-                    className={formData.closure_date ? 'bg-slate-100' : ''}
                   />
                   {formData.closure_date && (
                     <p className="text-xs text-slate-500">
-                      {formData.oncall_provider_list 
-                        ? 'Auto-populated from on-call schedule' 
-                        : '⚠️ No on-call provider found for this date'}
+                      {manuallyEdited.oncall_provider_list 
+                        ? '✏️ Manually overridden - edit as needed'
+                        : formData.oncall_provider_list 
+                          ? '✨ Auto-populated from on-call schedule' 
+                          : '⚠️ No on-call provider found for this date'}
                     </p>
                   )}
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="oncall_phone_list">On-Call Phone Number(s)</Label>
+                  <Label htmlFor="oncall_phone_list">
+                    On-Call Phone Number(s)
+                    {manuallyEdited.oncall_phone_list && formData.reminder_type === 'Holiday' && (
+                      <span className="text-blue-600 text-xs ml-2">✏️ Manually edited</span>
+                    )}
+                  </Label>
                   <Input
                     id="oncall_phone_list"
                     value={formData.oncall_phone_list}
-                    onChange={(e) => setFormData({ ...formData, oncall_phone_list: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, oncall_phone_list: e.target.value });
+                      setManuallyEdited(prev => ({ ...prev, oncall_phone_list: true }));
+                    }}
                     placeholder="860-123-4567"
-                    readOnly={formData.closure_date}
-                    className={formData.closure_date ? 'bg-slate-100' : ''}
                   />
                   {formData.closure_date && (
-                    <p className="text-xs text-slate-500">Auto-linked from provider record</p>
+                    <p className="text-xs text-slate-500">
+                      {manuallyEdited.oncall_phone_list 
+                        ? '✏️ Manually overridden - edit as needed' 
+                        : '✨ Auto-linked from provider record'}
+                    </p>
                   )}
                 </div>
               </div>
@@ -425,18 +479,28 @@ Operations Project Coordinator`;
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="email_subject">Email Subject *</Label>
+            <Label htmlFor="email_subject">
+              Email Subject *
+              {manuallyEdited.email_subject && formData.reminder_type === 'Holiday' && (
+                <span className="text-blue-600 text-xs ml-2">✏️ Manually edited</span>
+              )}
+            </Label>
             <Input
               id="email_subject"
               value={formData.email_subject}
-              onChange={(e) => setFormData({ ...formData, email_subject: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, email_subject: e.target.value });
+                setManuallyEdited(prev => ({ ...prev, email_subject: true }));
+              }}
               placeholder="e.g., Your medical license expires in 30 days"
               required
-              readOnly={formData.reminder_type === 'Holiday' && formData.closure_date && formData.holiday_name}
-              className={formData.reminder_type === 'Holiday' && formData.closure_date && formData.holiday_name ? 'bg-slate-100' : ''}
             />
             {formData.reminder_type === 'Holiday' && formData.closure_date && formData.holiday_name && (
-              <p className="text-xs text-slate-500">Auto-formatted for holiday closure notification</p>
+              <p className="text-xs text-slate-500">
+                {manuallyEdited.email_subject 
+                  ? '✏️ Manually overridden - edit as needed' 
+                  : '✨ Auto-formatted for holiday closure notification'}
+              </p>
             )}
           </div>
 
