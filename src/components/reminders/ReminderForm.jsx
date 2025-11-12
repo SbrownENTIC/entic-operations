@@ -52,13 +52,13 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
     enabled: formData.reminder_type === 'Holiday'
   });
 
-  // Auto-populate on-call providers during closure period (only if not manually edited)
+  // Auto-populate on-call providers during closure date only (only if not manually edited)
   useEffect(() => {
     if (formData.closure_date && formData.reminder_type === 'Holiday' && onCallSchedules.length > 0 
         && !manuallyEdited.oncall_provider_list && !manuallyEdited.oncall_phone_list) {
       const closureDate = new Date(formData.closure_date + 'T00:00:00');
       
-      // Find on-call schedules that overlap with closure date
+      // Find on-call schedules that overlap with closure date ONLY (not reopen date)
       const onCallDuringClosure = onCallSchedules.filter(schedule => {
         const startDate = new Date(schedule.start_date + 'T00:00:00');
         const endDate = new Date(schedule.end_date + 'T00:00:00');
