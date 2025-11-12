@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -6,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Pencil, Trash2, DollarSign, Download, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, DollarSign, Download, ArrowUpDown, ArrowUp, ArrowDown, AlertCircle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import PaymentForm from "../components/payments/PaymentForm";
 import PaymentDetailModal from "../components/payments/PaymentDetailModal";
@@ -29,6 +28,7 @@ export default function Payments() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [sortField, setSortField] = useState('payment_date');
   const [sortDirection, setSortDirection] = useState('desc');
+  const [filterUnallocated, setFilterUnallocated] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: payments = [], isLoading: paymentsLoading } = useQuery({
@@ -45,6 +45,18 @@ export default function Payments() {
     queryKey: ['providers'],
     queryFn: () => base44.entities.Provider.list()
   });
+
+  // Check for showUnallocated URL parameter
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const showUnallocated = urlParams.get('showUnallocated');
+    
+    if (showUnallocated === 'true') {
+      setFilterUnallocated(true);
+      // Clear URL params after processing
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   // Update invoice amounts and statuses based on all payment allocations
   const updateInvoiceStatuses = async () => {
@@ -126,7 +138,7 @@ export default function Payments() {
 
     return () => clearTimeout(timer);
     
-  }, [payments.length, invoices.length, paymentsLoading, invoicesLoading, providersLoading]); // Include loading states in dependency array
+  }, [payments.length, invoices.length, paymentsLoading, invoicesLoading, providersLoading]);
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
@@ -303,10 +315,14 @@ export default function Payments() {
     );
   }
 
-  const filteredPayments = payments.filter(payment =>
-    payment.payer?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    payment.reference_number?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredPayments = payments.filter(payment => {
+    const matchesSearch = payment.payer?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      payment.reference_number?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesUnallocatedFilter = !filterUnallocated || (payment.unallocated_amount > 0);
+    
+    return matchesSearch && matchesUnallocatedFilter;
+  });
 
   const sortedPayments = [...filteredPayments].sort((a, b) => {
     let aValue, bValue;
@@ -337,6 +353,7 @@ export default function Payments() {
 
   // Calculate total of all payments
   const totalPayments = sortedPayments.reduce((sum, payment) => sum + (payment.total_amount || 0), 0);
+  const totalUnallocated = sortedPayments.reduce((sum, payment) => sum + (payment.unallocated_amount || 0), 0);
 
   const statusColors = {
     pending: "bg-yellow-100 text-yellow-800",
@@ -375,23 +392,42 @@ export default function Payments() {
           </div>
         </div>
 
-        {/* Total Payments Summary Card */}
-        <Card className="border-slate-200 shadow-sm bg-gradient-to-br from-green-50 to-white">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600">Total Payments</p>
-                <div className="text-4xl font-bold text-green-700 mt-2">
-                  ${formatCurrency(totalPayments)}
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="border-slate-200 shadow-sm bg-gradient-to-br from-green-50 to-white">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">Total Payments</p>
+                  <div className="text-4xl font-bold text-green-700 mt-2">
+                    ${formatCurrency(totalPayments)}
+                  </div>
+                  <p className="text-sm text-slate-500 mt-1">
+                    {sortedPayments.length} payment{sortedPayments.length !== 1 ? 's' : ''}
+                  </p>
                 </div>
-                <p className="text-sm text-slate-500 mt-1">
-                  {sortedPayments.length} payment{sortedPayments.length !== 1 ? 's' : ''}
-                </p>
+                <DollarSign className="w-16 h-16 text-green-600 opacity-20" />
               </div>
-              <DollarSign className="w-16 h-16 text-green-600 opacity-20" />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          <Card className="border-slate-200 shadow-sm bg-gradient-to-br from-orange-50 to-white">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">Unallocated Amount</p>
+                  <div className="text-4xl font-bold text-orange-700 mt-2">
+                    ${formatCurrency(totalUnallocated)}
+                  </div>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Requires allocation to invoices
+                  </p>
+                </div>
+                <AlertCircle className="w-16 h-16 text-orange-600 opacity-20" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {showForm && (
           <PaymentForm
@@ -409,14 +445,24 @@ export default function Payments() {
 
         <Card className="border-slate-200 shadow-sm">
           <CardHeader className="border-b border-slate-100">
-            <div className="flex items-center gap-4">
-              <Search className="w-5 h-5 text-slate-400" />
-              <Input
-                placeholder="Search payments..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-md border-slate-200"
-              />
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+              <div className="flex items-center gap-4 flex-1">
+                <Search className="w-5 h-5 text-slate-400" />
+                <Input
+                  placeholder="Search payments..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="max-w-md border-slate-200"
+                />
+              </div>
+              <Button
+                variant={filterUnallocated ? "default" : "outline"}
+                onClick={() => setFilterUnallocated(!filterUnallocated)}
+                className={filterUnallocated ? "bg-orange-600 hover:bg-orange-700" : ""}
+              >
+                <AlertCircle className="w-4 h-4 mr-2" />
+                {filterUnallocated ? "Showing Unallocated" : "Show Unallocated Only"}
+              </Button>
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -457,6 +503,9 @@ export default function Payments() {
                     >
                       Amount <SortIcon field="total_amount" />
                     </th>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700">
+                      Unallocated
+                    </th>
                     <th 
                       className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                       onClick={() => handleSort('status')}
@@ -469,7 +518,9 @@ export default function Payments() {
                 </thead>
                 <tbody>
                   {sortedPayments.map((payment, index) => (
-                    <tr key={payment.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                    <tr key={payment.id} className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${
+                      payment.unallocated_amount > 0 ? 'bg-orange-50/30' : ''
+                    }`}>
                       <td className="p-4 text-slate-500 font-medium">
                         {index + 1}
                       </td>
@@ -483,6 +534,15 @@ export default function Payments() {
                       </td>
                       <td className="p-4 font-medium text-green-600">
                         ${formatCurrency(payment.total_amount || 0)}
+                      </td>
+                      <td className="p-4">
+                        {payment.unallocated_amount > 0 ? (
+                          <span className="font-bold text-orange-600">
+                            ${formatCurrency(payment.unallocated_amount)}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
                       </td>
                       <td className="p-4">
                         <Badge className={statusColors[payment.status]}>
@@ -527,7 +587,7 @@ export default function Payments() {
               </table>
               {sortedPayments.length === 0 && (
                 <div className="text-center py-12 text-slate-500">
-                  No payments found
+                  {filterUnallocated ? 'No unallocated payments found' : 'No payments found'}
                 </div>
               )}
             </div>
