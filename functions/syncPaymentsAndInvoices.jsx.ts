@@ -37,7 +37,11 @@ Deno.serve(async (req) => {
       
       // Determine status based on payment
       let newStatus = invoice.status;
-      if (balance <= 0 && amountReceived > 0) {
+      
+      // IMPORTANT: Preserve provider_paid status if the checkbox is checked
+      if (invoice.provider_paid) {
+        newStatus = 'provider_paid';
+      } else if (balance <= 0 && amountReceived > 0) {
         newStatus = 'paid_to_entic';
       } else if (amountReceived > 0 && balance > 0) {
         newStatus = 'partial';
