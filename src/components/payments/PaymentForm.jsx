@@ -129,15 +129,18 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
   const updateAllocation = (index, field, value) => {
     const newAllocations = [...formData.allocations];
     
-    // If updating invoice_id, auto-populate provider and amount
+    // If updating invoice_id, auto-populate provider and amount with remaining balance
     if (field === 'invoice_id') {
       const invoice = invoices.find(inv => inv.id === value);
       if (invoice) {
+        // Calculate the invoice's remaining balance
+        const invoiceBalance = (invoice.amount_expected || invoice.total || 0) - (invoice.amount_received || 0);
+        
         newAllocations[index] = { 
           ...newAllocations[index], 
           invoice_id: value,
           provider_id: invoice.staff_member_id || '',
-          amount: parseFloat(invoice.amount_expected || invoice.total) || 0
+          amount: parseFloat(invoiceBalance) || 0
         };
       } else {
         newAllocations[index] = { ...newAllocations[index], [field]: value };
@@ -369,7 +372,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                                         <div className="flex flex-col w-full">
                                           <div className="flex items-center justify-between">
                                             <span className="font-medium">{displayText}</span>
-                                            <span className="text-xs text-slate-500 ml-2">${balance.toFixed(2)}</span>
+                                            <span className="text-xs text-slate-500 ml-2">Balance: ${balance.toFixed(2)}</span>
                                           </div>
                                           {invoice.status && (
                                             <span className="text-xs text-slate-500 capitalize">{invoice.status.replace(/_/g, ' ')}</span>
@@ -416,6 +419,11 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                             value={allocation.amount || 0}
                             onChange={(e) => updateAllocation(index, 'amount', parseFloat(e.target.value) || 0)}
                           />
+                          {selectedInvoice && (
+                            <p className="text-xs text-slate-500 mt-1">
+                              Invoice balance: ${((selectedInvoice.amount_expected || selectedInvoice.total || 0) - (selectedInvoice.amount_received || 0)).toFixed(2)}
+                            </p>
+                          )}
                         </div>
                         
                         <div className="col-span-1">
