@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -9,10 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { X, Upload, AlertCircle } from "lucide-react"; // Added AlertCircle
+import { X, Upload, AlertCircle, ExternalLink } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { Link } from "react-router-dom"; // Added Link
-import { createPageUrl } from "@/utils"; // Added createPageUrl
+import { Link } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 
 const INVOICE_STATUSES = [
   { value: "not_started", label: "Not Started" },
@@ -40,7 +39,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
     subtotal: 0,
     total: 0,
     amount_expected: 0,
-    amount_received: 0, // This will be auto-calculated for existing invoices
+    amount_received: 0,
     under_over_amount: 0,
     date_provider_paid: '',
     provider_paid: false,
@@ -69,14 +68,14 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
   const { data: payments = [] } = useQuery({
     queryKey: ['payments'],
     queryFn: () => base44.entities.Payment.list(),
-    enabled: !!invoice // Only fetch when editing an existing invoice
+    enabled: !!invoice
   });
 
   // Get unique program groups
   const programGroups = [...new Set(programLocations.map(pl => pl.program_group).filter(Boolean))].sort();
 
   // Find all payment allocations to this invoice
-  const invoiceAllocations = invoice ? payments.filter(payment =>
+  const invoiceAllocations = invoice ? payments.filter(payment => 
     payment.allocations?.some(alloc => alloc.invoice_id === invoice.id)
   ).map(payment => ({
     payment,
@@ -86,50 +85,42 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
   // Extract month from invoice number
   const extractMonthFromInvoiceNumber = (invoiceNumber) => {
     if (!invoiceNumber) return '';
-
+    
     const monthPatterns = [
       /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\b/i,
       /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\.?\s+(\d{4})\b/i
     ];
-
+    
     for (const pattern of monthPatterns) {
       const match = invoiceNumber.match(pattern);
       if (match) {
-        // Capitalize the first letter of the month
         const monthName = match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
         return `${monthName} ${match[2]}`;
       }
     }
-
+    
     return '';
   };
 
   useEffect(() => {
     if (invoice) {
-      // Calculate total allocated amount from payments for existing invoice
-      const totalAllocatedAmount = invoiceAllocations.reduce((sum, item) => sum + (item.allocation.amount || 0), 0);
-
-      setFormData({
-        ...invoice,
-        amount_received: totalAllocatedAmount, // Override amount_received from invoice with calculated value
-      });
+      setFormData(invoice);
     } else if (preselectedIncomes.length > 0) {
       const selectedIncomes = incomes.filter(inc => preselectedIncomes.includes(inc.id));
       const totalDays = selectedIncomes.reduce((sum, inc) => sum + (inc.days_worked || 0), 0);
       const totalAmount = selectedIncomes.reduce((sum, inc) => sum + (inc.total_amount || 0), 0);
-
-      // Auto-populate program group and staff member from first selected income
+      
       const firstIncome = selectedIncomes[0];
       let programGroup = '';
       let staffMemberId = firstIncome?.provider_id || '';
-
+      
       if (firstIncome?.program_location_id) {
         const programLocation = programLocations.find(pl => pl.id === firstIncome.program_location_id);
         if (programLocation) {
           programGroup = programLocation.program_group || '';
         }
       }
-
+      
       setFormData(prev => ({
         ...prev,
         outside_income_ids: preselectedIncomes,
@@ -141,9 +132,8 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
         amount_expected: totalAmount
       }));
     }
-  }, [invoice, preselectedIncomes, incomes, programLocations, invoiceAllocations]);
+  }, [invoice, preselectedIncomes, incomes, programLocations]);
 
-  // Auto-extract month from invoice number
   useEffect(() => {
     const extractedMonth = extractMonthFromInvoiceNumber(formData.invoice_number);
     if (extractedMonth && !formData.month) {
@@ -165,14 +155,12 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
     }
   }, [formData.staff_member_id, providers]);
 
-  // Auto-update status when provider_paid checkbox is checked
   useEffect(() => {
     if (formData.provider_paid && formData.status !== 'provider_paid') {
       setFormData(prev => ({ ...prev, status: 'provider_paid' }));
     }
   }, [formData.provider_paid, formData.status]);
 
-  // Auto-update status when invoice_sent_to_vendor checkbox is checked
   useEffect(() => {
     if (formData.invoice_sent_to_vendor && formData.status !== 'sent_to_vendor' && formData.status !== 'paid_to_entic' && formData.status !== 'provider_paid') {
       setFormData(prev => ({ ...prev, status: 'sent_to_vendor' }));
@@ -181,46 +169,40 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    
     let finalData = { ...formData };
-
-    // Auto-generate invoice number for UConn if not provided
+    
     if (!finalData.invoice_number && finalData.program_group === 'UConn') {
       const uconnLocation = programLocations.find(pl => pl.program_group === 'UConn');
       if (uconnLocation) {
         const nextNumber = (uconnLocation.invoice_counter || 39) + 1;
         finalData.invoice_number = `${nextNumber}`;
-
-        // Update the counter in the program location
+        
         await base44.entities.ProgramLocation.update(uconnLocation.id, {
           invoice_counter: nextNumber
         });
       }
     }
-
-    // Set timestamps based on checkboxes
-    // Only set if the checkbox is checked AND the timestamp wasn't previously set (i.e., this is the first time it's checked)
+    
     if (finalData.invoice_sent_for_approval && !invoice?.sent_for_approval_at && finalData.program_group !== 'St. Francis') {
       finalData.sent_for_approval_at = new Date().toISOString();
     } else if (!finalData.invoice_sent_for_approval) {
-      // If unchecked, clear the timestamp if it's not from the original invoice
       finalData.sent_for_approval_at = invoice?.sent_for_approval_at || null;
     }
-
+    
     if (finalData.invoice_sent_to_vendor && !invoice?.sent_to_vendor_at && finalData.program_group !== 'St. Francis') {
       finalData.sent_to_vendor_at = new Date().toISOString();
     } else if (!finalData.invoice_sent_to_vendor) {
-      // If unchecked, clear the timestamp if it's not from the original invoice
       finalData.sent_to_vendor_at = invoice?.sent_to_vendor_at || null;
     }
-
+    
     onSubmit(finalData);
   };
 
   const toggleIncome = (incomeId) => {
     const income = incomes.find(inc => inc.id === incomeId);
     const isSelected = formData.outside_income_ids.includes(incomeId);
-
+    
     if (isSelected) {
       setFormData(prev => ({
         ...prev,
@@ -232,7 +214,6 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
       }));
     } else {
       setFormData(prev => {
-        // When adding income, auto-update program group and staff member if not set
         let updates = {
           outside_income_ids: [...prev.outside_income_ids, incomeId],
           days_worked: prev.days_worked + (income?.days_worked || 0),
@@ -240,9 +221,8 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
           total: prev.total + (income?.total_amount || 0),
           amount_expected: prev.amount_expected + (income?.total_amount || 0)
         };
-
-        // Auto-set program group and staff member from first selected income
-        if (prev.outside_income_ids.length === 0) { // Only auto-set if no incomes were previously selected
+        
+        if (prev.outside_income_ids.length === 0) {
           if (income?.program_location_id) {
             const programLocation = programLocations.find(pl => pl.id === income.program_location_id);
             if (programLocation) {
@@ -267,15 +247,13 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
       else setUploadingApproved(true);
 
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-
+      
       setFormData(prev => {
         const updates = {
           [type === 'draft' ? 'draft_invoice_url' : 'approved_invoice_url']: file_url
         };
-
-        // Auto-update status based on program group and upload type
+        
         if (prev.program_group === 'UConn') {
-          // UConn logic (existing)
           if (type === 'draft') {
             updates.status = 'draft';
           } else if (type === 'approved') {
@@ -284,32 +262,27 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
             updates.invoice_sent_to_vendor = true;
           }
         } else if (prev.program_group === 'St. Francis') {
-          // St. Francis: Draft invoice → Sent to Vendor
           if (type === 'draft') {
             updates.status = 'sent_to_vendor';
             updates.sent_to_vendor_at = new Date().toISOString();
             updates.invoice_sent_to_vendor = true;
           } else if (type === 'approved') {
-            // Even if approved, St. Francis workflow might just keep it at sent_to_vendor
             updates.status = 'sent_to_vendor';
             updates.sent_to_vendor_at = new Date().toISOString();
             updates.invoice_sent_to_vendor = true;
           }
         } else {
-          // Other program groups (NOT UConn or St. Francis)
           if (type === 'draft' && !prev.approved_invoice_url) {
-            // Draft only (no approved invoice) → Sent for Approval
             updates.status = 'sent_for_approval';
             updates.sent_for_approval_at = new Date().toISOString();
             updates.invoice_sent_for_approval = true;
           } else if (type === 'approved') {
-            // Approved invoice → Sent to Vendor
             updates.status = 'sent_to_vendor';
             updates.sent_to_vendor_at = new Date().toISOString();
             updates.invoice_sent_to_vendor = true;
           }
         }
-
+        
         return { ...prev, ...updates };
       });
     } catch (error) {
@@ -334,7 +307,6 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="p-6 space-y-6">
-          {/* Payment Allocations Debug View - ONLY shown when editing an invoice */}
           {invoice && invoiceAllocations.length > 0 && (
             <Card className="border-orange-200 bg-orange-50">
               <CardHeader className="pb-3">
@@ -368,17 +340,28 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                         <p className="text-xs text-slate-500">allocated to this invoice</p>
                       </div>
                     </div>
-                    <div className="mt-2 pt-2 border-t border-orange-100">
-                      <Link
-                        to={createPageUrl("Payments")} // Assuming 'Payments' is the route name for payments list
-                        className="text-xs text-blue-600 hover:underline"
-                        onClick={onCancel} // Close the invoice form when navigating
+                    <div className="mt-2 pt-2 border-t border-orange-100 flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          // Open Payments page in new tab with this payment highlighted
+                          window.open(`${createPageUrl("Payments")}?highlight=${item.payment.id}`, '_blank');
+                        }}
+                        className="text-xs gap-1"
                       >
-                        → View/Edit this payment
-                      </Link>
+                        <ExternalLink className="w-3 h-3" />
+                        Open in Payments page
+                      </Button>
                     </div>
                   </div>
                 ))}
+                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
+                  <p className="text-sm text-blue-900 font-medium">
+                    💡 To fix incorrect allocations: Click "Open in Payments page" above, then click the <strong>Edit (pencil)</strong> icon on that payment to adjust the allocation amounts.
+                  </p>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -530,8 +513,8 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
             <div className="space-y-2">
               <Label>Under/Over Amount</Label>
               <div className={`text-xl font-bold p-3 rounded-lg ${
-                formData.under_over_amount > 0 ? 'bg-green-50 text-green-700' :
-                formData.under_over_amount < 0 ? 'bg-red-50 text-red-700' :
+                formData.under_over_amount > 0 ? 'bg-green-50 text-green-700' : 
+                formData.under_over_amount < 0 ? 'bg-red-50 text-red-700' : 
                 'bg-slate-50 text-slate-700'
               }`}>
                 ${formData.under_over_amount.toFixed(2)}
