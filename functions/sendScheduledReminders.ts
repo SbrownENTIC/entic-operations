@@ -4,6 +4,9 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     
+    // Verify authentication (optional but good practice for scheduled tasks)
+    const isAuthenticated = await base44.auth.isAuthenticated();
+    
     // Get today's date in YYYY-MM-DD format (EST timezone)
     const today = new Date().toLocaleDateString('en-US', { 
       timeZone: 'America/New_York',
