@@ -37,11 +37,58 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
     queryFn: () => base44.entities.Provider.list()
   });
 
+  const { data: onCallSchedules = [] } = useQuery({
+    queryKey: ['oncall-schedules'],
+    queryFn: () => base44.entities.OnCallSchedule.list(),
+    enabled: formData.reminder_type === 'Holiday'
+  });
+
+  // Auto-populate on-call providers during closure period
+  useEffect(() => {
+    if (formData.closure_date && formData.reminder_type === 'Holiday' && onCallSchedules.length > 0) {
+      const closureDate = new Date(formData.closure_date + 'T00:00:00');
+      
+      // Find on-call schedules that overlap with closure date
+      const onCallDuringClosure = onCallSchedules.filter(schedule => {
+        const startDate = new Date(schedule.start_date + 'T00:00:00');
+        const endDate = new Date(schedule.end_date + 'T00:00:00');
+        return closureDate >= startDate && closureDate <= endDate;
+      });
+
+      if (onCallDuringClosure.length > 0) {
+        // Get unique providers on call
+        const providerIds = [...new Set(onCallDuringClosure.map(s => s.provider_id))];
+        const onCallProviders = providers.filter(p => providerIds.includes(p.id));
+        
+        const providerNames = onCallProviders.map(p => p.full_name).join(', ');
+        const phoneNumbers = onCallProviders.map(p => p.phone).filter(Boolean).join(', ');
+        
+        if (providerNames && providerNames !== formData.oncall_provider_list) {
+          setFormData(prev => ({ 
+            ...prev, 
+            oncall_provider_list: providerNames,
+            oncall_phone_list: phoneNumbers
+          }));
+        }
+      }
+    }
+  }, [formData.closure_date, formData.reminder_type, onCallSchedules, providers]);
+
   useEffect(() => {
     if (reminder) {
       setFormData(reminder);
     }
   }, [reminder]);
+
+  // Holiday to reopen date mapping
+  const holidayReopenDates = {
+    'Labor Day': { '2025': '2025-09-02', '2026': '2026-09-08' },
+    'Thanksgiving': { '2025': '2025-12-01', '2026': '2026-11-30' },
+    'Christmas': { '2025': '2025-12-29', '2026': '2026-12-28' },
+    'New Year\'s Day': { '2026': '2026-01-02' },
+    'Easter': { '2026': '2026-04-07' },
+    'Memorial Day': { '2026': '2026-05-26' }
+  };
 
   // Auto-calculate send date when closure date changes
   useEffect(() => {
@@ -49,19 +96,19 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
       const closureDate = new Date(formData.closure_date + 'T00:00:00');
       const weekday = closureDate.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
       
+      // Don't send emails for Saturday or Sunday closures
+      if (weekday === 0 || weekday === 6) {
+        setFormData(prev => ({ ...prev, send_date: '' }));
+        return;
+      }
+      
       let daysToSubtract;
       switch (weekday) {
-        case 0: // Sunday
-          daysToSubtract = -2; // -3 + 1 from formula
-          break;
         case 1: // Monday - send on Friday before
-          daysToSubtract = -3; // Go back to Friday
-          break;
-        case 6: // Saturday
-          daysToSubtract = -1; // -2 + 1 from formula
+          daysToSubtract = -3;
           break;
         default: // Tuesday-Friday
-          daysToSubtract = 0; // -1 + 1 from formula = same day (day before closure)
+          daysToSubtract = 0; // Same day (day before closure)
           break;
       }
       
@@ -75,6 +122,30 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
       }
     }
   }, [formData.closure_date, formData.reminder_type]);
+
+  // Auto-populate reopen date based on holiday name and closure year
+  useEffect(() => {
+    if (formData.closure_date && formData.holiday_name && formData.reminder_type === 'Holiday') {
+      const closureYear = new Date(formData.closure_date).getFullYear().toString();
+      const reopenDate = holidayReopenDates[formData.holiday_name]?.[closureYear];
+      
+      if (reopenDate && reopenDate !== formData.reopen_date) {
+        setFormData(prev => ({ ...prev, reopen_date: reopenDate }));
+      }
+    }
+  }, [formData.closure_date, formData.holiday_name, formData.reminder_type]);
+
+  // Auto-set email subject for holidays
+  useEffect(() => {
+    if (formData.closure_date && formData.holiday_name && formData.reminder_type === 'Holiday') {
+      const closureDateFormatted = format(parseISO(formData.closure_date), 'M/d/yyyy');
+      const subject = `Office Closure Notification: ACCT6650- ${closureDateFormatted}— ${formData.holiday_name} Holiday`;
+      
+      if (subject !== formData.email_subject) {
+        setFormData(prev => ({ ...prev, email_subject: subject }));
+      }
+    }
+  }, [formData.closure_date, formData.holiday_name, formData.reminder_type]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -183,11 +254,21 @@ Operations Project Coordinator`;
                 readOnly={formData.reminder_type === 'Holiday' && formData.closure_date}
                 className={formData.reminder_type === 'Holiday' && formData.closure_date ? 'bg-slate-100' : ''}
               />
-              <p className="text-xs text-slate-500">
-                {formData.reminder_type === 'Holiday' 
-                  ? 'Auto-calculated: last working day before closure' 
-                  : 'Date when reminder should be sent'}
-              </p>
+              {formData.reminder_type === 'Holiday' && formData.closure_date && (
+                <p className="text-xs text-slate-500">
+                  {(() => {
+                    const closureDate = new Date(formData.closure_date + 'T00:00:00');
+                    const weekday = closureDate.getDay();
+                    if (weekday === 0 || weekday === 6) {
+                      return '⚠️ No email sent for weekend closures';
+                    }
+                    return 'Auto-calculated: last working day before closure';
+                  })()}
+                </p>
+              )}
+              {formData.reminder_type !== 'Holiday' && (
+                <p className="text-xs text-slate-500">Date when reminder should be sent</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -263,12 +344,22 @@ Operations Project Coordinator`;
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="holiday_name">Holiday Name</Label>
-                  <Input
-                    id="holiday_name"
+                  <Select
                     value={formData.holiday_name}
-                    onChange={(e) => setFormData({ ...formData, holiday_name: e.target.value })}
-                    placeholder="e.g., Thanksgiving"
-                  />
+                    onValueChange={(value) => setFormData({ ...formData, holiday_name: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select holiday..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Labor Day">Labor Day</SelectItem>
+                      <SelectItem value="Thanksgiving">Thanksgiving</SelectItem>
+                      <SelectItem value="Christmas">Christmas</SelectItem>
+                      <SelectItem value="New Year's Day">New Year's Day</SelectItem>
+                      <SelectItem value="Easter">Easter</SelectItem>
+                      <SelectItem value="Memorial Day">Memorial Day</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
@@ -288,7 +379,12 @@ Operations Project Coordinator`;
                     type="date"
                     value={formData.reopen_date}
                     onChange={(e) => setFormData({ ...formData, reopen_date: e.target.value })}
+                    readOnly={formData.holiday_name && formData.closure_date}
+                    className={formData.holiday_name && formData.closure_date ? 'bg-slate-100' : ''}
                   />
+                  {formData.holiday_name && formData.closure_date && (
+                    <p className="text-xs text-slate-500">Auto-populated based on holiday</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -298,7 +394,16 @@ Operations Project Coordinator`;
                     value={formData.oncall_provider_list}
                     onChange={(e) => setFormData({ ...formData, oncall_provider_list: e.target.value })}
                     placeholder="Dr. John Smith"
+                    readOnly={formData.closure_date}
+                    className={formData.closure_date ? 'bg-slate-100' : ''}
                   />
+                  {formData.closure_date && (
+                    <p className="text-xs text-slate-500">
+                      {formData.oncall_provider_list 
+                        ? 'Auto-populated from on-call schedule' 
+                        : '⚠️ No on-call provider found for this date'}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
@@ -308,7 +413,12 @@ Operations Project Coordinator`;
                     value={formData.oncall_phone_list}
                     onChange={(e) => setFormData({ ...formData, oncall_phone_list: e.target.value })}
                     placeholder="860-123-4567"
+                    readOnly={formData.closure_date}
+                    className={formData.closure_date ? 'bg-slate-100' : ''}
                   />
+                  {formData.closure_date && (
+                    <p className="text-xs text-slate-500">Auto-linked from provider record</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -322,7 +432,12 @@ Operations Project Coordinator`;
               onChange={(e) => setFormData({ ...formData, email_subject: e.target.value })}
               placeholder="e.g., Your medical license expires in 30 days"
               required
+              readOnly={formData.reminder_type === 'Holiday' && formData.closure_date && formData.holiday_name}
+              className={formData.reminder_type === 'Holiday' && formData.closure_date && formData.holiday_name ? 'bg-slate-100' : ''}
             />
+            {formData.reminder_type === 'Holiday' && formData.closure_date && formData.holiday_name && (
+              <p className="text-xs text-slate-500">Auto-formatted for holiday closure notification</p>
+            )}
           </div>
 
           <div className="space-y-2">
