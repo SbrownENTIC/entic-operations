@@ -95,6 +95,11 @@ const navigationItems = [
     url: createPageUrl("Payments"),
     icon: CreditCard,
   },
+  {
+    title: "Reminders",
+    url: createPageUrl("Reminders"),
+    icon: Calendar,
+  },
 ];
 
 export default function Layout({ children, currentPageName }) {

@@ -12,6 +12,7 @@ import Payments from './pages/Payments';
 import Supplies from './pages/Supplies';
 import ProgramLocations from './pages/ProgramLocations';
 import ProviderTimeOff from './pages/ProviderTimeOff';
+import Reminders from './pages/Reminders';
 import Layout from './Layout.jsx';
 
 
@@ -30,6 +31,7 @@ export const PAGES = {
     "Supplies": Supplies,
     "ProgramLocations": ProgramLocations,
     "ProviderTimeOff": ProviderTimeOff,
+    "Reminders": Reminders,
 }
 
 export const pagesConfig = {
