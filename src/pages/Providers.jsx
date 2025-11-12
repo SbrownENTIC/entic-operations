@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -5,7 +6,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Pencil, Trash2, Check, X as XIcon, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, Check, X as XIcon, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import ProviderForm from "../components/providers/ProviderForm";
@@ -19,6 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { format, parseISO } from 'date-fns';
 
 export default function Providers() {
   const [showForm, setShowForm] = useState(false);
@@ -27,6 +29,8 @@ export default function Providers() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [sortField, setSortField] = useState('full_name');
   const [sortDirection, setSortDirection] = useState('asc');
+  const [checkingTerminations, setCheckingTerminations] = useState(false);
+  const [terminationMessage, setTerminationMessage] = useState('');
   const queryClient = useQueryClient();
 
   const { data: providers = [], isLoading } = useQuery({
@@ -65,6 +69,21 @@ export default function Providers() {
     }
   });
 
+  const handleCheckTerminations = async () => {
+    setCheckingTerminations(true);
+    setTerminationMessage('');
+    try {
+      const response = await base44.functions.invoke('checkProviderTerminations', {});
+      setTerminationMessage(response.data.message);
+      queryClient.invalidateQueries({ queryKey: ['providers'] });
+    } catch (error) {
+      console.error("Error checking terminations:", error);
+      setTerminationMessage('Error checking terminations: ' + (error.message || 'An unknown error occurred.'));
+    } finally {
+      setCheckingTerminations(false);
+    }
+  };
+
   const handleSubmit = async (data) => {
     if (editingProvider) {
       updateMutation.mutate({ id: editingProvider.id, data });
@@ -90,14 +109,32 @@ export default function Providers() {
   );
 
   const sortedProviders = [...filteredProviders].sort((a, b) => {
-    const aValue = a[sortField] || '';
-    const bValue = b[sortField] || '';
+    let aValue = a[sortField];
+    let bValue = b[sortField];
     
     if (sortField === 'flu_vaccine_year') {
+      // Treat null/undefined as 0 for consistent sorting
+      aValue = aValue || 0; 
+      bValue = bValue || 0;
       return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
     }
+
+    if (sortField === 'termination_date') {
+      const dateA = aValue ? parseISO(aValue) : null;
+      const dateB = bValue ? parseISO(bValue) : null;
+
+      if (!dateA && !dateB) return 0; // Both null, considered equal
+      if (!dateA) return sortDirection === 'asc' ? 1 : -1; // null sorts last if asc, first if desc
+      if (!dateB) return sortDirection === 'asc' ? -1 : 1; // null sorts last if asc, first if desc
+
+      const comparison = dateA.getTime() - dateB.getTime();
+      return sortDirection === 'asc' ? comparison : -comparison;
+    }
     
-    const comparison = aValue.toString().toLowerCase().localeCompare(bValue.toString().toLowerCase());
+    aValue = aValue ? aValue.toString().toLowerCase() : '';
+    bValue = bValue ? bValue.toString().toLowerCase() : '';
+
+    const comparison = aValue.localeCompare(bValue);
     return sortDirection === 'asc' ? comparison : -comparison;
   });
 
@@ -118,17 +155,36 @@ export default function Providers() {
             <h1 className="text-3xl font-bold text-slate-900">Providers</h1>
             <p className="text-slate-600 mt-1">Manage your medical providers</p>
           </div>
-          <Button
-            onClick={() => {
-              setEditingProvider(null);
-              setShowForm(true);
-            }}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Provider
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              onClick={handleCheckTerminations}
+              disabled={checkingTerminations}
+              variant="outline"
+              className="gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${checkingTerminations ? 'animate-spin' : ''}`} />
+              {checkingTerminations ? 'Checking...' : 'Check Terminations'}
+            </Button>
+            <Button
+              onClick={() => {
+                setEditingProvider(null);
+                setShowForm(true);
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Provider
+            </Button>
+          </div>
         </div>
+
+        {terminationMessage && (
+          <Card className="border-blue-200 bg-blue-50">
+            <CardContent className="p-4">
+              <p className="text-sm text-blue-900">{terminationMessage}</p>
+            </CardContent>
+          </Card>
+        )}
 
         {showForm && (
           <ProviderForm
@@ -191,6 +247,12 @@ export default function Providers() {
                     </th>
                     <th 
                       className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('termination_date')}
+                    >
+                      Termination Date <SortIcon field="termination_date" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                       onClick={() => handleSort('flu_vaccine_year')}
                     >
                       Flu Vaccine <SortIcon field="flu_vaccine_year" />
@@ -203,6 +265,10 @@ export default function Providers() {
                     const showFluVaccine = provider.role === 'ENT DM';
                     const fluVaccineCurrent = provider.flu_vaccine_year === currentYear;
                     
+                    const terminationDate = provider.termination_date ? parseISO(provider.termination_date) : null;
+                    const isTerminated = terminationDate && terminationDate <= new Date();
+                    const isUpcomingTermination = terminationDate && terminationDate > new Date();
+
                     return (
                       <tr key={provider.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                         <td className="p-4">
@@ -215,6 +281,21 @@ export default function Providers() {
                           <Badge variant={provider.status === 'active' ? 'default' : 'secondary'}>
                             {provider.status}
                           </Badge>
+                        </td>
+                        <td className="p-4 text-slate-600">
+                          {provider.termination_date ? (
+                            <span className={
+                              isTerminated
+                                ? 'text-red-600 font-medium' 
+                                : isUpcomingTermination
+                                  ? 'text-orange-600 font-medium'
+                                  : ''
+                            }>
+                              {format(terminationDate, 'MMM d, yyyy')}
+                            </span>
+                          ) : (
+                            '-'
+                          )}
                         </td>
                         <td className="p-4">
                           {showFluVaccine ? (
