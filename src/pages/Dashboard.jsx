@@ -318,20 +318,20 @@ export default function Dashboard() {
       };
     }
     
-    // Paid to ENTIC
-    // Using amount_received from invoice for program breakdown, as totalPaidToENTIC is calculated from payments now.
-    // For consistency with how the modal details work based on invoice status.
-    if (inv.status === 'paid_to_entic' || inv.status === 'provider_paid') {
+    // Paid to ENTIC - based on amount_received (which comes from payment allocations)
+    if (inv.amount_received > 0) {
       financialsByProgram[program].paidToENTIC += (inv.amount_received || 0);
       
       // Owed to Providers (received but not paid to provider yet)
       if (!inv.provider_paid) {
         financialsByProgram[program].owedToProviders += (inv.amount_received || 0);
       }
-    } else {
-      // Outstanding to ENTIC
-      const outstanding = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
-      financialsByProgram[program].outstanding += outstanding > 0 ? outstanding : 0; // Only sum positive outstanding
+    }
+    
+    // Outstanding to ENTIC - what we haven't received yet
+    const outstanding = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
+    if (outstanding > 0) {
+      financialsByProgram[program].outstanding += outstanding;
     }
   });
 
