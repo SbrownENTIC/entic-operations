@@ -1,6 +1,7 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query"; // Added useQueryClient
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,8 @@ export default function Dashboard() {
     type: '',
     programGroup: null
   });
+
+  const queryClient = useQueryClient(); // Initialized useQueryClient
 
   const { data: providers = [] } = useQuery({
     queryKey: ['providers'],
@@ -51,14 +54,17 @@ export default function Dashboard() {
     queryFn: () => base44.entities.Payment.list()
   });
 
-  const handleSyncInvoiceMonths = async () => {
+  const handleSyncPaymentsAndInvoices = async () => {
     setSyncing(true);
     setSyncMessage('');
     try {
-      const response = await base44.functions.invoke('syncInvoiceMonths', {});
+      const response = await base44.functions.invoke('syncPaymentsAndInvoices', {});
       setSyncMessage(response.data.message);
+      // Refresh data after sync
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
     } catch (error) {
-      setSyncMessage('Error syncing invoice months: ' + error.message);
+      setSyncMessage('Error syncing: ' + error.message);
     } finally {
       setSyncing(false);
     }
@@ -358,13 +364,13 @@ export default function Dashboard() {
             <p className="text-slate-600 mt-1">Overview of your medical practice</p>
           </div>
           <Button 
-            onClick={handleSyncInvoiceMonths}
+            onClick={handleSyncPaymentsAndInvoices} // Changed function
             disabled={syncing}
             variant="outline"
             className="gap-2"
           >
             <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-            {syncing ? 'Syncing...' : 'Sync Invoice Months'}
+            {syncing ? 'Syncing...' : 'Sync Payments & Invoices'} {/* Changed text */}
           </Button>
         </div>
 
