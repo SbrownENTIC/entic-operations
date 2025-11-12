@@ -277,17 +277,30 @@ export default function Dashboard() {
   });
 
   // Financial metrics - Total
-  const totalPaidToENTIC = invoices
-    .filter(inv => inv.status === 'paid_to_entic' || inv.status === 'provider_paid')
-    .reduce((sum, inv) => sum + (inv.amount_received || 0), 0);
+  // Calculate total allocated payments (money actually received and allocated to invoices)
+  const totalAllocatedToInvoices = payments.reduce((sum, payment) => {
+    const allocatedAmount = payment.allocations?.reduce((allocSum, allocation) => {
+      // Only count allocations that are actually assigned to an invoice
+      if (allocation.invoice_id) {
+        return allocSum + (allocation.amount || 0);
+      }
+      return allocSum;
+    }, 0) || 0;
+    return sum + allocatedAmount;
+  }, 0);
+
+  // This is the actual "Total Paid to ENTIC" - money received and allocated
+  const totalPaidToENTIC = totalAllocatedToInvoices;
 
   const totalOwedToProviders = invoices
-    .filter(inv => (inv.status === 'paid_to_entic' || inv.status === 'provider_paid') && !inv.provider_paid)
+    .filter(inv => (inv.amount_received > 0) && !inv.provider_paid)
     .reduce((sum, inv) => sum + (inv.amount_received || 0), 0);
 
   const outstandingToENTIC = invoices
-    .filter(inv => inv.status !== 'paid_to_entic' && inv.status !== 'provider_paid')
-    .reduce((sum, inv) => sum + ((inv.amount_expected || inv.total || 0) - (inv.amount_received || 0)), 0);
+    .reduce((sum, inv) => {
+      const outstanding = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
+      return sum + (outstanding > 0 ? outstanding : 0);
+    }, 0);
 
   // Calculate unallocated payments - use the unallocated_amount field from each payment
   const unallocatedPayments = payments.reduce((sum, payment) => sum + (payment.unallocated_amount || 0), 0);
@@ -306,6 +319,8 @@ export default function Dashboard() {
     }
     
     // Paid to ENTIC
+    // Using amount_received from invoice for program breakdown, as totalPaidToENTIC is calculated from payments now.
+    // For consistency with how the modal details work based on invoice status.
     if (inv.status === 'paid_to_entic' || inv.status === 'provider_paid') {
       financialsByProgram[program].paidToENTIC += (inv.amount_received || 0);
       
@@ -316,7 +331,7 @@ export default function Dashboard() {
     } else {
       // Outstanding to ENTIC
       const outstanding = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
-      financialsByProgram[program].outstanding += outstanding;
+      financialsByProgram[program].outstanding += outstanding > 0 ? outstanding : 0; // Only sum positive outstanding
     }
   });
 
