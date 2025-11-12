@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -29,6 +29,8 @@ export default function Invoices() {
   const [preselectedIncomes, setPreselectedIncomes] = useState([]);
   const [sortField, setSortField] = useState('invoice_date');
   const [sortDirection, setSortDirection] = useState('desc');
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState('');
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -163,6 +165,20 @@ export default function Invoices() {
     setPreselectedIncomes([]);
   };
 
+  const handleSyncBalances = async () => {
+    setSyncing(true);
+    setSyncMessage('');
+    try {
+      const response = await base44.functions.invoke('syncInvoiceBalances', {});
+      setSyncMessage(response.data.message);
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    } catch (error) {
+      setSyncMessage('Error syncing balances: ' + error.message);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   // Format currency with commas
   const formatCurrency = (amount) => {
     return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -183,7 +199,7 @@ export default function Invoices() {
     ...invoice,
     provider: providers.find(p => p.id === invoice.staff_member_id),
     providerName: providers.find(p => p.id === invoice.staff_member_id)?.full_name || '',
-    balance: (invoice.total || 0) - (invoice.amount_received || 0)
+    balance: (invoice.amount_expected || invoice.total || 0) - (invoice.amount_received || 0)
   }));
 
   const filteredInvoices = invoicesWithProviders.filter(invoice =>
@@ -251,18 +267,37 @@ export default function Invoices() {
             <h1 className="text-3xl font-bold text-slate-900">Invoices</h1>
             <p className="text-slate-600 mt-1">Manage invoices for outside income</p>
           </div>
-          <Button
-            onClick={() => {
-              setEditingInvoice(null);
-              setPreselectedIncomes([]);
-              setShowForm(true);
-            }}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Create Invoice
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              onClick={handleSyncBalances}
+              disabled={syncing}
+              variant="outline"
+              className="gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Syncing...' : 'Sync Invoice Balances'}
+            </Button>
+            <Button
+              onClick={() => {
+                setEditingInvoice(null);
+                setPreselectedIncomes([]);
+                setShowForm(true);
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Create Invoice
+            </Button>
+          </div>
         </div>
+
+        {syncMessage && (
+          <Card className="border-blue-200 bg-blue-50">
+            <CardContent className="p-4">
+              <p className="text-sm text-blue-900">{syncMessage}</p>
+            </CardContent>
+          </Card>
+        )}
 
         {showForm && (
           <InvoiceForm
