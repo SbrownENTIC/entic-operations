@@ -228,54 +228,54 @@ Operations Project Coordinator`;
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-slate-50 border-b border-slate-200">
+                <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                   <tr>
                     <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 bg-slate-50"
                       onClick={() => handleSort('reminder_name')}
                     >
                       Reminder Name <SortIcon field="reminder_name" />
                     </th>
                     <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 bg-slate-50"
                       onClick={() => handleSort('reminder_type')}
                     >
                       Type <SortIcon field="reminder_type" />
                     </th>
                     <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 bg-slate-50"
                       onClick={() => handleSort('send_date')}
                     >
                       Send Date <SortIcon field="send_date" />
                     </th>
                     <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 bg-slate-50"
                       onClick={() => handleSort('frequency')}
                     >
                       Frequency <SortIcon field="frequency" />
                     </th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700 bg-slate-50">
                       Recipients
                     </th>
                     <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 bg-slate-50"
                       onClick={() => handleSort('last_sent_date')}
                     >
                       Last Sent <SortIcon field="last_sent_date" />
                     </th>
                     <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 bg-slate-50"
                       onClick={() => handleSort('send_count')}
                     >
                       Times Sent <SortIcon field="send_count" />
                     </th>
                     <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 bg-slate-50"
                       onClick={() => handleSort('status')}
                     >
                       Status <SortIcon field="status" />
                     </th>
-                    <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th>
+                    <th className="text-right p-4 text-sm font-semibold text-slate-700 bg-slate-50">Actions</th>
                   </tr>
                 </thead>
                 <tbody>

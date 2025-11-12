@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -166,36 +167,36 @@ export default function ProgramLocations() {
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-slate-50 border-b border-slate-200">
+                <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                   <tr>
                     <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 bg-slate-50"
                       onClick={() => handleSort('program_group')}
                     >
                       Program Group <SortIcon field="program_group" />
                     </th>
                     <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 bg-slate-50"
                       onClick={() => handleSort('program_location')}
                     >
                       Program/Location <SortIcon field="program_location" />
                     </th>
                     <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 bg-slate-50"
                       onClick={() => handleSort('program_type')}
                     >
                       Type <SortIcon field="program_type" />
                     </th>
                     <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 bg-slate-50"
                       onClick={() => handleSort('daily_rate')}
                     >
                       Daily Rate <SortIcon field="daily_rate" />
                     </th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700 bg-slate-50">
                       Invoice Counter
                     </th>
-                    <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th>
+                    <th className="text-right p-4 text-sm font-semibold text-slate-700 bg-slate-50">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
