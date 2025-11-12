@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 import { Resend } from 'npm:resend@3.2.0';
 
 Deno.serve(async (req) => {
@@ -7,9 +7,6 @@ Deno.serve(async (req) => {
     
     // Initialize Resend with API key
     const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
-    
-    // Verify authentication (optional but good practice for scheduled tasks)
-    const isAuthenticated = await base44.auth.isAuthenticated();
     
     // Get today's date in YYYY-MM-DD format (EST timezone)
     const today = new Date().toLocaleDateString('en-US', { 
@@ -20,7 +17,7 @@ Deno.serve(async (req) => {
     }).split('/');
     const todayFormatted = `${today[2]}-${today[0]}-${today[1]}`; // YYYY-MM-DD
     
-    // Fetch all active reminders that should be sent today
+    // Fetch all active reminders that should be sent today (using service role for cron job)
     const reminders = await base44.asServiceRole.entities.Reminder.filter({
       send_date: todayFormatted,
       status: 'active'
