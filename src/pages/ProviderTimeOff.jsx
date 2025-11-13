@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -6,8 +5,10 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Pencil, Trash2, Calendar, ArrowUpDown, ArrowUp, ArrowDown, Download, X } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Calendar, ArrowUpDown, ArrowUp, ArrowDown, Download, X, Check } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, parseISO, differenceInDays, isWithinInterval, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getDay } from "date-fns";
 import TimeOffForm from "../components/timeoff/TimeOffForm";
 import {
@@ -38,6 +39,8 @@ export default function ProviderTimeOff() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedEntries, setSelectedEntries] = useState([]);
   const [bulkStatus, setBulkStatus] = useState('');
+  const [bulkProvider, setBulkProvider] = useState('');
+  const [providerSelectOpen, setProviderSelectOpen] = useState(false);
   const [viewingDayEntries, setViewingDayEntries] = useState(null); // New state for day entries modal
   const queryClient = useQueryClient();
 
@@ -78,9 +81,9 @@ export default function ProviderTimeOff() {
   });
 
   const bulkUpdateMutation = useMutation({
-    mutationFn: async ({ ids, status }) => {
+    mutationFn: async ({ ids, updateData }) => {
       const updates = ids.map(id => 
-        base44.entities.ProviderTimeOff.update(id, { status })
+        base44.entities.ProviderTimeOff.update(id, updateData)
       );
       return Promise.all(updates);
     },
@@ -88,6 +91,7 @@ export default function ProviderTimeOff() {
       queryClient.invalidateQueries({ queryKey: ['provider-timeoff'] });
       setSelectedEntries([]);
       setBulkStatus('');
+      setBulkProvider('');
     }
   });
 
@@ -126,7 +130,13 @@ export default function ProviderTimeOff() {
 
   const handleBulkUpdateStatus = () => {
     if (selectedEntries.length > 0 && bulkStatus) {
-      bulkUpdateMutation.mutate({ ids: selectedEntries, status: bulkStatus });
+      bulkUpdateMutation.mutate({ ids: selectedEntries, updateData: { status: bulkStatus } });
+    }
+  };
+
+  const handleBulkUpdateProvider = () => {
+    if (selectedEntries.length > 0 && bulkProvider) {
+      bulkUpdateMutation.mutate({ ids: selectedEntries, updateData: { provider_id: bulkProvider } });
     }
   };
 
@@ -264,6 +274,8 @@ export default function ProviderTimeOff() {
     });
   };
 
+  const selectedProviderForBulk = providers.find(p => p.id === bulkProvider);
+
   return (
     <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -327,33 +339,91 @@ export default function ProviderTimeOff() {
                 />
               </div>
               {selectedEntries.length > 0 && (
-                <div className="flex items-center gap-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <span className="font-medium text-slate-900">
-                    {selectedEntries.length} selected
-                  </span>
-                  <Select value={bulkStatus} onValueChange={setBulkStatus}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Change status..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="approved">Approved</SelectItem>
-                      <SelectItem value="declined">Declined</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button 
-                    onClick={handleBulkUpdateStatus}
-                    disabled={!bulkStatus || bulkUpdateMutation.isPending}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    {bulkUpdateMutation.isPending ? 'Updating...' : 'Update Status'}
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={() => setSelectedEntries([])}
-                  >
-                    Clear Selection
-                  </Button>
+                <div className="flex flex-col gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-slate-900">
+                      {selectedEntries.length} selected
+                    </span>
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedEntries([])}
+                    >
+                      Clear Selection
+                    </Button>
+                  </div>
+                  
+                  <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-slate-700">Change Provider:</span>
+                      <Popover open={providerSelectOpen} onOpenChange={setProviderSelectOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={providerSelectOpen}
+                            className="w-64 justify-between font-normal"
+                          >
+                            {selectedProviderForBulk ? selectedProviderForBulk.full_name : "Select provider..."}
+                            <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-64 p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder="Search providers..." />
+                            <CommandEmpty>No provider found.</CommandEmpty>
+                            <CommandGroup className="max-h-64 overflow-auto">
+                              {providers.map((provider) => (
+                                <CommandItem
+                                  key={provider.id}
+                                  value={provider.full_name}
+                                  onSelect={() => {
+                                    setBulkProvider(provider.id);
+                                    setProviderSelectOpen(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={`mr-2 h-4 w-4 ${
+                                      bulkProvider === provider.id ? "opacity-100" : "opacity-0"
+                                    }`}
+                                  />
+                                  {provider.full_name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <Button 
+                        onClick={handleBulkUpdateProvider}
+                        disabled={!bulkProvider || bulkUpdateMutation.isPending}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        {bulkUpdateMutation.isPending ? 'Updating...' : 'Update Provider'}
+                      </Button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-slate-700">Change Status:</span>
+                      <Select value={bulkStatus} onValueChange={setBulkStatus}>
+                        <SelectTrigger className="w-40">
+                          <SelectValue placeholder="Select status..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="approved">Approved</SelectItem>
+                          <SelectItem value="declined">Declined</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button 
+                        onClick={handleBulkUpdateStatus}
+                        disabled={!bulkStatus || bulkUpdateMutation.isPending}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        {bulkUpdateMutation.isPending ? 'Updating...' : 'Update Status'}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               )}
             </CardHeader>
