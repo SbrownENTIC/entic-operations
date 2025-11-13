@@ -33,61 +33,95 @@ Deno.serve(async (req) => {
     
     // Process each reminder
     for (const reminder of reminders) {
+      let emailsSent = 0;
+      let emailErrors = [];
+      
       try {
         // Send email to each recipient using Base44's email service
         for (const recipient of reminder.recipients) {
-          await base44.asServiceRole.integrations.Core.SendEmail({
-            from_name: 'ENTIC Operations Team',
-            to: recipient,
-            subject: reminder.email_subject,
-            body: reminder.email_body.replace(/\n/g, '<br>') + '<br><br><br>'
-          });
+          try {
+            console.log(`Attempting to send email to: ${recipient}`);
+            
+            await base44.asServiceRole.integrations.Core.SendEmail({
+              from_name: 'ENTIC Operations Team',
+              to: recipient,
+              subject: reminder.email_subject,
+              body: reminder.email_body.replace(/\n/g, '<br>') + '<br><br><br>'
+            });
+            
+            emailsSent++;
+            console.log(`Email sent successfully to: ${recipient}`);
+          } catch (emailError) {
+            console.error(`Failed to send email to ${recipient}:`, emailError.message);
+            emailErrors.push({
+              recipient: recipient,
+              error: emailError.message
+            });
+          }
         }
         
-        // Calculate next send date for recurring reminders
-        let nextSendDate = null;
-        if (reminder.frequency !== 'once') {
-          const currentDate = new Date(reminder.send_date);
-          const frequencyCount = reminder.frequency_count || 1;
-          
-          switch (reminder.frequency) {
-            case 'daily':
-              currentDate.setDate(currentDate.getDate() + frequencyCount);
-              break;
-            case 'weekly':
-              currentDate.setDate(currentDate.getDate() + (7 * frequencyCount));
-              break;
-            case 'monthly':
-              currentDate.setMonth(currentDate.getMonth() + frequencyCount);
-              break;
-            case 'quarterly':
-              currentDate.setMonth(currentDate.getMonth() + (3 * frequencyCount));
-              break;
-            case 'yearly':
-              currentDate.setFullYear(currentDate.getFullYear() + frequencyCount);
-              break;
+        // Only update reminder if at least one email was sent successfully
+        if (emailsSent > 0) {
+          // Calculate next send date for recurring reminders
+          let nextSendDate = null;
+          if (reminder.frequency !== 'once') {
+            const currentDate = new Date(reminder.send_date);
+            const frequencyCount = reminder.frequency_count || 1;
+            
+            switch (reminder.frequency) {
+              case 'daily':
+                currentDate.setDate(currentDate.getDate() + frequencyCount);
+                break;
+              case 'weekly':
+                currentDate.setDate(currentDate.getDate() + (7 * frequencyCount));
+                break;
+              case 'monthly':
+                currentDate.setMonth(currentDate.getMonth() + frequencyCount);
+                break;
+              case 'quarterly':
+                currentDate.setMonth(currentDate.getMonth() + (3 * frequencyCount));
+                break;
+              case 'yearly':
+                currentDate.setFullYear(currentDate.getFullYear() + frequencyCount);
+                break;
+            }
+            
+            nextSendDate = currentDate.toISOString().split('T')[0];
           }
           
-          nextSendDate = currentDate.toISOString().split('T')[0];
+          // Update reminder record
+          await base44.asServiceRole.entities.Reminder.update(reminder.id, {
+            last_sent_date: new Date().toISOString(),
+            send_count: (reminder.send_count || 0) + 1,
+            status: reminder.frequency === 'once' ? 'completed' : 'active',
+            next_send_date: nextSendDate,
+            ...(reminder.frequency !== 'once' && nextSendDate ? { send_date: nextSendDate } : {})
+          });
+          
+          successCount++;
+          
+          if (emailErrors.length > 0) {
+            errors.push({
+              reminder_name: reminder.reminder_name,
+              partial_success: true,
+              emails_sent: emailsSent,
+              emails_failed: emailErrors.length,
+              email_errors: emailErrors
+            });
+          }
+        } else {
+          // No emails sent successfully
+          throw new Error(`Failed to send any emails. Errors: ${JSON.stringify(emailErrors)}`);
         }
-        
-        // Update reminder record
-        await base44.asServiceRole.entities.Reminder.update(reminder.id, {
-          last_sent_date: new Date().toISOString(),
-          send_count: (reminder.send_count || 0) + 1,
-          status: reminder.frequency === 'once' ? 'completed' : 'active',
-          next_send_date: nextSendDate,
-          ...(reminder.frequency !== 'once' && nextSendDate ? { send_date: nextSendDate } : {})
-        });
-        
-        successCount++;
         
       } catch (error) {
         errorCount++;
         errors.push({
           reminder_name: reminder.reminder_name,
-          error: error.message
+          error: error.message,
+          email_errors: emailErrors.length > 0 ? emailErrors : null
         });
+        console.error(`Failed to process reminder ${reminder.reminder_name}:`, error);
       }
     }
     
