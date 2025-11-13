@@ -77,6 +77,9 @@ export default function ProviderDetail() {
   const isDoctor = provider.full_name?.toLowerCase().startsWith('dr.') || provider.full_name?.toLowerCase().includes('dr ');
   const cmeCompliant = totalCMECredits >= 3;
 
+  // Capitalize first letter of status
+  const capitalizedStatus = provider.status ? provider.status.charAt(0).toUpperCase() + provider.status.slice(1) : '';
+
   return (
     <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -125,7 +128,7 @@ export default function ProviderDetail() {
               <div>
                 <p className="text-sm text-slate-500 mb-2">Employment Status</p>
                 <Badge variant={provider.status === 'active' ? 'default' : 'secondary'}>
-                  {provider.status}
+                  {capitalizedStatus}
                 </Badge>
               </div>
               {provider.role === 'ENT DM' && (
