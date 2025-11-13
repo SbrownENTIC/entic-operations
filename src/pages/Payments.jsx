@@ -373,7 +373,7 @@ export default function Payments() {
   // Export allocations to CSV
   const exportAllocations = () => {
     const rows = [];
-    rows.push(['Payment Date', 'Payment Month', 'Payer', 'Payment Method', 'Reference Number', 'Payment Total', 'Payment Status', 'Invoice Number', 'Program Group', 'Provider Name', 'Allocation Amount', 'Allocation Notes']);
+    rows.push(['Payment Date', 'Payment Month', 'Payer', 'Payment Method', 'Reference Number', 'Payment Total', 'Payment Status', 'Payment Notes', 'Invoice Number', 'Program Group', 'Provider Name', 'Allocation Amount', 'Allocation Notes']);
     
     payments.forEach(payment => {
       if (payment.allocations && payment.allocations.length > 0) {
@@ -389,6 +389,7 @@ export default function Payments() {
             payment.reference_number || '',
             payment.total_amount || 0,
             payment.status || '',
+            payment.notes || '', // Added Payment Notes here
             invoice?.invoice_number || '',
             invoice?.program_group || '',
             provider?.full_name || '',
@@ -405,6 +406,7 @@ export default function Payments() {
           payment.reference_number || '',
           payment.total_amount || 0,
           payment.status || '',
+          payment.notes || '', // Added Payment Notes here
           '',
           '',
           '',
