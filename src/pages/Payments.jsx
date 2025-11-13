@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -5,7 +6,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Pencil, Trash2, DollarSign, Download, ArrowUpDown, ArrowUp, ArrowDown, AlertCircle, RefreshCw } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, DollarSign, Download, ArrowUpDown, ArrowUp, ArrowDown, AlertCircle, RefreshCw, Wrench } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import PaymentForm from "../components/payments/PaymentForm";
 import PaymentDetailModal from "../components/payments/PaymentDetailModal";
@@ -30,6 +31,7 @@ export default function Payments() {
   const [sortDirection, setSortDirection] = useState('desc');
   const [filterUnallocated, setFilterUnallocated] = useState(false);
   const [updatingMonths, setUpdatingMonths] = useState(false);
+  const [fixingAllocations, setFixingAllocations] = useState(false);
   const [updateMessage, setUpdateMessage] = useState('');
   const queryClient = useQueryClient();
 
@@ -330,6 +332,21 @@ export default function Payments() {
     }
   };
 
+  const handleFixPaymentAllocations = async () => {
+    setFixingAllocations(true);
+    setUpdateMessage('');
+    try {
+      const response = await base44.functions.invoke('fixPaymentAllocations', {});
+      setUpdateMessage(response.data.message);
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    } catch (error) {
+      setUpdateMessage('Error fixing payment allocations: ' + error.message);
+    } finally {
+      setFixingAllocations(false);
+    }
+  };
+
   const handleUnallocate = (allocation) => {
     if (viewingPayment) {
       unallocateMutation.mutate({
@@ -474,7 +491,16 @@ export default function Payments() {
             <h1 className="text-3xl font-bold text-slate-900">Payments</h1>
             <p className="text-slate-600 mt-1">Track and allocate payments to invoices</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
+            <Button
+              onClick={handleFixPaymentAllocations}
+              disabled={fixingAllocations}
+              variant="outline"
+              className="gap-2 border-orange-600 text-orange-600 hover:bg-orange-50"
+            >
+              <Wrench className={`w-4 h-4 ${fixingAllocations ? 'animate-spin' : ''}`} />
+              {fixingAllocations ? 'Fixing...' : 'Fix Allocations'}
+            </Button>
             <Button
               onClick={handleUpdatePaymentMonths}
               disabled={updatingMonths}
