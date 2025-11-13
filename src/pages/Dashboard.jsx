@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery, useQueryClient } from "@tanstack/react-query"; // Added useQueryClient
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,37 +22,91 @@ export default function Dashboard() {
     programGroup: null
   });
 
-  const queryClient = useQueryClient(); // Initialized useQueryClient
+  const queryClient = useQueryClient();
+
+  // Check authentication first
+  const { data: user, isLoading: authLoading, error: authError } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: async () => {
+      try {
+        return await base44.auth.me();
+      } catch (error) {
+        // If not authenticated, redirect to login
+        if (error.message?.includes('not authenticated') || error.message?.includes('401')) {
+          base44.auth.redirectToLogin(window.location.pathname);
+          return null;
+        }
+        throw error;
+      }
+    },
+    retry: false
+  });
 
   const { data: providers = [] } = useQuery({
     queryKey: ['providers'],
-    queryFn: () => base44.entities.Provider.list()
+    queryFn: () => base44.entities.Provider.list(),
+    enabled: !!user
   });
 
   const { data: licenses = [] } = useQuery({
     queryKey: ['licenses'],
-    queryFn: () => base44.entities.License.list()
+    queryFn: () => base44.entities.License.list(),
+    enabled: !!user
   });
 
   const { data: privileges = [] } = useQuery({
     queryKey: ['privileges'],
-    queryFn: () => base44.entities.ClinicalPrivilege.list()
+    queryFn: () => base44.entities.ClinicalPrivilege.list(),
+    enabled: !!user
   });
 
   const { data: invoices = [] } = useQuery({
     queryKey: ['invoices'],
-    queryFn: () => base44.entities.Invoice.list()
+    queryFn: () => base44.entities.Invoice.list(),
+    enabled: !!user
   });
 
   const { data: cmeRecords = [] } = useQuery({
     queryKey: ['cme'],
-    queryFn: () => base44.entities.CME.list()
+    queryFn: () => base44.entities.CME.list(),
+    enabled: !!user
   });
 
   const { data: payments = [] } = useQuery({
     queryKey: ['payments'],
-    queryFn: () => base44.entities.Payment.list()
+    queryFn: () => base44.entities.Payment.list(),
+    enabled: !!user
   });
+
+  // Show loading state while checking authentication
+  if (authLoading) {
+    return (
+      <div className="p-6 md:p-8 bg-slate-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If there's an auth error that's not a redirect, show it
+  if (authError && !authError.message?.includes('not authenticated') && !authError.message?.includes('401')) {
+    return (
+      <div className="p-6 md:p-8 bg-slate-50 min-h-screen flex items-center justify-center">
+        <Card className="max-w-md">
+          <CardContent className="p-6 text-center">
+            <p className="text-red-600">Error loading dashboard: {authError.message}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // If user is null (meaning a redirect happened), show nothing
+  if (!user) {
+    return null;
+  }
 
   const handleSyncPaymentsAndInvoices = async () => {
     setSyncing(true);
@@ -60,7 +114,6 @@ export default function Dashboard() {
     try {
       const response = await base44.functions.invoke('syncPaymentsAndInvoices', {});
       setSyncMessage(response.data.message);
-      // Refresh data after sync
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
     } catch (error) {
@@ -125,7 +178,6 @@ export default function Dashboard() {
     });
   };
 
-  // Export functions
   const exportToCSV = (data, filename) => {
     const csvContent = data.map(row => 
       row.map(cell => {
@@ -378,13 +430,13 @@ export default function Dashboard() {
             <p className="text-slate-600 mt-1">Overview of your medical practice</p>
           </div>
           <Button 
-            onClick={handleSyncPaymentsAndInvoices} // Changed function
+            onClick={handleSyncPaymentsAndInvoices}
             disabled={syncing}
             variant="outline"
             className="gap-2"
           >
             <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-            {syncing ? 'Syncing...' : 'Sync Payments & Invoices'} {/* Changed text */}
+            {syncing ? 'Syncing...' : 'Sync Payments & Invoices'}
           </Button>
         </div>
 
