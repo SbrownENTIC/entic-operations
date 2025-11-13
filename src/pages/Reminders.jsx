@@ -85,7 +85,7 @@ The Operations Team`;
           to: recipient,
           subject: reminder.email_subject,
           body: emailBody + '\n\n\n', // Added three newlines here
-          from_name: 'MedPractice Reminders'
+          from_name: 'ENTIC Operations Team'
         });
       }
       

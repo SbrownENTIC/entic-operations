@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
         // Send email to each recipient using Base44's email service
         for (const recipient of reminder.recipients) {
           await base44.asServiceRole.integrations.Core.SendEmail({
-            from_name: 'ENTIC Medical Practice',
+            from_name: 'ENTIC Operations Team',
             to: recipient,
             subject: reminder.email_subject,
             body: reminder.email_body.replace(/\n/g, '<br>') + '<br><br><br>'
