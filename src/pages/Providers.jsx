@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Eye, Pencil, Trash2, CheckCircle, XCircle, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { format, parseISO } from "date-fns";
 import ProviderForm from "../components/providers/ProviderForm";
 import {
   AlertDialog,
@@ -268,14 +269,16 @@ export default function Providers() {
                           </Badge>
                         </td>
                         <td className="p-4 text-slate-600">
-                          {provider.termination_date || '-'}
+                          {provider.termination_date ? format(parseISO(provider.termination_date), 'MM-dd-yyyy') : '-'}
                         </td>
                         <td className="p-4">
                           <div className="flex items-center gap-2">
                             {hasFluVaccine ? (
                               <>
                                 <CheckCircle className="w-5 h-5 text-green-600" />
-                                <span className="text-sm text-slate-600">{provider.flu_vaccine_date}</span>
+                                <span className="text-sm text-slate-600">
+                                  {format(parseISO(provider.flu_vaccine_date), 'MM-dd-yyyy')}
+                                </span>
                               </>
                             ) : (
                               <>
