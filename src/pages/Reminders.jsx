@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -6,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Pencil, Trash2, Send, Clock, Mail, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Send, Clock, Mail, ArrowUpDown, ArrowUp, ArrowDown, RotateCcw } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import ReminderForm from "../components/reminders/ReminderForm";
 import {
@@ -101,6 +100,17 @@ The Operations Team`;
     }
   });
 
+  const resetReminderMutation = useMutation({
+    mutationFn: ({ id }) => base44.entities.Reminder.update(id, {
+      last_sent_date: null,
+      send_count: 0,
+      status: 'active'
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reminders'] });
+    }
+  });
+
   const handleSubmit = (data) => {
     if (editingReminder) {
       updateMutation.mutate({ id: editingReminder.id, data });
@@ -121,6 +131,12 @@ The Operations Team`;
   const handleSendReminder = (reminder) => {
     if (window.confirm(`Send reminder "${reminder.reminder_name}" to ${reminder.recipients.length} recipient(s)?`)) {
       sendReminderMutation.mutate(reminder);
+    }
+  };
+
+  const handleResetReminder = (reminder) => {
+    if (window.confirm(`Reset "${reminder.reminder_name}"? This will clear the last sent date and reset times sent to 0.`)) {
+      resetReminderMutation.mutate({ id: reminder.id });
     }
   };
 
@@ -332,6 +348,16 @@ The Operations Team`;
                       </td>
                       <td className="p-4 text-right">
                         <div className="flex gap-2 justify-end">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleResetReminder(reminder)}
+                            disabled={resetReminderMutation.isPending}
+                            title="Reset last sent and times sent"
+                            className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                          </Button>
                           <Button 
                             variant="ghost" 
                             size="sm"
