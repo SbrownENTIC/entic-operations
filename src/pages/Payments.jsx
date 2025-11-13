@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -439,6 +440,12 @@ export default function Payments() {
     return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
+  // Capitalize first letter
+  const capitalize = (str) => {
+    if (!str) return '';
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  };
+
   // Only process data when all queries have loaded
   if (paymentsLoading || invoicesLoading || providersLoading) {
     return (
@@ -715,11 +722,11 @@ export default function Payments() {
                       </td>
                       <td className="p-4">
                         <Badge className={statusColors[payment.status]}>
-                          {payment.status === 'entic_paid' ? 'ENTIC Paid' : payment.status}
+                          {payment.status === 'entic_paid' ? 'ENTIC Paid' : capitalize(payment.status)}
                         </Badge>
                       </td>
                       <td className="p-4 text-slate-600">
-                        {payment.allocations?.length || 0} allocation(s)
+                        {payment.allocations?.length || 0} {payment.allocations?.length === 1 ? 'Allocation' : 'Allocations'}
                       </td>
                       <td className="p-4 text-right">
                         <div className="flex gap-2 justify-end">
