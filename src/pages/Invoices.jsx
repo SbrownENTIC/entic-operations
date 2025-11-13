@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, UserCheck } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -34,6 +34,7 @@ export default function Invoices() {
   const [selectedInvoices, setSelectedInvoices] = useState([]);
   const [bulkDateProviderPaid, setBulkDateProviderPaid] = useState('');
   const [bulkProviderPaid, setBulkProviderPaid] = useState(false);
+  const [updatingProviders, setUpdatingProviders] = useState(false);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -197,6 +198,20 @@ export default function Invoices() {
     }
   };
 
+  const handleUpdateAllProviders = async () => {
+    setUpdatingProviders(true);
+    setSyncMessage('');
+    try {
+      const response = await base44.functions.invoke('updateInvoiceProviders', {});
+      setSyncMessage(response.data.message);
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    } catch (error) {
+      setSyncMessage('Error updating providers: ' + error.message);
+    } finally {
+      setUpdatingProviders(false);
+    }
+  };
+
   const handleSelectAll = (checked) => {
     if (checked) {
       setSelectedInvoices(sortedInvoices.map(invoice => invoice.id));
@@ -320,7 +335,16 @@ export default function Invoices() {
             <h1 className="text-3xl font-bold text-slate-900">Invoices</h1>
             <p className="text-slate-600 mt-1">Manage invoices for outside income</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
+            <Button
+              onClick={handleUpdateAllProviders}
+              disabled={updatingProviders}
+              variant="outline"
+              className="gap-2 border-purple-600 text-purple-600 hover:bg-purple-50"
+            >
+              <UserCheck className={`w-4 h-4 ${updatingProviders ? 'animate-spin' : ''}`} />
+              {updatingProviders ? 'Updating...' : 'Update All Providers'}
+            </Button>
             <Button
               onClick={handleSyncBalances}
               disabled={syncing}
