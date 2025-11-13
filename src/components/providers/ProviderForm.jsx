@@ -24,7 +24,7 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
     role: '',
     program_locations: [],
     termination_date: '',
-    flu_vaccine_year: new Date().getFullYear(),
+    flu_vaccine_year: '',
     flu_vaccine_date: '',
     notes: ''
   });
@@ -49,10 +49,38 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
       setFormData({
         ...provider,
         program_locations: provider.program_locations || [],
-        termination_date: provider.termination_date || ''
+        termination_date: provider.termination_date || '',
+        flu_vaccine_year: provider.flu_vaccine_year || '',
+        flu_vaccine_date: provider.flu_vaccine_date || ''
       });
     }
   }, [provider]);
+
+  // Calculate flu vaccine year based on date
+  const calculateFluVaccineYear = (dateString) => {
+    if (!dateString) return '';
+    
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = date.getMonth(); // 0-11 (0 = January)
+    
+    // If date is after July (month >= 6, since 6 = July)
+    if (month >= 6) {
+      return `${year}-${year + 1}`;
+    } else {
+      return `${year - 1}-${year}`;
+    }
+  };
+
+  // Handle flu vaccine date change
+  const handleFluVaccineDateChange = (dateString) => {
+    const yearRange = calculateFluVaccineYear(dateString);
+    setFormData({ 
+      ...formData, 
+      flu_vaccine_date: dateString,
+      flu_vaccine_year: yearRange
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -214,23 +242,26 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="flu_vaccine_year">Flu Vaccine Year</Label>
-              <Input
-                id="flu_vaccine_year"
-                type="number"
-                value={formData.flu_vaccine_year}
-                onChange={(e) => setFormData({ ...formData, flu_vaccine_year: parseInt(e.target.value) })}
-              />
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="flu_vaccine_date">Flu Vaccine Date</Label>
               <Input
                 id="flu_vaccine_date"
                 type="date"
                 value={formData.flu_vaccine_date}
-                onChange={(e) => setFormData({ ...formData, flu_vaccine_date: e.target.value })}
+                onChange={(e) => handleFluVaccineDateChange(e.target.value)}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="flu_vaccine_year">Flu Vaccine Year</Label>
+              <Input
+                id="flu_vaccine_year"
+                type="text"
+                value={formData.flu_vaccine_year}
+                readOnly
+                className="bg-slate-50 text-slate-600"
+                placeholder="Auto-calculated from date"
+              />
+              <p className="text-xs text-slate-500">Automatically calculated based on vaccine date</p>
             </div>
 
             <div className="space-y-2 md:col-span-2">

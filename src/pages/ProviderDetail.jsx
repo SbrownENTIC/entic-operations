@@ -63,7 +63,17 @@ export default function ProviderDetail() {
 
   const totalCMECredits = cmeRecords.reduce((sum, cme) => sum + (cme.credits || 0), 0);
   const currentYear = new Date().getFullYear();
-  const fluVaccineCurrent = provider.flu_vaccine_year === currentYear;
+  const currentMonth = new Date().getMonth(); // 0-11
+  
+  // Determine current flu season year range
+  let currentFluSeason;
+  if (currentMonth >= 6) { // July onwards (month 6+)
+    currentFluSeason = `${currentYear}-${currentYear + 1}`;
+  } else {
+    currentFluSeason = `${currentYear - 1}-${currentYear}`;
+  }
+  
+  const fluVaccineCurrent = provider.flu_vaccine_year === currentFluSeason;
   const isDoctor = provider.full_name?.toLowerCase().startsWith('dr.') || provider.full_name?.toLowerCase().includes('dr ');
   const cmeCompliant = totalCMECredits >= 3;
 
@@ -120,12 +130,15 @@ export default function ProviderDetail() {
               </div>
               {provider.role === 'ENT DM' && (
                 <div>
-                  <p className="text-sm text-slate-500 mb-2">Flu Vaccine ({currentYear})</p>
+                  <p className="text-sm text-slate-500 mb-2">Flu Vaccine ({currentFluSeason})</p>
                   <div className="flex items-center gap-2">
                     {fluVaccineCurrent && provider.flu_vaccine_date ? (
                       <>
                         <CheckCircle2 className="w-5 h-5 text-green-600" />
-                        <span className="text-sm text-slate-700">{provider.flu_vaccine_date}</span>
+                        <div className="flex flex-col">
+                          <span className="text-sm text-slate-700">{provider.flu_vaccine_date}</span>
+                          <span className="text-xs text-slate-500">{provider.flu_vaccine_year}</span>
+                        </div>
                       </>
                     ) : (
                       <>
