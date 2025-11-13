@@ -134,7 +134,7 @@ export default function ProviderDetail() {
               {provider.termination_date && (
                 <div>
                   <p className="text-sm text-slate-500 mb-2">Termination Date</p>
-                  <p className="text-sm text-slate-900">{format(parseISO(provider.termination_date), 'MMM d, yyyy')}</p>
+                  <p className="text-sm text-slate-900">{format(parseISO(provider.termination_date), 'MM-dd-yyyy')}</p>
                 </div>
               )}
             </CardContent>
@@ -168,7 +168,7 @@ export default function ProviderDetail() {
                 <div>
                   <p className="text-sm text-slate-500 mb-1">Vaccine Date</p>
                   <p className="text-sm font-medium text-slate-900">
-                    {format(parseISO(provider.flu_vaccine_date), 'MMM d, yyyy')}
+                    {format(parseISO(provider.flu_vaccine_date), 'MM-dd-yyyy')}
                   </p>
                 </div>
               )}

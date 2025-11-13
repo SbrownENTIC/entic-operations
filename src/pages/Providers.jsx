@@ -255,6 +255,7 @@ export default function Providers() {
                 <tbody>
                   {sortedProviders.map((provider) => {
                     const hasFluVaccine = provider.flu_vaccine_year === currentFluSeason && provider.flu_vaccine_date;
+                    const capitalizedStatus = provider.status ? provider.status.charAt(0).toUpperCase() + provider.status.slice(1) : '';
                     
                     return (
                       <tr key={provider.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
@@ -263,7 +264,7 @@ export default function Providers() {
                         <td className="p-4 text-slate-600">{provider.email}</td>
                         <td className="p-4">
                           <Badge variant={provider.status === 'active' ? 'default' : 'secondary'}>
-                            {provider.status}
+                            {capitalizedStatus}
                           </Badge>
                         </td>
                         <td className="p-4 text-slate-600">
