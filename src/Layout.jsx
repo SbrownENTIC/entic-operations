@@ -122,7 +122,7 @@ export default function Layout({ children, currentPageName }) {
                 <Users className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h2 className="font-bold text-slate-900 text-lg">MedPractice</h2>
+                <h2 className="font-bold text-slate-900 text-lg">ENTIC Operations Center</h2>
                 <p className="text-xs text-slate-500">Provider Management</p>
               </div>
             </div>
@@ -160,7 +160,7 @@ export default function Layout({ children, currentPageName }) {
           <header className="bg-white border-b border-slate-200 px-6 py-4 md:hidden">
             <div className="flex items-center gap-4">
               <SidebarTrigger className="hover:bg-slate-100 p-2 rounded-lg transition-colors duration-200" />
-              <h1 className="text-xl font-semibold text-slate-900">ENTIC Operations Team</h1>
+              <h1 className="text-xl font-semibold text-slate-900">ENTIC Operations Center</h1>
             </div>
           </header>
 
