@@ -134,8 +134,8 @@ Deno.serve(async (req) => {
     });
 
     console.log('Fetching invoices...');
-    // Fetch all invoices sorted by invoice_date ascending (oldest first)
-    const invoices = await base44.entities.Invoice.list('invoice_date');
+    // Fetch all invoices sorted by invoice_date DESCENDING (newest first) to match the page display
+    const invoices = await base44.entities.Invoice.list('-invoice_date');
     console.log(`Found ${invoices.length} invoices`);
 
     if (invoices.length === 0) {
