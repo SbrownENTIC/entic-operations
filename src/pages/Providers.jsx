@@ -270,24 +270,19 @@ export default function Providers() {
                           {provider.termination_date || '-'}
                         </td>
                         <td className="p-4">
-                          {provider.role === 'ENT DM' && (
-                            <div className="flex items-center gap-2">
-                              {hasFluVaccine ? (
-                                <>
-                                  <CheckCircle className="w-5 h-5 text-green-600" />
-                                  <span className="text-sm text-slate-600">{provider.flu_vaccine_date}</span>
-                                </>
-                              ) : (
-                                <>
-                                  <XCircle className="w-5 h-5 text-red-600" />
-                                  <span className="text-sm text-slate-400">Not current</span>
-                                </>
-                              )}
-                            </div>
-                          )}
-                          {provider.role !== 'ENT DM' && (
-                            <span className="text-sm text-slate-400">N/A</span>
-                          )}
+                          <div className="flex items-center gap-2">
+                            {hasFluVaccine ? (
+                              <>
+                                <CheckCircle className="w-5 h-5 text-green-600" />
+                                <span className="text-sm text-slate-600">{provider.flu_vaccine_date}</span>
+                              </>
+                            ) : (
+                              <>
+                                <XCircle className="w-5 h-5 text-red-600" />
+                                <span className="text-sm text-slate-400">Not current</span>
+                              </>
+                            )}
+                          </div>
                         </td>
                         <td className="p-4 text-right">
                           <div className="flex gap-2 justify-end">

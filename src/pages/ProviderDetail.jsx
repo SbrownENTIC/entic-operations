@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Mail, Phone, Award, GraduationCap, ShieldCheck, CheckCircle2, XCircle } from "lucide-react";
+import { ArrowLeft, Mail, Phone, Award, GraduationCap, ShieldCheck, CheckCircle2, XCircle, Syringe } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { differenceInDays, format, parseISO } from "date-fns";
@@ -131,36 +131,72 @@ export default function ProviderDetail() {
                   {capitalizedStatus}
                 </Badge>
               </div>
-              {provider.role === 'ENT DM' && (
+              {provider.termination_date && (
                 <div>
-                  <p className="text-sm text-slate-500 mb-2">Flu Vaccine ({currentFluSeason})</p>
-                  <div className="flex items-center gap-2">
-                    {fluVaccineCurrent && provider.flu_vaccine_date ? (
-                      <>
-                        <CheckCircle2 className="w-5 h-5 text-green-600" />
-                        <div className="flex flex-col">
-                          <span className="text-sm text-slate-700">{provider.flu_vaccine_date}</span>
-                          <span className="text-xs text-slate-500">{provider.flu_vaccine_year}</span>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <XCircle className="w-5 h-5 text-red-600" />
-                        <span className="text-sm text-slate-500">Not current</span>
-                      </>
-                    )}
-                  </div>
+                  <p className="text-sm text-slate-500 mb-2">Termination Date</p>
+                  <p className="text-sm text-slate-900">{format(parseISO(provider.termination_date), 'MMM d, yyyy')}</p>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {isDoctor && (
-            <Card className="border-slate-200 shadow-sm">
-              <CardHeader>
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Syringe className="w-5 h-5 text-blue-600" />
+                <CardTitle className="text-lg">Flu Vaccine</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <p className="text-sm text-slate-500 mb-2">Current Season ({currentFluSeason})</p>
+                <div className="flex items-center gap-2">
+                  {fluVaccineCurrent && provider.flu_vaccine_date ? (
+                    <>
+                      <CheckCircle2 className="w-5 h-5 text-green-600" />
+                      <span className="text-sm font-medium text-green-700">Current</span>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="w-5 h-5 text-red-600" />
+                      <span className="text-sm font-medium text-red-700">Not Current</span>
+                    </>
+                  )}
+                </div>
+              </div>
+              {provider.flu_vaccine_date && (
+                <div>
+                  <p className="text-sm text-slate-500 mb-1">Vaccine Date</p>
+                  <p className="text-sm font-medium text-slate-900">
+                    {format(parseISO(provider.flu_vaccine_date), 'MMM d, yyyy')}
+                  </p>
+                </div>
+              )}
+              {provider.flu_vaccine_year && (
+                <div>
+                  <p className="text-sm text-slate-500 mb-1">Vaccine Year</p>
+                  <Badge variant="outline" className="font-medium">
+                    {provider.flu_vaccine_year}
+                  </Badge>
+                </div>
+              )}
+              {!provider.flu_vaccine_date && (
+                <p className="text-sm text-slate-500 italic">No flu vaccine recorded</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {isDoctor && (
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <GraduationCap className="w-5 h-5 text-blue-600" />
                 <CardTitle className="text-lg">CME Compliance</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <p className="text-sm text-slate-500 mb-2">Total CME Credits</p>
                   <p className="text-3xl font-bold text-blue-600">{totalCMECredits.toFixed(1)}</p>
@@ -181,10 +217,10 @@ export default function ProviderDetail() {
                     )}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="border-slate-200 shadow-sm">
           <CardHeader className="border-b border-slate-100">
