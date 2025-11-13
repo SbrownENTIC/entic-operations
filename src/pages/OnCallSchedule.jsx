@@ -1,11 +1,23 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { useQuery, useMutation, useQueryClient } from "@tantml:invoke>
+<parameter name="card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Plus, ChevronLeft, ChevronRight, RefreshCw, Calendar as CalendarIcon, Search, Pencil, Trash2, List, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, addMonths, subMonths, isSameDay, startOfWeek, endOfWeek, startOfDay, addDays, differenceInDays } from "date-fns";
 import OnCallForm from "../components/oncall/OnCallForm";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const PROVIDER_COLORS = [
   "bg-green-500",
@@ -26,6 +38,11 @@ export default function OnCallSchedule() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState('');
+  const [viewMode, setViewMode] = useState('calendar'); // 'calendar' or 'list'
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortField, setSortField] = useState('start_date');
+  const [sortDirection, setSortDirection] = useState('asc');
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: schedules = [] } = useQuery({
@@ -68,6 +85,14 @@ export default function OnCallSchedule() {
       queryClient.invalidateQueries({ queryKey: ['oncall-schedules'] });
       setShowForm(false);
       setEditingSchedule(null);
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.OnCallSchedule.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['oncall-schedules'] });
+      setDeleteConfirm(null);
     }
   });
 
@@ -139,6 +164,15 @@ export default function OnCallSchedule() {
     }
   };
 
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
   // Helper function to check if a time string represents midnight
   const isMidnight = (timeStr) => {
     if (!timeStr) return false;
@@ -173,7 +207,9 @@ export default function OnCallSchedule() {
   const schedulesWithProviders = schedules.map(schedule => ({
     ...schedule,
     provider: providers.find(p => p.id === schedule.provider_id),
-    color: providerColorMap[schedule.provider_id] || PROVIDER_COLORS[0]
+    providerName: providers.find(p => p.id === schedule.provider_id)?.full_name || '',
+    color: providerColorMap[schedule.provider_id] || PROVIDER_COLORS[0],
+    days: differenceInDays(parseISO(schedule.end_date), parseISO(schedule.start_date)) + 1
   }));
 
   const getSchedulesForDay = (day) => {
@@ -245,6 +281,39 @@ export default function OnCallSchedule() {
     return span;
   };
 
+  // Filtering and sorting for list view
+  const filteredSchedules = schedulesWithProviders.filter(schedule =>
+    schedule.providerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    schedule.location?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const sortedSchedules = [...filteredSchedules].sort((a, b) => {
+    let aValue, bValue;
+    
+    if (sortField === 'start_date' || sortField === 'end_date') {
+      aValue = new Date(a[sortField]);
+      bValue = new Date(b[sortField]);
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    } else if (sortField === 'days') {
+      aValue = a.days || 0;
+      bValue = b.days || 0;
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    } else {
+      aValue = a[sortField] || '';
+      bValue = b[sortField] || '';
+    }
+    
+    const comparison = aValue.toString().toLowerCase().localeCompare(bValue.toString().toLowerCase());
+    return sortDirection === 'asc' ? comparison : -comparison;
+  });
+
+  const SortIcon = ({ field }) => {
+    if (sortField !== field) return <ArrowUpDown className="w-4 h-4 ml-1 inline" />;
+    return sortDirection === 'asc' ? 
+      <ArrowUp className="w-4 h-4 ml-1 inline" /> : 
+      <ArrowDown className="w-4 h-4 ml-1 inline" />;
+  };
+
   return (
     <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
       <div className="max-w-[1800px] mx-auto space-y-6">
@@ -254,6 +323,14 @@ export default function OnCallSchedule() {
             <p className="text-slate-600 mt-1">Manage provider on-call schedules</p>
           </div>
           <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setViewMode(viewMode === 'calendar' ? 'list' : 'calendar')}
+              className="gap-2"
+            >
+              {viewMode === 'calendar' ? <List className="w-4 h-4" /> : <CalendarIcon className="w-4 h-4" />}
+              {viewMode === 'calendar' ? 'List View' : 'Calendar View'}
+            </Button>
             <Button
               onClick={handleSync2026StFrancis}
               disabled={syncing}
@@ -297,109 +374,237 @@ export default function OnCallSchedule() {
           />
         )}
 
-        <Card className="border-slate-200 shadow-sm overflow-hidden">
-          <CardHeader className="border-b border-slate-100 p-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">{format(currentMonth, 'MMMM yyyy')}</h2>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentMonth(new Date())}
-                >
-                  Today
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
+        {viewMode === 'calendar' ? (
+          <Card className="border-slate-200 shadow-sm overflow-hidden">
+            <CardHeader className="border-b border-slate-100 p-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">{format(currentMonth, 'MMMM yyyy')}</h2>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentMonth(new Date())}
+                  >
+                    Today
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="bg-white overflow-x-auto">
-              {/* Calendar Header */}
-              <div className="grid grid-cols-7 border-b border-slate-200 min-w-[900px]">
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                  <div key={day} className="p-3 text-center text-sm font-semibold text-slate-700 border-r border-slate-200 last:border-r-0">
-                    {day}
-                  </div>
-                ))}
-              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="bg-white overflow-x-auto">
+                {/* Calendar Header */}
+                <div className="grid grid-cols-7 border-b border-slate-200 min-w-[900px]">
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                    <div key={day} className="p-3 text-center text-sm font-semibold text-slate-700 border-r border-slate-200 last:border-r-0">
+                      {day}
+                    </div>
+                  ))}
+                </div>
 
-              {/* Calendar Grid */}
-              <div className="min-w-[900px]">
-                {weeks.map((week, weekIndex) => (
-                  <div key={weekIndex} className="grid grid-cols-7" style={{ minHeight: '100px' }}>
-                    {week.map((day, dayIndex) => {
-                      const daySchedules = getSchedulesForDay(day);
-                      const isCurrentMonth = isSameMonth(day, currentMonth);
-                      
-                      return (
-                        <div
-                          key={dayIndex}
-                          className={`border-r border-b border-slate-200 last:border-r-0 p-2 relative ${
-                            !isCurrentMonth ? 'bg-slate-50' : 'bg-white'
-                          }`}
-                        >
-                          <div className={`text-sm font-medium mb-2 ${
-                            !isCurrentMonth ? 'text-slate-400' : 'text-slate-700'
-                          }`}>
-                            {format(day, 'd')}
-                          </div>
-                          
-                          <div className="space-y-1">
-                            {daySchedules.map((schedule, schedIndex) => {
-                              const isFirstDay = isFirstDayOfSchedule(schedule, day, week);
-                              
-                              if (!isFirstDay) return null;
-                              
-                              const span = getScheduleSpan(schedule, day, week);
-                              
-                              return (
-                                <div
-                                  key={schedule.id}
-                                  onClick={() => handleEditSchedule(schedule)}
-                                  className={`absolute left-2 right-0 ${schedule.color} text-white text-xs px-2 py-1.5 rounded cursor-pointer hover:opacity-90 transition-opacity shadow-sm z-10`}
-                                  style={{
-                                    width: `calc(${span * 100}% + ${(span - 1) * 100}%)`,
-                                    top: `${40 + schedIndex * 36}px`
-                                  }}
-                                >
-                                  <div className="font-semibold truncate">
-                                    {schedule.start_time} - {schedule.end_time}
-                                  </div>
-                                  <div className="font-medium truncate">
-                                    {schedule.provider?.full_name}
-                                  </div>
-                                  {schedule.provider?.phone && (
-                                    <div className="truncate text-[10px] opacity-90">
-                                      {schedule.provider.phone}
+                {/* Calendar Grid */}
+                <div className="min-w-[900px]">
+                  {weeks.map((week, weekIndex) => (
+                    <div key={weekIndex} className="grid grid-cols-7" style={{ minHeight: '100px' }}>
+                      {week.map((day, dayIndex) => {
+                        const daySchedules = getSchedulesForDay(day);
+                        const isCurrentMonth = isSameMonth(day, currentMonth);
+                        
+                        return (
+                          <div
+                            key={dayIndex}
+                            className={`border-r border-b border-slate-200 last:border-r-0 p-2 relative ${
+                              !isCurrentMonth ? 'bg-slate-50' : 'bg-white'
+                            }`}
+                          >
+                            <div className={`text-sm font-medium mb-2 ${
+                              !isCurrentMonth ? 'text-slate-400' : 'text-slate-700'
+                            }`}>
+                              {format(day, 'd')}
+                            </div>
+                            
+                            <div className="space-y-1">
+                              {daySchedules.map((schedule, schedIndex) => {
+                                const isFirstDay = isFirstDayOfSchedule(schedule, day, week);
+                                
+                                if (!isFirstDay) return null;
+                                
+                                const span = getScheduleSpan(schedule, day, week);
+                                
+                                return (
+                                  <div
+                                    key={schedule.id}
+                                    onClick={() => handleEditSchedule(schedule)}
+                                    className={`absolute left-2 right-0 ${schedule.color} text-white text-xs px-2 py-1.5 rounded cursor-pointer hover:opacity-90 transition-opacity shadow-sm z-10`}
+                                    style={{
+                                      width: `calc(${span * 100}% + ${(span - 1) * 100}%)`,
+                                      top: `${40 + schedIndex * 36}px`
+                                    }}
+                                  >
+                                    <div className="font-semibold truncate">
+                                      {schedule.start_time} - {schedule.end_time}
                                     </div>
-                                  )}
-                                </div>
-                              );
-                            })}
+                                    <div className="font-medium truncate">
+                                      {schedule.provider?.full_name}
+                                    </div>
+                                    {schedule.provider?.phone && (
+                                      <div className="truncate text-[10px] opacity-90">
+                                        {schedule.provider.phone}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader className="border-b border-slate-100">
+              <div className="flex items-center gap-4">
+                <Search className="w-5 h-5 text-slate-400" />
+                <Input
+                  placeholder="Search by provider or location..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="max-w-md border-slate-200"
+                />
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                      <th 
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                        onClick={() => handleSort('providerName')}
+                      >
+                        Provider <SortIcon field="providerName" />
+                      </th>
+                      <th 
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                        onClick={() => handleSort('location')}
+                      >
+                        Location <SortIcon field="location" />
+                      </th>
+                      <th 
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                        onClick={() => handleSort('start_date')}
+                      >
+                        Start Date <SortIcon field="start_date" />
+                      </th>
+                      <th className="text-left p-4 text-sm font-semibold text-slate-700">
+                        Start Time
+                      </th>
+                      <th 
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                        onClick={() => handleSort('end_date')}
+                      >
+                        End Date <SortIcon field="end_date" />
+                      </th>
+                      <th className="text-left p-4 text-sm font-semibold text-slate-700">
+                        End Time
+                      </th>
+                      <th 
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                        onClick={() => handleSort('days')}
+                      >
+                        Days <SortIcon field="days" />
+                      </th>
+                      <th className="text-left p-4 text-sm font-semibold text-slate-700">Notes</th>
+                      <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedSchedules.map((schedule) => (
+                      <tr key={schedule.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td className="p-4 font-medium text-slate-900">{schedule.provider?.full_name}</td>
+                        <td className="p-4 text-slate-600">{schedule.location || '-'}</td>
+                        <td className="p-4 text-slate-600">
+                          {format(parseISO(schedule.start_date), 'MMM d, yyyy')}
+                        </td>
+                        <td className="p-4 text-slate-600">{schedule.start_time || '-'}</td>
+                        <td className="p-4 text-slate-600">
+                          {format(parseISO(schedule.end_date), 'MMM d, yyyy')}
+                        </td>
+                        <td className="p-4 text-slate-600">{schedule.end_time || '-'}</td>
+                        <td className="p-4 text-slate-600">
+                          {schedule.days} {schedule.days === 1 ? 'day' : 'days'}
+                        </td>
+                        <td className="p-4 text-slate-600">{schedule.notes || '-'}</td>
+                        <td className="p-4 text-right">
+                          <div className="flex gap-2 justify-end">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleEditSchedule(schedule)}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => setDeleteConfirm(schedule)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {sortedSchedules.length === 0 && (
+                  <div className="text-center py-12 text-slate-500">
+                    No schedules found
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
+
+      <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete On-Call Schedule</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this schedule for {deleteConfirm?.provider?.full_name}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteMutation.mutate(deleteConfirm.id)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
