@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -49,6 +48,11 @@ export default function Payments() {
     queryKey: ['providers'],
     queryFn: () => base44.entities.Provider.list()
   });
+
+  // Helper function to round to 2 decimal places and handle floating point precision
+  const roundToTwo = (num) => {
+    return Math.round((num + Number.EPSILON) * 100) / 100;
+  };
 
   // Check for URL parameters to auto-open a payment in edit mode
   useEffect(() => {
@@ -124,18 +128,21 @@ export default function Payments() {
       
       for (const payment of payments) {
         const totalAllocated = payment.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
-        const unallocated = (payment.total_amount || 0) - totalAllocated;
+        const unallocated = roundToTwo((payment.total_amount || 0) - totalAllocated);
         
         let newStatus = payment.status;
-        if (unallocated === 0 && totalAllocated > 0 && payment.status === 'pending') {
+        if (Math.abs(unallocated) < 0.01 && totalAllocated > 0 && payment.status === 'pending') {
           newStatus = 'cleared';
-        } else if (unallocated > 0 && payment.status === 'cleared') {
+        } else if (unallocated > 0.01 && payment.status === 'cleared') {
           newStatus = 'pending';
         }
         
-        if (payment.unallocated_amount !== unallocated || payment.status !== newStatus) {
+        // Normalize tiny floating point errors to exactly 0
+        const normalizedUnallocated = Math.abs(unallocated) < 0.01 ? 0 : unallocated;
+        
+        if (payment.unallocated_amount !== normalizedUnallocated || payment.status !== newStatus) {
           await base44.entities.Payment.update(payment.id, {
-            unallocated_amount: unallocated,
+            unallocated_amount: normalizedUnallocated,
             status: newStatus
           });
         }
@@ -158,7 +165,7 @@ export default function Payments() {
   const createMutation = useMutation({
     mutationFn: async (data) => {
       const totalAllocated = data.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
-      const unallocated = data.total_amount - totalAllocated;
+      const unallocated = roundToTwo(data.total_amount - totalAllocated);
       
       const months = new Set();
       if (data.allocations) {
@@ -174,14 +181,16 @@ export default function Payments() {
       const paymentMonth = Array.from(months).sort().join(', ');
       
       let status = data.status;
-      if (unallocated === 0 && totalAllocated > 0 && status === 'pending') {
+      if (Math.abs(unallocated) < 0.01 && totalAllocated > 0 && status === 'pending') {
         status = 'cleared';
       }
+      
+      const normalizedUnallocated = Math.abs(unallocated) < 0.01 ? 0 : unallocated;
       
       const payment = await base44.entities.Payment.create({
         ...data,
         payment_month: paymentMonth,
-        unallocated_amount: unallocated,
+        unallocated_amount: normalizedUnallocated,
         status: status
       });
       
@@ -200,7 +209,7 @@ export default function Payments() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }) => {
       const totalAllocated = data.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
-      const unallocated = data.total_amount - totalAllocated;
+      const unallocated = roundToTwo(data.total_amount - totalAllocated);
       
       const months = new Set();
       if (data.allocations) {
@@ -216,16 +225,18 @@ export default function Payments() {
       const paymentMonth = Array.from(months).sort().join(', ');
       
       let status = data.status;
-      if (unallocated === 0 && totalAllocated > 0 && status === 'pending') {
+      if (Math.abs(unallocated) < 0.01 && totalAllocated > 0 && status === 'pending') {
         status = 'cleared';
-      } else if (unallocated > 0 && status === 'cleared') {
+      } else if (unallocated > 0.01 && status === 'cleared') {
         status = 'pending';
       }
+      
+      const normalizedUnallocated = Math.abs(unallocated) < 0.01 ? 0 : unallocated;
       
       const payment = await base44.entities.Payment.update(id, {
         ...data,
         payment_month: paymentMonth,
-        unallocated_amount: unallocated,
+        unallocated_amount: normalizedUnallocated,
         status: status
       });
       
@@ -263,7 +274,7 @@ export default function Payments() {
       );
       
       const totalAllocated = updatedAllocations.reduce((sum, a) => sum + (a.amount || 0), 0);
-      const unallocated = (payment.total_amount || 0) - totalAllocated;
+      const unallocated = roundToTwo((payment.total_amount || 0) - totalAllocated);
       
       const months = new Set();
       if (updatedAllocations.length > 0) {
@@ -279,16 +290,18 @@ export default function Payments() {
       const paymentMonth = Array.from(months).sort().join(', ');
       
       let status = payment.status;
-      if (unallocated === 0 && totalAllocated > 0) {
+      if (Math.abs(unallocated) < 0.01 && totalAllocated > 0) {
         status = 'cleared';
-      } else if (unallocated > 0) {
+      } else if (unallocated > 0.01) {
         status = 'pending';
       }
+      
+      const normalizedUnallocated = Math.abs(unallocated) < 0.01 ? 0 : unallocated;
       
       await base44.entities.Payment.update(payment.id, {
         allocations: updatedAllocations,
         payment_month: paymentMonth,
-        unallocated_amount: unallocated,
+        unallocated_amount: normalizedUnallocated,
         status: status
       });
       
