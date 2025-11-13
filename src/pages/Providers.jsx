@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Pencil, Trash2, Check, X as XIcon, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, CheckCircle, XCircle, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import ProviderForm from "../components/providers/ProviderForm";
@@ -19,7 +19,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { format, parseISO } from 'date-fns';
 
 export default function Providers() {
   const [showForm, setShowForm] = useState(false);
@@ -34,20 +33,15 @@ export default function Providers() {
 
   const { data: providers = [], isLoading } = useQuery({
     queryKey: ['providers'],
-    queryFn: () => base44.entities.Provider.list('-created_date')
+    queryFn: () => base44.entities.Provider.list('full_name')
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data) => {
-      const provider = await base44.entities.Provider.create(data);
-      return provider;
-    },
-    onSuccess: () => {
+    mutationFn: (data) => base44.entities.Provider.create(data),
+    onSuccess: (newProvider) => {
       queryClient.invalidateQueries({ queryKey: ['providers'] });
-      queryClient.invalidateQueries({ queryKey: ['licenses'] });
-      queryClient.invalidateQueries({ queryKey: ['cme'] });
       setShowForm(false);
-      setEditingProvider(null);
+      return newProvider;
     }
   });
 
@@ -68,27 +62,11 @@ export default function Providers() {
     }
   });
 
-  const handleCheckTerminations = async () => {
-    setCheckingTerminations(true);
-    setTerminationMessage('');
-    try {
-      const response = await base44.functions.invoke('checkProviderTerminations', {});
-      setTerminationMessage(response.data.message);
-      queryClient.invalidateQueries({ queryKey: ['providers'] });
-    } catch (error) {
-      console.error("Error checking terminations:", error);
-      setTerminationMessage('Error checking terminations: ' + (error.message || 'An unknown error occurred.'));
-    } finally {
-      setCheckingTerminations(false);
-    }
-  };
-
   const handleSubmit = async (data) => {
     if (editingProvider) {
-      updateMutation.mutate({ id: editingProvider.id, data });
+      await updateMutation.mutateAsync({ id: editingProvider.id, data });
     } else {
-      const result = await createMutation.mutateAsync(data);
-      return result;
+      return await createMutation.mutateAsync(data);
     }
   };
 
@@ -101,6 +79,33 @@ export default function Providers() {
     }
   };
 
+  const handleCheckTerminations = async () => {
+    setCheckingTerminations(true);
+    setTerminationMessage('');
+    try {
+      const response = await base44.functions.invoke('checkProviderTerminations', {});
+      setTerminationMessage(response.data.message);
+      queryClient.invalidateQueries({ queryKey: ['providers'] });
+    } catch (error) {
+      setTerminationMessage('Error checking terminations: ' + error.message);
+    } finally {
+      setCheckingTerminations(false);
+    }
+  };
+
+  // Calculate current flu season
+  const currentFluSeason = useMemo(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    
+    if (month >= 6) { // July onwards
+      return `${year}-${year + 1}`;
+    } else {
+      return `${year - 1}-${year}`;
+    }
+  }, []);
+
   const filteredProviders = providers.filter(provider =>
     provider.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     provider.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -108,36 +113,23 @@ export default function Providers() {
   );
 
   const sortedProviders = [...filteredProviders].sort((a, b) => {
-    let aValue = a[sortField];
-    let bValue = b[sortField];
+    let aValue, bValue;
     
-    if (sortField === 'flu_vaccine_year') {
-      // Treat null/undefined as 0 for consistent sorting
-      aValue = aValue || 0; 
-      bValue = bValue || 0;
+    if (sortField === 'flu_vaccine_status') {
+      // Sort by flu vaccine status
+      const aHasVaccine = a.flu_vaccine_year === currentFluSeason && a.flu_vaccine_date;
+      const bHasVaccine = b.flu_vaccine_year === currentFluSeason && b.flu_vaccine_date;
+      aValue = aHasVaccine ? 1 : 0;
+      bValue = bHasVaccine ? 1 : 0;
       return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
-    }
-
-    if (sortField === 'termination_date') {
-      const dateA = aValue ? parseISO(aValue) : null;
-      const dateB = bValue ? parseISO(bValue) : null;
-
-      if (!dateA && !dateB) return 0; // Both null, considered equal
-      if (!dateA) return sortDirection === 'asc' ? 1 : -1; // null sorts last if asc, first if desc
-      if (!dateB) return sortDirection === 'asc' ? -1 : 1; // null sorts last if asc, first if desc
-
-      const comparison = dateA.getTime() - dateB.getTime();
-      return sortDirection === 'asc' ? comparison : -comparison;
+    } else {
+      aValue = a[sortField] || '';
+      bValue = b[sortField] || '';
     }
     
-    aValue = aValue ? aValue.toString().toLowerCase() : '';
-    bValue = bValue ? bValue.toString().toLowerCase() : '';
-
-    const comparison = aValue.localeCompare(bValue);
+    const comparison = aValue.toString().toLowerCase().localeCompare(bValue.toString().toLowerCase());
     return sortDirection === 'asc' ? comparison : -comparison;
   });
-
-  const currentYear = new Date().getFullYear();
 
   const SortIcon = ({ field }) => {
     if (sortField !== field) return <ArrowUpDown className="w-4 h-4 ml-1 inline" />;
@@ -146,13 +138,23 @@ export default function Providers() {
       <ArrowDown className="w-4 h-4 ml-1 inline" />;
   };
 
+  if (isLoading) {
+    return (
+      <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center py-12 text-slate-500">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Providers</h1>
-            <p className="text-slate-600 mt-1">Manage your medical providers</p>
+            <p className="text-slate-600 mt-1">Manage provider information and credentials</p>
           </div>
           <div className="flex gap-3">
             <Button
@@ -161,7 +163,7 @@ export default function Providers() {
               variant="outline"
               className="gap-2"
             >
-              <RefreshCw className={`w-4 h-4 ${checkingTerminations ? 'animate-spin' : ''}`} />
+              <AlertCircle className={`w-4 h-4 ${checkingTerminations ? 'animate-spin' : ''}`} />
               {checkingTerminations ? 'Checking...' : 'Check Terminations'}
             </Button>
             <Button
@@ -222,21 +224,15 @@ export default function Providers() {
                     </th>
                     <th 
                       className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                      onClick={() => handleSort('email')}
-                    >
-                      Email <SortIcon field="email" />
-                    </th>
-                    <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                      onClick={() => handleSort('phone')}
-                    >
-                      Phone <SortIcon field="phone" />
-                    </th>
-                    <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                       onClick={() => handleSort('role')}
                     >
                       Role <SortIcon field="role" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('email')}
+                    >
+                      Email <SortIcon field="email" />
                     </th>
                     <th 
                       className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
@@ -244,79 +240,62 @@ export default function Providers() {
                     >
                       Status <SortIcon field="status" />
                     </th>
-                    <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                      onClick={() => handleSort('termination_date')}
-                    >
-                      Termination Date <SortIcon field="termination_date" />
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700">
+                      Termination Date
                     </th>
                     <th 
                       className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                      onClick={() => handleSort('flu_vaccine_year')}
+                      onClick={() => handleSort('flu_vaccine_status')}
                     >
-                      Flu Vaccine <SortIcon field="flu_vaccine_year" />
+                      Flu Vaccine ({currentFluSeason}) <SortIcon field="flu_vaccine_status" />
                     </th>
                     <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sortedProviders.map((provider) => {
-                    const showFluVaccine = provider.role === 'ENT DM';
-                    const fluVaccineCurrent = provider.flu_vaccine_year === currentYear;
+                    const hasFluVaccine = provider.flu_vaccine_year === currentFluSeason && provider.flu_vaccine_date;
                     
-                    const terminationDate = provider.termination_date ? parseISO(provider.termination_date) : null;
-                    const isTerminated = terminationDate && terminationDate <= new Date();
-                    const isUpcomingTermination = terminationDate && terminationDate > new Date();
-
                     return (
                       <tr key={provider.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                        <td className="p-4">
-                          <p className="font-medium text-slate-900">{provider.full_name}</p>
-                        </td>
-                        <td className="p-4 text-slate-600">{provider.email}</td>
-                        <td className="p-4 text-slate-600">{provider.phone || '-'}</td>
+                        <td className="p-4 font-medium text-slate-900">{provider.full_name}</td>
                         <td className="p-4 text-slate-600">{provider.role || '-'}</td>
+                        <td className="p-4 text-slate-600">{provider.email}</td>
                         <td className="p-4">
                           <Badge variant={provider.status === 'active' ? 'default' : 'secondary'}>
-                            {provider.status?.charAt(0).toUpperCase() + provider.status?.slice(1)}
+                            {provider.status}
                           </Badge>
                         </td>
                         <td className="p-4 text-slate-600">
-                          {provider.termination_date ? (
-                            <span className={
-                              isTerminated
-                                ? 'text-red-600 font-medium' 
-                                : isUpcomingTermination
-                                  ? 'text-orange-600 font-medium'
-                                  : ''
-                            }>
-                              {format(terminationDate, 'MMM d, yyyy')}
-                            </span>
-                          ) : (
-                            '-'
-                          )}
+                          {provider.termination_date || '-'}
                         </td>
                         <td className="p-4">
-                          {showFluVaccine ? (
+                          {provider.role === 'ENT DM' && (
                             <div className="flex items-center gap-2">
-                              {fluVaccineCurrent && provider.flu_vaccine_date ? (
+                              {hasFluVaccine ? (
                                 <>
-                                  <Check className="w-5 h-5 text-green-600" />
-                                  <span className="text-sm text-slate-700">{provider.flu_vaccine_date}</span>
+                                  <CheckCircle className="w-5 h-5 text-green-600" />
+                                  <span className="text-sm text-slate-600">{provider.flu_vaccine_date}</span>
                                 </>
                               ) : (
                                 <>
-                                  <XIcon className="w-5 h-5 text-red-600" />
-                                  <span className="text-sm text-slate-500">Not current</span>
+                                  <XCircle className="w-5 h-5 text-red-600" />
+                                  <span className="text-sm text-slate-400">Not current</span>
                                 </>
                               )}
                             </div>
-                          ) : (
+                          )}
+                          {provider.role !== 'ENT DM' && (
                             <span className="text-sm text-slate-400">N/A</span>
                           )}
                         </td>
                         <td className="p-4 text-right">
                           <div className="flex gap-2 justify-end">
+                            <Link to={`${createPageUrl("ProviderDetail")}?id=${provider.id}`}>
+                              <Button variant="ghost" size="sm">
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                            </Link>
                             <Button 
                               variant="ghost" 
                               size="sm"
@@ -327,11 +306,6 @@ export default function Providers() {
                             >
                               <Pencil className="w-4 h-4" />
                             </Button>
-                            <Link to={createPageUrl(`ProviderDetail?id=${provider.id}`)}>
-                              <Button variant="ghost" size="sm">
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                            </Link>
                             <Button 
                               variant="ghost" 
                               size="sm"
