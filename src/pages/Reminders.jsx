@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Pencil, Trash2, Send, Clock, Mail, ArrowUpDown, ArrowUp, ArrowDown, RotateCcw } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Send, Clock, Mail, ArrowUpDown, ArrowUp, ArrowDown, RotateCcw, CheckCircle, AlertCircle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import ReminderForm from "../components/reminders/ReminderForm";
 import {
@@ -26,6 +26,7 @@ export default function Reminders() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [sortField, setSortField] = useState('send_date');
   const [sortDirection, setSortDirection] = useState('asc');
+  const [statusMessage, setStatusMessage] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: reminders = [], isLoading } = useQuery({
@@ -78,14 +79,21 @@ Steve Brown
 The Operations Team`;
       }
       
+      const results = [];
+      
       // Send emails to all recipients using Mailgun
       for (const recipient of reminder.recipients) {
-        await base44.functions.invoke('sendEmailViaMailgun', {
-          to: recipient,
-          subject: reminder.email_subject,
-          body: emailBody + '\n\n\n',
-          from_name: 'ENTIC Operations Team'
-        });
+        try {
+          const response = await base44.functions.invoke('sendEmailViaMailgun', {
+            to: recipient,
+            subject: reminder.email_subject,
+            body: emailBody + '\n\n\n',
+            from_name: 'ENTIC Operations Team'
+          });
+          results.push({ recipient, success: true, response: response.data });
+        } catch (error) {
+          results.push({ recipient, success: false, error: error.message });
+        }
       }
       
       // Update reminder with last sent date and increment send count
@@ -94,9 +102,36 @@ The Operations Team`;
         last_sent_date: now,
         send_count: (reminder.send_count || 0) + 1
       });
+      
+      return results;
     },
-    onSuccess: () => {
+    onSuccess: (results) => {
       queryClient.invalidateQueries({ queryKey: ['reminders'] });
+      
+      const successCount = results.filter(r => r.success).length;
+      const failCount = results.filter(r => !r.success).length;
+      
+      if (failCount === 0) {
+        setStatusMessage({
+          type: 'success',
+          message: `✅ Successfully sent ${successCount} email(s)!`
+        });
+      } else {
+        const failedRecipients = results.filter(r => !r.success).map(r => r.recipient).join(', ');
+        setStatusMessage({
+          type: 'warning',
+          message: `⚠️ Sent ${successCount} email(s), but ${failCount} failed: ${failedRecipients}`
+        });
+      }
+      
+      setTimeout(() => setStatusMessage(null), 5000);
+    },
+    onError: (error) => {
+      setStatusMessage({
+        type: 'error',
+        message: `❌ Error sending emails: ${error.message}`
+      });
+      setTimeout(() => setStatusMessage(null), 5000);
     }
   });
 
@@ -108,6 +143,11 @@ The Operations Team`;
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reminders'] });
+      setStatusMessage({
+        type: 'success',
+        message: '✅ Reminder reset successfully!'
+      });
+      setTimeout(() => setStatusMessage(null), 3000);
     }
   });
 
@@ -217,6 +257,29 @@ The Operations Team`;
             Create Reminder
           </Button>
         </div>
+
+        {statusMessage && (
+          <Card className={`border-2 ${
+            statusMessage.type === 'success' ? 'border-green-300 bg-green-50' :
+            statusMessage.type === 'warning' ? 'border-yellow-300 bg-yellow-50' :
+            'border-red-300 bg-red-50'
+          }`}>
+            <CardContent className="p-4 flex items-center gap-3">
+              {statusMessage.type === 'success' ? (
+                <CheckCircle className="w-5 h-5 text-green-600" />
+              ) : (
+                <AlertCircle className="w-5 h-5 text-orange-600" />
+              )}
+              <p className={`font-medium ${
+                statusMessage.type === 'success' ? 'text-green-900' :
+                statusMessage.type === 'warning' ? 'text-yellow-900' :
+                'text-red-900'
+              }`}>
+                {statusMessage.message}
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {showForm && (
           <ReminderForm
