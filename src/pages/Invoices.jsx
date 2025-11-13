@@ -31,6 +31,9 @@ export default function Invoices() {
   const [sortDirection, setSortDirection] = useState('desc');
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState('');
+  const [selectedInvoices, setSelectedInvoices] = useState([]);
+  const [bulkDateProviderPaid, setBulkDateProviderPaid] = useState('');
+  const [bulkProviderPaid, setBulkProviderPaid] = useState(false);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -142,6 +145,21 @@ export default function Invoices() {
     }
   });
 
+  const bulkUpdateMutation = useMutation({
+    mutationFn: async ({ ids, updateData }) => {
+      const updates = ids.map(id => 
+        base44.entities.Invoice.update(id, updateData)
+      );
+      return Promise.all(updates);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      setSelectedInvoices([]);
+      setBulkDateProviderPaid('');
+      setBulkProviderPaid(false);
+    }
+  });
+
   const handleSubmit = (data) => {
     if (editingInvoice) {
       updateMutation.mutate({ id: editingInvoice.id, data });
@@ -176,6 +194,41 @@ export default function Invoices() {
       setSyncMessage('Error syncing balances: ' + error.message);
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedInvoices(sortedInvoices.map(invoice => invoice.id));
+    } else {
+      setSelectedInvoices([]);
+    }
+  };
+
+  const handleSelectInvoice = (invoiceId, checked) => {
+    if (checked) {
+      setSelectedInvoices([...selectedInvoices, invoiceId]);
+    } else {
+      setSelectedInvoices(selectedInvoices.filter(id => id !== invoiceId));
+    }
+  };
+
+  const handleBulkUpdate = () => {
+    if (selectedInvoices.length > 0) {
+      const updateData = {};
+      
+      if (bulkDateProviderPaid) {
+        updateData.date_provider_paid = bulkDateProviderPaid;
+      }
+      
+      if (bulkProviderPaid) {
+        updateData.provider_paid = true;
+        updateData.status = 'provider_paid';
+      }
+      
+      if (Object.keys(updateData).length > 0) {
+        bulkUpdateMutation.mutate({ ids: selectedInvoices, updateData });
+      }
     }
   };
 
@@ -311,7 +364,7 @@ export default function Invoices() {
         )}
 
         <Card className="border-slate-200 shadow-sm">
-          <CardHeader className="border-b border-slate-100">
+          <CardHeader className="border-b border-slate-100 space-y-4">
             <div className="flex items-center gap-4">
               <Search className="w-5 h-5 text-slate-400" />
               <Input
@@ -321,12 +374,69 @@ export default function Invoices() {
                 className="max-w-md border-slate-200"
               />
             </div>
+            {selectedInvoices.length > 0 && (
+              <div className="flex flex-col gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-slate-900">
+                    {selectedInvoices.length} selected
+                  </span>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedInvoices([])}
+                  >
+                    Clear Selection
+                  </Button>
+                </div>
+                
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-slate-700">Date Provider Paid:</span>
+                    <Input
+                      type="date"
+                      value={bulkDateProviderPaid}
+                      onChange={(e) => setBulkDateProviderPaid(e.target.value)}
+                      className="w-48"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="bulk-provider-paid"
+                      checked={bulkProviderPaid}
+                      onChange={(e) => setBulkProviderPaid(e.target.checked)}
+                      className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <label htmlFor="bulk-provider-paid" className="text-sm text-slate-700 cursor-pointer">
+                      Mark as Provider Paid
+                    </label>
+                  </div>
+
+                  <Button 
+                    onClick={handleBulkUpdate}
+                    disabled={(!bulkDateProviderPaid && !bulkProviderPaid) || bulkUpdateMutation.isPending}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    {bulkUpdateMutation.isPending ? 'Updating...' : 'Update Selected'}
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700 w-12">
+                      <input
+                        type="checkbox"
+                        checked={selectedInvoices.length === sortedInvoices.length && sortedInvoices.length > 0}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </th>
                     <th 
                       className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                       onClick={() => handleSort('invoice_number')}
@@ -386,7 +496,15 @@ export default function Invoices() {
                 </thead>
                 <tbody>
                   {sortedInvoices.map((invoice) => (
-                    <tr key={invoice.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                    <tr key={invoice.id} className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${selectedInvoices.includes(invoice.id) ? 'bg-blue-50' : ''}`}>
+                      <td className="p-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedInvoices.includes(invoice.id)}
+                          onChange={(e) => handleSelectInvoice(invoice.id, e.target.checked)}
+                          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        />
+                      </td>
                       <td className="p-4 font-medium text-slate-900">{invoice.invoice_number || '-'}</td>
                       <td className="p-4 text-slate-600">{invoice.program_group}</td>
                       <td className="p-4 text-slate-900">{invoice.provider?.full_name || '-'}</td>
