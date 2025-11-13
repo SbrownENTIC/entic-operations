@@ -129,7 +129,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
   const updateAllocation = (index, field, value) => {
     const newAllocations = [...formData.allocations];
     
-    // If updating invoice_id, auto-populate provider and amount with remaining balance
+    // If updating invoice_id, auto-populate provider, amount, and payment notes
     if (field === 'invoice_id') {
       const invoice = invoices.find(inv => inv.id === value);
       if (invoice) {
@@ -142,6 +142,27 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
           provider_id: invoice.staff_member_id || '',
           amount: parseFloat(invoiceBalance) || 0
         };
+        
+        // Auto-add invoice notes to payment notes if invoice has notes
+        if (invoice.notes && invoice.notes.trim()) {
+          const invoiceIdentifier = invoice.invoice_number || `Invoice ${index + 1}`;
+          const noteToAdd = `${invoiceIdentifier}: ${invoice.notes}`;
+          
+          // Check if this note is already in the payment notes
+          const currentNotes = formData.notes || '';
+          if (!currentNotes.includes(noteToAdd)) {
+            const updatedNotes = currentNotes 
+              ? `${currentNotes}\n${noteToAdd}` 
+              : noteToAdd;
+            
+            setFormData(prev => ({ 
+              ...prev, 
+              allocations: newAllocations,
+              notes: updatedNotes 
+            }));
+            return; // Exit early since we're updating formData here
+          }
+        }
       } else {
         newAllocations[index] = { ...newAllocations[index], [field]: value };
       }
@@ -449,12 +470,15 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
             </div>
 
             <div className="space-y-2 mt-6">
-              <label className="text-sm font-medium text-slate-700 mb-1 block">Payment Notes</label>
+              <label className="text-sm font-medium text-slate-700 mb-1 block">
+                Payment Notes
+                <span className="text-xs text-slate-500 ml-2">(Auto-populated from invoice notes)</span>
+              </label>
               <Textarea
                 id="notes"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                rows={3}
+                rows={4}
               />
             </div>
           </CardContent>
