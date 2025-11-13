@@ -5,7 +5,9 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X } from "lucide-react";
+import { X, Search, Check } from "lucide-react";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = useState({
@@ -16,6 +18,8 @@ export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel
     status: 'active',
     notes: ''
   });
+  
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     if (privilege) {
@@ -38,6 +42,8 @@ export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel
     "CTSC- CT Surgery Center"
   ];
 
+  const selectedProvider = providers.find(p => p.id === formData.provider_id);
+
   return (
     <Card className="border-slate-200 shadow-sm">
       <CardHeader className="border-b border-slate-100">
@@ -53,18 +59,44 @@ export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="provider_id">Provider *</Label>
-              <Select value={formData.provider_id} onValueChange={(value) => setFormData({ ...formData, provider_id: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select provider" />
-                </SelectTrigger>
-                <SelectContent>
-                  {providers.map(provider => (
-                    <SelectItem key={provider.id} value={provider.id}>
-                      {provider.full_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={open}
+                    className="w-full justify-between font-normal"
+                  >
+                    {selectedProvider ? selectedProvider.full_name : "Select provider..."}
+                    <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search providers..." />
+                    <CommandEmpty>No provider found.</CommandEmpty>
+                    <CommandGroup className="max-h-64 overflow-auto">
+                      {providers.map((provider) => (
+                        <CommandItem
+                          key={provider.id}
+                          value={provider.full_name}
+                          onSelect={() => {
+                            setFormData({ ...formData, provider_id: provider.id });
+                            setOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={`mr-2 h-4 w-4 ${
+                              formData.provider_id === provider.id ? "opacity-100" : "opacity-0"
+                            }`}
+                          />
+                          {provider.full_name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="space-y-2">
