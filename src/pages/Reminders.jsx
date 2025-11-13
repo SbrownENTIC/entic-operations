@@ -78,12 +78,12 @@ Steve Brown
 The Operations Team`;
       }
       
-      // Send emails to all recipients
+      // Send emails to all recipients using Mailgun
       for (const recipient of reminder.recipients) {
-        await base44.integrations.Core.SendEmail({
+        await base44.functions.invoke('sendEmailViaMailgun', {
           to: recipient,
           subject: reminder.email_subject,
-          body: emailBody + '\n\n\n', // Added three newlines here
+          body: emailBody + '\n\n\n',
           from_name: 'ENTIC Operations Team'
         });
       }

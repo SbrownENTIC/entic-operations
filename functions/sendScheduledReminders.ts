@@ -37,20 +37,53 @@ Deno.serve(async (req) => {
       let emailErrors = [];
       
       try {
-        // Send email to each recipient using Base44's email service
+        // Build the email body with dynamic values for holiday reminders
+        let emailBody = reminder.email_body;
+        
+        if (reminder.reminder_type === 'Holiday' && reminder.closure_date) {
+          const closureDate = new Date(reminder.closure_date);
+          const reopenDate = reminder.reopen_date ? new Date(reminder.reopen_date) : null;
+          
+          const formatDate = (date) => {
+            return date.toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            });
+          };
+          
+          emailBody = `Good Morning All,
+ 
+This email is to notify you that our office will be closed on ${formatDate(closureDate)} for the ${reminder.holiday_name || 'Holiday'} Holiday.
+
+The offices will re-open at 8am on ${reopenDate ? formatDate(reopenDate) : 'the next business day'}.
+
+${reminder.oncall_provider_list || '(On-Call Provider)'} on call during office closure is the on-call provider and can be reached at ${reminder.oncall_phone_list || '(phone number)'}.
+ 
+Best Regards,
+Steve Brown  
+The Operations Team`;
+        }
+        
+        // Send email to each recipient using Mailgun
         for (const recipient of reminder.recipients) {
           try {
             console.log(`Attempting to send email to: ${recipient}`);
             
-            await base44.asServiceRole.integrations.Core.SendEmail({
-              from_name: 'ENTIC Operations Team',
+            // Use the Mailgun function instead of Core.SendEmail
+            const emailResponse = await base44.asServiceRole.functions.invoke('sendEmailViaMailgun', {
               to: recipient,
               subject: reminder.email_subject,
-              body: reminder.email_body.replace(/\n/g, '<br>') + '<br><br><br>'
+              body: emailBody + '\n\n\n',
+              from_name: 'ENTIC Operations Team'
             });
             
-            emailsSent++;
-            console.log(`Email sent successfully to: ${recipient}`);
+            if (emailResponse.data.success) {
+              emailsSent++;
+              console.log(`Email sent successfully to: ${recipient}`);
+            } else {
+              throw new Error(emailResponse.data.error || 'Unknown error');
+            }
           } catch (emailError) {
             console.error(`Failed to send email to ${recipient}:`, emailError.message);
             emailErrors.push({
