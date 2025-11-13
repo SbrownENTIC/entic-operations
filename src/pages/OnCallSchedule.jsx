@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ChevronLeft, ChevronRight, RefreshCw, Calendar as CalendarIcon, Search, Pencil, Trash2, List, ArrowUpDown, ArrowUp, ArrowDown, Check } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, RefreshCw, Calendar as CalendarIcon, Search, Pencil, Trash2, List, ArrowUpDown, ArrowUp, ArrowDown, Check, UserCheck } from "lucide-react";
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, addMonths, subMonths, isSameDay, startOfWeek, endOfWeek, startOfDay, addDays, differenceInDays } from "date-fns";
 import OnCallForm from "../components/oncall/OnCallForm";
 import {
@@ -48,6 +48,7 @@ export default function OnCallSchedule() {
   const [selectedEntries, setSelectedEntries] = useState([]);
   const [bulkProvider, setBulkProvider] = useState('');
   const [providerSelectOpen, setProviderSelectOpen] = useState(false);
+  const [updatingProviders, setUpdatingProviders] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: schedules = [] } = useQuery({
@@ -180,6 +181,20 @@ export default function OnCallSchedule() {
       setSyncMessage('Error syncing 2026 St. Francis schedules: ' + error.message);
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleUpdateAllProviders = async () => {
+    setUpdatingProviders(true);
+    setSyncMessage('');
+    try {
+      const response = await base44.functions.invoke('updateOnCallProviders', {});
+      setSyncMessage(response.data.message);
+      queryClient.invalidateQueries({ queryKey: ['oncall-schedules'] });
+    } catch (error) {
+      setSyncMessage('Error updating providers: ' + error.message);
+    } finally {
+      setUpdatingProviders(false);
     }
   };
 
@@ -365,7 +380,7 @@ export default function OnCallSchedule() {
             <h1 className="text-3xl font-bold text-slate-900">On-Call Schedule</h1>
             <p className="text-slate-600 mt-1">Manage provider on-call schedules</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
             <Button
               variant="outline"
               onClick={() => setViewMode(viewMode === 'calendar' ? 'list' : 'calendar')}
@@ -373,6 +388,15 @@ export default function OnCallSchedule() {
             >
               {viewMode === 'calendar' ? <List className="w-4 h-4" /> : <CalendarIcon className="w-4 h-4" />}
               {viewMode === 'calendar' ? 'List View' : 'Calendar View'}
+            </Button>
+            <Button
+              onClick={handleUpdateAllProviders}
+              disabled={updatingProviders}
+              variant="outline"
+              className="gap-2 border-purple-600 text-purple-600 hover:bg-purple-50"
+            >
+              <UserCheck className={`w-4 h-4 ${updatingProviders ? 'animate-spin' : ''}`} />
+              {updatingProviders ? 'Updating...' : 'Update All Providers'}
             </Button>
             <Button
               onClick={handleSync2026StFrancis}
