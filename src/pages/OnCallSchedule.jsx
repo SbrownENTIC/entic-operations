@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ChevronLeft, ChevronRight, RefreshCw, Calendar as CalendarIcon, Search, Pencil, Trash2, List, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, RefreshCw, Calendar as CalendarIcon, Search, Pencil, Trash2, List, ArrowUpDown, ArrowUp, ArrowDown, Check } from "lucide-react";
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, addMonths, subMonths, isSameDay, startOfWeek, endOfWeek, startOfDay, addDays, differenceInDays } from "date-fns";
 import OnCallForm from "../components/oncall/OnCallForm";
 import {
@@ -18,6 +18,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const PROVIDER_COLORS = [
   "bg-green-500",
@@ -43,6 +45,9 @@ export default function OnCallSchedule() {
   const [sortField, setSortField] = useState('start_date');
   const [sortDirection, setSortDirection] = useState('asc');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [selectedEntries, setSelectedEntries] = useState([]);
+  const [bulkProvider, setBulkProvider] = useState('');
+  const [providerSelectOpen, setProviderSelectOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: schedules = [] } = useQuery({
@@ -93,6 +98,20 @@ export default function OnCallSchedule() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['oncall-schedules'] });
       setDeleteConfirm(null);
+    }
+  });
+
+  const bulkUpdateMutation = useMutation({
+    mutationFn: async ({ ids, updateData }) => {
+      const updates = ids.map(id => 
+        base44.entities.OnCallSchedule.update(id, updateData)
+      );
+      return Promise.all(updates);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['oncall-schedules'] });
+      setSelectedEntries([]);
+      setBulkProvider('');
     }
   });
 
@@ -170,6 +189,28 @@ export default function OnCallSchedule() {
     } else {
       setSortField(field);
       setSortDirection('asc');
+    }
+  };
+
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedEntries(sortedSchedules.map(schedule => schedule.id));
+    } else {
+      setSelectedEntries([]);
+    }
+  };
+
+  const handleSelectEntry = (entryId, checked) => {
+    if (checked) {
+      setSelectedEntries([...selectedEntries, entryId]);
+    } else {
+      setSelectedEntries(selectedEntries.filter(id => id !== entryId));
+    }
+  };
+
+  const handleBulkUpdateProvider = () => {
+    if (selectedEntries.length > 0 && bulkProvider) {
+      bulkUpdateMutation.mutate({ ids: selectedEntries, updateData: { provider_id: bulkProvider } });
     }
   };
 
@@ -313,6 +354,8 @@ export default function OnCallSchedule() {
       <ArrowUp className="w-4 h-4 ml-1 inline" /> : 
       <ArrowDown className="w-4 h-4 ml-1 inline" />;
   };
+
+  const selectedProviderForBulk = providers.find(p => p.id === bulkProvider);
 
   return (
     <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
@@ -479,7 +522,7 @@ export default function OnCallSchedule() {
           </Card>
         ) : (
           <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="border-b border-slate-100">
+            <CardHeader className="border-b border-slate-100 space-y-4">
               <div className="flex items-center gap-4">
                 <Search className="w-5 h-5 text-slate-400" />
                 <Input
@@ -489,12 +532,85 @@ export default function OnCallSchedule() {
                   className="max-w-md border-slate-200"
                 />
               </div>
+              {selectedEntries.length > 0 && (
+                <div className="flex flex-col gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-slate-900">
+                      {selectedEntries.length} selected
+                    </span>
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedEntries([])}
+                    >
+                      Clear Selection
+                    </Button>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-slate-700">Change Provider:</span>
+                    <Popover open={providerSelectOpen} onOpenChange={setProviderSelectOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={providerSelectOpen}
+                          className="w-64 justify-between font-normal"
+                        >
+                          {selectedProviderForBulk ? selectedProviderForBulk.full_name : "Select provider..."}
+                          <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search providers..." />
+                          <CommandEmpty>No provider found.</CommandEmpty>
+                          <CommandGroup className="max-h-64 overflow-auto">
+                            {providers.map((provider) => (
+                              <CommandItem
+                                key={provider.id}
+                                value={provider.full_name}
+                                onSelect={() => {
+                                  setBulkProvider(provider.id);
+                                  setProviderSelectOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={`mr-2 h-4 w-4 ${
+                                    bulkProvider === provider.id ? "opacity-100" : "opacity-0"
+                                  }`}
+                                />
+                                {provider.full_name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <Button 
+                      onClick={handleBulkUpdateProvider}
+                      disabled={!bulkProvider || bulkUpdateMutation.isPending}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      {bulkUpdateMutation.isPending ? 'Updating...' : 'Update Provider'}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-slate-50 border-b border-slate-200">
                     <tr>
+                      <th className="text-left p-4 text-sm font-semibold text-slate-700 w-12">
+                        <input
+                          type="checkbox"
+                          checked={selectedEntries.length === sortedSchedules.length && sortedSchedules.length > 0}
+                          onChange={(e) => handleSelectAll(e.target.checked)}
+                          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        />
+                      </th>
                       <th 
                         className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                         onClick={() => handleSort('providerName')}
@@ -537,7 +653,15 @@ export default function OnCallSchedule() {
                   </thead>
                   <tbody>
                     {sortedSchedules.map((schedule) => (
-                      <tr key={schedule.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                      <tr key={schedule.id} className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${selectedEntries.includes(schedule.id) ? 'bg-blue-50' : ''}`}>
+                        <td className="p-4">
+                          <input
+                            type="checkbox"
+                            checked={selectedEntries.includes(schedule.id)}
+                            onChange={(e) => handleSelectEntry(schedule.id, e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                          />
+                        </td>
                         <td className="p-4 font-medium text-slate-900">{schedule.provider?.full_name}</td>
                         <td className="p-4 text-slate-600">{schedule.location || '-'}</td>
                         <td className="p-4 text-slate-600">
