@@ -122,8 +122,10 @@ Deno.serve(async (req) => {
       "Dr. Ryan Drake"
     ];
 
+    console.log('Fetching providers...');
     // Fetch all providers
     const providers = await base44.entities.Provider.list();
+    console.log(`Found ${providers.length} providers`);
     
     // Create a map of provider names to IDs
     const providerMap = {};
@@ -131,8 +133,10 @@ Deno.serve(async (req) => {
       providerMap[provider.full_name] = provider.id;
     });
 
+    console.log('Fetching invoices...');
     // Fetch all invoices sorted by invoice_date ascending (oldest first)
     const invoices = await base44.entities.Invoice.list('invoice_date');
+    console.log(`Found ${invoices.length} invoices`);
 
     if (invoices.length === 0) {
       return Response.json({
@@ -143,6 +147,7 @@ Deno.serve(async (req) => {
 
     // Update each invoice with the corresponding provider
     let updatedCount = 0;
+    let skippedCount = 0;
     let notFoundProviders = [];
     const updates = [];
 
@@ -152,36 +157,48 @@ Deno.serve(async (req) => {
       const providerId = providerMap[providerName];
 
       if (!providerId) {
+        console.log(`Provider not found: ${providerName}`);
         notFoundProviders.push(providerName);
         continue;
       }
 
       // Only update if the provider is different
       if (invoice.staff_member_id !== providerId) {
+        console.log(`Updating invoice ${i + 1}: ${invoice.invoice_number} -> ${providerName}`);
         updates.push(
           base44.entities.Invoice.update(invoice.id, {
             staff_member_id: providerId
           })
         );
         updatedCount++;
+      } else {
+        skippedCount++;
       }
     }
 
+    console.log(`Executing ${updates.length} updates...`);
     // Execute all updates
-    await Promise.all(updates);
+    if (updates.length > 0) {
+      await Promise.all(updates);
+    }
+    console.log('Updates complete!');
 
     return Response.json({
       success: true,
-      message: `Successfully updated ${updatedCount} invoices`,
+      message: `Successfully updated ${updatedCount} invoices (${skippedCount} already correct)`,
       totalInvoices: invoices.length,
       providersInOrder: providerNamesInOrder.length,
+      updatedCount,
+      skippedCount,
       notFoundProviders: notFoundProviders.length > 0 ? notFoundProviders : null
     });
 
   } catch (error) {
     console.error('Error updating invoice providers:', error);
+    console.error('Error stack:', error.stack);
     return Response.json({ 
-      error: error.message || 'An error occurred while updating invoices'
+      error: error.message || 'An error occurred while updating invoices',
+      details: error.stack
     }, { status: 500 });
   }
 });
