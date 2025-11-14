@@ -40,7 +40,8 @@ export default function OutsideIncome() {
   const [sortField, setSortField] = useState('created_date');
   const [sortDirection, setSortDirection] = useState('desc');
   const [linkingOnCall, setLinkingOnCall] = useState(false);
-  const [linkingProviders, setLinkingProviders] = useState(false); // Added state
+  const [linkingProviders, setLinkingProviders] = useState(false);
+  const [linkingUConnProviders, setLinkingUConnProviders] = useState(false);
   const [linkMessage, setLinkMessage] = useState('');
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -148,6 +149,20 @@ export default function OutsideIncome() {
       setLinkMessage('Error linking providers: ' + error.message);
     } finally {
       setLinkingProviders(false);
+    }
+  };
+
+  const handleLinkUConnProviders = async () => {
+    setLinkingUConnProviders(true);
+    setLinkMessage('');
+    try {
+      const response = await base44.functions.invoke('linkUConnProviders', {});
+      setLinkMessage(response.data.message);
+      queryClient.invalidateQueries({ queryKey: ['outside-income'] });
+    } catch (error) {
+      setLinkMessage('Error linking UConn providers: ' + error.message);
+    } finally {
+      setLinkingUConnProviders(false);
     }
   };
 
@@ -371,7 +386,7 @@ export default function OutsideIncome() {
               <UserCheck className={`w-4 h-4 ${linkingOnCall ? 'animate-spin' : ''}`} />
               {linkingOnCall ? 'Linking...' : 'Link On-Call Dates'}
             </Button>
-            <Button // New button for linking St. Francis Providers
+            <Button
               onClick={handleLinkStFrancisProviders}
               disabled={linkingProviders}
               variant="outline"
@@ -379,6 +394,15 @@ export default function OutsideIncome() {
             >
               <UserCheck className={`w-4 h-4 ${linkingProviders ? 'animate-spin' : ''}`} />
               {linkingProviders ? 'Linking...' : 'Link St. Francis Providers'}
+            </Button>
+            <Button
+              onClick={handleLinkUConnProviders}
+              disabled={linkingUConnProviders}
+              variant="outline"
+              className="gap-2 border-green-600 text-green-600 hover:bg-green-50"
+            >
+              <UserCheck className={`w-4 h-4 ${linkingUConnProviders ? 'animate-spin' : ''}`} />
+              {linkingUConnProviders ? 'Linking...' : 'Link UConn Providers'}
             </Button>
             {selectedIncomes.length > 0 && (
               <Button
