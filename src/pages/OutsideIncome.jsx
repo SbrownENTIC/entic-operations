@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search, Pencil, Trash2, FileText, ArrowUpDown, ArrowUp, ArrowDown, Download, UserCheck } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, FileText, ArrowUpDown, ArrowUp, ArrowDown, Download, UserCheck, DollarSign } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { parseISO, format } from "date-fns";
@@ -42,6 +42,7 @@ export default function OutsideIncome() {
   const [linkingOnCall, setLinkingOnCall] = useState(false);
   const [linkingProviders, setLinkingProviders] = useState(false);
   const [linkingUConnProviders, setLinkingUConnProviders] = useState(false);
+  const [fixingAmounts, setFixingAmounts] = useState(false); // New state variable
   const [linkMessage, setLinkMessage] = useState('');
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -163,6 +164,20 @@ export default function OutsideIncome() {
       setLinkMessage('Error linking UConn providers: ' + error.message);
     } finally {
       setLinkingUConnProviders(false);
+    }
+  };
+
+  const handleFixAmounts = async () => {
+    setFixingAmounts(true);
+    setLinkMessage('');
+    try {
+      const response = await base44.functions.invoke('fixOutsideIncomeAmounts', {});
+      setLinkMessage(response.data.message);
+      queryClient.invalidateQueries({ queryKey: ['outside-income'] });
+    } catch (error) {
+      setLinkMessage('Error fixing amounts: ' + error.message);
+    } finally {
+      setFixingAmounts(false);
     }
   };
 
@@ -368,7 +383,16 @@ export default function OutsideIncome() {
             <h1 className="text-3xl font-bold text-slate-900">Outside Income</h1>
             <p className="text-slate-600 mt-1">Track work performed at external facilities</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
+            <Button
+              onClick={handleFixAmounts}
+              disabled={fixingAmounts}
+              variant="outline"
+              className="gap-2 border-orange-600 text-orange-600 hover:bg-orange-50"
+            >
+              <DollarSign className={`w-4 h-4 ${fixingAmounts ? 'animate-spin' : ''}`} />
+              {fixingAmounts ? 'Fixing...' : 'Fix Amounts'}
+            </Button>
             <Button
               onClick={exportToCSV}
               variant="outline"
