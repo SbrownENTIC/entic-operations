@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +13,7 @@ import FinancialDetailModal from "../components/dashboard/FinancialDetailModal";
 export default function Dashboard() {
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState('');
+  const [authReady, setAuthReady] = useState(false);
   const [modalState, setModalState] = useState({
     isOpen: false,
     title: '',
@@ -29,7 +29,10 @@ export default function Dashboard() {
     queryKey: ['current-user'],
     queryFn: async () => {
       try {
-        return await base44.auth.me();
+        const userData = await base44.auth.me();
+        // Add small delay to ensure session is fully established
+        await new Promise(resolve => setTimeout(resolve, 100));
+        return userData;
       } catch (error) {
         // If not authenticated, redirect to login
         if (error.message?.includes('not authenticated') || error.message?.includes('401')) {
@@ -40,102 +43,71 @@ export default function Dashboard() {
       }
     },
     retry: false,
-    staleTime: 5 * 60 * 1000 // Cache for 5 minutes to avoid repeated calls
+    staleTime: 5 * 60 * 1000
   });
 
-  const { data: providers = [], isError: providersError } = useQuery({
+  // Set authReady after user is loaded
+  useEffect(() => {
+    if (user && !authLoading) {
+      // Add extra delay on mobile devices to ensure session is ready
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      const delay = isMobile ? 300 : 100;
+      
+      const timer = setTimeout(() => {
+        setAuthReady(true);
+      }, delay);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [user, authLoading]);
+
+  const { data: providers = [], isLoading: providersLoading } = useQuery({
     queryKey: ['providers'],
     queryFn: () => base44.entities.Provider.list(),
-    enabled: !!user,
-    retry: 1
+    enabled: authReady,
+    retry: 2,
+    retryDelay: 1000
   });
 
-  const { data: licenses = [], isError: licensesError } = useQuery({
+  const { data: licenses = [], isLoading: licensesLoading } = useQuery({
     queryKey: ['licenses'],
     queryFn: () => base44.entities.License.list(),
-    enabled: !!user,
-    retry: 1
+    enabled: authReady,
+    retry: 2,
+    retryDelay: 1000
   });
 
-  const { data: privileges = [], isError: privilegesError } = useQuery({
+  const { data: privileges = [], isLoading: privilegesLoading } = useQuery({
     queryKey: ['privileges'],
     queryFn: () => base44.entities.ClinicalPrivilege.list(),
-    enabled: !!user,
-    retry: 1
+    enabled: authReady,
+    retry: 2,
+    retryDelay: 1000
   });
 
-  const { data: invoices = [], isError: invoicesError } = useQuery({
+  const { data: invoices = [], isLoading: invoicesLoading } = useQuery({
     queryKey: ['invoices'],
     queryFn: () => base44.entities.Invoice.list(),
-    enabled: !!user,
-    retry: 1
+    enabled: authReady,
+    retry: 2,
+    retryDelay: 1000
   });
 
-  const { data: cmeRecords = [], isError: cmeError } = useQuery({
+  const { data: cmeRecords = [], isLoading: cmeLoading } = useQuery({
     queryKey: ['cme'],
     queryFn: () => base44.entities.CME.list(),
-    enabled: !!user,
-    retry: 1
+    enabled: authReady,
+    retry: 2,
+    retryDelay: 1000
   });
 
-  const { data: payments = [], isError: paymentsError } = useQuery({
+  const { data: payments = [], isLoading: paymentsLoading } = useQuery({
     queryKey: ['payments'],
     queryFn: () => base44.entities.Payment.list(),
-    enabled: !!user,
-    retry: 1
+    enabled: authReady,
+    retry: 2,
+    retryDelay: 1000
   });
-
-  // Show loading state while checking authentication
-  if (authLoading) {
-    return (
-      <div className="p-6 md:p-8 bg-slate-50 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Check if any data queries failed
-  const hasDataError = providersError || licensesError || privilegesError || invoicesError || cmeError || paymentsError;
-
-  // If there's an auth error that's not a redirect, show it
-  if (authError && !authError.message?.includes('not authenticated') && !authError.message?.includes('401')) {
-    return (
-      <div className="p-6 md:p-8 bg-slate-50 min-h-screen flex items-center justify-center">
-        <Card className="max-w-md">
-          <CardContent className="p-6 text-center">
-            <p className="text-red-600 mb-4">Error loading dashboard: {authError.message}</p>
-            <Button onClick={() => window.location.reload()}>
-              Reload Page
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // If there's a data loading error (like the User authentication error), show it
-  if (hasDataError) {
-    return (
-      <div className="p-6 md:p-8 bg-slate-50 min-h-screen flex items-center justify-center">
-        <Card className="max-w-md">
-          <CardContent className="p-6 text-center">
-            <p className="text-red-600 mb-4">Error loading dashboard data. This might be a temporary issue.</p>
-            <Button onClick={() => window.location.reload()}>
-              Reload Page
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // If user is null (meaning a redirect happened), show nothing
-  if (!user) {
-    return null;
-  }
 
   const handleSyncPaymentsAndInvoices = async () => {
     setSyncing(true);
@@ -329,6 +301,69 @@ export default function Dashboard() {
     exportToCSV(rows, 'invoice_summary');
   };
 
+  // Show loading state while checking authentication or waiting for auth to be ready
+  if (authLoading || (user && !authReady)) {
+    return (
+      <div className="p-6 md:p-8 bg-slate-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If there's an auth error that's not a redirect, show it
+  if (authError && !authError.message?.includes('not authenticated') && !authError.message?.includes('401')) {
+    return (
+      <div className="p-6 md:p-8 bg-slate-50 min-h-screen flex items-center justify-center">
+        <Card className="max-w-md">
+          <CardContent className="p-6 text-center">
+            <AlertTriangle className="w-12 h-12 text-red-600 mx-auto mb-4" />
+            <p className="text-red-600 mb-4">Authentication error: {authError.message}</p>
+            <div className="space-y-2">
+              <Button onClick={() => {
+                queryClient.clear();
+                window.location.reload();
+              }} className="w-full">
+                Reload Dashboard
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  base44.auth.logout();
+                }} 
+                className="w-full"
+              >
+                Log Out and Sign In Again
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // If user is null (meaning a redirect happened), show nothing
+  if (!user) {
+    return null;
+  }
+
+  // Show loading for data if any query is still loading
+  const isLoadingData = providersLoading || licensesLoading || privilegesLoading || 
+                        invoicesLoading || cmeLoading || paymentsLoading;
+
+  if (isLoadingData) {
+    return (
+      <div className="p-6 md:p-8 bg-slate-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading dashboard data...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Provider counts
   const activeProviders = providers.filter(p => p.status === 'active').length;
 
@@ -358,10 +393,8 @@ export default function Dashboard() {
   });
 
   // Financial metrics - Total
-  // Calculate total allocated payments (money actually received and allocated to invoices)
   const totalAllocatedToInvoices = payments.reduce((sum, payment) => {
     const allocatedAmount = payment.allocations?.reduce((allocSum, allocation) => {
-      // Only count allocations that are actually assigned to an invoice
       if (allocation.invoice_id) {
         return allocSum + (allocation.amount || 0);
       }
@@ -370,7 +403,6 @@ export default function Dashboard() {
     return sum + allocatedAmount;
   }, 0);
 
-  // This is the actual "Total Paid to ENTIC" - money received and allocated
   const totalPaidToENTIC = totalAllocatedToInvoices;
 
   const totalOwedToProviders = invoices
@@ -383,7 +415,6 @@ export default function Dashboard() {
       return sum + (outstanding > 0 ? outstanding : 0);
     }, 0);
 
-  // Calculate unallocated payments - use the unallocated_amount field from each payment
   const unallocatedPayments = payments.reduce((sum, payment) => sum + (payment.unallocated_amount || 0), 0);
 
   // Financial metrics by Program/Location
@@ -399,24 +430,20 @@ export default function Dashboard() {
       };
     }
     
-    // Paid to ENTIC - based on amount_received (which comes from payment allocations)
     if (inv.amount_received > 0) {
       financialsByProgram[program].paidToENTIC += (inv.amount_received || 0);
       
-      // Owed to Providers (received but not paid to provider yet)
       if (!inv.provider_paid) {
         financialsByProgram[program].owedToProviders += (inv.amount_received || 0);
       }
     }
     
-    // Outstanding to ENTIC - what we haven't received yet
     const outstanding = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
     if (outstanding > 0) {
       financialsByProgram[program].outstanding += outstanding;
     }
   });
 
-  // Sort programs by name
   const programsSorted = Object.keys(financialsByProgram).sort();
 
   // Invoice tracking
@@ -432,7 +459,7 @@ export default function Dashboard() {
     return daysSinceSent > 30 && inv.status !== 'paid_to_entic' && inv.status !== 'provider_paid';
   }).length;
 
-  // CME compliance for doctors - Filter by ENT MD role
+  // CME compliance for doctors
   const doctors = providers.filter(p => p.role === 'ENT MD' && p.status === 'active');
   const cmeByProvider = {};
   cmeRecords.forEach(record => {
@@ -447,7 +474,7 @@ export default function Dashboard() {
 
   // Format currency with commas
   const formatCurrency = (amount) => {
-    return '$' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return '$' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigals: 2 });
   };
 
   return (
