@@ -820,41 +820,50 @@ export default function Dashboard() {
             </div>
           </CardHeader>
           <CardContent className="p-6">
-            <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
               {Object.entries({
-                'Not Started': invoices.filter(inv => inv.status === 'not_started'),
-                'Draft': invoices.filter(inv => inv.status === 'draft'),
-                'Pending Providers Approval': invoices.filter(inv => inv.status === 'pending_providers_approval'),
-                'Pending Providers Time': invoices.filter(inv => inv.status === 'pending_providers_time'),
-                'Sent For Approval': invoices.filter(inv => inv.status === 'sent_for_approval'),
-                'Approved': invoices.filter(inv => inv.status === 'approved'),
-                'Sent To Vendor': invoices.filter(inv => inv.status === 'sent_to_vendor'),
-                'Partial': invoices.filter(inv => inv.status === 'partial'),
-                'Paid To ENTIC': invoices.filter(inv => inv.status === 'paid_to_entic'),
-                'Provider Paid': invoices.filter(inv => inv.status === 'provider_paid'),
-              }).map(([status, statusInvoices]) => {
-                if (statusInvoices.length === 0) return null;
-                
-                return (
-                  <div key={status} className="space-y-2">
+                'Not Started': { invoices: invoices.filter(inv => inv.status === 'not_started'), color: 'gray' },
+                'Draft': { invoices: invoices.filter(inv => inv.status === 'draft'), color: 'slate' },
+                'Pending': { invoices: invoices.filter(inv => inv.status === 'pending_providers_approval' || inv.status === 'pending_providers_time' || inv.status === 'sent_for_approval'), color: 'yellow' },
+                'Approved': { invoices: invoices.filter(inv => inv.status === 'approved'), color: 'green' },
+                'Sent To Vendor': { invoices: invoices.filter(inv => inv.status === 'sent_to_vendor'), color: 'blue' },
+                'Partial': { invoices: invoices.filter(inv => inv.status === 'partial'), color: 'indigo' },
+                'Paid To ENTIC': { invoices: invoices.filter(inv => inv.status === 'paid_to_entic'), color: 'emerald' },
+                'Provider Paid': { invoices: invoices.filter(inv => inv.status === 'provider_paid'), color: 'purple' },
+              }).map(([status, { invoices: statusInvoices, color }]) => (
+                <Card key={status} className={`border-${color}-200 bg-${color}-50/30 shadow-sm`}>
+                  <CardHeader className="pb-3 border-b border-slate-200 bg-white">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-slate-900">{status}</h3>
-                      <Badge variant="outline">{statusInvoices.length}</Badge>
+                      <h3 className="font-semibold text-slate-900 text-sm">{status}</h3>
+                      <Badge className={`bg-${color}-100 text-${color}-800 border-${color}-300`}>
+                        {statusInvoices.length}
+                      </Badge>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {statusInvoices.map(inv => (
-                        <Link 
-                          key={inv.id} 
-                          to={`${createPageUrl("Invoices")}?edit=${inv.id}`}
-                          className="text-sm px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded border border-slate-300 transition-colors"
-                        >
-                          {inv.invoice_number || 'N/A'}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
+                  </CardHeader>
+                  <CardContent className="p-3">
+                    {statusInvoices.length > 0 ? (
+                      <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                        {statusInvoices.map(inv => (
+                          <Link 
+                            key={inv.id} 
+                            to={`${createPageUrl("Invoices")}?edit=${inv.id}`}
+                            className={`block text-sm px-3 py-2 bg-white hover:bg-${color}-100 rounded border border-slate-200 hover:border-${color}-400 transition-all shadow-sm hover:shadow`}
+                          >
+                            <div className="font-medium text-slate-900">
+                              {inv.invoice_number || 'N/A'}
+                            </div>
+                            <div className="text-xs text-slate-600 truncate">
+                              {providers.find(p => p.id === inv.staff_member_id)?.full_name || 'Unknown'}
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-center py-8 text-slate-400 text-sm">No invoices</p>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </CardContent>
         </Card>

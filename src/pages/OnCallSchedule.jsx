@@ -521,7 +521,7 @@ export default function OnCallSchedule() {
               )}
             </CardHeader>
             <CardContent className="p-0">
-              <div className="overflow-auto max-h-[calc(100vh-250px)]">
+              <div className="overflow-auto max-h-[calc(100vh-280px)]">
                 <table className="w-full">
                   <thead className="sticky top-0 bg-slate-50 border-b border-slate-200 z-10">
                     <tr>
