@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -20,6 +21,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
     rate: 0,
     total_amount: 0,
     status: 'pending',
+    temp_oncall_start_date: '',
     notes: ''
   });
 
@@ -53,7 +55,8 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
         ...income,
         work_dates: income.work_dates || [''],
         days_worked: income.days_worked || 0,
-        total_rvus: income.total_rvus || 0
+        total_rvus: income.total_rvus || 0,
+        temp_oncall_start_date: income.temp_oncall_start_date || ''
       });
     }
   }, [income]);
@@ -286,6 +289,16 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
                   <SelectItem value="paid">Paid</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="temp_oncall_start_date">On-Call Start Date (Temp)</Label>
+              <Input
+                id="temp_oncall_start_date"
+                type="date"
+                value={formData.temp_oncall_start_date}
+                onChange={(e) => setFormData({ ...formData, temp_oncall_start_date: e.target.value })}
+              />
             </div>
           </div>
 
