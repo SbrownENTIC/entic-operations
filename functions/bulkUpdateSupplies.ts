@@ -157,6 +157,9 @@ const supplyData = [
   { item_number: "CPCUS06022A", product_name: "CPCUS06022A", unit_price: 33.42, units: "9/Carton" }
 ];
 
+// Helper function to delay
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -171,20 +174,40 @@ Deno.serve(async (req) => {
     
     let updated = 0;
     let notFound = [];
-
-    // Update each supply with the correct data
-    for (const data of supplyData) {
-      const supply = supplies.find(s => s.item_number === data.item_number);
+    const batchSize = 10; // Process 10 at a time
+    
+    // Process in batches to avoid rate limits
+    for (let i = 0; i < supplyData.length; i += batchSize) {
+      const batch = supplyData.slice(i, i + batchSize);
       
-      if (supply) {
-        await base44.asServiceRole.entities.Supply.update(supply.id, {
-          product_name: data.product_name,
-          unit_price: data.unit_price,
-          units: data.units || null
-        });
-        updated++;
-      } else {
-        notFound.push(data.item_number);
+      const updatePromises = batch.map(async (data) => {
+        const supply = supplies.find(s => s.item_number === data.item_number);
+        
+        if (supply) {
+          await base44.asServiceRole.entities.Supply.update(supply.id, {
+            product_name: data.product_name,
+            unit_price: data.unit_price,
+            units: data.units || null
+          });
+          return { success: true, item: data.item_number };
+        } else {
+          return { success: false, item: data.item_number };
+        }
+      });
+      
+      const results = await Promise.all(updatePromises);
+      
+      results.forEach(result => {
+        if (result.success) {
+          updated++;
+        } else {
+          notFound.push(result.item);
+        }
+      });
+      
+      // Add delay between batches to avoid rate limits
+      if (i + batchSize < supplyData.length) {
+        await delay(1000); // Wait 1 second between batches
       }
     }
 
