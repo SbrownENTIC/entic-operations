@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -101,14 +102,43 @@ export default function Invoices() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }) => {
+      // Get the original invoice to compare
+      const originalInvoice = invoices.find(inv => inv.id === id);
+      const originalIncomeIds = originalInvoice?.outside_income_ids || [];
+      const newIncomeIds = data.outside_income_ids || [];
+      
+      // Find incomes that were unlinked (in original but not in new)
+      const unlinkedIncomes = originalIncomeIds.filter(incId => !newIncomeIds.includes(incId));
+      
+      // Find incomes that were newly linked (in new but not in original)
+      const newlyLinkedIncomes = newIncomeIds.filter(incId => !originalIncomeIds.includes(incId));
+      
+      // Update the invoice
       const invoice = await base44.entities.Invoice.update(id, data);
       
-      if (data.outside_income_ids && data.outside_income_ids.length > 0) {
-        for (const incomeId of data.outside_income_ids) {
-          await base44.entities.OutsideIncome.update(incomeId, {
-            invoice_month: data.month || ''
-          });
-        }
+      // Clear invoice_id from unlinked incomes
+      for (const incomeId of unlinkedIncomes) {
+        await base44.entities.OutsideIncome.update(incomeId, {
+          invoice_id: null,
+          invoice_month: null,
+          status: 'pending'
+        });
+      }
+      
+      // Set invoice_id on newly linked incomes
+      for (const incomeId of newlyLinkedIncomes) {
+        await base44.entities.OutsideIncome.update(incomeId, {
+          invoice_id: invoice.id,
+          invoice_month: data.month || '',
+          status: 'invoiced'
+        });
+      }
+      
+      // Update invoice_month for all currently linked incomes
+      for (const incomeId of newIncomeIds) {
+        await base44.entities.OutsideIncome.update(incomeId, {
+          invoice_month: data.month || ''
+        });
       }
       
       return invoice;
