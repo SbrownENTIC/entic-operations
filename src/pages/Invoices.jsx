@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, UserCheck } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useNavigate } from "react-router-dom";
-import { createPageUrl } => "@/utils";
+import { createPageUrl } from "@/utils";
 import InvoiceForm from "../components/invoices/InvoiceForm";
 import {
   AlertDialog,
