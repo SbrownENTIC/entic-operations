@@ -7,7 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Search, Pencil, Trash2, FileText, ArrowUpDown, ArrowUp, ArrowDown, Download } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Plus, Search, Pencil, Trash2, FileText, ArrowUpDown, ArrowUp, ArrowDown, Download, UserCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { parseISO, format } from "date-fns";
@@ -29,6 +36,7 @@ export default function OutsideIncome() {
   const [editingIncome, setEditingIncome] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [selectedIncomes, setSelectedIncomes] = useState([]);
+  const [bulkProviderId, setBulkProviderId] = useState("");
   const [sortField, setSortField] = useState('created_date');
   const [sortDirection, setSortDirection] = useState('desc');
   const queryClient = useQueryClient();
@@ -75,6 +83,20 @@ export default function OutsideIncome() {
     }
   });
 
+  const bulkUpdateProviderMutation = useMutation({
+    mutationFn: async ({ ids, providerId }) => {
+      const updates = ids.map(id =>
+        base44.entities.OutsideIncome.update(id, { provider_id: providerId })
+      );
+      return Promise.all(updates);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['outside-income'] });
+      setSelectedIncomes([]);
+      setBulkProviderId("");
+    }
+  });
+
   const handleSubmit = (data) => {
     if (editingIncome) {
       updateMutation.mutate({ id: editingIncome.id, data });
@@ -92,12 +114,26 @@ export default function OutsideIncome() {
     }
   };
 
+  const handleBulkUpdateProvider = () => {
+    if (selectedIncomes.length > 0 && bulkProviderId) {
+      bulkUpdateProviderMutation.mutate({ ids: selectedIncomes, providerId: bulkProviderId });
+    }
+  };
+
   const toggleSelection = (incomeId) => {
-    setSelectedIncomes(prev => 
-      prev.includes(incomeId) 
+    setSelectedIncomes(prev =>
+      prev.includes(incomeId)
         ? prev.filter(id => id !== incomeId)
         : [...prev, incomeId]
     );
+  };
+
+  const toggleAllSelection = () => {
+    if (selectedIncomes.length === sortedIncomes.length) {
+      setSelectedIncomes([]);
+    } else {
+      setSelectedIncomes(sortedIncomes.map(inc => inc.id));
+    }
   };
 
   const createInvoiceFromSelected = () => {
@@ -143,7 +179,7 @@ export default function OutsideIncome() {
   // Get month from work dates
   const getWorkMonth = (income) => {
     if (!income.work_dates || income.work_dates.length === 0) return '-';
-    
+
     try {
       // Get unique months from work dates
       const months = new Set();
@@ -151,7 +187,7 @@ export default function OutsideIncome() {
         const date = parseISO(dateStr);
         months.add(format(date, 'MMM yyyy'));
       });
-      
+
       const monthArray = Array.from(months);
       if (monthArray.length === 1) {
         return monthArray[0];
@@ -177,13 +213,13 @@ export default function OutsideIncome() {
   // Check if income is Hartford Hospital RVU-based (exclude Directorship)
   const isHartfordHospitalRVU = (income) => {
     const location = programLocations.find(pl => pl.id === income.program_location_id);
-    
+
     if (location) {
       const isHartford = location.program_group?.toLowerCase().includes('hartford hospital');
       const isDirectorship = location.program_type === 'Directorship';
       return isHartford && !isDirectorship;
     }
-    
+
     // Fallback to facility name
     const isHartford = income.facility_name?.toLowerCase().includes('hartford hospital');
     const isDirectorship = income.facility_name?.toLowerCase().includes('directorship');
@@ -221,7 +257,7 @@ export default function OutsideIncome() {
 
   const sortedIncomes = [...filteredIncomes].sort((a, b) => {
     let aValue, bValue;
-    
+
     if (sortField === 'providerName') {
       aValue = a.providerName;
       bValue = b.providerName;
@@ -240,15 +276,15 @@ export default function OutsideIncome() {
       aValue = a[sortField] || '';
       bValue = b[sortField] || '';
     }
-    
+
     const comparison = aValue.toString().toLowerCase().localeCompare(bValue.toString().toLowerCase());
     return sortDirection === 'asc' ? comparison : -comparison;
   });
 
   const SortIcon = ({ field }) => {
     if (sortField !== field) return <ArrowUpDown className="w-4 h-4 ml-1 inline" />;
-    return sortDirection === 'asc' ? 
-      <ArrowUp className="w-4 h-4 ml-1 inline" /> : 
+    return sortDirection === 'asc' ?
+      <ArrowUp className="w-4 h-4 ml-1 inline" /> :
       <ArrowDown className="w-4 h-4 ml-1 inline" />;
   };
 
@@ -259,7 +295,7 @@ export default function OutsideIncome() {
   };
 
   const pendingIncomes = sortedIncomes.filter(income => income.status === 'pending');
-  const canCreateInvoice = selectedIncomes.length > 0 && 
+  const canCreateInvoice = selectedIncomes.length > 0 &&
     selectedIncomes.every(id => {
       const income = incomes.find(inc => inc.id === id);
       return income && income.status === 'pending';
@@ -332,6 +368,48 @@ export default function OutsideIncome() {
                 className="max-w-md border-slate-200"
               />
             </div>
+
+            {selectedIncomes.length > 0 && (
+              <div className="flex flex-col gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-slate-900">
+                    {selectedIncomes.length} selected
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedIncomes([])}
+                  >
+                    Clear Selection
+                  </Button>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <span className="text-sm text-slate-700">Update Provider:</span>
+                  <Select value={bulkProviderId} onValueChange={setBulkProviderId}>
+                    <SelectTrigger className="w-64 bg-white">
+                      <SelectValue placeholder="Select provider" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {providers.map(provider => (
+                        <SelectItem key={provider.id} value={provider.id}>
+                          {provider.full_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Button
+                    onClick={handleBulkUpdateProvider}
+                    disabled={!bulkProviderId || bulkUpdateProviderMutation.isPending}
+                    className="bg-blue-600 hover:bg-blue-700 gap-2"
+                  >
+                    <UserCheck className="w-4 h-4" />
+                    {bulkUpdateProviderMutation.isPending ? 'Updating...' : 'Update Selected'}
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-auto max-h-[calc(100vh-230px)]">
@@ -339,62 +417,54 @@ export default function OutsideIncome() {
                   <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                     <tr>
                       <th className="text-left p-4 text-sm font-semibold text-slate-700 w-12">
-                        {pendingIncomes.length > 0 && (
-                          <Checkbox
-                            checked={pendingIncomes.every(inc => selectedIncomes.includes(inc.id))}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedIncomes(pendingIncomes.map(inc => inc.id));
-                              } else {
-                                setSelectedIncomes([]);
-                              }
-                            }}
-                          />
-                        )}
+                        <Checkbox
+                          checked={selectedIncomes.length === sortedIncomes.length && sortedIncomes.length > 0}
+                          onCheckedChange={toggleAllSelection}
+                        />
                       </th>
-                      <th 
+                      <th
                         className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                         onClick={() => handleSort('providerName')}
                       >
                         Provider <SortIcon field="providerName" />
                       </th>
-                      <th 
+                      <th
                         className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                         onClick={() => handleSort('facility_name')}
                       >
                         Facility <SortIcon field="facility_name" />
                       </th>
-                      <th 
+                      <th
                         className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                         onClick={() => handleSort('workMonth')}
                       >
                         Work Month <SortIcon field="workMonth" />
                       </th>
-                      <th 
+                      <th
                         className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                         onClick={() => handleSort('days_worked')}
                       >
                         Days/RVUs <SortIcon field="days_worked" />
                       </th>
-                      <th 
+                      <th
                         className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                         onClick={() => handleSort('rate')}
                       >
                         Rate <SortIcon field="rate" />
                       </th>
-                      <th 
+                      <th
                         className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                         onClick={() => handleSort('total_amount')}
                       >
                         Total <SortIcon field="total_amount" />
                       </th>
-                      <th 
+                      <th
                         className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                         onClick={() => handleSort('invoice_month')}
                       >
                         Invoice Month <SortIcon field="invoice_month" />
                       </th>
-                      <th 
+                      <th
                         className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                         onClick={() => handleSort('status')}
                       >
@@ -405,14 +475,12 @@ export default function OutsideIncome() {
                   </thead>
                   <tbody>
                     {sortedIncomes.map((income) => (
-                      <tr key={income.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                      <tr key={income.id} className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${selectedIncomes.includes(income.id) ? 'bg-blue-50' : ''}`}>
                         <td className="p-4">
-                          {income.status === 'pending' && (
-                            <Checkbox
-                              checked={selectedIncomes.includes(income.id)}
-                              onCheckedChange={() => toggleSelection(income.id)}
-                            />
-                          )}
+                          <Checkbox
+                            checked={selectedIncomes.includes(income.id)}
+                            onCheckedChange={() => toggleSelection(income.id)}
+                          />
                         </td>
                         <td className="p-4 font-medium text-slate-900">
                           {income.provider?.full_name || '-'}
@@ -447,8 +515,8 @@ export default function OutsideIncome() {
                         </td>
                         <td className="p-4 text-right">
                           <div className="flex gap-2 justify-end">
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="sm"
                               onClick={() => {
                                 setEditingIncome(income);
@@ -457,8 +525,8 @@ export default function OutsideIncome() {
                             >
                               <Pencil className="w-4 h-4" />
                             </Button>
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="sm"
                               onClick={() => setDeleteConfirm(income)}
                               className="text-red-600 hover:text-red-700"
