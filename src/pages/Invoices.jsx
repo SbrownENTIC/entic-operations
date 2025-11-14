@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -63,14 +62,12 @@ export default function Invoices() {
     if (create === 'true' && incomeIds) {
       setPreselectedIncomes(incomeIds.split(','));
       setShowForm(true);
-      // Clear URL params after opening form
       window.history.replaceState({}, '', createPageUrl("Invoices"));
     } else if (editId && invoices.length > 0) {
       const invoiceToEdit = invoices.find(inv => inv.id === editId);
       if (invoiceToEdit) {
         setEditingInvoice(invoiceToEdit);
         setShowForm(true);
-        // Clear URL params after opening form
         window.history.replaceState({}, '', createPageUrl("Invoices"));
       }
     }
@@ -80,7 +77,6 @@ export default function Invoices() {
     mutationFn: async (data) => {
       const invoice = await base44.entities.Invoice.create(data);
       
-      // Update outside income records with invoice_id and invoice_month
       if (data.outside_income_ids && data.outside_income_ids.length > 0) {
         for (const incomeId of data.outside_income_ids) {
           await base44.entities.OutsideIncome.update(incomeId, {
@@ -106,7 +102,6 @@ export default function Invoices() {
     mutationFn: async ({ id, data }) => {
       const invoice = await base44.entities.Invoice.update(id, data);
       
-      // Update outside income records with invoice_month if changed
       if (data.outside_income_ids && data.outside_income_ids.length > 0) {
         for (const incomeId of data.outside_income_ids) {
           await base44.entities.OutsideIncome.update(incomeId, {
@@ -127,7 +122,6 @@ export default function Invoices() {
 
   const deleteMutation = useMutation({
     mutationFn: async (invoice) => {
-      // Reset outside income records back to pending
       if (invoice.outside_income_ids && invoice.outside_income_ids.length > 0) {
         for (const incomeId of invoice.outside_income_ids) {
           await base44.entities.OutsideIncome.update(incomeId, {
@@ -248,12 +242,10 @@ export default function Invoices() {
     }
   };
 
-  // Format currency with commas
   const formatCurrency = (amount) => {
     return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
-  // Only process data when both queries have loaded
   if (invoicesLoading || providersLoading) {
     return (
       <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
