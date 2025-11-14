@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -75,7 +76,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
   const programGroups = [...new Set(programLocations.map(pl => pl.program_group).filter(Boolean))].sort();
 
   // Find all payment allocations to this invoice
-  const invoiceAllocations = invoice ? payments.filter(payment => 
+  const invoiceAllocations = invoice ? payments.filter(payment =>
     payment.allocations?.some(alloc => alloc.invoice_id === invoice.id)
   ).map(payment => ({
     payment,
@@ -85,12 +86,12 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
   // Extract month from invoice number
   const extractMonthFromInvoiceNumber = (invoiceNumber) => {
     if (!invoiceNumber) return '';
-    
+
     const monthPatterns = [
       /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\b/i,
       /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\.?\s+(\d{4})\b/i
     ];
-    
+
     for (const pattern of monthPatterns) {
       const match = invoiceNumber.match(pattern);
       if (match) {
@@ -98,7 +99,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
         return `${monthName} ${match[2]}`;
       }
     }
-    
+
     return '';
   };
 
@@ -109,18 +110,18 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
       const selectedIncomes = incomes.filter(inc => preselectedIncomes.includes(inc.id));
       const totalDays = selectedIncomes.reduce((sum, inc) => sum + (inc.days_worked || 0), 0);
       const totalAmount = selectedIncomes.reduce((sum, inc) => sum + (inc.total_amount || 0), 0);
-      
+
       const firstIncome = selectedIncomes[0];
       let programGroup = '';
       let staffMemberId = firstIncome?.provider_id || '';
-      
+
       if (firstIncome?.program_location_id) {
         const programLocation = programLocations.find(pl => pl.id === firstIncome.program_location_id);
         if (programLocation) {
           programGroup = programLocation.program_group || '';
         }
       }
-      
+
       setFormData(prev => ({
         ...prev,
         outside_income_ids: preselectedIncomes,
@@ -169,40 +170,40 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     let finalData = { ...formData };
-    
+
     if (!finalData.invoice_number && finalData.program_group === 'UConn') {
       const uconnLocation = programLocations.find(pl => pl.program_group === 'UConn');
       if (uconnLocation) {
         const nextNumber = (uconnLocation.invoice_counter || 39) + 1;
         finalData.invoice_number = `${nextNumber}`;
-        
+
         await base44.entities.ProgramLocation.update(uconnLocation.id, {
           invoice_counter: nextNumber
         });
       }
     }
-    
+
     if (finalData.invoice_sent_for_approval && !invoice?.sent_for_approval_at && finalData.program_group !== 'St. Francis') {
       finalData.sent_for_approval_at = new Date().toISOString();
     } else if (!finalData.invoice_sent_for_approval) {
       finalData.sent_for_approval_at = invoice?.sent_for_approval_at || null;
     }
-    
+
     if (finalData.invoice_sent_to_vendor && !invoice?.sent_to_vendor_at && finalData.program_group !== 'St. Francis') {
       finalData.sent_to_vendor_at = new Date().toISOString();
     } else if (!finalData.invoice_sent_to_vendor) {
       finalData.sent_to_vendor_at = invoice?.sent_to_vendor_at || null;
     }
-    
+
     onSubmit(finalData);
   };
 
   const toggleIncome = (incomeId) => {
     const income = incomes.find(inc => inc.id === incomeId);
     const isSelected = formData.outside_income_ids.includes(incomeId);
-    
+
     if (isSelected) {
       setFormData(prev => ({
         ...prev,
@@ -221,7 +222,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
           total: prev.total + (income?.total_amount || 0),
           amount_expected: prev.amount_expected + (income?.total_amount || 0)
         };
-        
+
         if (prev.outside_income_ids.length === 0) {
           if (income?.program_location_id) {
             const programLocation = programLocations.find(pl => pl.id === income.program_location_id);
@@ -247,32 +248,21 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
       else setUploadingApproved(true);
 
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      
+
       setFormData(prev => {
         const updates = {
           [type === 'draft' ? 'draft_invoice_url' : 'approved_invoice_url']: file_url
         };
-        
-        if (prev.program_group === 'UConn') {
-          if (type === 'draft') {
-            updates.status = 'draft';
-          } else if (type === 'approved') {
-            updates.status = 'sent_to_vendor';
-            updates.sent_to_vendor_at = new Date().toISOString();
-            updates.invoice_sent_to_vendor = true;
-          }
-        } else if (prev.program_group === 'St. Francis') {
-          if (type === 'draft') {
-            updates.status = 'sent_to_vendor';
-            updates.sent_to_vendor_at = new Date().toISOString();
-            updates.invoice_sent_to_vendor = true;
-          } else if (type === 'approved') {
-            updates.status = 'sent_to_vendor';
-            updates.sent_to_vendor_at = new Date().toISOString();
-            updates.invoice_sent_to_vendor = true;
-          }
+
+        // Auto-update status based on program group and document type
+        if (prev.program_group === 'St. Francis') {
+          // St. Francis: Both draft and approved invoices set status to 'sent_to_vendor'
+          updates.status = 'sent_to_vendor';
+          updates.sent_to_vendor_at = new Date().toISOString();
+          updates.invoice_sent_to_vendor = true;
         } else {
-          if (type === 'draft' && !prev.approved_invoice_url) {
+          // All other facilities (including UConn)
+          if (type === 'draft') {
             updates.status = 'sent_for_approval';
             updates.sent_for_approval_at = new Date().toISOString();
             updates.invoice_sent_for_approval = true;
@@ -282,7 +272,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
             updates.invoice_sent_to_vendor = true;
           }
         }
-        
+
         return { ...prev, ...updates };
       });
     } catch (error) {
@@ -515,8 +505,8 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
             <div className="space-y-2">
               <Label>Under/Over Amount</Label>
               <div className={`text-xl font-bold p-3 rounded-lg ${
-                formData.under_over_amount > 0 ? 'bg-green-50 text-green-700' : 
-                formData.under_over_amount < 0 ? 'bg-red-50 text-red-700' : 
+                formData.under_over_amount > 0 ? 'bg-green-50 text-green-700' :
+                formData.under_over_amount < 0 ? 'bg-red-50 text-red-700' :
                 'bg-slate-50 text-slate-700'
               }`}>
                 ${formData.under_over_amount.toFixed(2)}
@@ -599,19 +589,14 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                   </Button>
                 )}
               </div>
-              {formData.program_group === 'UConn' && (
-                <p className="text-xs text-slate-500">
-                  Uploading will auto-update status to "Draft"
-                </p>
-              )}
               {formData.program_group === 'St. Francis' && (
                 <p className="text-xs text-slate-500">
-                  Uploading will auto-update status to "Sent to Vendor"
+                  ⚡ Uploading will auto-update status to "Sent to Vendor"
                 </p>
               )}
-              {formData.program_group && formData.program_group !== 'UConn' && formData.program_group !== 'St. Francis' && (
+              {formData.program_group && formData.program_group !== 'St. Francis' && (
                 <p className="text-xs text-slate-500">
-                  Uploading will auto-update status to "Sent for Approval"
+                  ⚡ Uploading will auto-update status to "Sent for Approval"
                 </p>
               )}
             </div>
@@ -635,9 +620,10 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                 )}
               </div>
               <p className="text-xs text-slate-500">
-                Uploading will auto-update status to "Sent to Vendor"
+                ⚡ Uploading will auto-update status to "Sent to Vendor"
               </p>
             </div>
+
           </div>
 
           {pendingIncomes.length > 0 && (
