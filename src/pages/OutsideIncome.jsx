@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Search, Pencil, Trash2, FileText, ArrowUpDown, ArrowUp, ArrowDown, Download, UserCheck } from "lucide-react";
-import { useNavigate } => "react-router-dom";
+import { useNavigate } from "react-router-dom"; // Corrected this line
 import { createPageUrl } from "@/utils";
 import { parseISO, format } from "date-fns";
 import OutsideIncomeForm from "../components/income/OutsideIncomeForm";
