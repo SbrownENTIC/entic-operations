@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -173,14 +172,13 @@ export default function Reports() {
         category = '90plus';
         categoryLabel = '90+ days';
       } else if (daysOutstanding > 60) {
-        category = '90days'; // This would effectively be 61-90 days, let's keep consistency for display labels below
+        category = '90days';
         categoryLabel = '61-90 days';
       } else if (daysOutstanding > 30) {
-        category = '60days'; // This would effectively be 31-60 days
+        category = '60days';
         categoryLabel = '31-60 days';
       }
 
-      // Add to rows for CSV
       rows.push([
         inv.invoice_number || '',
         inv.program_group || '',
@@ -193,7 +191,6 @@ export default function Reports() {
         categoryLabel
       ]);
 
-      // Add to agingCategories for summary
       agingCategories[category].push({
         invoice: inv,
         provider,
@@ -207,7 +204,6 @@ export default function Reports() {
     rows.push(['SUMMARY BY AGING CATEGORY', '', '', '', '', '', '', '', '']);
     rows.push(['Category', 'Count', 'Total Balance', '', '', '', '', '', '']);
     
-    // Ensure consistent order for summary categories
     const summaryCategoryOrder = ['current', '60days', '90days', '90plus'];
     summaryCategoryOrder.forEach(key => {
       const items = agingCategories[key];
@@ -231,20 +227,18 @@ export default function Reports() {
     const filteredIncomes = incomes.filter(inc => {
       if (!dateRange.start && !dateRange.end) return true;
       
-      // Check work_dates if they exist
       if (inc.work_dates && inc.work_dates.length > 0) {
         return inc.work_dates.some(date => {
           const workDate = new Date(date);
           const start = dateRange.start ? new Date(dateRange.start) : null;
           const end = dateRange.end ? new Date(dateRange.end) : null;
           
-          // Apply date filter logic to each work_date
           if (start && workDate < start) return false;
           if (end && workDate > end) return false;
           return true;
         });
       }
-      return true; // If no work_dates, it's not filtered by date range. Could also apply date filter to created_at or similar if available.
+      return true;
     });
 
     const rows = [
@@ -286,7 +280,7 @@ export default function Reports() {
         rows.push([
           providerName,
           data.daysWorked,
-          data.totalRVUs > 0 ? data.totalRVUs : 'N/A', // Display 'N/A' if RVUs are zero or not applicable
+          data.totalRVUs > 0 ? data.totalRVUs : 'N/A',
           data.totalAmount,
           `Pending: ${data.pending}, Invoiced: ${data.invoiced}, Paid: ${data.paid}`
         ]);
@@ -301,20 +295,20 @@ export default function Reports() {
       rows.push(['', '', '', '', '']);
       rows.push(['TOTALS', totals.daysWorked, totals.totalRVUs, totals.totalAmount, '']);
 
-    } else { // Group by program location
+    } else {
       rows.push(['Program Location', 'Total Days Worked', 'Total RVUs', 'Total Amount', 'Number of Providers']);
 
       const programSummary = {};
       
       filteredIncomes.forEach(inc => {
-        const programName = inc.facility_name || 'Unknown'; // Assuming facility_name represents program location
+        const programName = inc.facility_name || 'Unknown';
         
         if (!programSummary[programName]) {
           programSummary[programName] = {
             daysWorked: 0,
             totalRVUs: 0,
             totalAmount: 0,
-            providers: new Set() // To count unique providers
+            providers: new Set()
           };
         }
         
@@ -357,7 +351,6 @@ export default function Reports() {
       ['Provider', 'Invoice Number', 'Program Group', 'Month', 'Invoice Date', 'Total', 'Amount Received', 'Balance', 'Status']
     ];
 
-    // Group invoices by provider
     const invoicesByProvider = {};
     
     filteredInvoices.forEach(inv => {
@@ -371,7 +364,6 @@ export default function Reports() {
       invoicesByProvider[providerName].push(inv);
     });
 
-    // Sort by provider name and add to rows
     Object.keys(invoicesByProvider).sort().forEach(providerName => {
       const providerInvoices = invoicesByProvider[providerName];
       
@@ -399,7 +391,6 @@ export default function Reports() {
         ]);
       });
       
-      // Provider subtotal
       rows.push([
         `${providerName} SUBTOTAL`,
         '',
@@ -414,10 +405,9 @@ export default function Reports() {
       rows.push(['', '', '', '', '', '', '', '', '']);
     });
 
-    // Grand totals
     const grandTotal = filteredInvoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
     const grandReceived = filteredInvoices.reduce((sum, inv) => sum + (inv.amount_received || 0), 0);
-    const grandBalance = filteredInvoices.reduce((sum, inv => {
+    const grandBalance = filteredInvoices.reduce((sum, inv) => {
       const balance = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
       return sum + balance;
     }, 0);
@@ -456,7 +446,6 @@ export default function Reports() {
     invoicesByProvider[providerName].total += inv.total || 0;
   });
 
-  // Sort providers by total invoice amount (descending) - show all providers
   const allProviders = Object.entries(invoicesByProvider)
     .sort(([, a], [, b]) => b.total - a.total);
 
@@ -468,7 +457,6 @@ export default function Reports() {
           <p className="text-slate-600 mt-1">Generate and export detailed reports</p>
         </div>
 
-        {/* Date Range Filter */}
         <Card className="border-slate-200 shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg">Date Range Filter</CardTitle>
@@ -502,7 +490,6 @@ export default function Reports() {
           </CardContent>
         </Card>
 
-        {/* Report Tabs */}
         <Tabs defaultValue="allocation" className="space-y-4">
           <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto">
             <TabsTrigger value="allocation" className="gap-2 py-3">
@@ -523,7 +510,6 @@ export default function Reports() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Payment Allocation Report */}
           <TabsContent value="allocation">
             <Card className="border-slate-200 shadow-sm">
               <CardHeader className="border-b border-slate-100">
@@ -573,7 +559,6 @@ export default function Reports() {
             </Card>
           </TabsContent>
 
-          {/* Invoice Aging Report */}
           <TabsContent value="aging">
             <Card className="border-slate-200 shadow-sm">
               <CardHeader className="border-b border-slate-100">
@@ -630,7 +615,6 @@ export default function Reports() {
             </Card>
           </TabsContent>
 
-          {/* Outside Income Report */}
           <TabsContent value="income">
             <Card className="border-slate-200 shadow-sm">
               <CardHeader className="border-b border-slate-100">
@@ -682,7 +666,6 @@ export default function Reports() {
             </Card>
           </TabsContent>
 
-          {/* Invoice by Provider Report */}
           <TabsContent value="provider">
             <Card className="border-slate-200 shadow-sm">
               <CardHeader className="border-b border-slate-100">
