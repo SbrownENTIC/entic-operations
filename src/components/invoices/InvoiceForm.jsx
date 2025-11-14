@@ -290,19 +290,20 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
     }
   };
 
-  // ONLY show available income records (not linked to other invoices)
-  const displayableIncomes = incomes.filter(inc => 
+  // Incomes available for linking (not linked to other invoices OR linked to this invoice)
+  const incomesAvailableForLinking = incomes.filter(inc => 
     !inc.invoice_id || inc.invoice_id === invoice?.id
   );
 
-  // Calculate comprehensive income statistics
+  // Calculate comprehensive income statistics based on ALL incomes
   const totalIncomes = incomes.length;
-  const linkedToAnyInvoice = incomes.filter(inc => inc.invoice_id).length;
-  const availableIncomes = displayableIncomes.length;
+  const unlinkedIncomes = incomes.filter(inc => !inc.invoice_id).length;
+  const linkedToOtherInvoices = incomes.filter(inc => inc.invoice_id && inc.invoice_id !== invoice?.id).length;
   const linkedToThisInvoice = formData.outside_income_ids.length;
+  const availableToLink = incomesAvailableForLinking.length; // Count of incomes that can be shown/linked to this invoice
 
-  // Filter incomes based on search term
-  const filteredIncomes = displayableIncomes.filter(income => {
+  // Filter incomes based on search term, using only those available for linking
+  const filteredIncomes = incomesAvailableForLinking.filter(income => {
     if (!incomeSearchTerm) return true;
 
     const provider = providers.find(p => p.id === income.provider_id);
@@ -656,12 +657,12 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
 
           </div>
 
-          {displayableIncomes.length > 0 && (
+          {incomesAvailableForLinking.length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-slate-900">Outside Income Links</h3>
                 <p className="text-sm text-slate-600">
-                  {linkedToThisInvoice} of {availableIncomes} available selected
+                  {linkedToThisInvoice} of {availableToLink} available selected
                 </p>
               </div>
 
@@ -672,16 +673,16 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                     <p className="text-xl font-bold text-blue-900">{totalIncomes}</p>
                   </div>
                   <div>
-                    <p className="text-slate-600">Linked (Any Invoice)</p>
-                    <p className="text-xl font-bold text-green-700">{linkedToAnyInvoice}</p>
+                    <p className="text-slate-600">Unlinked</p>
+                    <p className="text-xl font-bold text-orange-700">{unlinkedIncomes}</p>
                   </div>
                   <div>
-                    <p className="text-slate-600">Available to Link</p>
-                    <p className="text-xl font-bold text-orange-700">{availableIncomes}</p>
+                    <p className="text-slate-600">Linked to Other Invoices</p>
+                    <p className="text-xl font-bold text-purple-700">{linkedToOtherInvoices}</p>
                   </div>
                   <div>
-                    <p className="text-slate-600">Linked to This</p>
-                    <p className="text-xl font-bold text-blue-700">{linkedToThisInvoice}</p>
+                    <p className="text-slate-600">Linked to This Invoice</p>
+                    <p className="text-xl font-bold text-green-700">{linkedToThisInvoice}</p>
                   </div>
                 </div>
               </div>
