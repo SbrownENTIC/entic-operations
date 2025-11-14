@@ -29,53 +29,64 @@ export default function Dashboard() {
     queryKey: ['current-user'],
     queryFn: async () => {
       try {
-        return await base44.auth.me();
+        const currentUser = await base44.auth.me();
+        return currentUser;
       } catch (error) {
+        console.error('Authentication error:', error);
         // If not authenticated, redirect to login
-        if (error.message?.includes('not authenticated') || error.message?.includes('401')) {
+        if (error.message?.includes('not authenticated') || 
+            error.message?.includes('401') ||
+            error.message?.includes('Authentication required')) {
           base44.auth.redirectToLogin(window.location.pathname);
           return null;
         }
         throw error;
       }
     },
-    retry: false
+    retry: 1,
+    retryDelay: 500
   });
 
-  const { data: providers = [] } = useQuery({
+  const { data: providers = [], isLoading: providersLoading } = useQuery({
     queryKey: ['providers'],
     queryFn: () => base44.entities.Provider.list(),
-    enabled: !!user
+    enabled: !!user,
+    retry: 1
   });
 
-  const { data: licenses = [] } = useQuery({
+  const { data: licenses = [], isLoading: licensesLoading } = useQuery({
     queryKey: ['licenses'],
     queryFn: () => base44.entities.License.list(),
-    enabled: !!user
+    enabled: !!user,
+    retry: 1
   });
 
-  const { data: privileges = [] } = useQuery({
+  const { data: privileges = [], isLoading: privilegesLoading } = useQuery({
     queryKey: ['privileges'],
     queryFn: () => base44.entities.ClinicalPrivilege.list(),
-    enabled: !!user
+    enabled: !!user,
+    retry: 1
   });
 
-  const { data: invoices = [] } = useQuery({
+  const { data: invoices = [], isLoading: invoicesLoading } = useQuery({
     queryKey: ['invoices'],
     queryFn: () => base44.entities.Invoice.list(),
-    enabled: !!user
+    enabled: !!user,
+    retry: 1
   });
 
-  const { data: cmeRecords = [] } = useQuery({
+  const { data: cmeRecords = [], isLoading: cmeLoading } = useQuery({
     queryKey: ['cme'],
     queryFn: () => base44.entities.CME.list(),
-    enabled: !!user
+    enabled: !!user,
+    retry: 1
   });
 
-  const { data: payments = [] } = useQuery({
+  const { data: payments = [], isLoading: paymentsLoading } = useQuery({
     queryKey: ['payments'],
     queryFn: () => base44.entities.Payment.list(),
-    enabled: !!user
+    enabled: !!user,
+    retry: 1
   });
 
   // Show loading state while checking authentication
@@ -84,28 +95,52 @@ export default function Dashboard() {
       <div className="p-6 md:p-8 bg-slate-50 min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading...</p>
+          <p className="text-slate-600">Loading dashboard...</p>
         </div>
       </div>
     );
   }
 
   // If there's an auth error that's not a redirect, show it
-  if (authError && !authError.message?.includes('not authenticated') && !authError.message?.includes('401')) {
+  if (authError) {
     return (
       <div className="p-6 md:p-8 bg-slate-50 min-h-screen flex items-center justify-center">
         <Card className="max-w-md">
           <CardContent className="p-6 text-center">
-            <p className="text-red-600">Error loading dashboard: {authError.message}</p>
+            <p className="text-red-600 mb-4">Error loading dashboard: {authError.message}</p>
+            <Button onClick={() => window.location.reload()}>
+              Reload Page
+            </Button>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  // If user is null (meaning a redirect happened), show nothing
+  // If user is null (meaning a redirect happened or not authenticated), show nothing
   if (!user) {
-    return null;
+    return (
+      <div className="p-6 md:p-8 bg-slate-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-slate-600">Redirecting to login...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state while data is loading
+  const isLoadingData = providersLoading || licensesLoading || privilegesLoading || 
+                        invoicesLoading || cmeLoading || paymentsLoading;
+
+  if (isLoadingData) {
+    return (
+      <div className="p-6 md:p-8 bg-slate-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading data...</p>
+        </div>
+      </div>
+    );
   }
 
   const handleSyncPaymentsAndInvoices = async () => {
@@ -139,7 +174,7 @@ export default function Dashboard() {
       }
     } else if (type === 'owedToProviders') {
       filteredInvoices = invoices.filter(inv => 
-        (inv.status === 'paid_to_entic' || inv.status === 'provider_paid') && !inv.provider_paid
+        (inv.amount_received > 0) && !inv.provider_paid
       );
       if (programGroup) {
         filteredInvoices = filteredInvoices.filter(inv => inv.program_group === programGroup);
