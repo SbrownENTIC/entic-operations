@@ -107,30 +107,46 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-slate-50">
+      <div className="min-h-screen flex w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
         <style>{`
           :root {
             --primary: 217 91% 35%;
             --primary-foreground: 0 0% 100%;
+            --background: 210 20% 98%;
+            --card: 0 0% 100%;
+            --card-foreground: 222.2 47.4% 11.2%;
+            --muted: 214 32% 95%;
+            --muted-foreground: 215 16% 47%;
+            --accent: 210 40% 96%;
+            --accent-foreground: 222.2 47.4% 11.2%;
+          }
+          
+          .sidebar-menu-item:hover {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%);
+          }
+          
+          .sidebar-menu-item-active {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(99, 102, 241, 0.15) 100%);
+            border-left: 3px solid #3b82f6;
           }
         `}</style>
         
-        <Sidebar className="border-r border-slate-200">
-          <SidebarHeader className="border-b border-slate-200 p-6">
+        <Sidebar className="border-r border-slate-200/60 bg-white/80 backdrop-blur-sm">
+          <SidebarHeader className="border-b border-slate-200/60 p-6 bg-gradient-to-br from-blue-50 to-indigo-50">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
                 <Users className="w-6 h-6 text-white" />
               </div>
               <div>
                 <h2 className="font-bold text-slate-900 text-lg">ENTIC Operations Center</h2>
-                <p className="text-xs text-slate-500">Provider Management</p>
+                <p className="text-xs text-slate-600">Provider Management</p>
               </div>
             </div>
           </SidebarHeader>
           
-          <SidebarContent className="p-3">
+          <SidebarContent className="p-3 bg-white/50">
             <SidebarGroup>
-              <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-3 py-2">
+              <SidebarGroupLabel className="text-xs font-semibold text-slate-600 uppercase tracking-wider px-3 py-2">
                 Navigation
               </SidebarGroupLabel>
               <SidebarGroupContent>
@@ -139,8 +155,8 @@ export default function Layout({ children, currentPageName }) {
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton 
                         asChild 
-                        className={`hover:bg-blue-50 hover:text-blue-700 transition-all duration-200 rounded-lg mb-1 ${
-                          location.pathname === item.url ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700'
+                        className={`sidebar-menu-item transition-all duration-200 rounded-lg mb-1 ${
+                          location.pathname === item.url ? 'sidebar-menu-item-active text-blue-700 font-medium' : 'text-slate-700'
                         }`}
                       >
                         <Link to={item.url} className="flex items-center gap-3 px-3 py-2.5">
@@ -157,7 +173,7 @@ export default function Layout({ children, currentPageName }) {
         </Sidebar>
 
         <main className="flex-1 flex flex-col">
-          <header className="bg-white border-b border-slate-200 px-6 py-4 md:hidden">
+          <header className="bg-white/80 backdrop-blur-sm border-b border-slate-200/60 px-6 py-4 md:hidden shadow-sm">
             <div className="flex items-center gap-4">
               <SidebarTrigger className="hover:bg-slate-100 p-2 rounded-lg transition-colors duration-200" />
               <h1 className="text-xl font-semibold text-slate-900">ENTIC Operations Center</h1>
