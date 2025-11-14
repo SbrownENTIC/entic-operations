@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -314,10 +315,10 @@ export default function Invoices() {
   };
 
   const getStatusLabel = (invoice) => {
-    if (invoice.status === 'paid_to_entic') return 'Paid to ENTIC';
+    if (invoice.status === 'paid_to_entic') return 'Paid To ENTIC';
     if (invoice.status === 'provider_paid') return 'Provider Paid';
     if (invoice.status === 'partial') return 'Partial';
-    return invoice.status?.replace(/_/g, ' ');
+    return invoice.status?.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
 
   return (
