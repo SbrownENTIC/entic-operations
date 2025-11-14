@@ -12,7 +12,8 @@ import {
   FileText,
   CreditCard,
   ShieldCheck,
-  Boxes
+  Boxes,
+  BarChart3
 } from "lucide-react";
 import {
   Sidebar,
@@ -93,6 +94,11 @@ const navigationItems = [
     title: "Reminders",
     url: createPageUrl("Reminders"),
     icon: Calendar,
+  },
+  {
+    title: "Reports",
+    url: createPageUrl("Reports"),
+    icon: BarChart3,
   },
 ];
 
