@@ -113,7 +113,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
     } else if (preselectedIncomes.length > 0) {
       const selectedIncomes = incomes.filter(inc => preselectedIncomes.includes(inc.id));
       const totalDays = selectedIncomes.reduce((sum, inc) => sum + (inc.days_worked || 0), 0);
-      const totalAmount = selectedIncomes.reduce((sum, inc) => sum + (inc.total_amount || 0), 0);
+      const totalAmount = selectedIncomes.reduce((sum, inc => sum + (inc.total_amount || 0), 0);
 
       const firstIncome = selectedIncomes[0];
       let programGroup = '';
@@ -290,17 +290,16 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
     }
   };
 
+  // ONLY show available income records (not linked to other invoices)
+  const displayableIncomes = incomes.filter(inc => 
+    !inc.invoice_id || inc.invoice_id === invoice?.id
+  );
+
   // Calculate comprehensive income statistics
   const totalIncomes = incomes.length;
   const linkedToAnyInvoice = incomes.filter(inc => inc.invoice_id).length;
-  const availableIncomes = incomes.filter(inc => !inc.invoice_id || inc.invoice_id === invoice?.id).length;
-  const linkedToThisInvoice = invoice
-    ? incomes.filter(inc => inc.invoice_id === invoice.id || formData.outside_income_ids.includes(inc.id)).length
-    : formData.outside_income_ids.length;
-
-  // SHOW ALL INCOME RECORDS when editing an invoice (for imported data)
-  // Show only pending/available records when creating a new invoice
-  const displayableIncomes = invoice ? incomes : incomes.filter(inc => !inc.invoice_id);
+  const availableIncomes = displayableIncomes.length;
+  const linkedToThisInvoice = formData.outside_income_ids.length;
 
   // Filter incomes based on search term
   const filteredIncomes = displayableIncomes.filter(income => {
@@ -659,6 +658,13 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
 
           {displayableIncomes.length > 0 && (
             <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-slate-900">Outside Income Links</h3>
+                <p className="text-sm text-slate-600">
+                  {linkedToThisInvoice} of {availableIncomes} available selected
+                </p>
+              </div>
+
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                   <div>
@@ -670,7 +676,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                     <p className="text-xl font-bold text-green-700">{linkedToAnyInvoice}</p>
                   </div>
                   <div>
-                    <p className="text-slate-600">Available</p>
+                    <p className="text-slate-600">Available to Link</p>
                     <p className="text-xl font-bold text-orange-700">{availableIncomes}</p>
                   </div>
                   <div>
@@ -693,17 +699,14 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
               <div className="border border-slate-200 rounded-lg p-4 max-h-96 overflow-y-auto space-y-2">
                 {filteredIncomes.map(income => {
                   const provider = providers.find(p => p.id === income.provider_id);
-                  const isLinkedToThisInvoice = income.invoice_id === invoice?.id || formData.outside_income_ids.includes(income.id);
-                  const isLinkedToOtherInvoice = income.invoice_id && income.invoice_id !== invoice?.id;
+                  const isLinkedToThisInvoice = formData.outside_income_ids.includes(income.id);
                   return (
                     <div key={income.id} className={`flex items-start space-x-2 p-3 hover:bg-slate-50 rounded border ${
-                      isLinkedToThisInvoice ? 'border-blue-300 bg-blue-50' :
-                      isLinkedToOtherInvoice ? 'border-amber-200 bg-amber-50' :
-                      'border-slate-100'
+                      isLinkedToThisInvoice ? 'border-blue-300 bg-blue-50' : 'border-slate-100'
                     }`}>
                       <Checkbox
                         id={income.id}
-                        checked={formData.outside_income_ids.includes(income.id)}
+                        checked={isLinkedToThisInvoice}
                         onCheckedChange={() => toggleIncome(income.id)}
                         className="mt-1"
                       />
@@ -716,7 +719,6 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                         <div className="text-slate-600">
                           {income.days_worked} days - ${income.total_amount?.toFixed(2)}
                           {isLinkedToThisInvoice && <span className="ml-2 text-xs text-blue-600 font-medium">✓ Linked to this invoice</span>}
-                          {isLinkedToOtherInvoice && <span className="ml-2 text-xs text-amber-600 font-medium">⚠ Linked to another invoice</span>}
                         </div>
                         {income.work_dates && income.work_dates.length > 0 && (
                           <div className="mt-2 text-xs text-slate-500">
