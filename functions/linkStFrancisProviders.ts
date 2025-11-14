@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
-import { parseISO, isSameDay } from 'npm:date-fns';
+import { parseISO, isWithinInterval, startOfDay } from 'npm:date-fns';
 
 Deno.serve(async (req) => {
     try {
@@ -41,16 +41,19 @@ Deno.serve(async (req) => {
             }
             
             // Use first work date as the on-call start
-            const onCallStart = parseISO(income.work_dates[0]);
+            const onCallStart = startOfDay(parseISO(income.work_dates[0]));
             
-            // Find schedule that matches the start date
+            // Find schedule where the first work date falls within the schedule period
             const matchingSchedule = schedules.find(schedule => {
                 const isStFrancisSchedule = schedule.location?.toLowerCase().includes('st. francis') ||
                                            schedule.location?.toLowerCase().includes('st francis');
                 if (!isStFrancisSchedule) return false;
                 
-                const scheduleStart = parseISO(schedule.start_date);
-                return isSameDay(scheduleStart, onCallStart);
+                const scheduleStart = startOfDay(parseISO(schedule.start_date));
+                const scheduleEnd = startOfDay(parseISO(schedule.end_date));
+                
+                // Check if the first work date falls within the schedule range
+                return isWithinInterval(onCallStart, { start: scheduleStart, end: scheduleEnd });
             });
             
             if (matchingSchedule && matchingSchedule.provider_id !== income.provider_id) {
