@@ -431,6 +431,30 @@ export default function Reports() {
     );
   }
 
+  // Calculate Invoice by Provider summary data
+  const filteredInvoices = filterByDateRange(invoices, 'invoice_date');
+  const invoicesByProvider = {};
+  
+  filteredInvoices.forEach(inv => {
+    const provider = providers.find(p => p.id === inv.staff_member_id);
+    const providerName = provider?.full_name || 'Unknown';
+    
+    if (!invoicesByProvider[providerName]) {
+      invoicesByProvider[providerName] = {
+        count: 0,
+        total: 0
+      };
+    }
+    
+    invoicesByProvider[providerName].count++;
+    invoicesByProvider[providerName].total += inv.total || 0;
+  });
+
+  // Sort providers by total invoice amount (descending)
+  const topProviders = Object.entries(invoicesByProvider)
+    .sort(([, a], [, b]) => b.total - a.total)
+    .slice(0, 5);
+
   return (
     <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -672,31 +696,30 @@ export default function Reports() {
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                      <p className="text-sm text-slate-600">Total Invoices</p>
-                      <p className="text-2xl font-bold text-blue-700">{invoices.length}</p>
-                    </div>
-                    <div className="bg-green-50 p-4 rounded-lg">
-                      <p className="text-sm text-slate-600">Total Invoiced</p>
-                      <p className="text-2xl font-bold text-green-700">
-                        {formatCurrency(invoices.reduce((sum, inv) => sum + (inv.total || 0), 0))}
-                      </p>
-                    </div>
-                    <div className="bg-purple-50 p-4 rounded-lg">
-                      <p className="text-sm text-slate-600">Total Received</p>
-                      <p className="text-2xl font-bold text-purple-700">
-                        {formatCurrency(invoices.reduce((sum, inv) => sum + (inv.amount_received || 0), 0))}
-                      </p>
-                    </div>
-                    <div className="bg-orange-50 p-4 rounded-lg">
-                      <p className="text-sm text-slate-600">Total Outstanding</p>
-                      <p className="text-2xl font-bold text-orange-700">
-                        {formatCurrency(invoices.reduce((sum, inv) => {
-                          const balance = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
-                          return sum + (balance > 0 ? balance : 0);
-                        }, 0))}
-                      </p>
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200">
+                    <h3 className="text-lg font-semibold text-slate-900 mb-4">Total Invoice by Provider</h3>
+                    <div className="space-y-3">
+                      {topProviders.map(([providerName, data], index) => (
+                        <div key={providerName} className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm">
+                              {index + 1}
+                            </div>
+                            <div>
+                              <p className="font-medium text-slate-900">{providerName}</p>
+                              <p className="text-sm text-slate-500">{data.count} invoice{data.count !== 1 ? 's' : ''}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg font-bold text-blue-700">{formatCurrency(data.total)}</p>
+                          </div>
+                        </div>
+                      ))}
+                      {Object.keys(invoicesByProvider).length > 5 && (
+                        <p className="text-sm text-slate-500 text-center pt-2">
+                          +{Object.keys(invoicesByProvider).length - 5} more providers (export for full list)
+                        </p>
+                      )}
                     </div>
                   </div>
                   <p className="text-sm text-slate-600">
