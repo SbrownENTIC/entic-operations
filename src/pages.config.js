@@ -13,6 +13,7 @@ import Supplies from './pages/Supplies';
 import ProgramLocations from './pages/ProgramLocations';
 import ProviderTimeOff from './pages/ProviderTimeOff';
 import Reminders from './pages/Reminders';
+import SimpleDashboard from './pages/SimpleDashboard';
 import Layout from './Layout.jsx';
 
 
@@ -32,6 +33,7 @@ export const PAGES = {
     "ProgramLocations": ProgramLocations,
     "ProviderTimeOff": ProviderTimeOff,
     "Reminders": Reminders,
+    "SimpleDashboard": SimpleDashboard,
 }
 
 export const pagesConfig = {
