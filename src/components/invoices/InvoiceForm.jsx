@@ -104,7 +104,10 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
 
   useEffect(() => {
     if (invoice) {
-      setFormData(invoice);
+      setFormData({
+        ...invoice,
+        outside_income_ids: invoice.outside_income_ids || []
+      });
     } else if (preselectedIncomes.length > 0) {
       const selectedIncomes = incomes.filter(inc => preselectedIncomes.includes(inc.id));
       const totalDays = selectedIncomes.reduce((sum, inc) => sum + (inc.days_worked || 0), 0);
@@ -282,13 +285,20 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
     }
   };
 
-  // When editing an invoice, show the income records in this invoice + any pending ones
-  // When creating, only show pending
+  // When editing an invoice, show income records that match this invoice + pending ones
+  // Match by: invoice_id field OR if the income is in the invoice's outside_income_ids array
   const availableIncomes = invoice 
     ? incomes.filter(inc => 
-        formData.outside_income_ids.includes(inc.id) || inc.status === 'pending'
+        inc.invoice_id === invoice.id || 
+        formData.outside_income_ids.includes(inc.id) || 
+        inc.status === 'pending'
       )
     : incomes.filter(inc => inc.status === 'pending');
+
+  // Count how many are actually linked
+  const linkedCount = invoice 
+    ? incomes.filter(inc => inc.invoice_id === invoice.id || formData.outside_income_ids.includes(inc.id)).length
+    : 0;
 
   return (
     <Card className="border-slate-200 shadow-sm">
@@ -633,12 +643,20 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
 
           {availableIncomes.length > 0 && (
             <div className="space-y-3">
-              <Label>Outside Income Records ({availableIncomes.length})</Label>
+              <div className="flex items-center justify-between">
+                <Label>Outside Income Records ({availableIncomes.length} available)</Label>
+                {invoice && (
+                  <span className="text-xs text-slate-600">
+                    {linkedCount} linked to this invoice
+                  </span>
+                )}
+              </div>
               <div className="border border-slate-200 rounded-lg p-4 max-h-96 overflow-y-auto space-y-2">
                 {availableIncomes.map(income => {
                   const provider = providers.find(p => p.id === income.provider_id);
+                  const isLinked = income.invoice_id === invoice?.id || formData.outside_income_ids.includes(income.id);
                   return (
-                    <div key={income.id} className="flex items-start space-x-2 p-3 hover:bg-slate-50 rounded border border-slate-100">
+                    <div key={income.id} className={`flex items-start space-x-2 p-3 hover:bg-slate-50 rounded border ${isLinked ? 'border-blue-300 bg-blue-50' : 'border-slate-100'}`}>
                       <Checkbox
                         id={income.id}
                         checked={formData.outside_income_ids.includes(income.id)}
@@ -649,6 +667,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                         <div className="font-medium text-slate-900">{provider?.full_name}</div>
                         <div className="text-slate-600">
                           {income.facility_name} - {income.days_worked} days - ${income.total_amount?.toFixed(2)}
+                          {isLinked && <span className="ml-2 text-xs text-blue-600 font-medium">✓ Linked</span>}
                         </div>
                         {income.work_dates && income.work_dates.length > 0 && (
                           <div className="mt-2 text-xs text-slate-500">
