@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Search, Pencil, Trash2, FileText, ArrowUpDown, ArrowUp, ArrowDown, Download, UserCheck } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } => "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { parseISO, format } from "date-fns";
 import OutsideIncomeForm from "../components/income/OutsideIncomeForm";
@@ -143,11 +143,12 @@ export default function OutsideIncome() {
   };
 
   const exportToCSV = () => {
-    const headers = ['Provider', 'Facility', 'Work Month', 'Days/RVUs', 'Rate', 'Total Amount', 'Invoice Month', 'Status', 'Created Date'];
+    const headers = ['Provider', 'Facility', 'Work Month', 'On-Call Start', 'Days/RVUs', 'Rate', 'Total Amount', 'Invoice Month', 'Status', 'Created Date'];
     const rows = sortedIncomes.map(income => [
       income.provider?.full_name || '',
       income.facility_name || '',
       income.workMonth,
+      income.temp_oncall_start_date ? format(parseISO(income.temp_oncall_start_date), 'MM-dd-yyyy') : '-',
       income.isHartfordRVU ? `${formatNumber(income.total_rvus)} RVUs` : income.isDirectorship ? '-' : `${income.days_worked || 0} days`,
       income.rate || 0,
       income.total_amount || 0,
@@ -264,14 +265,25 @@ export default function OutsideIncome() {
     } else if (sortField === 'workMonth') {
       aValue = a.workMonth;
       bValue = b.workMonth;
-    } else if (sortField === 'days_worked' || sortField === 'total_rvus' || sortField === 'rate' || sortField === 'total_amount') {
+    } else if (sortField === 'temp_oncall_start_date') {
+      aValue = a.temp_oncall_start_date ? new Date(a.temp_oncall_start_date) : null;
+      bValue = b.temp_oncall_start_date ? new Date(b.temp_oncall_start_date) : null;
+
+      // Handle null dates: nulls come last in asc, first in desc
+      if (aValue === null && bValue === null) return 0;
+      if (aValue === null) return sortDirection === 'asc' ? 1 : -1;
+      if (bValue === null) return sortDirection === 'asc' ? -1 : 1;
+      
+      return sortDirection === 'asc' ? aValue.getTime() - bValue.getTime() : bValue.getTime() - aValue.getTime();
+    }
+    else if (sortField === 'days_worked' || sortField === 'total_rvus' || sortField === 'rate' || sortField === 'total_amount') {
       aValue = a[sortField] || 0;
       bValue = b[sortField] || 0;
       return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
     } else if (sortField === 'created_date') {
       aValue = new Date(a.created_date);
       bValue = new Date(b.created_date);
-      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+      return sortDirection === 'asc' ? aValue.getTime() - bValue.getTime() : bValue.getTime() - aValue.getTime();
     } else {
       aValue = a[sortField] || '';
       bValue = b[sortField] || '';
@@ -442,6 +454,12 @@ export default function OutsideIncome() {
                       </th>
                       <th
                         className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                        onClick={() => handleSort('temp_oncall_start_date')}
+                      >
+                        On-Call Start <SortIcon field="temp_oncall_start_date" />
+                      </th>
+                      <th
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                         onClick={() => handleSort('days_worked')}
                       >
                         Days/RVUs <SortIcon field="days_worked" />
@@ -487,6 +505,9 @@ export default function OutsideIncome() {
                         </td>
                         <td className="p-4 text-slate-600">{income.facility_name || '-'}</td>
                         <td className="p-4 text-slate-600 font-medium">{income.workMonth}</td>
+                        <td className="p-4 text-slate-600">
+                          {income.temp_oncall_start_date ? format(parseISO(income.temp_oncall_start_date), 'MM-dd-yyyy') : '-'}
+                        </td>
                         <td className="p-4 text-slate-600 font-medium">
                           {income.isHartfordRVU ? (
                             <span className="text-blue-600">{formatNumber(income.total_rvus)} RVUs</span>
