@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -659,9 +658,13 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                         className="mt-1"
                       />
                       <label htmlFor={income.id} className="flex-1 text-sm cursor-pointer">
-                        <div className="font-medium text-slate-900">{provider?.full_name}</div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-bold text-blue-600">{provider?.full_name || 'Unknown Provider'}</span>
+                          <span className="text-slate-400">•</span>
+                          <span className="font-medium text-slate-900">{income.facility_name}</span>
+                        </div>
                         <div className="text-slate-600">
-                          {income.facility_name} - {income.days_worked} days - ${income.total_amount?.toFixed(2)}
+                          {income.days_worked} days - ${income.total_amount?.toFixed(2)}
                           {isLinkedToThisInvoice && <span className="ml-2 text-xs text-blue-600 font-medium">✓ Linked to this invoice</span>}
                           {isLinkedToOtherInvoice && <span className="ml-2 text-xs text-amber-600 font-medium">⚠ Linked to another invoice</span>}
                         </div>
