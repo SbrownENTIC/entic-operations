@@ -14,6 +14,7 @@ Deno.serve(async (req) => {
         const incomes = await base44.asServiceRole.entities.OutsideIncome.list();
         
         let invoiceUpdates = 0;
+        let errors = [];
         
         // Build a map: invoice_id -> [income_ids that belong to it]
         const invoiceToIncomesMap = {};
@@ -30,38 +31,45 @@ Deno.serve(async (req) => {
         
         // Update each invoice's outside_income_ids array based on the map
         for (const invoice of invoices) {
-            const correctIncomeIds = invoiceToIncomesMap[invoice.id] || [];
-            const currentIncomeIds = invoice.outside_income_ids || [];
-            
-            // Sort both arrays for comparison
-            const correctSorted = [...correctIncomeIds].sort();
-            const currentSorted = [...currentIncomeIds].sort();
-            
-            // Check if they're different
-            const needsUpdate = correctSorted.length !== currentSorted.length ||
-                               correctSorted.some((id, idx) => id !== currentSorted[idx]);
-            
-            if (needsUpdate) {
-                await base44.asServiceRole.entities.Invoice.update(invoice.id, {
-                    outside_income_ids: correctIncomeIds
-                });
-                invoiceUpdates++;
+            try {
+                const correctIncomeIds = invoiceToIncomesMap[invoice.id] || [];
+                const currentIncomeIds = invoice.outside_income_ids || [];
+                
+                // Convert to strings and sort for comparison
+                const correctSorted = correctIncomeIds.map(id => String(id)).sort();
+                const currentSorted = currentIncomeIds.map(id => String(id)).sort();
+                
+                // Check if they're different
+                const needsUpdate = correctSorted.length !== currentSorted.length ||
+                                   correctSorted.some((id, idx) => id !== currentSorted[idx]);
+                
+                if (needsUpdate) {
+                    await base44.asServiceRole.entities.Invoice.update(invoice.id, {
+                        outside_income_ids: correctIncomeIds
+                    });
+                    invoiceUpdates++;
+                }
+            } catch (error) {
+                errors.push(`Invoice ${invoice.invoice_number || invoice.id}: ${error.message}`);
             }
         }
         
         return Response.json({ 
             success: true, 
-            message: `Fixed ${invoiceUpdates} invoices based on OutsideIncome.invoice_id fields. Total incomes with invoice_id: ${incomes.filter(i => i.invoice_id).length}`,
+            message: `Fixed ${invoiceUpdates} invoices. Total incomes with invoice_id: ${incomes.filter(i => i.invoice_id).length}/${incomes.length}`,
             invoiceUpdates,
             totalIncomesWithInvoiceId: incomes.filter(i => i.invoice_id).length,
             totalInvoices: invoices.length,
-            totalIncomes: incomes.length
+            totalIncomes: incomes.length,
+            errors: errors.length > 0 ? errors : undefined
         });
         
     } catch (error) {
+        console.error('Fix function error:', error);
         return Response.json({ 
             success: false, 
-            error: error.message 
+            error: error.message,
+            stack: error.stack
         }, { status: 500 });
     }
 });
