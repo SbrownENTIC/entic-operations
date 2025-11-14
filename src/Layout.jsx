@@ -12,8 +12,7 @@ import {
   FileText,
   CreditCard,
   ShieldCheck,
-  Boxes,
-  MapPin
+  Boxes
 } from "lucide-react";
 import {
   Sidebar,
@@ -59,11 +58,6 @@ const navigationItems = [
     title: "Time Off & CME",
     url: createPageUrl("ProviderTimeOff"),
     icon: Calendar,
-  },
-  {
-    title: "Program Locations",
-    url: createPageUrl("ProgramLocations"),
-    icon: MapPin,
   },
   {
     title: "Supply Catalog",
