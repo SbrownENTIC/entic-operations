@@ -374,8 +374,8 @@ export default function OnCallSchedule() {
   const selectedProviderForBulk = providers.find(p => p.id === bulkProvider);
 
   return (
-    <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
-      <div className="max-w-[1800px] mx-auto space-y-6">
+    <div className="p-6 md:p-8 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 h-screen flex flex-col">
+      <div className="max-w-7xl mx-auto w-full flex flex-col flex-1 gap-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">On-Call Schedule</h1>
@@ -442,112 +442,9 @@ export default function OnCallSchedule() {
           />
         )}
 
-        {viewMode === 'calendar' ? (
-          <Card className="border-slate-200 shadow-sm overflow-hidden">
-            <CardHeader className="border-b border-slate-100 p-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold">{format(currentMonth, 'MMMM yyyy')}</h2>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setCurrentMonth(new Date())}
-                  >
-                    Today
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="bg-white overflow-x-auto">
-                {/* Calendar Header */}
-                <div className="grid grid-cols-7 border-b border-slate-200 min-w-[900px]">
-                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                    <div key={day} className="p-3 text-center text-sm font-semibold text-slate-700 border-r border-slate-200 last:border-r-0">
-                      {day}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Calendar Grid */}
-                <div className="min-w-[900px]">
-                  {weeks.map((week, weekIndex) => (
-                    <div key={weekIndex} className="grid grid-cols-7" style={{ minHeight: '100px' }}>
-                      {week.map((day, dayIndex) => {
-                        const daySchedules = getSchedulesForDay(day);
-                        const isCurrentMonth = isSameMonth(day, currentMonth);
-                        
-                        return (
-                          <div
-                            key={dayIndex}
-                            className={`border-r border-b border-slate-200 last:border-r-0 p-2 relative ${
-                              !isCurrentMonth ? 'bg-slate-50' : 'bg-white'
-                            }`}
-                          >
-                            <div className={`text-sm font-medium mb-2 ${
-                              !isCurrentMonth ? 'text-slate-400' : 'text-slate-700'
-                            }`}>
-                              {format(day, 'd')}
-                            </div>
-                            
-                            <div className="space-y-1">
-                              {daySchedules.map((schedule, schedIndex) => {
-                                const isFirstDay = isFirstDayOfSchedule(schedule, day, week);
-                                
-                                if (!isFirstDay) return null;
-                                
-                                const span = getScheduleSpan(schedule, day, week);
-                                
-                                return (
-                                  <div
-                                    key={schedule.id}
-                                    onClick={() => handleEditSchedule(schedule)}
-                                    className={`absolute left-2 right-0 ${schedule.color} text-white text-xs px-2 py-1.5 rounded cursor-pointer hover:opacity-90 transition-opacity shadow-sm z-10`}
-                                    style={{
-                                      width: `calc(${span * 100}% + ${(span - 1) * 100}%)`,
-                                      top: `${40 + schedIndex * 36}px`
-                                    }}
-                                  >
-                                    <div className="font-semibold truncate">
-                                      {schedule.start_time} - {schedule.end_time}
-                                    </div>
-                                    <div className="font-medium truncate">
-                                      {schedule.provider?.full_name}
-                                    </div>
-                                    {schedule.provider?.phone && (
-                                      <div className="truncate text-[10px] opacity-90">
-                                        {schedule.provider.phone}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
-            <CardHeader className="border-b border-slate-100 space-y-4">
+        {viewMode === 'list' ? (
+          <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm flex flex-col flex-1 min-h-0">
+            <CardHeader className="border-b border-slate-100 space-y-4 flex-none">
               <div className="flex items-center gap-4">
                 <Search className="w-5 h-5 text-slate-400" />
                 <Input
@@ -623,8 +520,8 @@ export default function OnCallSchedule() {
                 </div>
               )}
             </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto max-h-[calc(100vh-450px)] overflow-y-auto">
+            <CardContent className="p-0 flex-1 overflow-hidden">
+              <div className="overflow-auto h-full">
                 <table className="w-full">
                   <thead className="sticky top-0 bg-slate-50 border-b border-slate-200 z-10">
                     <tr>
@@ -729,6 +626,109 @@ export default function OnCallSchedule() {
                     No schedules found
                   </div>
                 )}
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="border-slate-200 shadow-sm overflow-hidden">
+            <CardHeader className="border-b border-slate-100 p-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">{format(currentMonth, 'MMMM yyyy')}</h2>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentMonth(new Date())}
+                  >
+                    Today
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="bg-white overflow-x-auto">
+                {/* Calendar Header */}
+                <div className="grid grid-cols-7 border-b border-slate-200 min-w-[900px]">
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                    <div key={day} className="p-3 text-center text-sm font-semibold text-slate-700 border-r border-slate-200 last:border-r-0">
+                      {day}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Calendar Grid */}
+                <div className="min-w-[900px]">
+                  {weeks.map((week, weekIndex) => (
+                    <div key={weekIndex} className="grid grid-cols-7" style={{ minHeight: '100px' }}>
+                      {week.map((day, dayIndex) => {
+                        const daySchedules = getSchedulesForDay(day);
+                        const isCurrentMonth = isSameMonth(day, currentMonth);
+                        
+                        return (
+                          <div
+                            key={dayIndex}
+                            className={`border-r border-b border-slate-200 last:border-r-0 p-2 relative ${
+                              !isCurrentMonth ? 'bg-slate-50' : 'bg-white'
+                            }`}
+                          >
+                            <div className={`text-sm font-medium mb-2 ${
+                              !isCurrentMonth ? 'text-slate-400' : 'text-slate-700'
+                            }`}>
+                              {format(day, 'd')}
+                            </div>
+                            
+                            <div className="space-y-1">
+                              {daySchedules.map((schedule, schedIndex) => {
+                                const isFirstDay = isFirstDayOfSchedule(schedule, day, week);
+                                
+                                if (!isFirstDay) return null;
+                                
+                                const span = getScheduleSpan(schedule, day, week);
+                                
+                                return (
+                                  <div
+                                    key={schedule.id}
+                                    onClick={() => handleEditSchedule(schedule)}
+                                    className={`absolute left-2 right-0 ${schedule.color} text-white text-xs px-2 py-1.5 rounded cursor-pointer hover:opacity-90 transition-opacity shadow-sm z-10`}
+                                    style={{
+                                      width: `calc(${span * 100}% + ${(span - 1) * 100}%)`,
+                                      top: `${40 + schedIndex * 36}px`
+                                    }}
+                                  >
+                                    <div className="font-semibold truncate">
+                                      {schedule.start_time} - {schedule.end_time}
+                                    </div>
+                                    <div className="font-medium truncate">
+                                      {schedule.provider?.full_name}
+                                    </div>
+                                    {schedule.provider?.phone && (
+                                      <div className="truncate text-[10px] opacity-90">
+                                        {schedule.provider.phone}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
               </div>
             </CardContent>
           </Card>

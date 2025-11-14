@@ -232,8 +232,8 @@ export default function OutsideIncome() {
     });
 
   return (
-    <div className="p-6 md:p-8 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="p-6 md:p-8 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 h-screen flex flex-col">
+      <div className="max-w-7xl mx-auto w-full flex flex-col flex-1 gap-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Outside Income</h1>
@@ -279,8 +279,8 @@ export default function OutsideIncome() {
           />
         )}
 
-        <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
-          <CardHeader className="border-b border-slate-100 space-y-4">
+        <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm flex flex-col flex-1 min-h-0">
+          <CardHeader className="border-b border-slate-100 space-y-4 flex-none">
             <div className="flex items-center gap-4">
               <Search className="w-5 h-5 text-slate-400" />
               <Input
@@ -291,13 +291,13 @@ export default function OutsideIncome() {
               />
             </div>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="p-0 flex-1 overflow-hidden">
             {isLoading ? (
               <div className="text-center py-12 text-slate-500">Loading...</div>
             ) : (
-              <div className="overflow-x-auto max-h-[calc(100vh-400px)] overflow-y-auto">
+              <div className="overflow-auto h-full">
                 <table className="w-full">
-                  <thead className="bg-slate-50 border-b border-slate-200">
+                  <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                     <tr>
                       <th className="text-left p-4 text-sm font-semibold text-slate-700 w-12">
                         {pendingIncomes.length > 0 && (
@@ -399,9 +399,6 @@ export default function OutsideIncome() {
                         </td>
                         <td className="p-4 font-medium text-green-600">
                           ${formatCurrency(income.total_amount || 0)}
-                        </td>
-                        <td className="p-4 text-slate-600">
-                          {income.invoice_month || '-'}
                         </td>
                         <td className="p-4">
                           <Badge className={statusColors[income.status]}>

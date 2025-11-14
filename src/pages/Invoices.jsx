@@ -329,8 +329,8 @@ export default function Invoices() {
   };
 
   return (
-    <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="p-6 md:p-8 bg-slate-50 h-screen flex flex-col">
+      <div className="max-w-7xl mx-auto w-full flex flex-col flex-1 gap-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Invoices</h1>
@@ -388,8 +388,8 @@ export default function Invoices() {
           />
         )}
 
-        <Card className="border-slate-200 shadow-sm">
-          <CardHeader className="border-b border-slate-100 space-y-4">
+        <Card className="border-slate-200 shadow-sm flex flex-col flex-1 min-h-0">
+          <CardHeader className="border-b border-slate-100 space-y-4 flex-none">
             <div className="flex items-center gap-4">
               <Search className="w-5 h-5 text-slate-400" />
               <Input
@@ -449,8 +449,8 @@ export default function Invoices() {
               </div>
             )}
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto max-h-[calc(100vh-450px)] overflow-y-auto">
+          <CardContent className="p-0 flex-1 overflow-hidden">
+            <div className="overflow-auto h-full">
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                   <tr>

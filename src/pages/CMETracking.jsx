@@ -117,8 +117,8 @@ export default function CMETracking() {
   };
 
   return (
-    <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="p-6 md:p-8 bg-slate-50 h-screen flex flex-col">
+      <div className="max-w-7xl mx-auto w-full flex flex-col flex-1 gap-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">CME Tracking</h1>
@@ -158,15 +158,15 @@ export default function CMETracking() {
               {Object.values(creditsPerProvider).map(({ provider, totalCredits }) => (
                 <div key={provider?.id} className="p-4 bg-slate-50 rounded-lg border border-slate-200">
                   <p className="font-medium text-slate-900">{provider?.full_name}</p>
-                  <p className="text-2xl font-bold text-blue-600 mt-2">{totalCredits.toFixed(1)} credits</p>
+                  <p className="text-2xl font-bold text-blue-600 mt-2">{totalCredits.toFixed(1)} credits}</p>
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 shadow-sm">
-          <CardHeader className="border-b border-slate-100">
+        <Card className="border-slate-200 shadow-sm flex flex-col flex-1 min-h-0">
+          <CardHeader className="border-b border-slate-100 flex-none">
             <div className="flex items-center gap-4">
               <Search className="w-5 h-5 text-slate-400" />
               <Input
@@ -177,8 +177,8 @@ export default function CMETracking() {
               />
             </div>
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto max-h-[calc(100vh-450px)] overflow-y-auto">
+          <CardContent className="p-0 flex-1 overflow-hidden">
+            <div className="overflow-auto h-full">
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                   <tr>
