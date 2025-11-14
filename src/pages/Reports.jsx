@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -38,7 +39,7 @@ export default function Reports() {
   const isLoading = paymentsLoading || invoicesLoading || providersLoading || incomesLoading;
 
   const formatCurrency = (amount) => {
-    return '$' + amount.toLocaleString('en-US', { minimumFractionDigals: 2, maximumFractionDigits: 2 });
+    return '$' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
   const exportToCSV = (data, filename) => {
@@ -172,21 +173,14 @@ export default function Reports() {
         category = '90plus';
         categoryLabel = '90+ days';
       } else if (daysOutstanding > 60) {
-        category = '90days';
+        category = '90days'; // This would effectively be 61-90 days, let's keep consistency for display labels below
         categoryLabel = '61-90 days';
       } else if (daysOutstanding > 30) {
-        category = '60days';
+        category = '60days'; // This would effectively be 31-60 days
         categoryLabel = '31-60 days';
       }
 
-      agingCategories[category].push({
-        invoice: inv,
-        provider,
-        daysOutstanding,
-        balance,
-        categoryLabel
-      });
-
+      // Add to rows for CSV
       rows.push([
         inv.invoice_number || '',
         inv.program_group || '',
@@ -198,18 +192,29 @@ export default function Reports() {
         balance,
         categoryLabel
       ]);
+
+      // Add to agingCategories for summary
+      agingCategories[category].push({
+        invoice: inv,
+        provider,
+        daysOutstanding,
+        balance,
+        categoryLabel
+      });
     });
 
     rows.push(['', '', '', '', '', '', '', '', '']);
     rows.push(['SUMMARY BY AGING CATEGORY', '', '', '', '', '', '', '', '']);
     rows.push(['Category', 'Count', 'Total Balance', '', '', '', '', '', '']);
     
-    Object.entries(agingCategories).forEach(([key, items]) => {
+    // Ensure consistent order for summary categories
+    const summaryCategoryOrder = ['current', '60days', '90days', '90plus'];
+    summaryCategoryOrder.forEach(key => {
+      const items = agingCategories[key];
       const labels = {
         current: '0-30 days',
-        '30days': '31-60 days',
-        '60days': '61-90 days',
-        '90days': '90+ days',
+        '60days': '31-60 days',
+        '90days': '61-90 days',
         '90plus': '90+ days'
       };
       const totalBalance = items.reduce((sum, item) => sum + item.balance, 0);
@@ -233,12 +238,13 @@ export default function Reports() {
           const start = dateRange.start ? new Date(dateRange.start) : null;
           const end = dateRange.end ? new Date(dateRange.end) : null;
           
+          // Apply date filter logic to each work_date
           if (start && workDate < start) return false;
           if (end && workDate > end) return false;
           return true;
         });
       }
-      return true;
+      return true; // If no work_dates, it's not filtered by date range. Could also apply date filter to created_at or similar if available.
     });
 
     const rows = [
@@ -280,7 +286,7 @@ export default function Reports() {
         rows.push([
           providerName,
           data.daysWorked,
-          data.totalRVUs > 0 ? data.totalRVUs : 'N/A',
+          data.totalRVUs > 0 ? data.totalRVUs : 'N/A', // Display 'N/A' if RVUs are zero or not applicable
           data.totalAmount,
           `Pending: ${data.pending}, Invoiced: ${data.invoiced}, Paid: ${data.paid}`
         ]);
@@ -295,20 +301,20 @@ export default function Reports() {
       rows.push(['', '', '', '', '']);
       rows.push(['TOTALS', totals.daysWorked, totals.totalRVUs, totals.totalAmount, '']);
 
-    } else {
+    } else { // Group by program location
       rows.push(['Program Location', 'Total Days Worked', 'Total RVUs', 'Total Amount', 'Number of Providers']);
 
       const programSummary = {};
       
       filteredIncomes.forEach(inc => {
-        const programName = inc.facility_name || 'Unknown';
+        const programName = inc.facility_name || 'Unknown'; // Assuming facility_name represents program location
         
         if (!programSummary[programName]) {
           programSummary[programName] = {
             daysWorked: 0,
             totalRVUs: 0,
             totalAmount: 0,
-            providers: new Set()
+            providers: new Set() // To count unique providers
           };
         }
         
@@ -450,10 +456,9 @@ export default function Reports() {
     invoicesByProvider[providerName].total += inv.total || 0;
   });
 
-  // Sort providers by total invoice amount (descending)
-  const topProviders = Object.entries(invoicesByProvider)
-    .sort(([, a], [, b]) => b.total - a.total)
-    .slice(0, 5);
+  // Sort providers by total invoice amount (descending) - show all providers
+  const allProviders = Object.entries(invoicesByProvider)
+    .sort(([, a], [, b]) => b.total - a.total);
 
   return (
     <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
@@ -699,7 +704,7 @@ export default function Reports() {
                   <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200">
                     <h3 className="text-lg font-semibold text-slate-900 mb-4">Total Invoice by Provider</h3>
                     <div className="space-y-3">
-                      {topProviders.map(([providerName, data], index) => (
+                      {allProviders.map(([providerName, data], index) => (
                         <div key={providerName} className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm">
@@ -715,11 +720,6 @@ export default function Reports() {
                           </div>
                         </div>
                       ))}
-                      {Object.keys(invoicesByProvider).length > 5 && (
-                        <p className="text-sm text-slate-500 text-center pt-2">
-                          +{Object.keys(invoicesByProvider).length - 5} more providers (export for full list)
-                        </p>
-                      )}
                     </div>
                   </div>
                   <p className="text-sm text-slate-600">
