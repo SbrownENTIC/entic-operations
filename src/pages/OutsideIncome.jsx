@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search, Pencil, Trash2, FileText, ArrowUpDown, ArrowUp, ArrowDown, Download, UserCheck, DollarSign } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, FileText, ArrowUpDown, ArrowUp, ArrowDown, Download, UserCheck, DollarSign, Printer } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { parseISO, format } from "date-fns";
@@ -203,6 +203,10 @@ export default function OutsideIncome() {
     navigate(`${createPageUrl('Invoices')}?create=true&incomes=${incomeIds}`);
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   const exportToCSV = () => {
     const headers = ['Provider', 'Facility', 'Work Month', 'On-Call Start', 'Days/RVUs', 'Rate', 'Total Amount', 'Invoice Month', 'Status', 'Created Date'];
     const rows = sortedIncomes.map(income => [
@@ -377,13 +381,32 @@ export default function OutsideIncome() {
 
   return (
     <div className="p-6 md:p-8 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          .print-content, .print-content * { visibility: visible; }
+          .print-content { position: absolute; left: 0; top: 0; width: 100%; }
+          .no-print { display: none !important; }
+          .print-content table { width: 100%; border-collapse: collapse; }
+          .print-content th, .print-content td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          .print-content th { background-color: #f5f5f5; }
+        }
+      `}</style>
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 no-print">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Outside Income</h1>
             <p className="text-slate-600 mt-1">Track work performed at external facilities</p>
           </div>
           <div className="flex gap-3 flex-wrap">
+            <Button
+              onClick={handlePrint}
+              variant="outline"
+              className="gap-2"
+            >
+              <Printer className="w-4 h-4" />
+              Print
+            </Button>
             <Button
               onClick={handleFixAmounts}
               disabled={fixingAmounts}
@@ -454,226 +477,235 @@ export default function OutsideIncome() {
         </div>
 
         {showForm && (
-          <OutsideIncomeForm
-            income={editingIncome}
-            providers={providers}
-            programLocations={programLocations}
-            onSubmit={handleSubmit}
-            onCancel={() => {
-              setShowForm(false);
-              setEditingIncome(null);
-            }}
-            isLoading={createMutation.isPending || updateMutation.isPending}
-          />
+          <div className="no-print">
+            <OutsideIncomeForm
+              income={editingIncome}
+              providers={providers}
+              programLocations={programLocations}
+              onSubmit={handleSubmit}
+              onCancel={() => {
+                setShowForm(false);
+                setEditingIncome(null);
+              }}
+              isLoading={createMutation.isPending || updateMutation.isPending}
+            />
+          </div>
         )}
 
         {linkMessage && (
-          <Card className="border-blue-200 bg-blue-50">
+          <Card className="border-blue-200 bg-blue-50 no-print">
             <CardContent className="p-4">
               <p className="text-sm text-blue-900">{linkMessage}</p>
             </CardContent>
           </Card>
         )}
 
-        <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
-          <CardHeader className="border-b border-slate-100 space-y-4">
-            <div className="flex items-center gap-4">
-              <Search className="w-5 h-5 text-slate-400" />
-              <Input
-                placeholder="Search outside income..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-md border-slate-200"
-              />
-            </div>
+        <div className="print-content">
+          <div className="hidden print:block mb-4">
+            <h1 className="text-2xl font-bold">Outside Income Report</h1>
+            <p className="text-sm text-gray-600">Generated on {format(new Date(), 'MMM d, yyyy')}</p>
+          </div>
 
-            {selectedIncomes.length > 0 && (
-              <div className="flex flex-col gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-slate-900">
-                    {selectedIncomes.length} selected
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedIncomes([])}
-                  >
-                    Clear Selection
-                  </Button>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <span className="text-sm text-slate-700">Update Provider:</span>
-                  <Select value={bulkProviderId} onValueChange={setBulkProviderId}>
-                    <SelectTrigger className="w-64 bg-white">
-                      <SelectValue placeholder="Select provider" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {providers.map(provider => (
-                        <SelectItem key={provider.id} value={provider.id}>
-                          {provider.full_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <Button
-                    onClick={handleBulkUpdateProvider}
-                    disabled={!bulkProviderId || bulkUpdateProviderMutation.isPending}
-                    className="bg-blue-600 hover:bg-blue-700 gap-2"
-                  >
-                    <UserCheck className="w-4 h-4" />
-                    {bulkUpdateProviderMutation.isPending ? 'Updating...' : 'Update Selected'}
-                  </Button>
-                </div>
+          <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
+            <CardHeader className="border-b border-slate-100 space-y-4 no-print">
+              <div className="flex items-center gap-4">
+                <Search className="w-5 h-5 text-slate-400" />
+                <Input
+                  placeholder="Search outside income..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="max-w-md border-slate-200"
+                />
               </div>
-            )}
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-auto max-h-[calc(100vh-230px)]">
-              <table className="w-full">
-                  <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
-                    <tr>
-                      <th className="text-left p-4 text-sm font-semibold text-slate-700 w-12">
-                        <Checkbox
-                          checked={selectedIncomes.length === sortedIncomes.length && sortedIncomes.length > 0}
-                          onCheckedChange={toggleAllSelection}
-                        />
-                      </th>
-                      <th
-                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                        onClick={() => handleSort('providerName')}
-                      >
-                        Provider <SortIcon field="providerName" />
-                      </th>
-                      <th
-                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                        onClick={() => handleSort('facility_name')}
-                      >
-                        Facility <SortIcon field="facility_name" />
-                      </th>
-                      <th
-                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                        onClick={() => handleSort('workMonth')}
-                      >
-                        Work Month <SortIcon field="workMonth" />
-                      </th>
-                      <th
-                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                        onClick={() => handleSort('temp_oncall_start_date')}
-                      >
-                        On-Call Start <SortIcon field="temp_oncall_start_date" />
-                      </th>
-                      <th
-                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                        onClick={() => handleSort('days_worked')}
-                      >
-                        Days/RVUs <SortIcon field="days_worked" />
-                      </th>
-                      <th
-                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                        onClick={() => handleSort('rate')}
-                      >
-                        Rate <SortIcon field="rate" />
-                      </th>
-                      <th
-                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                        onClick={() => handleSort('total_amount')}
-                      >
-                        Total <SortIcon field="total_amount" />
-                      </th>
-                      <th
-                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                        onClick={() => handleSort('invoice_month')}
-                      >
-                        Invoice Month <SortIcon field="invoice_month" />
-                      </th>
-                      <th
-                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                        onClick={() => handleSort('status')}
-                      >
-                        Status <SortIcon field="status" />
-                      </th>
-                      <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedIncomes.map((income) => (
-                      <tr key={income.id} className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${selectedIncomes.includes(income.id) ? 'bg-blue-50' : ''}`}>
-                        <td className="p-4">
-                          <Checkbox
-                            checked={selectedIncomes.includes(income.id)}
-                            onCheckedChange={() => toggleSelection(income.id)}
-                          />
-                        </td>
-                        <td className="p-4 font-medium text-slate-900">
-                          {income.provider?.full_name || '-'}
-                        </td>
-                        <td className="p-4 text-slate-600">{income.facility_name || '-'}</td>
-                        <td className="p-4 text-slate-600 font-medium">{income.workMonth}</td>
-                        <td className="p-4 text-slate-600">
-                          {income.onCallStart ? format(parseISO(income.onCallStart), 'MM-dd-yyyy') : '-'}
-                        </td>
-                        <td className="p-4 text-slate-600 font-medium">
-                          {income.isHartfordRVU ? (
-                            <span className="text-blue-600">{formatNumber(income.total_rvus)} RVUs</span>
-                          ) : income.isDirectorship ? (
-                            <span className="text-slate-400">—</span>
-                          ) : (
-                            <span>{income.days_worked || 0} days</span>
-                          )}
-                        </td>
-                        <td className="p-4 text-slate-600">
-                          ${formatCurrency(income.rate || 0)}
-                          {income.isHartfordRVU ? (
-                            <span className="text-xs text-slate-500">/RVU</span>
-                          ) : income.isDirectorship ? (
-                            <span className="text-xs text-slate-500">/month</span>
-                          ) : null}
-                        </td>
-                        <td className="p-4 font-medium text-green-600">
-                          ${formatCurrency(income.total_amount || 0)}
-                        </td>
-                        <td className="p-4 text-slate-600">{income.invoice_month || '-'}</td>
-                        <td className="p-4">
-                          <Badge className={statusColors[income.status]}>
-                            {income.status?.charAt(0).toUpperCase() + income.status?.slice(1)}
-                          </Badge>
-                        </td>
-                        <td className="p-4 text-right">
-                          <div className="flex gap-2 justify-end">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setEditingIncome(income);
-                                setShowForm(true);
-                              }}
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setDeleteConfirm(income)}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              {sortedIncomes.length === 0 && (
-                <div className="text-center py-12 text-slate-500">
-                  No income records found
+
+              {selectedIncomes.length > 0 && (
+                <div className="flex flex-col gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-slate-900">
+                      {selectedIncomes.length} selected
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedIncomes([])}
+                    >
+                      Clear Selection
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <span className="text-sm text-slate-700">Update Provider:</span>
+                    <Select value={bulkProviderId} onValueChange={setBulkProviderId}>
+                      <SelectTrigger className="w-64 bg-white">
+                        <SelectValue placeholder="Select provider" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {providers.map(provider => (
+                          <SelectItem key={provider.id} value={provider.id}>
+                            {provider.full_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Button
+                      onClick={handleBulkUpdateProvider}
+                      disabled={!bulkProviderId || bulkUpdateProviderMutation.isPending}
+                      className="bg-blue-600 hover:bg-blue-700 gap-2"
+                    >
+                      <UserCheck className="w-4 h-4" />
+                      {bulkUpdateProviderMutation.isPending ? 'Updating...' : 'Update Selected'}
+                    </Button>
+                  </div>
                 </div>
               )}
-            </div>
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-auto max-h-[calc(100vh-230px)] print:max-h-none print:overflow-visible">
+                <table className="w-full">
+                    <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
+                      <tr>
+                        <th className="text-left p-4 text-sm font-semibold text-slate-700 w-12 no-print">
+                          <Checkbox
+                            checked={selectedIncomes.length === sortedIncomes.length && sortedIncomes.length > 0}
+                            onCheckedChange={toggleAllSelection}
+                          />
+                        </th>
+                        <th
+                          className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
+                          onClick={() => handleSort('providerName')}
+                        >
+                          Provider <SortIcon field="providerName" />
+                        </th>
+                        <th
+                          className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
+                          onClick={() => handleSort('facility_name')}
+                        >
+                          Facility <SortIcon field="facility_name" />
+                        </th>
+                        <th
+                          className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
+                          onClick={() => handleSort('workMonth')}
+                        >
+                          Work Month <SortIcon field="workMonth" />
+                        </th>
+                        <th
+                          className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
+                          onClick={() => handleSort('temp_oncall_start_date')}
+                        >
+                          On-Call Start <SortIcon field="temp_oncall_start_date" />
+                        </th>
+                        <th
+                          className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
+                          onClick={() => handleSort('days_worked')}
+                        >
+                          Days/RVUs <SortIcon field="days_worked" />
+                        </th>
+                        <th
+                          className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
+                          onClick={() => handleSort('rate')}
+                        >
+                          Rate <SortIcon field="rate" />
+                        </th>
+                        <th
+                          className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
+                          onClick={() => handleSort('total_amount')}
+                        >
+                          Total <SortIcon field="total_amount" />
+                        </th>
+                        <th
+                          className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
+                          onClick={() => handleSort('invoice_month')}
+                        >
+                          Invoice Month <SortIcon field="invoice_month" />
+                        </th>
+                        <th
+                          className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
+                          onClick={() => handleSort('status')}
+                        >
+                          Status <SortIcon field="status" />
+                        </th>
+                        <th className="text-right p-4 text-sm font-semibold text-slate-700 no-print">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedIncomes.map((income) => (
+                        <tr key={income.id} className={`border-b border-slate-100 hover:bg-slate-50 transition-colors print:hover:bg-white ${selectedIncomes.includes(income.id) ? 'bg-blue-50' : ''}`}>
+                          <td className="p-4 no-print">
+                            <Checkbox
+                              checked={selectedIncomes.includes(income.id)}
+                              onCheckedChange={() => toggleSelection(income.id)}
+                            />
+                          </td>
+                          <td className="p-4 font-medium text-slate-900">
+                            {income.provider?.full_name || '-'}
+                          </td>
+                          <td className="p-4 text-slate-600">{income.facility_name || '-'}</td>
+                          <td className="p-4 text-slate-600 font-medium">{income.workMonth}</td>
+                          <td className="p-4 text-slate-600">
+                            {income.onCallStart ? format(parseISO(income.onCallStart), 'MM-dd-yyyy') : '-'}
+                          </td>
+                          <td className="p-4 text-slate-600 font-medium">
+                            {income.isHartfordRVU ? (
+                              <span className="text-blue-600">{formatNumber(income.total_rvus)} RVUs</span>
+                            ) : income.isDirectorship ? (
+                              <span className="text-slate-400">—</span>
+                            ) : (
+                              <span>{income.days_worked || 0} days</span>
+                            )}
+                          </td>
+                          <td className="p-4 text-slate-600">
+                            ${formatCurrency(income.rate || 0)}
+                            {income.isHartfordRVU ? (
+                              <span className="text-xs text-slate-500">/RVU</span>
+                            ) : income.isDirectorship ? (
+                              <span className="text-xs text-slate-500">/month</span>
+                            ) : null}
+                          </td>
+                          <td className="p-4 font-medium text-green-600">
+                            ${formatCurrency(income.total_amount || 0)}
+                          </td>
+                          <td className="p-4 text-slate-600">{income.invoice_month || '-'}</td>
+                          <td className="p-4">
+                            <Badge className={statusColors[income.status]}>
+                              {income.status?.charAt(0).toUpperCase() + income.status?.slice(1)}
+                            </Badge>
+                          </td>
+                          <td className="p-4 text-right no-print">
+                            <div className="flex gap-2 justify-end">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setEditingIncome(income);
+                                  setShowForm(true);
+                                }}
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setDeleteConfirm(income)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                {sortedIncomes.length === 0 && (
+                  <div className="text-center py-12 text-slate-500">
+                    No income records found
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>

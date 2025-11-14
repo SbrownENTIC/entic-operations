@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Pencil, Trash2, DollarSign, Download, ArrowUpDown, ArrowUp, ArrowDown, AlertCircle, RefreshCw, Wrench } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, DollarSign, Download, ArrowUpDown, ArrowUp, ArrowDown, AlertCircle, RefreshCw, Wrench, Printer } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import PaymentForm from "../components/payments/PaymentForm";
 import PaymentDetailModal from "../components/payments/PaymentDetailModal";
@@ -60,11 +60,11 @@ export default function Payments() {
     const urlParams = new URLSearchParams(window.location.search);
     const showUnallocated = urlParams.get('showUnallocated');
     const editPaymentId = urlParams.get('edit');
-    
+
     if (showUnallocated === 'true') {
       setFilterUnallocated(true);
     }
-    
+
     if (editPaymentId && payments.length > 0) {
       const paymentToEdit = payments.find(p => p.id === editPaymentId);
       if (paymentToEdit) {
@@ -72,7 +72,7 @@ export default function Payments() {
         setShowForm(true);
       }
     }
-    
+
     // Clear URL params after processing
     if (showUnallocated || editPaymentId) {
       window.history.replaceState({}, '', window.location.pathname);
@@ -82,9 +82,9 @@ export default function Payments() {
   // Update invoice amounts and statuses based on all payment allocations
   const updateInvoiceStatuses = async () => {
     if (invoices.length === 0 || payments.length === 0) return;
-    
+
     const invoiceTotals = {};
-    
+
     for (const payment of payments) {
       if (payment.allocations) {
         for (const allocation of payment.allocations) {
@@ -94,14 +94,14 @@ export default function Payments() {
         }
       }
     }
-    
+
     for (const invoice of invoices) {
       const amountReceived = invoiceTotals[invoice.id] || 0;
       const amountExpected = invoice.amount_expected || invoice.total || 0;
       const balance = amountExpected - amountReceived;
-      
+
       let newStatus = invoice.status;
-      
+
       // IMPORTANT: Preserve provider_paid status if the checkbox is checked
       if (invoice.provider_paid) {
         newStatus = 'provider_paid';
@@ -112,7 +112,7 @@ export default function Payments() {
       } else if (amountReceived === 0 && invoice.status !== 'pending' && invoice.status !== 'unpaid') {
         newStatus = 'pending';
       }
-      
+
       if (invoice.amount_received !== amountReceived || invoice.status !== newStatus) {
         await base44.entities.Invoice.update(invoice.id, {
           amount_received: amountReceived,
@@ -126,21 +126,21 @@ export default function Payments() {
   useEffect(() => {
     const updateData = async () => {
       if (paymentsLoading || invoicesLoading || providersLoading || payments.length === 0 || invoices.length === 0) return;
-      
+
       for (const payment of payments) {
         const totalAllocated = payment.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
         const unallocated = roundToTwo((payment.total_amount || 0) - totalAllocated);
-        
+
         let newStatus = payment.status;
         if (Math.abs(unallocated) < 0.01 && totalAllocated > 0 && payment.status === 'pending') {
           newStatus = 'cleared';
         } else if (unallocated > 0.01 && payment.status === 'cleared') {
           newStatus = 'pending';
         }
-        
+
         // Normalize tiny floating point errors to exactly 0
         const normalizedUnallocated = Math.abs(unallocated) < 0.01 ? 0 : unallocated;
-        
+
         if (payment.unallocated_amount !== normalizedUnallocated || payment.status !== newStatus) {
           await base44.entities.Payment.update(payment.id, {
             unallocated_amount: normalizedUnallocated,
@@ -148,26 +148,26 @@ export default function Payments() {
           });
         }
       }
-      
+
       await updateInvoiceStatuses();
-      
+
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
     };
-    
+
     const timer = setTimeout(() => {
       updateData();
     }, 500);
 
     return () => clearTimeout(timer);
-    
+
   }, [payments.length, invoices.length, paymentsLoading, invoicesLoading, providersLoading]);
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
       const totalAllocated = data.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
       const unallocated = roundToTwo(data.total_amount - totalAllocated);
-      
+
       const months = new Set();
       if (data.allocations) {
         data.allocations.forEach(allocation => {
@@ -180,23 +180,23 @@ export default function Payments() {
         });
       }
       const paymentMonth = Array.from(months).sort().join(', ');
-      
+
       let status = data.status;
       if (Math.abs(unallocated) < 0.01 && totalAllocated > 0 && status === 'pending') {
         status = 'cleared';
       }
-      
+
       const normalizedUnallocated = Math.abs(unallocated) < 0.01 ? 0 : unallocated;
-      
+
       const payment = await base44.entities.Payment.create({
         ...data,
         payment_month: paymentMonth,
         unallocated_amount: normalizedUnallocated,
         status: status
       });
-      
+
       await updateInvoiceStatuses();
-      
+
       return payment;
     },
     onSuccess: () => {
@@ -211,7 +211,7 @@ export default function Payments() {
     mutationFn: async ({ id, data }) => {
       const totalAllocated = data.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
       const unallocated = roundToTwo(data.total_amount - totalAllocated);
-      
+
       const months = new Set();
       if (data.allocations) {
         data.allocations.forEach(allocation => {
@@ -224,25 +224,25 @@ export default function Payments() {
         });
       }
       const paymentMonth = Array.from(months).sort().join(', ');
-      
+
       let status = data.status;
       if (Math.abs(unallocated) < 0.01 && totalAllocated > 0 && status === 'pending') {
         status = 'cleared';
       } else if (unallocated > 0.01 && status === 'cleared') {
         status = 'pending';
       }
-      
+
       const normalizedUnallocated = Math.abs(unallocated) < 0.01 ? 0 : unallocated;
-      
+
       const payment = await base44.entities.Payment.update(id, {
         ...data,
         payment_month: paymentMonth,
         unallocated_amount: normalizedUnallocated,
         status: status
       });
-      
+
       await updateInvoiceStatuses();
-      
+
       return payment;
     },
     onSuccess: () => {
@@ -256,7 +256,7 @@ export default function Payments() {
   const deleteMutation = useMutation({
     mutationFn: async (payment) => {
       await base44.entities.Payment.delete(payment.id);
-      
+
       await updateInvoiceStatuses();
     },
     onSuccess: () => {
@@ -269,14 +269,14 @@ export default function Payments() {
   const unallocateMutation = useMutation({
     mutationFn: async ({ payment, allocationToRemove }) => {
       const updatedAllocations = (payment.allocations || []).filter(
-        a => !(a.invoice_id === allocationToRemove.invoice_id && 
-              a.provider_id === allocationToRemove.provider_id && 
+        a => !(a.invoice_id === allocationToRemove.invoice_id &&
+              a.provider_id === allocationToRemove.provider_id &&
               a.amount === allocationToRemove.amount)
       );
-      
+
       const totalAllocated = updatedAllocations.reduce((sum, a) => sum + (a.amount || 0), 0);
       const unallocated = roundToTwo((payment.total_amount || 0) - totalAllocated);
-      
+
       const months = new Set();
       if (updatedAllocations.length > 0) {
         updatedAllocations.forEach(allocation => {
@@ -289,23 +289,23 @@ export default function Payments() {
         });
       }
       const paymentMonth = Array.from(months).sort().join(', ');
-      
+
       let status = payment.status;
       if (Math.abs(unallocated) < 0.01 && totalAllocated > 0) {
         status = 'cleared';
       } else if (unallocated > 0.01) {
         status = 'pending';
       }
-      
+
       const normalizedUnallocated = Math.abs(unallocated) < 0.01 ? 0 : unallocated;
-      
+
       await base44.entities.Payment.update(payment.id, {
         allocations: updatedAllocations,
         payment_month: paymentMonth,
         unallocated_amount: normalizedUnallocated,
         status: status
       });
-      
+
       await updateInvoiceStatuses();
     },
     onSuccess: () => {
@@ -370,17 +370,21 @@ export default function Payments() {
     }
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   // Export allocations to CSV
   const exportAllocations = () => {
     const rows = [];
     rows.push(['Payment Date', 'Payment Month', 'Payer', 'Payment Method', 'Reference Number', 'Payment Total', 'Payment Status', 'Payment Notes', 'Invoice Number', 'Program Group', 'Provider Name', 'Allocation Amount', 'Allocation Notes']);
-    
+
     payments.forEach(payment => {
       if (payment.allocations && payment.allocations.length > 0) {
         payment.allocations.forEach(allocation => {
           const invoice = invoices.find(inv => inv.id === allocation.invoice_id);
           const provider = providers.find(p => p.id === allocation.provider_id);
-          
+
           rows.push([
             format(parseISO(payment.payment_date), 'yyyy-MM-dd'),
             payment.payment_month || '',
@@ -415,8 +419,8 @@ export default function Payments() {
         ]);
       }
     });
-    
-    const csvContent = rows.map(row => 
+
+    const csvContent = rows.map(row =>
       row.map(cell => {
         const cellStr = String(cell);
         if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
@@ -425,7 +429,7 @@ export default function Payments() {
         return cellStr;
       }).join(',')
     ).join('\n');
-    
+
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
@@ -462,15 +466,15 @@ export default function Payments() {
   const filteredPayments = payments.filter(payment => {
     const matchesSearch = payment.payer?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       payment.reference_number?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesUnallocatedFilter = !filterUnallocated || (payment.unallocated_amount > 0);
-    
+
     return matchesSearch && matchesUnallocatedFilter;
   });
 
   const sortedPayments = [...filteredPayments].sort((a, b) => {
     let aValue, bValue;
-    
+
     if (sortField === 'payment_date') {
       aValue = new Date(a.payment_date);
       bValue = new Date(b.payment_date);
@@ -483,15 +487,15 @@ export default function Payments() {
       aValue = a[sortField] || '';
       bValue = b[sortField] || '';
     }
-    
+
     const comparison = aValue.toString().toLowerCase().localeCompare(bValue.toString().toLowerCase());
     return sortDirection === 'asc' ? comparison : -comparison;
   });
 
   const SortIcon = ({ field }) => {
     if (sortField !== field) return <ArrowUpDown className="w-4 h-4 ml-1 inline" />;
-    return sortDirection === 'asc' ? 
-      <ArrowUp className="w-4 h-4 ml-1 inline" /> : 
+    return sortDirection === 'asc' ?
+      <ArrowUp className="w-4 h-4 ml-1 inline" /> :
       <ArrowDown className="w-4 h-4 ml-1 inline" />;
   };
 
@@ -507,8 +511,24 @@ export default function Payments() {
 
   return (
     <div className="p-6 md:p-8 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
+      <style>{`
+        @media print {
+          body * { visibility: hidden !important; }
+          .print-content, .print-content * { visibility: visible !important; }
+          .print-content { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
+          .no-print { display: none !important; }
+          .print-content table { width: 100% !important; border-collapse: collapse !important; margin-top: 1rem !important; }
+          .print-content th, .print-content td { border: 1px solid #ddd !important; padding: 8px !important; text-align: left !important; font-size: 10px !important; }
+          .print-content th { background-color: #f5f5f5 !important; }
+          .print-content .badge { padding: 2px 4px !important; font-size: 8px !important; }
+          .print-content h1, .print-content p { color: #000 !important; }
+          /* Ensure Card and its content appear correctly */
+          .print-content .card, .print-content .card-content { border: none !important; box-shadow: none !important; background: none !important; }
+          .print-content .overflow-auto { overflow: visible !important; max-height: none !important; }
+        }
+      `}</style>
       <div className="max-w-7xl mx-auto w-full space-y-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 no-print">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Payments</h1>
             <p className="text-slate-600 mt-1">Track and allocate payments to invoices</p>
@@ -541,6 +561,14 @@ export default function Payments() {
               Export Allocations
             </Button>
             <Button
+              onClick={handlePrint}
+              variant="outline"
+              className="gap-2"
+            >
+              <Printer className="w-4 h-4" />
+              Print
+            </Button>
+            <Button
               onClick={() => {
                 setEditingPayment(null);
                 setShowForm(true);
@@ -554,7 +582,7 @@ export default function Payments() {
         </div>
 
         {updateMessage && (
-          <Card className="border-blue-200 bg-blue-50">
+          <Card className="border-blue-200 bg-blue-50 no-print">
             <CardContent className="p-4">
               <p className="text-sm text-blue-900">{updateMessage}</p>
             </CardContent>
@@ -562,7 +590,7 @@ export default function Payments() {
         )}
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 no-print">
           <Card className="border-slate-200 shadow-sm bg-gradient-to-br from-green-50 to-white">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -612,165 +640,177 @@ export default function Payments() {
           />
         )}
 
-        <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
-          <CardHeader className="border-b border-slate-100 space-y-4">
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-              <div className="flex items-center gap-4 flex-1">
-                <Search className="w-5 h-5 text-slate-400" />
-                <Input
-                  placeholder="Search payments..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="max-w-md border-slate-200"
-                />
-              </div>
-              <Button
-                variant={filterUnallocated ? "default" : "outline"}
-                onClick={() => setFilterUnallocated(!filterUnallocated)}
-                className={filterUnallocated ? "bg-orange-600 hover:bg-orange-700" : ""}
-              >
-                <AlertCircle className="w-4 h-4 mr-2" />
-                {filterUnallocated ? "Showing Unallocated" : "Show Unallocated Only"}
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-auto max-h-[calc(100vh-230px)]">
-              <table className="w-full">
-                <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
-                  <tr>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700 w-16">
-                      #
-                    </th>
-                    <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                      onClick={() => handleSort('payment_date')}
-                    >
-                      Payment Date <SortIcon field="payment_date" />
-                    </th>
-                    <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                      onClick={() => handleSort('payment_month')}
-                    >
-                      Month <SortIcon field="payment_month" />
-                    </th>
-                    <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                      onClick={() => handleSort('payer')}
-                    >
-                      Payer <SortIcon field="payer" />
-                    </th>
-                    <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                      onClick={() => handleSort('payment_method')}
-                    >
-                      Method <SortIcon field="payment_method" />
-                    </th>
-                    <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                      onClick={() => handleSort('reference_number')}
-                    >
-                      Reference <SortIcon field="reference_number" />
-                    </th>
-                    <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                      onClick={() => handleSort('total_amount')}
-                    >
-                      Amount <SortIcon field="total_amount" />
-                    </th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">
-                      Unallocated
-                    </th>
-                    <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                      onClick={() => handleSort('status')}
-                    >
-                      Status <SortIcon field="status" />
-                    </th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Allocations</th>
-                    <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedPayments.map((payment, index) => (
-                    <tr key={payment.id} className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${
-                      payment.unallocated_amount > 0 ? 'bg-orange-50/30' : ''
-                    }`}>
-                      <td className="p-4 text-slate-500 font-medium">
-                        {index + 1}
-                      </td>
-                      <td className="p-4 text-slate-600">
-                        {format(parseISO(payment.payment_date), 'MMM d, yyyy')}
-                      </td>
-                      <td className="p-4 text-slate-600">
-                        {payment.payment_month || '-'}
-                      </td>
-                      <td className="p-4 font-medium text-slate-900">{payment.payer}</td>
-                      <td className="p-4 text-slate-600">{payment.payment_method?.replace(/_/g, ' ')}</td>
-                      <td className="p-4 text-slate-600 font-mono text-sm">
-                        {payment.reference_number || '-'}
-                      </td>
-                      <td className="p-4 font-medium text-green-600">
-                        ${formatCurrency(payment.total_amount || 0)}
-                      </td>
-                      <td className="p-4">
-                        {payment.unallocated_amount > 0 ? (
-                          <span className="font-bold text-orange-600">
-                            ${formatCurrency(payment.unallocated_amount)}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400">-</span>
-                        )}
-                      </td>
-                      <td className="p-4">
-                        <Badge className={statusColors[payment.status]}>
-                          {payment.status === 'entic_paid' ? 'ENTIC Paid' : capitalize(payment.status)}
-                        </Badge>
-                      </td>
-                      <td className="p-4 text-slate-600">
-                        {payment.allocations?.length || 0} {payment.allocations?.length === 1 ? 'Allocation' : 'Allocations'}
-                      </td>
-                      <td className="p-4 text-right">
-                        <div className="flex gap-2 justify-end">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => setViewingPayment(payment)}
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => {
-                              setEditingPayment(payment);
-                              setShowForm(true);
-                            }}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => setDeleteConfirm(payment)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {sortedPayments.length === 0 && (
-                <div className="text-center py-12 text-slate-500">
-                  No payments found
+        <div className="print-content">
+          <div className="hidden print:block mb-4">
+            <h1 className="text-2xl font-bold mb-1">Payments Report</h1>
+            <p className="text-sm text-gray-600">Generated on {format(new Date(), 'MMM d, yyyy')}</p>
+          </div>
+
+          <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm card">
+            <CardHeader className="border-b border-slate-100 space-y-4 no-print">
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                <div className="flex items-center gap-4 flex-1">
+                  <Search className="w-5 h-5 text-slate-400" />
+                  <Input
+                    placeholder="Search payments..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="max-w-md border-slate-200"
+                  />
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                <Button
+                  variant={filterUnallocated ? "default" : "outline"}
+                  onClick={() => setFilterUnallocated(!filterUnallocated)}
+                  className={filterUnallocated ? "bg-orange-600 hover:bg-orange-700" : ""}
+                >
+                  <AlertCircle className="w-4 h-4 mr-2" />
+                  {filterUnallocated ? "Showing Unallocated" : "Show Unallocated Only"}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0 card-content">
+              <div className="overflow-auto max-h-[calc(100vh-230px)] print:max-h-none print:overflow-visible">
+                <table className="w-full">
+                  <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
+                    <tr>
+                      <th className="text-left p-4 text-sm font-semibold text-slate-700 w-16">
+                        #
+                      </th>
+                      <th
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 no-print"
+                        onClick={() => handleSort('payment_date')}
+                      >
+                        Payment Date <SortIcon field="payment_date" />
+                      </th>
+                      <th
+                        className="text-left p-4 text-sm font-semibold text-slate-700 print:block hidden"
+                      >
+                        Payment Date
+                      </th>
+                      <th
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                        onClick={() => handleSort('payment_month')}
+                      >
+                        Month <SortIcon field="payment_month" />
+                      </th>
+                      <th
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                        onClick={() => handleSort('payer')}
+                      >
+                        Payer <SortIcon field="payer" />
+                      </th>
+                      <th
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                        onClick={() => handleSort('payment_method')}
+                      >
+                        Method <SortIcon field="payment_method" />
+                      </th>
+                      <th
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                        onClick={() => handleSort('reference_number')}
+                      >
+                        Reference <SortIcon field="reference_number" />
+                      </th>
+                      <th
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                        onClick={() => handleSort('total_amount')}
+                      >
+                        Amount <SortIcon field="total_amount" />
+                      </th>
+                      <th className="text-left p-4 text-sm font-semibold text-slate-700">
+                        Unallocated
+                      </th>
+                      <th
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                        onClick={() => handleSort('status')}
+                      >
+                        Status <SortIcon field="status" />
+                      </th>
+                      <th className="text-left p-4 text-sm font-semibold text-slate-700">Allocations</th>
+                      <th className="text-right p-4 text-sm font-semibold text-slate-700 no-print">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedPayments.map((payment, index) => (
+                      <tr key={payment.id} className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${
+                        payment.unallocated_amount > 0 ? 'bg-orange-50/30' : ''
+                      }`}>
+                        <td className="p-4 text-slate-500 font-medium">
+                          {index + 1}
+                        </td>
+                        <td className="p-4 text-slate-600">
+                          {format(parseISO(payment.payment_date), 'MMM d, yyyy')}
+                        </td>
+                        <td className="p-4 text-slate-600">
+                          {payment.payment_month || '-'}
+                        </td>
+                        <td className="p-4 font-medium text-slate-900">{payment.payer}</td>
+                        <td className="p-4 text-slate-600">{payment.payment_method?.replace(/_/g, ' ')}</td>
+                        <td className="p-4 text-slate-600 font-mono text-sm">
+                          {payment.reference_number || '-'}
+                        </td>
+                        <td className="p-4 font-medium text-green-600">
+                          ${formatCurrency(payment.total_amount || 0)}
+                        </td>
+                        <td className="p-4">
+                          {payment.unallocated_amount > 0 ? (
+                            <span className="font-bold text-orange-600">
+                              ${formatCurrency(payment.unallocated_amount)}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">-</span>
+                          )}
+                        </td>
+                        <td className="p-4">
+                          <Badge className={`${statusColors[payment.status]} badge`}>
+                            {payment.status === 'entic_paid' ? 'ENTIC Paid' : capitalize(payment.status)}
+                          </Badge>
+                        </td>
+                        <td className="p-4 text-slate-600">
+                          {payment.allocations?.length || 0} {payment.allocations?.length === 1 ? 'Allocation' : 'Allocations'}
+                        </td>
+                        <td className="p-4 text-right no-print">
+                          <div className="flex gap-2 justify-end">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setViewingPayment(payment)}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setEditingPayment(payment);
+                                setShowForm(true);
+                              }}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeleteConfirm(payment)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {sortedPayments.length === 0 && (
+                  <div className="text-center py-12 text-slate-500">
+                    No payments found
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {viewingPayment && (
