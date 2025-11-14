@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Search, Pencil, Trash2, FileText, ArrowUpDown, ArrowUp, ArrowDown, Download, UserCheck } from "lucide-react";
-import { useNavigate } from "react-router-dom"; // Corrected this line
+import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { parseISO, format } from "date-fns";
 import OutsideIncomeForm from "../components/income/OutsideIncomeForm";
@@ -39,6 +39,8 @@ export default function OutsideIncome() {
   const [bulkProviderId, setBulkProviderId] = useState("");
   const [sortField, setSortField] = useState('created_date');
   const [sortDirection, setSortDirection] = useState('desc');
+  const [linkingOnCall, setLinkingOnCall] = useState(false);
+  const [linkMessage, setLinkMessage] = useState('');
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -117,6 +119,20 @@ export default function OutsideIncome() {
   const handleBulkUpdateProvider = () => {
     if (selectedIncomes.length > 0 && bulkProviderId) {
       bulkUpdateProviderMutation.mutate({ ids: selectedIncomes, providerId: bulkProviderId });
+    }
+  };
+
+  const handleLinkOnCallDates = async () => {
+    setLinkingOnCall(true);
+    setLinkMessage('');
+    try {
+      const response = await base44.functions.invoke('linkOutsideIncomeToOnCall', {});
+      setLinkMessage(response.data.message);
+      queryClient.invalidateQueries({ queryKey: ['outside-income'] });
+    } catch (error) {
+      setLinkMessage('Error linking on-call dates: ' + error.message);
+    } finally {
+      setLinkingOnCall(false);
     }
   };
 
@@ -330,6 +346,15 @@ export default function OutsideIncome() {
               <Download className="w-4 h-4" />
               Export CSV
             </Button>
+            <Button
+              onClick={handleLinkOnCallDates}
+              disabled={linkingOnCall}
+              variant="outline"
+              className="gap-2 border-purple-600 text-purple-600 hover:bg-purple-50"
+            >
+              <UserCheck className={`w-4 h-4 ${linkingOnCall ? 'animate-spin' : ''}`} />
+              {linkingOnCall ? 'Linking...' : 'Link On-Call Dates'}
+            </Button>
             {selectedIncomes.length > 0 && (
               <Button
                 onClick={createInvoiceFromSelected}
@@ -367,6 +392,14 @@ export default function OutsideIncome() {
             }}
             isLoading={createMutation.isPending || updateMutation.isPending}
           />
+        )}
+
+        {linkMessage && (
+          <Card className="border-blue-200 bg-blue-50">
+            <CardContent className="p-4">
+              <p className="text-sm text-blue-900">{linkMessage}</p>
+            </CardContent>
+          </Card>
         )}
 
         <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
