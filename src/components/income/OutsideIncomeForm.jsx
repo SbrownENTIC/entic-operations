@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -62,22 +61,18 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
   }, [income]);
 
   useEffect(() => {
-    // Calculate total based on program type - but NOT for Hartford Hospital RVU-based
+    // Skip auto-calculation entirely for Hartford Hospital RVU-based programs
     if (isHartfordHospitalRVUBased) {
-      // For Hartford Hospital RVU-based, do NOT auto-calculate - allow manual entry
       return;
     }
     
     let total;
-    // For Directorship and other programs, use rate directly or multiply by days
     const selectedLocation = programLocations.find(pl => pl.id === formData.program_location_id);
     const isDirectorship = selectedLocation?.program_type === 'Directorship';
     
     if (isDirectorship) {
-      // For Directorship, rate is the monthly amount (no multiplication needed)
       total = formData.rate || 0;
     } else {
-      // For other programs, multiply by days worked
       const days = formData.work_dates.filter(d => d).length;
       total = days * (formData.rate || 0);
       setFormData(prev => ({ ...prev, days_worked: days }));
@@ -90,8 +85,6 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
   }, [formData.work_dates, formData.rate, isHartfordHospitalRVUBased, formData.program_location_id, programLocations]);
 
   useEffect(() => {
-    // Auto-populate rate and facility when program location is selected
-    // But NOT for Hartford Hospital RVU-based
     if (formData.program_location_id) {
       const selectedLocation = programLocations.find(pl => pl.id === formData.program_location_id);
       if (selectedLocation) {
@@ -99,7 +92,6 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
           facility_name: selectedLocation.program_location || formData.facility_name
         };
         
-        // Only auto-populate rate if NOT Hartford Hospital RVU-based
         if (!isHartfordHospitalRVUBased) {
           updates.rate = selectedLocation.daily_rate || 0;
         }
@@ -116,7 +108,6 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
     e.preventDefault();
     const cleanedDates = formData.work_dates.filter(d => d);
     
-    // For Hartford Hospital RVU-based, work_dates are optional
     const submissionData = { 
       ...formData, 
       work_dates: cleanedDates.length > 0 ? cleanedDates : []
@@ -145,7 +136,6 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
     setFormData({ ...formData, work_dates: newDates });
   };
 
-  // Determine program type for UI
   const selectedLocation = programLocations.find(pl => pl.id === formData.program_location_id);
   const isDirectorship = selectedLocation?.program_type === 'Directorship';
 
