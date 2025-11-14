@@ -139,6 +139,21 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
     }
   }, [invoice, preselectedIncomes, incomes, programLocations]);
 
+  // Recalculate totals whenever outside_income_ids changes
+  useEffect(() => {
+    const selectedIncomes = incomes.filter(inc => formData.outside_income_ids.includes(inc.id));
+    const totalDays = selectedIncomes.reduce((sum, inc) => sum + (inc.days_worked || 0), 0);
+    const totalAmount = selectedIncomes.reduce((sum, inc) => sum + (inc.total_amount || 0), 0);
+
+    setFormData(prev => ({
+      ...prev,
+      days_worked: totalDays,
+      subtotal: totalAmount,
+      total: totalAmount,
+      amount_expected: totalAmount
+    }));
+  }, [formData.outside_income_ids, incomes]);
+
   useEffect(() => {
     const extractedMonth = extractMonthFromInvoiceNumber(formData.invoice_number);
     if (extractedMonth && !formData.month) {
@@ -205,42 +220,30 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
   };
 
   const toggleIncome = (incomeId) => {
-    const income = incomes.find(inc => inc.id === incomeId);
-    const isSelected = formData.outside_income_ids.includes(incomeId);
-
-    if (isSelected) {
-      setFormData(prev => ({
-        ...prev,
-        outside_income_ids: prev.outside_income_ids.filter(id => id !== incomeId),
-        days_worked: prev.days_worked - (income?.days_worked || 0),
-        subtotal: prev.subtotal - (income?.total_amount || 0),
-        total: prev.total - (income?.total_amount || 0),
-        amount_expected: prev.amount_expected - (income?.total_amount || 0)
-      }));
-    } else {
-      setFormData(prev => {
-        let updates = {
-          outside_income_ids: [...prev.outside_income_ids, incomeId],
-          days_worked: prev.days_worked + (income?.days_worked || 0),
-          subtotal: prev.subtotal + (income?.total_amount || 0),
-          total: prev.total + (income?.total_amount || 0),
-          amount_expected: prev.amount_expected + (income?.total_amount || 0)
-        };
-
-        if (prev.outside_income_ids.length === 0) {
-          if (income?.program_location_id) {
-            const programLocation = programLocations.find(pl => pl.id === income.program_location_id);
-            if (programLocation) {
-              updates.program_group = programLocation.program_group || '';
-            }
-          }
-          if (income?.provider_id) {
-            updates.staff_member_id = income.provider_id;
+    setFormData(prev => {
+      const isSelected = prev.outside_income_ids.includes(incomeId);
+      const newIncomeIds = isSelected 
+        ? prev.outside_income_ids.filter(id => id !== incomeId)
+        : [...prev.outside_income_ids, incomeId];
+      
+      // Auto-set program group and provider if this is the first income being added
+      let updates = { outside_income_ids: newIncomeIds };
+      
+      if (!isSelected && prev.outside_income_ids.length === 0) {
+        const income = incomes.find(inc => inc.id === incomeId);
+        if (income?.program_location_id) {
+          const programLocation = programLocations.find(pl => pl.id === income.program_location_id);
+          if (programLocation) {
+            updates.program_group = programLocation.program_group || '';
           }
         }
-        return { ...prev, ...updates };
-      });
-    }
+        if (income?.provider_id) {
+          updates.staff_member_id = income.provider_id;
+        }
+      }
+      
+      return { ...prev, ...updates };
+    });
   };
 
   const handleFileUpload = async (e, type) => {
