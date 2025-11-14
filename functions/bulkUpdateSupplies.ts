@@ -174,40 +174,26 @@ Deno.serve(async (req) => {
     
     let updated = 0;
     let notFound = [];
-    const batchSize = 10; // Process 10 at a time
     
-    // Process in batches to avoid rate limits
-    for (let i = 0; i < supplyData.length; i += batchSize) {
-      const batch = supplyData.slice(i, i + batchSize);
+    // Process sequentially with delays to avoid rate limits
+    for (let i = 0; i < supplyData.length; i++) {
+      const data = supplyData[i];
+      const supply = supplies.find(s => s.item_number === data.item_number);
       
-      const updatePromises = batch.map(async (data) => {
-        const supply = supplies.find(s => s.item_number === data.item_number);
-        
-        if (supply) {
-          await base44.asServiceRole.entities.Supply.update(supply.id, {
-            product_name: data.product_name,
-            unit_price: data.unit_price,
-            units: data.units || null
-          });
-          return { success: true, item: data.item_number };
-        } else {
-          return { success: false, item: data.item_number };
-        }
-      });
+      if (supply) {
+        await base44.asServiceRole.entities.Supply.update(supply.id, {
+          product_name: data.product_name,
+          unit_price: data.unit_price,
+          units: data.units || null
+        });
+        updated++;
+      } else {
+        notFound.push(data.item_number);
+      }
       
-      const results = await Promise.all(updatePromises);
-      
-      results.forEach(result => {
-        if (result.success) {
-          updated++;
-        } else {
-          notFound.push(result.item);
-        }
-      });
-      
-      // Add delay between batches to avoid rate limits
-      if (i + batchSize < supplyData.length) {
-        await delay(1000); // Wait 1 second between batches
+      // Add a small delay after every 5 updates
+      if ((i + 1) % 5 === 0) {
+        await delay(500);
       }
     }
 
@@ -215,7 +201,7 @@ Deno.serve(async (req) => {
       success: true,
       updated,
       total: supplyData.length,
-      notFound
+      notFound: notFound.length > 0 ? notFound : undefined
     });
 
   } catch (error) {
