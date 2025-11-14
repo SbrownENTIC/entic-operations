@@ -23,13 +23,13 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
     temp_oncall_start_date: '',
     notes: ''
   });
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const { data: programLocations = [] } = useQuery({
     queryKey: ['program-locations'],
     queryFn: () => base44.entities.ProgramLocation.list('program_location')
   });
 
-  // Check if Hartford Hospital RVU-based program (exclude Directorship)
   const isHartfordHospitalRVU = () => {
     const selectedLocation = programLocations.find(pl => pl.id === formData.program_location_id);
     
@@ -40,7 +40,6 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
       return isHartford && !isDirectorship;
     }
     
-    // Fallback to facility name check (exclude directorship)
     const isHartford = formData.facility_name?.toLowerCase().includes('hartford hospital');
     const isDirectorship = formData.facility_name?.toLowerCase().includes('directorship');
     return isHartford && !isDirectorship;
@@ -57,10 +56,18 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
         total_rvus: income.total_rvus || 0,
         temp_oncall_start_date: income.temp_oncall_start_date || ''
       });
+      setIsInitialLoad(true);
+      // Reset initial load flag after a short delay
+      setTimeout(() => setIsInitialLoad(false), 100);
+    } else {
+      setIsInitialLoad(false);
     }
   }, [income]);
 
   useEffect(() => {
+    // Skip calculation on initial load when editing
+    if (isInitialLoad) return;
+    
     // Skip auto-calculation entirely for Hartford Hospital RVU-based programs
     if (isHartfordHospitalRVUBased) {
       return;
@@ -82,7 +89,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
       ...prev, 
       total_amount: total 
     }));
-  }, [formData.work_dates, formData.rate, isHartfordHospitalRVUBased, formData.program_location_id, programLocations]);
+  }, [formData.work_dates, formData.rate, isHartfordHospitalRVUBased, formData.program_location_id, programLocations, isInitialLoad]);
 
   useEffect(() => {
     if (formData.program_location_id) {
