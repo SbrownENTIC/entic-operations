@@ -408,7 +408,7 @@ export default function Reports() {
 
     const grandTotal = filteredInvoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
     const grandReceived = filteredInvoices.reduce((sum, inv) => sum + (inv.amount_received || 0), 0);
-    const grandBalance = filteredInvoices.reduce((sum, inv) => {
+    const grandBalance = filteredInvoices.reduce((sum, inv => {
       const balance = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
       return sum + balance;
     }, 0);
@@ -699,12 +699,12 @@ export default function Reports() {
                                 {index + 1}
                               </div>
                               <div>
-                                <p className="font-medium text-slate-900">{displayName}</p>
-                                <p className="text-sm text-slate-500">{data.count} invoice{data.count !== 1 ? 's' : ''}</p>
+                                <p className="text-sm font-medium text-slate-900">{displayName}</p>
+                                <p className="text-xs text-slate-500">{data.count} invoice{data.count !== 1 ? 's' : ''}</p>
                               </div>
                             </div>
                             <div className="text-right">
-                              <p className="text-lg font-bold text-blue-700">{formatCurrency(data.total)}</p>
+                              <p className="text-base font-bold text-blue-700">{formatCurrency(data.total)}</p>
                             </div>
                           </div>
                         );
