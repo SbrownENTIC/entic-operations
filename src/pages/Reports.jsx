@@ -417,7 +417,7 @@ export default function Reports() {
     // Grand totals
     const grandTotal = filteredInvoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
     const grandReceived = filteredInvoices.reduce((sum, inv) => sum + (inv.amount_received || 0), 0);
-    const grandBalance = filteredInvoices.reduce((sum, inv) => {
+    const grandBalance = filteredInvoices.reduce((sum, inv => {
       const balance = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
       return sum + balance;
     }, 0);
@@ -703,11 +703,11 @@ export default function Reports() {
                 <div className="space-y-4">
                   <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200">
                     <h3 className="text-lg font-semibold text-slate-900 mb-4">Total Invoice by Provider</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-3 md:grid-rows-3 md:grid-flow-col gap-3">
                       {allProviders.map(([providerName, data], index) => (
                         <div key={providerName} className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm">
+                            <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
                               {index + 1}
                             </div>
                             <div>
