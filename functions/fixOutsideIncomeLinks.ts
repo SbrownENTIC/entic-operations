@@ -13,39 +13,77 @@ Deno.serve(async (req) => {
         const invoices = await base44.asServiceRole.entities.Invoice.list();
         const incomes = await base44.asServiceRole.entities.OutsideIncome.list();
         
-        let updatedCount = 0;
-        let clearedCount = 0;
+        let incomeUpdates = 0;
+        let invoiceUpdates = 0;
         
-        // First, clear all invoice_id fields
-        for (const income of incomes) {
-            if (income.invoice_id) {
-                await base44.asServiceRole.entities.OutsideIncome.update(income.id, {
-                    invoice_id: null
+        // Build a map of which incomes belong to which invoice
+        const invoiceIncomeMap = {};
+        
+        // First pass: build map from invoice.outside_income_ids arrays
+        for (const invoice of invoices) {
+            if (!invoiceIncomeMap[invoice.id]) {
+                invoiceIncomeMap[invoice.id] = new Set();
+            }
+            if (invoice.outside_income_ids && invoice.outside_income_ids.length > 0) {
+                invoice.outside_income_ids.forEach(incomeId => {
+                    invoiceIncomeMap[invoice.id].add(incomeId);
                 });
-                clearedCount++;
             }
         }
         
-        // Then, set invoice_id based on invoice's outside_income_ids
-        for (const invoice of invoices) {
-            if (invoice.outside_income_ids && invoice.outside_income_ids.length > 0) {
-                for (const incomeId of invoice.outside_income_ids) {
-                    const income = incomes.find(inc => inc.id === incomeId);
-                    if (income) {
-                        await base44.asServiceRole.entities.OutsideIncome.update(incomeId, {
-                            invoice_id: invoice.id
-                        });
-                        updatedCount++;
-                    }
+        // Second pass: also check income.invoice_id field and add to map
+        for (const income of incomes) {
+            if (income.invoice_id) {
+                if (!invoiceIncomeMap[income.invoice_id]) {
+                    invoiceIncomeMap[income.invoice_id] = new Set();
                 }
+                invoiceIncomeMap[income.invoice_id].add(income.id);
+            }
+        }
+        
+        // Now update all invoices with their correct outside_income_ids arrays
+        for (const invoice of invoices) {
+            const correctIncomeIds = Array.from(invoiceIncomeMap[invoice.id] || []);
+            const currentIncomeIds = invoice.outside_income_ids || [];
+            
+            // Check if they're different
+            const needsUpdate = correctIncomeIds.length !== currentIncomeIds.length ||
+                               correctIncomeIds.some(id => !currentIncomeIds.includes(id));
+            
+            if (needsUpdate && correctIncomeIds.length > 0) {
+                await base44.asServiceRole.entities.Invoice.update(invoice.id, {
+                    outside_income_ids: correctIncomeIds
+                });
+                invoiceUpdates++;
+            }
+        }
+        
+        // Update all outside income records with correct invoice_id
+        for (const income of incomes) {
+            let correctInvoiceId = null;
+            
+            // Find which invoice this income belongs to
+            for (const [invoiceId, incomeSet] of Object.entries(invoiceIncomeMap)) {
+                if (incomeSet.has(income.id)) {
+                    correctInvoiceId = invoiceId;
+                    break;
+                }
+            }
+            
+            // Update if different
+            if (income.invoice_id !== correctInvoiceId) {
+                await base44.asServiceRole.entities.OutsideIncome.update(income.id, {
+                    invoice_id: correctInvoiceId
+                });
+                incomeUpdates++;
             }
         }
         
         return Response.json({ 
             success: true, 
-            message: `Fixed invoice links: Cleared ${clearedCount} old links, set ${updatedCount} new links.`,
-            clearedCount,
-            updatedCount
+            message: `Fixed invoice links: Updated ${invoiceUpdates} invoices and ${incomeUpdates} outside income records.`,
+            invoiceUpdates,
+            incomeUpdates
         });
         
     } catch (error) {
