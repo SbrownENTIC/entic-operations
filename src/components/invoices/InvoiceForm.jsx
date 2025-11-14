@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -8,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { X, Upload, AlertCircle, ExternalLink, Edit } from "lucide-react";
+import { X, Upload, AlertCircle, ExternalLink, Edit, Search } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -53,6 +54,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
 
   const [uploadingDraft, setUploadingDraft] = useState(false);
   const [uploadingApproved, setUploadingApproved] = useState(false);
+  const [incomeSearchTerm, setIncomeSearchTerm] = useState("");
 
   const { data: providers = [] } = useQuery({
     queryKey: ['providers'],
@@ -293,6 +295,20 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
   const linkedCount = invoice
     ? incomes.filter(inc => inc.invoice_id === invoice.id || formData.outside_income_ids.includes(inc.id)).length
     : 0;
+
+  // Filter incomes based on search term
+  const filteredIncomes = availableIncomes.filter(income => {
+    if (!incomeSearchTerm) return true;
+
+    const provider = providers.find(p => p.id === income.provider_id);
+    const searchLower = incomeSearchTerm.toLowerCase();
+
+    return (
+      provider?.full_name?.toLowerCase().includes(searchLower) ||
+      income.facility_name?.toLowerCase().includes(searchLower) ||
+      income.total_amount?.toString().includes(searchLower)
+    );
+  });
 
   return (
     <Card className="border-slate-200 shadow-sm">
@@ -640,8 +656,19 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
               <div className="flex items-center justify-between">
                 <Label>Outside Income Records ({incomes.length} total, {linkedCount} linked to this invoice)</Label>
               </div>
+
+              <div className="flex items-center gap-2 mb-2">
+                <Search className="w-4 h-4 text-slate-400" />
+                <Input
+                  placeholder="Search by provider, facility, or amount..."
+                  value={incomeSearchTerm}
+                  onChange={(e) => setIncomeSearchTerm(e.target.value)}
+                  className="max-w-md"
+                />
+              </div>
+
               <div className="border border-slate-200 rounded-lg p-4 max-h-96 overflow-y-auto space-y-2">
-                {availableIncomes.map(income => {
+                {filteredIncomes.map(income => {
                   const provider = providers.find(p => p.id === income.provider_id);
                   const isLinkedToThisInvoice = income.invoice_id === invoice?.id || formData.outside_income_ids.includes(income.id);
                   const isLinkedToOtherInvoice = income.invoice_id && income.invoice_id !== invoice?.id;
@@ -684,6 +711,11 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                     </div>
                   );
                 })}
+                {filteredIncomes.length === 0 && (
+                  <div className="text-center py-6 text-slate-500">
+                    {incomeSearchTerm ? 'No matching income records' : 'No income records available'}
+                  </div>
+                )}
               </div>
             </div>
           )}
