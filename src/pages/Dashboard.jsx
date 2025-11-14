@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -23,41 +24,88 @@ export default function Dashboard() {
 
   const queryClient = useQueryClient();
 
-  // Fetch all data directly without checking auth first
-  // The base44 client handles authentication automatically
-  const { data: providers = [], isLoading: providersLoading } = useQuery({
+  // Common error handler for all queries
+  const handleQueryError = (error) => {
+    console.error('Dashboard query error:', error);
+    // Don't redirect or throw - just log and let the query return empty data
+    return [];
+  };
+
+  const { data: providers = [], isLoading: providersLoading, isError: providersError } = useQuery({
     queryKey: ['providers'],
-    queryFn: () => base44.entities.Provider.list(),
+    queryFn: async () => {
+      try {
+        return await base44.entities.Provider.list();
+      } catch (error) {
+        return handleQueryError(error);
+      }
+    },
+    retry: false,
     staleTime: 30000
   });
 
-  const { data: licenses = [], isLoading: licensesLoading } = useQuery({
+  const { data: licenses = [], isLoading: licensesLoading, isError: licensesError } = useQuery({
     queryKey: ['licenses'],
-    queryFn: () => base44.entities.License.list(),
+    queryFn: async () => {
+      try {
+        return await base44.entities.License.list();
+      } catch (error) {
+        return handleQueryError(error);
+      }
+    },
+    retry: false,
     staleTime: 30000
   });
 
-  const { data: privileges = [], isLoading: privilegesLoading } = useQuery({
+  const { data: privileges = [], isLoading: privilegesLoading, isError: privilegesError } = useQuery({
     queryKey: ['privileges'],
-    queryFn: () => base44.entities.ClinicalPrivilege.list(),
+    queryFn: async () => {
+      try {
+        return await base44.entities.ClinicalPrivilege.list();
+      } catch (error) {
+        return handleQueryError(error);
+      }
+    },
+    retry: false,
     staleTime: 30000
   });
 
-  const { data: invoices = [], isLoading: invoicesLoading } = useQuery({
+  const { data: invoices = [], isLoading: invoicesLoading, isError: invoicesError } = useQuery({
     queryKey: ['invoices'],
-    queryFn: () => base44.entities.Invoice.list(),
+    queryFn: async () => {
+      try {
+        return await base44.entities.Invoice.list();
+      } catch (error) {
+        return handleQueryError(error);
+      }
+    },
+    retry: false,
     staleTime: 30000
   });
 
-  const { data: cmeRecords = [], isLoading: cmeLoading } = useQuery({
+  const { data: cmeRecords = [], isLoading: cmeLoading, isError: cmeError } = useQuery({
     queryKey: ['cme'],
-    queryFn: () => base44.entities.CME.list(),
+    queryFn: async () => {
+      try {
+        return await base44.entities.CME.list();
+      } catch (error) {
+        return handleQueryError(error);
+      }
+    },
+    retry: false,
     staleTime: 30000
   });
 
-  const { data: payments = [], isLoading: paymentsLoading } = useQuery({
+  const { data: payments = [], isLoading: paymentsLoading, isError: paymentsError } = useQuery({
     queryKey: ['payments'],
-    queryFn: () => base44.entities.Payment.list(),
+    queryFn: async () => {
+      try {
+        return await base44.entities.Payment.list();
+      } catch (error) {
+        return handleQueryError(error);
+      }
+    },
+    retry: false,
     staleTime: 30000
   });
 
@@ -75,6 +123,38 @@ export default function Dashboard() {
       setSyncing(false);
     }
   };
+
+  // Check if there were any errors loading critical data
+  const hasErrors = providersError || licensesError || privilegesError || invoicesError || cmeError || paymentsError;
+  
+  if (hasErrors) {
+    return (
+      <div className="p-6 md:p-8 bg-slate-50 min-h-screen flex items-center justify-center">
+        <Card className="max-w-md">
+          <CardContent className="p-6 text-center">
+            <AlertTriangle className="w-12 h-12 text-orange-600 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">Unable to Load Dashboard</h3>
+            <p className="text-slate-600 mb-6">There was an issue loading your dashboard data. This might be a temporary connectivity problem.</p>
+            <div className="space-y-2">
+              <Button 
+                onClick={() => window.location.reload()} 
+                className="w-full bg-blue-600 hover:bg-blue-700"
+              >
+                Try Again
+              </Button>
+              <Button 
+                onClick={() => window.location.href = createPageUrl("Providers")}
+                variant="outline"
+                className="w-full"
+              >
+                Go to Providers Page
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const openFinancialDetail = (type, programGroup = null) => {
     let filteredInvoices = [];
@@ -278,7 +358,7 @@ export default function Dashboard() {
 
   // Format currency with commas
   const formatCurrency = (amount) => {
-    return '$' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigals: 2 });
+    return '$' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
   const exportFinancialOverview = () => {
