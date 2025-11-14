@@ -13,44 +13,35 @@ Deno.serve(async (req) => {
         const invoices = await base44.asServiceRole.entities.Invoice.list();
         const incomes = await base44.asServiceRole.entities.OutsideIncome.list();
         
-        let incomeUpdates = 0;
         let invoiceUpdates = 0;
         
-        // Build a map of which incomes belong to which invoice
-        const invoiceIncomeMap = {};
+        // Build a map: invoice_id -> [income_ids that belong to it]
+        const invoiceToIncomesMap = {};
         
-        // First pass: build map from invoice.outside_income_ids arrays
-        for (const invoice of invoices) {
-            if (!invoiceIncomeMap[invoice.id]) {
-                invoiceIncomeMap[invoice.id] = new Set();
-            }
-            if (invoice.outside_income_ids && invoice.outside_income_ids.length > 0) {
-                invoice.outside_income_ids.forEach(incomeId => {
-                    invoiceIncomeMap[invoice.id].add(incomeId);
-                });
-            }
-        }
-        
-        // Second pass: also check income.invoice_id field and add to map
+        // Use the invoice_id field on OutsideIncome as the source of truth
         for (const income of incomes) {
             if (income.invoice_id) {
-                if (!invoiceIncomeMap[income.invoice_id]) {
-                    invoiceIncomeMap[income.invoice_id] = new Set();
+                if (!invoiceToIncomesMap[income.invoice_id]) {
+                    invoiceToIncomesMap[income.invoice_id] = [];
                 }
-                invoiceIncomeMap[income.invoice_id].add(income.id);
+                invoiceToIncomesMap[income.invoice_id].push(income.id);
             }
         }
         
-        // Now update all invoices with their correct outside_income_ids arrays
+        // Update each invoice's outside_income_ids array based on the map
         for (const invoice of invoices) {
-            const correctIncomeIds = Array.from(invoiceIncomeMap[invoice.id] || []);
+            const correctIncomeIds = invoiceToIncomesMap[invoice.id] || [];
             const currentIncomeIds = invoice.outside_income_ids || [];
             
-            // Check if they're different
-            const needsUpdate = correctIncomeIds.length !== currentIncomeIds.length ||
-                               correctIncomeIds.some(id => !currentIncomeIds.includes(id));
+            // Sort both arrays for comparison
+            const correctSorted = [...correctIncomeIds].sort();
+            const currentSorted = [...currentIncomeIds].sort();
             
-            if (needsUpdate && correctIncomeIds.length > 0) {
+            // Check if they're different
+            const needsUpdate = correctSorted.length !== currentSorted.length ||
+                               correctSorted.some((id, idx) => id !== currentSorted[idx]);
+            
+            if (needsUpdate) {
                 await base44.asServiceRole.entities.Invoice.update(invoice.id, {
                     outside_income_ids: correctIncomeIds
                 });
@@ -58,32 +49,13 @@ Deno.serve(async (req) => {
             }
         }
         
-        // Update all outside income records with correct invoice_id
-        for (const income of incomes) {
-            let correctInvoiceId = null;
-            
-            // Find which invoice this income belongs to
-            for (const [invoiceId, incomeSet] of Object.entries(invoiceIncomeMap)) {
-                if (incomeSet.has(income.id)) {
-                    correctInvoiceId = invoiceId;
-                    break;
-                }
-            }
-            
-            // Update if different
-            if (income.invoice_id !== correctInvoiceId) {
-                await base44.asServiceRole.entities.OutsideIncome.update(income.id, {
-                    invoice_id: correctInvoiceId
-                });
-                incomeUpdates++;
-            }
-        }
-        
         return Response.json({ 
             success: true, 
-            message: `Fixed invoice links: Updated ${invoiceUpdates} invoices and ${incomeUpdates} outside income records.`,
+            message: `Fixed ${invoiceUpdates} invoices based on OutsideIncome.invoice_id fields. Total incomes with invoice_id: ${incomes.filter(i => i.invoice_id).length}`,
             invoiceUpdates,
-            incomeUpdates
+            totalIncomesWithInvoiceId: incomes.filter(i => i.invoice_id).length,
+            totalInvoices: invoices.length,
+            totalIncomes: incomes.length
         });
         
     } catch (error) {
