@@ -193,7 +193,7 @@ Deno.serve(async (req) => {
       
       // Add a small delay after every 5 updates
       if ((i + 1) % 5 === 0) {
-        await delay(500);
+        await delay(1500);
       }
     }
 
