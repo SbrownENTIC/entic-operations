@@ -1,3 +1,4 @@
+
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 import { parseISO, eachDayOfInterval, addDays, format } from 'npm:date-fns';
 
@@ -100,6 +101,7 @@ Deno.serve(async (req) => {
                 days_worked: daysWorked,
                 rate: rate,
                 total_amount: totalAmount,
+                temp_oncall_start_date: schedule.start_date,
                 status: 'pending',
                 notes: `Auto-generated from 2026 on-call schedule ${schedule.start_date} to ${schedule.end_date}`
             });
