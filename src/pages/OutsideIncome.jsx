@@ -164,7 +164,7 @@ export default function OutsideIncome() {
       income.provider?.full_name || '',
       income.facility_name || '',
       income.workMonth,
-      income.temp_oncall_start_date ? format(parseISO(income.temp_oncall_start_date), 'MM-dd-yyyy') : '-',
+      income.onCallStart ? format(parseISO(income.onCallStart), 'MM-dd-yyyy') : '-', // Use onCallStart for export
       income.isHartfordRVU ? `${formatNumber(income.total_rvus)} RVUs` : income.isDirectorship ? '-' : `${income.days_worked || 0} days`,
       income.rate || 0,
       income.total_amount || 0,
@@ -261,7 +261,8 @@ export default function OutsideIncome() {
       isHartfordRVU: isHartfordHospitalRVU(income),
       isDirectorship: isDirectorship(income),
       programLocation: location,
-      workMonth: getWorkMonth(income)
+      workMonth: getWorkMonth(income),
+      onCallStart: income.work_dates && income.work_dates.length > 0 ? income.work_dates[0] : null
     };
   });
 
@@ -281,9 +282,9 @@ export default function OutsideIncome() {
     } else if (sortField === 'workMonth') {
       aValue = a.workMonth;
       bValue = b.workMonth;
-    } else if (sortField === 'temp_oncall_start_date') {
-      aValue = a.temp_oncall_start_date ? new Date(a.temp_oncall_start_date) : null;
-      bValue = b.temp_oncall_start_date ? new Date(b.temp_oncall_start_date) : null;
+    } else if (sortField === 'temp_oncall_start_date') { // The column header is 'temp_oncall_start_date' but we use 'onCallStart' for sorting
+      aValue = a.onCallStart ? new Date(a.onCallStart) : null;
+      bValue = b.onCallStart ? new Date(b.onCallStart) : null;
 
       // Handle null dates: nulls come last in asc, first in desc
       if (aValue === null && bValue === null) return 0;
@@ -539,7 +540,7 @@ export default function OutsideIncome() {
                         <td className="p-4 text-slate-600">{income.facility_name || '-'}</td>
                         <td className="p-4 text-slate-600 font-medium">{income.workMonth}</td>
                         <td className="p-4 text-slate-600">
-                          {income.temp_oncall_start_date ? format(parseISO(income.temp_oncall_start_date), 'MM-dd-yyyy') : '-'}
+                          {income.onCallStart ? format(parseISO(income.onCallStart), 'MM-dd-yyyy') : '-'}
                         </td>
                         <td className="p-4 text-slate-600 font-medium">
                           {income.isHartfordRVU ? (
