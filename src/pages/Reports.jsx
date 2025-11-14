@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -460,7 +461,7 @@ export default function Reports() {
         <Card className="border-slate-200 shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg">Date Range Filter</CardTitle>
-            <p className="text-sm text-slate-500">Filter all reports by date range (leave blank for all data)</p>
+            <p className="text-sm text-slate-500 mt-1">Filter all reports by date range (leave blank for all data)</p>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-4 items-end">
@@ -687,22 +688,27 @@ export default function Reports() {
                   <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200">
                     <h3 className="text-lg font-semibold text-slate-900 mb-4">Total Invoice by Provider</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 md:grid-rows-3 md:grid-flow-col gap-3">
-                      {allProviders.map(([providerName, data], index) => (
-                        <div key={providerName} className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
-                              {index + 1}
+                      {allProviders.map(([providerName, data], index) => {
+                        const lastName = providerName.split(' ').pop();
+                        const displayName = `Dr. ${lastName}`;
+                        
+                        return (
+                          <div key={providerName} className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
+                                {index + 1}
+                              </div>
+                              <div>
+                                <p className="font-medium text-slate-900">{displayName}</p>
+                                <p className="text-sm text-slate-500">{data.count} invoice{data.count !== 1 ? 's' : ''}</p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-medium text-slate-900">{providerName}</p>
-                              <p className="text-sm text-slate-500">{data.count} invoice{data.count !== 1 ? 's' : ''}</p>
+                            <div className="text-right">
+                              <p className="text-lg font-bold text-blue-700">{formatCurrency(data.total)}</p>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-lg font-bold text-blue-700">{formatCurrency(data.total)}</p>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                   <p className="text-sm text-slate-600">
