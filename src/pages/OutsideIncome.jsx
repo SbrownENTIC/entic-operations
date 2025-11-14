@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Search, Pencil, Trash2, FileText, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, FileText, ArrowUpDown, ArrowUp, ArrowDown, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { parseISO, format } from "date-fns";
@@ -104,6 +104,40 @@ export default function OutsideIncome() {
     if (selectedIncomes.length === 0) return;
     const incomeIds = selectedIncomes.join(',');
     navigate(`${createPageUrl('Invoices')}?create=true&incomes=${incomeIds}`);
+  };
+
+  const exportToCSV = () => {
+    const headers = ['Provider', 'Facility', 'Work Month', 'Days/RVUs', 'Rate', 'Total Amount', 'Invoice Month', 'Status', 'Created Date'];
+    const rows = sortedIncomes.map(income => [
+      income.provider?.full_name || '',
+      income.facility_name || '',
+      income.workMonth,
+      income.isHartfordRVU ? `${formatNumber(income.total_rvus)} RVUs` : income.isDirectorship ? '-' : `${income.days_worked || 0} days`,
+      income.rate || 0,
+      income.total_amount || 0,
+      income.invoice_month || '',
+      income.status || '',
+      format(new Date(income.created_date), 'yyyy-MM-dd')
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => {
+        // Enclose values in double quotes and escape existing double quotes
+        const stringCell = String(cell);
+        return `"${stringCell.replace(/"/g, '""')}"`;
+      }).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `outside-income-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    a.remove();
   };
 
   // Get month from work dates
@@ -240,6 +274,14 @@ export default function OutsideIncome() {
             <p className="text-slate-600 mt-1">Track work performed at external facilities</p>
           </div>
           <div className="flex gap-3">
+            <Button
+              onClick={exportToCSV}
+              variant="outline"
+              className="gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Export CSV
+            </Button>
             {selectedIncomes.length > 0 && (
               <Button
                 onClick={createInvoiceFromSelected}
@@ -397,6 +439,7 @@ export default function OutsideIncome() {
                         <td className="p-4 font-medium text-green-600">
                           ${formatCurrency(income.total_amount || 0)}
                         </td>
+                        <td className="p-4 text-slate-600">{income.invoice_month || '-'}</td>
                         <td className="p-4">
                           <Badge className={statusColors[income.status]}>
                             {income.status?.charAt(0).toUpperCase() + income.status?.slice(1)}
