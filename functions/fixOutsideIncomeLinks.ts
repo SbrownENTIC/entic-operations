@@ -17,6 +17,7 @@ Deno.serve(async (req) => {
         let incomeUpdates = 0;
         let invoiceUpdates = 0;
         let matchesMade = 0;
+        let skipped = 0;
         
         console.log(`Starting fix: ${invoices.length} invoices, ${incomes.length} incomes`);
         
@@ -26,9 +27,37 @@ Deno.serve(async (req) => {
             locationToProgramGroup[pl.id] = pl.program_group;
         });
         
+        // First, clear all invoice links from incomes that are NOT in their invoice's outside_income_ids
+        for (const income of incomes) {
+            if (income.invoice_id) {
+                const invoice = invoices.find(inv => inv.id === income.invoice_id);
+                if (invoice) {
+                    const isInInvoiceArray = invoice.outside_income_ids?.includes(income.id);
+                    if (!isInInvoiceArray) {
+                        // This income claims to be linked but the invoice doesn't have it - clear the link
+                        await base44.asServiceRole.entities.OutsideIncome.update(income.id, {
+                            invoice_id: null,
+                            status: 'pending'
+                        });
+                        console.log(`Cleared orphaned link from income ${income.id}`);
+                        incomeUpdates++;
+                    }
+                }
+            }
+        }
+        
+        // Refresh incomes after clearing orphaned links
+        const refreshedIncomes = await base44.asServiceRole.entities.OutsideIncome.list();
+        
         // SMART MATCHING: Match incomes to invoices based on provider, program group, and month
         for (const invoice of invoices) {
-            const matchingIncomes = incomes.filter(income => {
+            const matchingIncomes = refreshedIncomes.filter(income => {
+                // Skip if already correctly linked
+                if (income.invoice_id === invoice.id && invoice.outside_income_ids?.includes(income.id)) {
+                    skipped++;
+                    return false;
+                }
+                
                 // Must have same provider
                 if (income.provider_id !== invoice.staff_member_id) return false;
                 
@@ -45,36 +74,39 @@ Deno.serve(async (req) => {
             if (matchingIncomes.length > 0) {
                 console.log(`Invoice ${invoice.invoice_number || invoice.id}: found ${matchingIncomes.length} matching incomes`);
                 
-                // Update the invoice's outside_income_ids array
+                // Get existing income IDs and merge with new matches
+                const existingIds = invoice.outside_income_ids || [];
                 const newIncomeIds = matchingIncomes.map(inc => inc.id);
+                const mergedIds = [...new Set([...existingIds, ...newIncomeIds])];
+                
+                // Update the invoice's outside_income_ids array
                 await base44.asServiceRole.entities.Invoice.update(invoice.id, {
-                    outside_income_ids: newIncomeIds
+                    outside_income_ids: mergedIds
                 });
                 invoiceUpdates++;
                 
                 // Update each income's invoice_id
                 for (const income of matchingIncomes) {
-                    if (income.invoice_id !== invoice.id) {
-                        await base44.asServiceRole.entities.OutsideIncome.update(income.id, {
-                            invoice_id: invoice.id,
-                            invoice_month: invoice.month || income.invoice_month || '',
-                            status: 'invoiced'
-                        });
-                        incomeUpdates++;
-                        matchesMade++;
-                    }
+                    await base44.asServiceRole.entities.OutsideIncome.update(income.id, {
+                        invoice_id: invoice.id,
+                        invoice_month: invoice.month || income.invoice_month || '',
+                        status: 'invoiced'
+                    });
+                    incomeUpdates++;
+                    matchesMade++;
                 }
             }
         }
         
         return Response.json({ 
             success: true, 
-            message: `Matched and linked ${matchesMade} income records to ${invoiceUpdates} invoices based on provider, program group, and month.`,
+            message: `Matched and linked ${matchesMade} income records to ${invoiceUpdates} invoices. Cleared orphaned links and synced bidirectional relationships.`,
             incomeUpdates,
             invoiceUpdates,
             matchesMade,
+            skipped,
             totalInvoices: invoices.length,
-            totalIncomes: incomes.length
+            totalIncomes: refreshedIncomes.length
         });
         
     } catch (error) {
