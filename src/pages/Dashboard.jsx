@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -38,43 +39,50 @@ export default function Dashboard() {
         throw error;
       }
     },
-    retry: false
+    retry: false,
+    staleTime: 5 * 60 * 1000 // Cache for 5 minutes to avoid repeated calls
   });
 
-  const { data: providers = [] } = useQuery({
+  const { data: providers = [], isError: providersError } = useQuery({
     queryKey: ['providers'],
     queryFn: () => base44.entities.Provider.list(),
-    enabled: !!user
+    enabled: !!user,
+    retry: 1
   });
 
-  const { data: licenses = [] } = useQuery({
+  const { data: licenses = [], isError: licensesError } = useQuery({
     queryKey: ['licenses'],
     queryFn: () => base44.entities.License.list(),
-    enabled: !!user
+    enabled: !!user,
+    retry: 1
   });
 
-  const { data: privileges = [] } = useQuery({
+  const { data: privileges = [], isError: privilegesError } = useQuery({
     queryKey: ['privileges'],
     queryFn: () => base44.entities.ClinicalPrivilege.list(),
-    enabled: !!user
+    enabled: !!user,
+    retry: 1
   });
 
-  const { data: invoices = [] } = useQuery({
+  const { data: invoices = [], isError: invoicesError } = useQuery({
     queryKey: ['invoices'],
     queryFn: () => base44.entities.Invoice.list(),
-    enabled: !!user
+    enabled: !!user,
+    retry: 1
   });
 
-  const { data: cmeRecords = [] } = useQuery({
+  const { data: cmeRecords = [], isError: cmeError } = useQuery({
     queryKey: ['cme'],
     queryFn: () => base44.entities.CME.list(),
-    enabled: !!user
+    enabled: !!user,
+    retry: 1
   });
 
-  const { data: payments = [] } = useQuery({
+  const { data: payments = [], isError: paymentsError } = useQuery({
     queryKey: ['payments'],
     queryFn: () => base44.entities.Payment.list(),
-    enabled: !!user
+    enabled: !!user,
+    retry: 1
   });
 
   // Show loading state while checking authentication
@@ -89,13 +97,35 @@ export default function Dashboard() {
     );
   }
 
+  // Check if any data queries failed
+  const hasDataError = providersError || licensesError || privilegesError || invoicesError || cmeError || paymentsError;
+
   // If there's an auth error that's not a redirect, show it
   if (authError && !authError.message?.includes('not authenticated') && !authError.message?.includes('401')) {
     return (
       <div className="p-6 md:p-8 bg-slate-50 min-h-screen flex items-center justify-center">
         <Card className="max-w-md">
           <CardContent className="p-6 text-center">
-            <p className="text-red-600">Error loading dashboard: {authError.message}</p>
+            <p className="text-red-600 mb-4">Error loading dashboard: {authError.message}</p>
+            <Button onClick={() => window.location.reload()}>
+              Reload Page
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // If there's a data loading error (like the User authentication error), show it
+  if (hasDataError) {
+    return (
+      <div className="p-6 md:p-8 bg-slate-50 min-h-screen flex items-center justify-center">
+        <Card className="max-w-md">
+          <CardContent className="p-6 text-center">
+            <p className="text-red-600 mb-4">Error loading dashboard data. This might be a temporary issue.</p>
+            <Button onClick={() => window.location.reload()}>
+              Reload Page
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -417,7 +447,7 @@ export default function Dashboard() {
 
   // Format currency with commas
   const formatCurrency = (amount) => {
-    return '$' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigals: 2 });
+    return '$' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
   return (
