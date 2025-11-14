@@ -59,6 +59,7 @@ export default function Supplies() {
   const filteredSupplies = supplies.filter(supply =>
     supply.product_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     supply.item_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    supply.vendor?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     supply.units?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -120,6 +121,7 @@ export default function Supplies() {
         {showForm && (
           <SupplyForm
             supply={editingSupply}
+            supplies={supplies}
             onSubmit={handleSubmit}
             onCancel={() => {
               setShowForm(false);
@@ -160,6 +162,12 @@ export default function Supplies() {
                     </th>
                     <th 
                       className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('vendor')}
+                    >
+                      Vendor <SortIcon field="vendor" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                       onClick={() => handleSort('unit_price')}
                     >
                       Unit Price <SortIcon field="unit_price" />
@@ -178,6 +186,7 @@ export default function Supplies() {
                     <tr key={supply.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                       <td className="p-4 text-slate-600">{supply.item_number || '-'}</td>
                       <td className="p-4 font-medium text-slate-900">{supply.product_name}</td>
+                      <td className="p-4 text-slate-600">{supply.vendor || '-'}</td>
                       <td className="p-4 text-slate-900 font-medium">
                         {formatCurrency(supply.unit_price || 0)}
                       </td>

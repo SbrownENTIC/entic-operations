@@ -13,7 +13,8 @@ import {
   CreditCard,
   ShieldCheck,
   Boxes,
-  BarChart3
+  BarChart3,
+  HeartPulse
 } from "lucide-react";
 import {
   Sidebar,
@@ -135,7 +136,7 @@ export default function Layout({ children, currentPageName }) {
           <SidebarHeader className="border-b border-slate-200/60 p-6 bg-gradient-to-br from-blue-50 to-indigo-50">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                <Users className="w-6 h-6 text-white" />
+                <HeartPulse className="w-6 h-6 text-white" />
               </div>
               <div>
                 <h2 className="font-bold text-slate-900 text-lg">ENTIC Operations Center</h2>

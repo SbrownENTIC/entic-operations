@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export default function SupplyForm({ supply, onSubmit, onCancel, isLoading }) {
+export default function SupplyForm({ supply, supplies, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = useState({
     item_number: '',
     product_name: '',
+    vendor: '',
     unit_price: '',
     units: ''
   });
@@ -17,6 +18,7 @@ export default function SupplyForm({ supply, onSubmit, onCancel, isLoading }) {
       setFormData({
         item_number: supply.item_number || '',
         product_name: supply.product_name || '',
+        vendor: supply.vendor || '',
         unit_price: supply.unit_price || '',
         units: supply.units || ''
       });
@@ -33,6 +35,11 @@ export default function SupplyForm({ supply, onSubmit, onCancel, isLoading }) {
     
     onSubmit(submitData);
   };
+
+  // Get unique vendors from existing supplies
+  const existingVendors = [...new Set(supplies?.map(s => s.vendor).filter(Boolean))];
+  const commonVendors = ['Staples', 'Amazon Business', 'Office Depot', 'Cardinal Health', 'McKesson', 'Henry Schein'];
+  const allVendors = [...new Set([...commonVendors, ...existingVendors])].sort();
 
   return (
     <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
@@ -61,6 +68,22 @@ export default function SupplyForm({ supply, onSubmit, onCancel, isLoading }) {
                 placeholder="e.g., Copy Paper"
                 required
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="vendor">Vendor</Label>
+              <Input
+                id="vendor"
+                list="vendors"
+                value={formData.vendor}
+                onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
+                placeholder="Select or type vendor name"
+              />
+              <datalist id="vendors">
+                {allVendors.map((vendor) => (
+                  <option key={vendor} value={vendor} />
+                ))}
+              </datalist>
             </div>
 
             <div className="space-y-2">
