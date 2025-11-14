@@ -172,7 +172,7 @@ export default function Dashboard() {
       }
     } else if (type === 'owedToProviders') {
       filteredInvoices = invoices.filter(inv => 
-        (inv.status === 'paid_to_entic' || inv.status === 'provider_paid') && !inv.provider_paid
+        (inv.amount_received > 0) && !inv.provider_paid
       );
       if (programGroup) {
         filteredInvoices = filteredInvoices.filter(inv => inv.program_group === programGroup);
@@ -182,7 +182,7 @@ export default function Dashboard() {
       }
     } else if (type === 'outstanding') {
       filteredInvoices = invoices.filter(inv => 
-        inv.status !== 'paid_to_entic' && inv.status !== 'provider_paid'
+        inv.status !== 'paid_to_entic' && inv.status !== 'provider_paid' && (inv.amount_expected > (inv.amount_received || 0))
       );
       if (programGroup) {
         filteredInvoices = filteredInvoices.filter(inv => inv.program_group === programGroup);
@@ -287,7 +287,11 @@ export default function Dashboard() {
     return sum + allocatedAmount;
   }, 0);
 
-  const totalPaidToENTIC = totalAllocatedToInvoices;
+  // totalPaidToENTIC should reflect actual amount received against invoices
+  // For simplicity and matching current logic, using amount_received from invoices directly, or a more precise calculation.
+  // The current `totalAllocatedToInvoices` sums up allocated payment amounts. Let's align `totalPaidToENTIC` to reflect this.
+  // Or, if we want to reflect total amount received for invoices regardless of allocation:
+  const totalPaidToENTIC = invoices.reduce((sum, inv) => sum + (inv.amount_received || 0), 0);
 
   const totalOwedToProviders = invoices
     .filter(inv => (inv.amount_received > 0) && !inv.provider_paid)
@@ -331,7 +335,12 @@ export default function Dashboard() {
   const programsSorted = Object.keys(financialsByProgram).sort();
 
   // Invoice tracking
+  // The previous calculation for pendingInvoices only included a subset.
+  // The new detailed invoice summary by status will make this specific pending calculation less critical for display,
+  // but keeping it for the summary card.
   const pendingInvoices = invoices.filter(inv => 
+    inv.status === 'not_started' ||
+    inv.status === 'draft' ||
     inv.status === 'pending_providers_approval' || 
     inv.status === 'pending_providers_time' ||
     inv.status === 'sent_for_approval'
@@ -438,7 +447,7 @@ export default function Dashboard() {
     const rows = [
       ['Invoice Summary', '', ''],
       ['Category', 'Count', ''],
-      ['Pending Invoices', pendingInvoices, ''],
+      ['Pending Invoices (Overall)', pendingInvoices, ''], // Refers to the broader "pending" definition
       ['Overdue Invoices (30+ days)', overdueInvoices, ''],
       ['Paid Invoices', invoices.filter(inv => inv.status === 'paid_to_entic' || inv.status === 'provider_paid').length, ''],
       ['', '', ''],
@@ -451,7 +460,7 @@ export default function Dashboard() {
         inv.invoice_number || '',
         inv.program_group || '',
         provider?.full_name || '',
-        format(parseISO(inv.invoice_date), 'yyyy-MM-dd'),
+        inv.invoice_date ? format(parseISO(inv.invoice_date), 'yyyy-MM-dd') : '',
         inv.status,
         inv.total || 0,
         inv.amount_received || 0
@@ -798,7 +807,7 @@ export default function Dashboard() {
         <Card className="border-slate-200 shadow-sm">
           <CardHeader className="border-b border-slate-100">
             <div className="flex items-center justify-between">
-              <CardTitle>Invoice Summary</CardTitle>
+              <CardTitle>Invoice Summary by Status</CardTitle>
               <Button
                 onClick={exportInvoiceSummary}
                 variant="outline"
@@ -811,21 +820,41 @@ export default function Dashboard() {
             </div>
           </CardHeader>
           <CardContent className="p-6">
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                <div className="text-3xl font-bold text-yellow-700">{pendingInvoices}</div>
-                <p className="text-sm text-slate-600 mt-1">Pending Invoices</p>
-              </div>
-              <div className="text-center p-4 bg-red-50 rounded-lg">
-                <div className="text-3xl font-bold text-red-700">{overdueInvoices}</div>
-                <p className="text-sm text-slate-600 mt-1">Overdue (30+ days)</p>
-              </div>
-              <div className="text-center p-4 bg-green-50 rounded-lg">
-                <div className="text-3xl font-bold text-green-700">
-                  {invoices.filter(inv => inv.status === 'paid_to_entic' || inv.status === 'provider_paid').length}
-                </div>
-                <p className="text-sm text-slate-600 mt-1">Paid Invoices</p>
-              </div>
+            <div className="space-y-6">
+              {Object.entries({
+                'Not Started': invoices.filter(inv => inv.status === 'not_started'),
+                'Draft': invoices.filter(inv => inv.status === 'draft'),
+                'Pending Providers Approval': invoices.filter(inv => inv.status === 'pending_providers_approval'),
+                'Pending Providers Time': invoices.filter(inv => inv.status === 'pending_providers_time'),
+                'Sent For Approval': invoices.filter(inv => inv.status === 'sent_for_approval'),
+                'Approved': invoices.filter(inv => inv.status === 'approved'),
+                'Sent To Vendor': invoices.filter(inv => inv.status === 'sent_to_vendor'),
+                'Partial': invoices.filter(inv => inv.status === 'partial'),
+                'Paid To ENTIC': invoices.filter(inv => inv.status === 'paid_to_entic'),
+                'Provider Paid': invoices.filter(inv => inv.status === 'provider_paid'),
+              }).map(([status, statusInvoices]) => {
+                if (statusInvoices.length === 0) return null;
+                
+                return (
+                  <div key={status} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-slate-900">{status}</h3>
+                      <Badge variant="outline">{statusInvoices.length}</Badge>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {statusInvoices.map(inv => (
+                        <Link 
+                          key={inv.id} 
+                          to={`${createPageUrl("Invoices")}?edit=${inv.id}`}
+                          className="text-sm px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded border border-slate-300 transition-colors"
+                        >
+                          {inv.invoice_number || 'N/A'}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
