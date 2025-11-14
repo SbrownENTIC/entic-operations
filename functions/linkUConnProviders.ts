@@ -24,37 +24,51 @@ Deno.serve(async (req) => {
         const uconnLocationIds = uconnLocations.map(loc => loc.id);
         
         let updatedCount = 0;
-        let skippedCount = 0;
+        let skippedNoInvoice = 0;
+        let skippedNoMatch = 0;
+        let skippedAlreadyCorrect = 0;
         
-        // Filter for UConn income records that have an invoice
+        // Filter for UConn income records
         for (const income of incomes) {
-            // Only process UConn records with an invoice
+            // Only process UConn records
             const isUConn = uconnLocationIds.includes(income.program_location_id) || 
                            income.facility_name?.toLowerCase().includes('uconn');
             
-            if (!isUConn || !income.invoice_id) {
-                skippedCount++;
+            if (!isUConn) {
+                continue;
+            }
+            
+            if (!income.invoice_id) {
+                skippedNoInvoice++;
                 continue;
             }
             
             // Find the invoice
             const invoice = invoices.find(inv => inv.id === income.invoice_id);
             
-            if (invoice && invoice.staff_member_id && invoice.staff_member_id !== income.provider_id) {
-                await base44.asServiceRole.entities.OutsideIncome.update(income.id, {
-                    provider_id: invoice.staff_member_id
-                });
-                updatedCount++;
-            } else {
-                skippedCount++;
+            if (!invoice || !invoice.staff_member_id) {
+                skippedNoMatch++;
+                continue;
             }
+            
+            if (invoice.staff_member_id === income.provider_id) {
+                skippedAlreadyCorrect++;
+                continue;
+            }
+            
+            await base44.asServiceRole.entities.OutsideIncome.update(income.id, {
+                provider_id: invoice.staff_member_id
+            });
+            updatedCount++;
         }
         
         return Response.json({ 
             success: true, 
-            message: `Updated ${updatedCount} UConn income records with providers from invoices. Skipped ${skippedCount} records.`,
+            message: `Updated ${updatedCount} UConn income records. Skipped: ${skippedNoInvoice} (no invoice), ${skippedNoMatch} (invoice not found/no provider), ${skippedAlreadyCorrect} (already correct).`,
             updatedCount,
-            skippedCount
+            skippedNoInvoice,
+            skippedNoMatch,
+            skippedAlreadyCorrect
         });
         
     } catch (error) {
