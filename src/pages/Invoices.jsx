@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, UserCheck } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useNavigate } from "react-router-dom";
-import { createPageUrl } from "@/utils";
+import { createPageUrl } => "@/utils";
 import InvoiceForm from "../components/invoices/InvoiceForm";
 import {
   AlertDialog,
@@ -450,7 +450,7 @@ export default function Invoices() {
             )}
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-auto max-h-[calc(100vh-400px)]">
+            <div className="overflow-auto max-h-[calc(100vh-230px)]">
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                   <tr>
