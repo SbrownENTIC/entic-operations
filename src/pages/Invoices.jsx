@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, UserCheck, Link as LinkIcon, AlertTriangle, Zap } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, UserCheck, Link as LinkIcon, AlertTriangle, Zap, Printer } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -314,6 +314,10 @@ export default function Invoices() {
     }
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   const formatCurrency = (amount) => {
     return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
@@ -400,13 +404,34 @@ export default function Invoices() {
 
   return (
     <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          .print-content, .print-content * { visibility: visible; }
+          .print-content { position: absolute; left: 0; top: 0; width: 100%; }
+          .no-print { display: none !important; }
+          .print-content table { width: 100%; border-collapse: collapse; }
+          .print-content th, .print-content td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          .print-content thead { background-color: #f5f5f5; }
+          .print-content th.print-cursor-default { cursor: default !important; }
+          .print-content tr.print-hover-bg-white:hover { background-color: white !important; }
+        }
+      `}</style>
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 no-print">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Invoices</h1>
             <p className="text-slate-600 mt-1">Manage invoices for outside income</p>
           </div>
           <div className="flex gap-3 flex-wrap">
+            <Button
+              onClick={handlePrint}
+              variant="outline"
+              className="gap-2"
+            >
+              <Printer className="w-4 h-4" />
+              Print
+            </Button>
             <Button
               onClick={handleDiagnoseData}
               disabled={diagnosing}
@@ -466,7 +491,7 @@ export default function Invoices() {
         </div>
 
         {syncMessage && (
-          <Card className="border-blue-200 bg-blue-50">
+          <Card className="border-blue-200 bg-blue-50 no-print">
             <CardContent className="p-4">
               <p className="text-sm text-blue-900">{syncMessage}</p>
             </CardContent>
@@ -474,7 +499,7 @@ export default function Invoices() {
         )}
 
         {diagnosticResults && (
-          <Card className="border-orange-200 bg-orange-50">
+          <Card className="border-orange-200 bg-orange-50 no-print">
             <CardHeader className="border-b border-orange-200">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-orange-900">Data Diagnostic Report</h3>
@@ -539,214 +564,223 @@ export default function Invoices() {
         )}
 
         {showForm && (
-          <InvoiceForm
-            invoice={editingInvoice}
-            incomes={incomes}
-            preselectedIncomes={preselectedIncomes}
-            onSubmit={handleSubmit}
-            onCancel={handleCancelForm}
-            isLoading={createMutation.isPending || updateMutation.isPending}
-          />
+          <div className="no-print">
+            <InvoiceForm
+              invoice={editingInvoice}
+              incomes={incomes}
+              preselectedIncomes={preselectedIncomes}
+              onSubmit={handleSubmit}
+              onCancel={handleCancelForm}
+              isLoading={createMutation.isPending || updateMutation.isPending}
+            />
+          </div>
         )}
 
-        <Card className="border-slate-200 shadow-sm">
-          <CardHeader className="border-b border-slate-100 space-y-4">
-            <div className="flex items-center gap-4">
-              <Search className="w-5 h-5 text-slate-400" />
-              <Input
-                placeholder="Search invoices..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-md border-slate-200"
-              />
-            </div>
-            {selectedInvoices.length > 0 && (
-              <div className="flex flex-col gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-slate-900">
-                    {selectedInvoices.length} selected
-                  </span>
-                  <Button 
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedInvoices([])}
-                  >
-                    Clear Selection
-                  </Button>
-                </div>
-                
-                <div className="flex flex-wrap items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-slate-700">Date Provider Paid:</span>
-                    <Input
-                      type="date"
-                      value={bulkDateProviderPaid}
-                      onChange={(e) => setBulkDateProviderPaid(e.target.value)}
-                      className="w-48"
-                    />
-                  </div>
+        <div className="print-content">
+          <div className="hidden print:block mb-4">
+            <h1 className="text-2xl font-bold">Invoices Report</h1>
+            <p className="text-sm text-gray-600">Generated on {format(new Date(), 'MMM d, yyyy')}</p>
+          </div>
 
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="bulk-provider-paid"
-                      checked={bulkProviderPaid}
-                      onChange={(e) => setBulkProviderPaid(e.target.checked)}
-                      className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <label htmlFor="bulk-provider-paid" className="text-sm text-slate-700 cursor-pointer">
-                      Mark as Provider Paid
-                    </label>
-                  </div>
-
-                  <Button 
-                    onClick={handleBulkUpdate}
-                    disabled={(!bulkDateProviderPaid && !bulkProviderPaid) || bulkUpdateMutation.isPending}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    {bulkUpdateMutation.isPending ? 'Updating...' : 'Update Selected'}
-                  </Button>
-                </div>
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader className="border-b border-slate-100 space-y-4 no-print">
+              <div className="flex items-center gap-4">
+                <Search className="w-5 h-5 text-slate-400" />
+                <Input
+                  placeholder="Search invoices..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="max-w-md border-slate-200"
+                />
               </div>
-            )}
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-auto max-h-[calc(100vh-230px)]">
-              <table className="w-full">
-                <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
-                  <tr>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700 w-12">
+              {selectedInvoices.length > 0 && (
+                <div className="flex flex-col gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-slate-900">
+                      {selectedInvoices.length} selected
+                    </span>
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedInvoices([])}
+                    >
+                      Clear Selection
+                    </Button>
+                  </div>
+                  
+                  <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-slate-700">Date Provider Paid:</span>
+                      <Input
+                        type="date"
+                        value={bulkDateProviderPaid}
+                        onChange={(e) => setBulkDateProviderPaid(e.target.value)}
+                        className="w-48"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2">
                       <input
                         type="checkbox"
-                        checked={selectedInvoices.length === sortedInvoices.length && sortedInvoices.length > 0}
-                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        id="bulk-provider-paid"
+                        checked={bulkProviderPaid}
+                        onChange={(e) => setBulkProviderPaid(e.target.checked)}
                         className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                       />
-                    </th>
-                    <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                      onClick={() => handleSort('invoice_number')}
+                      <label htmlFor="bulk-provider-paid" className="text-sm text-slate-700 cursor-pointer">
+                        Mark as Provider Paid
+                      </label>
+                    </div>
+
+                    <Button 
+                      onClick={handleBulkUpdate}
+                      disabled={(!bulkDateProviderPaid && !bulkProviderPaid) || bulkUpdateMutation.isPending}
+                      className="bg-blue-600 hover:bg-blue-700"
                     >
-                      Invoice # <SortIcon field="invoice_number" />
-                    </th>
-                    <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                      onClick={() => handleSort('program_group')}
-                    >
-                      Program Group <SortIcon field="program_group" />
-                    </th>
-                    <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                      onClick={() => handleSort('providerName')}
-                    >
-                      Provider <SortIcon field="providerName" />
-                    </th>
-                    <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                      onClick={() => handleSort('month')}
-                    >
-                      Month <SortIcon field="month" />
-                    </th>
-                    <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                      onClick={() => handleSort('invoice_date')}
-                    >
-                      Date <SortIcon field="invoice_date" />
-                    </th>
-                    <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                      onClick={() => handleSort('total')}
-                    >
-                      Total <SortIcon field="total" />
-                    </th>
-                    <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                      onClick={() => handleSort('amount_received')}
-                    >
-                      Paid <SortIcon field="amount_received" />
-                    </th>
-                    <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                      onClick={() => handleSort('balance')}
-                    >
-                      Balance <SortIcon field="balance" />
-                    </th>
-                    <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                      onClick={() => handleSort('status')}
-                    >
-                      Status <SortIcon field="status" />
-                    </th>
-                    <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedInvoices.map((invoice) => (
-                    <tr key={invoice.id} className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${selectedInvoices.includes(invoice.id) ? 'bg-blue-50' : ''}`}>
-                      <td className="p-4">
-                        <input
-                          type="checkbox"
-                          checked={selectedInvoices.includes(invoice.id)}
-                          onChange={(e) => handleSelectInvoice(invoice.id, e.target.checked)}
-                          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                        />
-                      </td>
-                      <td className="p-4 font-medium text-slate-900">{invoice.invoice_number || '-'}</td>
-                      <td className="p-4 text-slate-600">{invoice.program_group}</td>
-                      <td className="p-4 text-slate-900">{invoice.provider?.full_name || '-'}</td>
-                      <td className="p-4 text-slate-600">{invoice.month || '-'}</td>
-                      <td className="p-4 text-slate-600">
-                        {format(parseISO(invoice.invoice_date), 'MMM d, yyyy')}
-                      </td>
-                      <td className="p-4 font-medium text-slate-900">
-                        ${formatCurrency(invoice.total || 0)}
-                      </td>
-                      <td className="p-4 text-green-600 font-medium">
-                        ${formatCurrency(invoice.amount_received || 0)}
-                      </td>
-                      <td className="p-4 font-medium text-slate-900">
-                        ${formatCurrency(invoice.balance)}
-                      </td>
-                      <td className="p-4">
-                        <Badge className={statusColors[invoice.status]}>
-                          {getStatusLabel(invoice)}
-                        </Badge>
-                      </td>
-                      <td className="p-4 text-right">
-                        <div className="flex gap-2 justify-end">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => {
-                              setEditingInvoice(invoice);
-                              setPreselectedIncomes([]);
-                              setShowForm(true);
-                            }}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => setDeleteConfirm(invoice)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {sortedInvoices.length === 0 && (
-                <div className="text-center py-12 text-slate-500">
-                  No invoices found
+                      {bulkUpdateMutation.isPending ? 'Updating...' : 'Update Selected'}
+                    </Button>
+                  </div>
                 </div>
               )}
-            </div>
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-auto max-h-[calc(100vh-230px)] print:max-h-none print:overflow-visible">
+                <table className="w-full">
+                  <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
+                    <tr>
+                      <th className="text-left p-4 text-sm font-semibold text-slate-700 w-12 no-print">
+                        <input
+                          type="checkbox"
+                          checked={selectedInvoices.length === sortedInvoices.length && sortedInvoices.length > 0}
+                          onChange={(e) => handleSelectAll(e.target.checked)}
+                          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        />
+                      </th>
+                      <th 
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default print-cursor-default"
+                        onClick={() => handleSort('invoice_number')}
+                      >
+                        Invoice # <SortIcon field="invoice_number" />
+                      </th>
+                      <th 
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default print-cursor-default"
+                        onClick={() => handleSort('program_group')}
+                      >
+                        Program Group <SortIcon field="program_group" />
+                      </th>
+                      <th 
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default print-cursor-default"
+                        onClick={() => handleSort('providerName')}
+                      >
+                        Provider <SortIcon field="providerName" />
+                      </th>
+                      <th 
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default print-cursor-default"
+                        onClick={() => handleSort('month')}
+                      >
+                        Month <SortIcon field="month" />
+                      </th>
+                      <th 
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default print-cursor-default"
+                        onClick={() => handleSort('invoice_date')}
+                      >
+                        Date <SortIcon field="invoice_date" />
+                      </th>
+                      <th 
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default print-cursor-default"
+                        onClick={() => handleSort('total')}
+                      >
+                        Total <SortIcon field="total" />
+                      </th>
+                      <th 
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default print-cursor-default"
+                        onClick={() => handleSort('amount_received')}
+                      >
+                        Paid <SortIcon field="amount_received" />
+                      </th>
+                      <th 
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default print-cursor-default"
+                        onClick={() => handleSort('balance')}
+                      >
+                        Balance <SortIcon field="balance" />
+                      </th>
+                      <th 
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default print-cursor-default"
+                        onClick={() => handleSort('status')}
+                      >
+                        Status <SortIcon field="status" />
+                      </th>
+                      <th className="text-right p-4 text-sm font-semibold text-slate-700 no-print">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedInvoices.map((invoice) => (
+                      <tr key={invoice.id} className={`border-b border-slate-100 hover:bg-slate-50 transition-colors print:hover:bg-white print-hover-bg-white ${selectedInvoices.includes(invoice.id) ? 'bg-blue-50' : ''}`}>
+                        <td className="p-4 no-print">
+                          <input
+                            type="checkbox"
+                            checked={selectedInvoices.includes(invoice.id)}
+                            onChange={(e) => handleSelectInvoice(invoice.id, e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                          />
+                        </td>
+                        <td className="p-4 font-medium text-slate-900">{invoice.invoice_number || '-'}</td>
+                        <td className="p-4 text-slate-600">{invoice.program_group}</td>
+                        <td className="p-4 text-slate-900">{invoice.provider?.full_name || '-'}</td>
+                        <td className="p-4 text-slate-600">{invoice.month || '-'}</td>
+                        <td className="p-4 text-slate-600">
+                          {format(parseISO(invoice.invoice_date), 'MMM d, yyyy')}
+                        </td>
+                        <td className="p-4 font-medium text-slate-900">
+                          ${formatCurrency(invoice.total || 0)}
+                        </td>
+                        <td className="p-4 text-green-600 font-medium">
+                          ${formatCurrency(invoice.amount_received || 0)}
+                        </td>
+                        <td className="p-4 font-medium text-slate-900">
+                          ${formatCurrency(invoice.balance)}
+                        </td>
+                        <td className="p-4">
+                          <Badge className={statusColors[invoice.status]}>
+                            {getStatusLabel(invoice)}
+                          </Badge>
+                        </td>
+                        <td className="p-4 text-right no-print">
+                          <div className="flex gap-2 justify-end">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                setEditingInvoice(invoice);
+                                setPreselectedIncomes([]);
+                                setShowForm(true);
+                              }}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => setDeleteConfirm(invoice)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {sortedInvoices.length === 0 && (
+                  <div className="text-center py-12 text-slate-500">
+                    No invoices found
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
