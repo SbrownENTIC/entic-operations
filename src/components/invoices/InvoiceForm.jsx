@@ -113,7 +113,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
     } else if (preselectedIncomes.length > 0) {
       const selectedIncomes = incomes.filter(inc => preselectedIncomes.includes(inc.id));
       const totalDays = selectedIncomes.reduce((sum, inc) => sum + (inc.days_worked || 0), 0);
-      const totalAmount = selectedIncomes.reduce((sum, inc => sum + (inc.total_amount || 0), 0);
+      const totalAmount = selectedIncomes.reduce((sum, inc) => sum + (inc.total_amount || 0), 0);
 
       const firstIncome = selectedIncomes[0];
       let programGroup = '';
