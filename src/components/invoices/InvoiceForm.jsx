@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -283,7 +282,13 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
     }
   };
 
-  const pendingIncomes = incomes.filter(inc => inc.status === 'pending');
+  // When editing an invoice, show the income records in this invoice + any pending ones
+  // When creating, only show pending
+  const availableIncomes = invoice 
+    ? incomes.filter(inc => 
+        formData.outside_income_ids.includes(inc.id) || inc.status === 'pending'
+      )
+    : incomes.filter(inc => inc.status === 'pending');
 
   return (
     <Card className="border-slate-200 shadow-sm">
@@ -626,11 +631,11 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
 
           </div>
 
-          {pendingIncomes.length > 0 && (
+          {availableIncomes.length > 0 && (
             <div className="space-y-3">
-              <Label>Outside Income Records</Label>
+              <Label>Outside Income Records ({availableIncomes.length})</Label>
               <div className="border border-slate-200 rounded-lg p-4 max-h-96 overflow-y-auto space-y-2">
-                {pendingIncomes.map(income => {
+                {availableIncomes.map(income => {
                   const provider = providers.find(p => p.id === income.provider_id);
                   return (
                     <div key={income.id} className="flex items-start space-x-2 p-3 hover:bg-slate-50 rounded border border-slate-100">
