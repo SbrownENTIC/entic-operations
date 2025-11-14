@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +13,6 @@ import FinancialDetailModal from "../components/dashboard/FinancialDetailModal";
 export default function Dashboard() {
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState('');
-  const [authReady, setAuthReady] = useState(false);
   const [modalState, setModalState] = useState({
     isOpen: false,
     title: '',
@@ -24,89 +23,42 @@ export default function Dashboard() {
 
   const queryClient = useQueryClient();
 
-  // Check authentication first
-  const { data: user, isLoading: authLoading, error: authError } = useQuery({
-    queryKey: ['current-user'],
-    queryFn: async () => {
-      try {
-        const userData = await base44.auth.me();
-        // Add small delay to ensure session is fully established
-        await new Promise(resolve => setTimeout(resolve, 100));
-        return userData;
-      } catch (error) {
-        // If not authenticated, redirect to login
-        if (error.message?.includes('not authenticated') || error.message?.includes('401')) {
-          base44.auth.redirectToLogin(window.location.pathname);
-          return null;
-        }
-        throw error;
-      }
-    },
-    retry: false,
-    staleTime: 5 * 60 * 1000
-  });
-
-  // Set authReady after user is loaded
-  useEffect(() => {
-    if (user && !authLoading) {
-      // Add extra delay on mobile devices to ensure session is ready
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      const delay = isMobile ? 300 : 100;
-      
-      const timer = setTimeout(() => {
-        setAuthReady(true);
-      }, delay);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [user, authLoading]);
-
+  // Fetch all data directly without checking auth first
+  // The base44 client handles authentication automatically
   const { data: providers = [], isLoading: providersLoading } = useQuery({
     queryKey: ['providers'],
     queryFn: () => base44.entities.Provider.list(),
-    enabled: authReady,
-    retry: 2,
-    retryDelay: 1000
+    staleTime: 30000
   });
 
   const { data: licenses = [], isLoading: licensesLoading } = useQuery({
     queryKey: ['licenses'],
     queryFn: () => base44.entities.License.list(),
-    enabled: authReady,
-    retry: 2,
-    retryDelay: 1000
+    staleTime: 30000
   });
 
   const { data: privileges = [], isLoading: privilegesLoading } = useQuery({
     queryKey: ['privileges'],
     queryFn: () => base44.entities.ClinicalPrivilege.list(),
-    enabled: authReady,
-    retry: 2,
-    retryDelay: 1000
+    staleTime: 30000
   });
 
   const { data: invoices = [], isLoading: invoicesLoading } = useQuery({
     queryKey: ['invoices'],
     queryFn: () => base44.entities.Invoice.list(),
-    enabled: authReady,
-    retry: 2,
-    retryDelay: 1000
+    staleTime: 30000
   });
 
   const { data: cmeRecords = [], isLoading: cmeLoading } = useQuery({
     queryKey: ['cme'],
     queryFn: () => base44.entities.CME.list(),
-    enabled: authReady,
-    retry: 2,
-    retryDelay: 1000
+    staleTime: 30000
   });
 
   const { data: payments = [], isLoading: paymentsLoading } = useQuery({
     queryKey: ['payments'],
     queryFn: () => base44.entities.Payment.list(),
-    enabled: authReady,
-    retry: 2,
-    retryDelay: 1000
+    staleTime: 30000
   });
 
   const handleSyncPaymentsAndInvoices = async () => {
@@ -201,164 +153,16 @@ export default function Dashboard() {
     document.body.removeChild(link);
   };
 
-  const exportFinancialOverview = () => {
-    const rows = [
-      ['Financial Overview Summary', '', '', ''],
-      ['Category', 'Amount', '', ''],
-      ['Outstanding to ENTIC', formatCurrency(outstandingToENTIC), '', ''],
-      ['Total Paid to ENTIC', formatCurrency(totalPaidToENTIC), '', ''],
-      ['Owed to Providers', formatCurrency(totalOwedToProviders), '', ''],
-      ['Unallocated Payments', formatCurrency(unallocatedPayments), '', ''],
-      ['', '', '', ''],
-      ['Program/Location', 'Outstanding to ENTIC', 'Paid to ENTIC', 'Owed to Providers']
-    ];
-    
-    programsSorted.forEach(program => {
-      const data = financialsByProgram[program];
-      rows.push([
-        program,
-        formatCurrency(data.outstanding),
-        formatCurrency(data.paidToENTIC),
-        formatCurrency(data.owedToProviders)
-      ]);
-    });
-    
-    rows.push([
-      'Total',
-      formatCurrency(outstandingToENTIC),
-      formatCurrency(totalPaidToENTIC),
-      formatCurrency(totalOwedToProviders)
-    ]);
-    
-    exportToCSV(rows, 'financial_overview');
-  };
+  // Show loading state
+  const isLoading = providersLoading || licensesLoading || privilegesLoading || 
+                    invoicesLoading || cmeLoading || paymentsLoading;
 
-  const exportLicenseExpirations = () => {
-    const rows = [
-      ['Provider Name', 'License Type', 'Internal Number', 'Expiration Date', 'Days Until Expiration', 'Status']
-    ];
-    
-    licensesExpiring60Days.forEach(license => {
-      const provider = providers.find(p => p.id === license.provider_id);
-      const daysUntil = differenceInDays(parseISO(license.expiration_date), today);
-      rows.push([
-        provider?.full_name || '',
-        license.license_type,
-        license.internal_license_number,
-        format(parseISO(license.expiration_date), 'yyyy-MM-dd'),
-        daysUntil,
-        daysUntil <= 7 ? 'Critical (7 days)' : 
-        daysUntil <= 14 ? 'High Priority (14 days)' : 
-        daysUntil <= 30 ? 'Medium Priority (30 days)' : 
-        'Low Priority (60 days)'
-      ]);
-    });
-    
-    exportToCSV(rows, 'license_expirations');
-  };
-
-  const exportCMECompliance = () => {
-    const rows = [
-      ['Provider Name', 'Total CME Credits', 'Compliance Status']
-    ];
-    
-    doctors.forEach(doctor => {
-      const credits = cmeByProvider[doctor.id] || 0;
-      rows.push([
-        doctor.full_name,
-        credits,
-        credits >= 3 ? 'Compliant' : 'Non-Compliant'
-      ]);
-    });
-    
-    exportToCSV(rows, 'cme_compliance');
-  };
-
-  const exportInvoiceSummary = () => {
-    const rows = [
-      ['Invoice Summary', '', ''],
-      ['Category', 'Count', ''],
-      ['Pending Invoices', pendingInvoices, ''],
-      ['Overdue Invoices (30+ days)', overdueInvoices, ''],
-      ['Paid Invoices', invoices.filter(inv => inv.status === 'paid_to_entic' || inv.status === 'provider_paid').length, ''],
-      ['', '', ''],
-      ['Invoice Number', 'Program Group', 'Provider', 'Date', 'Status', 'Total', 'Amount Received']
-    ];
-    
-    invoices.forEach(inv => {
-      const provider = providers.find(p => p.id === inv.staff_member_id);
-      rows.push([
-        inv.invoice_number || '',
-        inv.program_group || '',
-        provider?.full_name || '',
-        format(parseISO(inv.invoice_date), 'yyyy-MM-dd'),
-        inv.status,
-        inv.total || 0,
-        inv.amount_received || 0
-      ]);
-    });
-    
-    exportToCSV(rows, 'invoice_summary');
-  };
-
-  // Show loading state while checking authentication or waiting for auth to be ready
-  if (authLoading || (user && !authReady)) {
+  if (isLoading) {
     return (
       <div className="p-6 md:p-8 bg-slate-50 min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-slate-600">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // If there's an auth error that's not a redirect, show it
-  if (authError && !authError.message?.includes('not authenticated') && !authError.message?.includes('401')) {
-    return (
-      <div className="p-6 md:p-8 bg-slate-50 min-h-screen flex items-center justify-center">
-        <Card className="max-w-md">
-          <CardContent className="p-6 text-center">
-            <AlertTriangle className="w-12 h-12 text-red-600 mx-auto mb-4" />
-            <p className="text-red-600 mb-4">Authentication error: {authError.message}</p>
-            <div className="space-y-2">
-              <Button onClick={() => {
-                queryClient.clear();
-                window.location.reload();
-              }} className="w-full">
-                Reload Dashboard
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => {
-                  base44.auth.logout();
-                }} 
-                className="w-full"
-              >
-                Log Out and Sign In Again
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // If user is null (meaning a redirect happened), show nothing
-  if (!user) {
-    return null;
-  }
-
-  // Show loading for data if any query is still loading
-  const isLoadingData = providersLoading || licensesLoading || privilegesLoading || 
-                        invoicesLoading || cmeLoading || paymentsLoading;
-
-  if (isLoadingData) {
-    return (
-      <div className="p-6 md:p-8 bg-slate-50 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading dashboard data...</p>
         </div>
       </div>
     );
@@ -475,6 +279,106 @@ export default function Dashboard() {
   // Format currency with commas
   const formatCurrency = (amount) => {
     return '$' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigals: 2 });
+  };
+
+  const exportFinancialOverview = () => {
+    const rows = [
+      ['Financial Overview Summary', '', '', ''],
+      ['Category', 'Amount', '', ''],
+      ['Outstanding to ENTIC', formatCurrency(outstandingToENTIC), '', ''],
+      ['Total Paid to ENTIC', formatCurrency(totalPaidToENTIC), '', ''],
+      ['Owed to Providers', formatCurrency(totalOwedToProviders), '', ''],
+      ['Unallocated Payments', formatCurrency(unallocatedPayments), '', ''],
+      ['', '', '', ''],
+      ['Program/Location', 'Outstanding to ENTIC', 'Paid to ENTIC', 'Owed to Providers']
+    ];
+    
+    programsSorted.forEach(program => {
+      const data = financialsByProgram[program];
+      rows.push([
+        program,
+        formatCurrency(data.outstanding),
+        formatCurrency(data.paidToENTIC),
+        formatCurrency(data.owedToProviders)
+      ]);
+    });
+    
+    rows.push([
+      'Total',
+      formatCurrency(outstandingToENTIC),
+      formatCurrency(totalPaidToENTIC),
+      formatCurrency(totalOwedToProviders)
+    ]);
+    
+    exportToCSV(rows, 'financial_overview');
+  };
+
+  const exportLicenseExpirations = () => {
+    const rows = [
+      ['Provider Name', 'License Type', 'Internal Number', 'Expiration Date', 'Days Until Expiration', 'Status']
+    ];
+    
+    licensesExpiring60Days.forEach(license => {
+      const provider = providers.find(p => p.id === license.provider_id);
+      const daysUntil = differenceInDays(parseISO(license.expiration_date), today);
+      rows.push([
+        provider?.full_name || '',
+        license.license_type,
+        license.internal_license_number,
+        format(parseISO(license.expiration_date), 'yyyy-MM-dd'),
+        daysUntil,
+        daysUntil <= 7 ? 'Critical (7 days)' : 
+        daysUntil <= 14 ? 'High Priority (14 days)' : 
+        daysUntil <= 30 ? 'Medium Priority (30 days)' : 
+        'Low Priority (60 days)'
+      ]);
+    });
+    
+    exportToCSV(rows, 'license_expirations');
+  };
+
+  const exportCMECompliance = () => {
+    const rows = [
+      ['Provider Name', 'Total CME Credits', 'Compliance Status']
+    ];
+    
+    doctors.forEach(doctor => {
+      const credits = cmeByProvider[doctor.id] || 0;
+      rows.push([
+        doctor.full_name,
+        credits,
+        credits >= 3 ? 'Compliant' : 'Non-Compliant'
+      ]);
+    });
+    
+    exportToCSV(rows, 'cme_compliance');
+  };
+
+  const exportInvoiceSummary = () => {
+    const rows = [
+      ['Invoice Summary', '', ''],
+      ['Category', 'Count', ''],
+      ['Pending Invoices', pendingInvoices, ''],
+      ['Overdue Invoices (30+ days)', overdueInvoices, ''],
+      ['Paid Invoices', invoices.filter(inv => inv.status === 'paid_to_entic' || inv.status === 'provider_paid').length, ''],
+      ['', '', ''],
+      ['Invoice Number', 'Program Group', 'Provider', 'Date', 'Status', 'Total', 'Amount Received']
+    ];
+    
+    invoices.forEach(inv => {
+      const provider = providers.find(p => p.id === inv.staff_member_id);
+      rows.push([
+        inv.invoice_number || '',
+        inv.program_group || '',
+        provider?.full_name || '',
+        format(parseISO(inv.invoice_date), 'yyyy-MM-dd'),
+        inv.status,
+        inv.total || 0,
+        inv.amount_received || 0
+      ]);
+    });
+    
+    exportToCSV(rows, 'invoice_summary');
   };
 
   return (
