@@ -24,7 +24,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 
 const PROVIDER_COLORS = [
   "bg-green-500",
-  "bg-orange-500", 
+  "bg-orange-500",
   "bg-yellow-500",
   "bg-blue-500",
   "bg-purple-500",
@@ -70,12 +70,12 @@ export default function OnCallSchedule() {
   const createMutation = useMutation({
     mutationFn: async (data) => {
       const schedule = await base44.entities.OnCallSchedule.create(data);
-      
+
       // Auto-create outside income for St. Francis schedules
       if (data.location?.toLowerCase().includes('st. francis') || data.location?.toLowerCase().includes('st francis')) {
         await createOutsideIncomeFromSchedule(schedule, data);
       }
-      
+
       return schedule;
     },
     onSuccess: () => {
@@ -105,7 +105,7 @@ export default function OnCallSchedule() {
 
   const bulkUpdateMutation = useMutation({
     mutationFn: async ({ ids, updateData }) => {
-      const updates = ids.map(id => 
+      const updates = ids.map(id =>
         base44.entities.OnCallSchedule.update(id, updateData)
       );
       return Promise.all(updates);
@@ -119,31 +119,31 @@ export default function OnCallSchedule() {
 
   const createOutsideIncomeFromSchedule = async (schedule, data) => {
     // Find St. Francis program location
-    const stFrancisLocation = programLocations.find(pl => 
-      pl.program_group?.toLowerCase().includes('st. francis') || 
+    const stFrancisLocation = programLocations.find(pl =>
+      pl.program_group?.toLowerCase().includes('st. francis') ||
       pl.program_group?.toLowerCase().includes('st francis')
     );
-    
+
     if (!stFrancisLocation) {
       console.warn('St. Francis program location not found');
       return;
     }
-    
+
     // Calculate work dates and days
     const startDate = parseISO(data.start_date);
     const endDate = parseISO(data.end_date);
-    
+
     // Determine last active day based on end_time
     let lastActiveDay = endDate;
     if (data.end_time && !isMidnight(data.end_time)) {
       lastActiveDay = addDays(endDate, -1);
     }
-    
+
     const workDates = eachDayOfInterval({ start: startDate, end: lastActiveDay });
     const daysWorked = workDates.length;
     const rate = stFrancisLocation.daily_rate || 0;
     const totalAmount = daysWorked * rate;
-    
+
     // Create outside income record
     await base44.entities.OutsideIncome.create({
       provider_id: data.provider_id,
@@ -153,6 +153,7 @@ export default function OnCallSchedule() {
       days_worked: daysWorked,
       rate: rate,
       total_amount: totalAmount,
+      temp_oncall_start_date: data.start_date, // Added this line
       status: 'pending',
       notes: `Auto-generated from on-call schedule ${data.start_date} to ${data.end_date}`
     });
@@ -234,8 +235,8 @@ export default function OnCallSchedule() {
   const isMidnight = (timeStr) => {
     if (!timeStr) return false;
     const normalized = timeStr.toLowerCase().trim();
-    return normalized === '00:00' || 
-           normalized === '12:00 am' || 
+    return normalized === '00:00' ||
+           normalized === '12:00 am' ||
            normalized === '12:00am' ||
            normalized === '0:00' ||
            normalized === '00:00:00';
@@ -271,22 +272,22 @@ export default function OnCallSchedule() {
 
   const getSchedulesForDay = (day) => {
     const dayStart = startOfDay(day);
-    
+
     return schedulesWithProviders.filter(schedule => {
       const start = startOfDay(parseISO(schedule.start_date));
       const endDate = startOfDay(parseISO(schedule.end_date));
-      
+
       // Determine the last active day for the schedule
-      // If end_time is something other than midnight, 
+      // If end_time is something other than midnight,
       // the shift ends BEFORE the full end_date day
       let lastActiveDay = endDate;
-      
+
       // Check if end_time exists and is not midnight
       if (schedule.end_time && !isMidnight(schedule.end_time)) {
         // The shift ends during the end_date, so the last full active day is the day before
         lastActiveDay = addDays(endDate, -1);
       }
-      
+
       // Check if this day falls within the active range
       return dayStart >= start && dayStart <= lastActiveDay;
     });
@@ -295,19 +296,19 @@ export default function OnCallSchedule() {
   const isFirstDayOfSchedule = (schedule, day, weekDays) => {
     const scheduleStart = startOfDay(parseISO(schedule.start_date));
     const dayStart = startOfDay(day);
-    
+
     // First day of the schedule overall
     if (isSameDay(scheduleStart, dayStart)) return true;
-    
+
     // First day of the week (Sunday) if schedule continues from previous week
     if (day.getDay() === 0) {
       // Check if schedule started before this week and is still active on this day
       const prevDaySchedules = getSchedulesForDay(new Date(dayStart.getTime() - 86400000)); // Previous day
       const todaySchedules = getSchedulesForDay(day);
-      return todaySchedules.some(s => s.id === schedule.id) && 
+      return todaySchedules.some(s => s.id === schedule.id) &&
              prevDaySchedules.some(s => s.id === schedule.id);
     }
-    
+
     return false;
   };
 
@@ -315,16 +316,16 @@ export default function OnCallSchedule() {
     const scheduleStart = startOfDay(parseISO(schedule.start_date));
     const endDate = startOfDay(parseISO(schedule.end_date));
     const dayStart = startOfDay(day);
-    
+
     // Determine the last active day
     let lastActiveDay = endDate;
     if (schedule.end_time && !isMidnight(schedule.end_time)) {
       lastActiveDay = addDays(endDate, -1);
     }
-    
+
     const dayIndex = weekDays.findIndex(d => isSameDay(d, day));
     let span = 0;
-    
+
     // Count consecutive days from this day forward within the week that the schedule covers
     for (let i = dayIndex; i < weekDays.length; i++) {
       const currentDay = startOfDay(weekDays[i]);
@@ -334,7 +335,7 @@ export default function OnCallSchedule() {
         break; // Stop if we hit a day not covered by the schedule
       }
     }
-    
+
     return span;
   };
 
@@ -346,7 +347,7 @@ export default function OnCallSchedule() {
 
   const sortedSchedules = [...filteredSchedules].sort((a, b) => {
     let aValue, bValue;
-    
+
     if (sortField === 'start_date' || sortField === 'end_date') {
       aValue = new Date(a[sortField]);
       bValue = new Date(b[sortField]);
@@ -359,15 +360,15 @@ export default function OnCallSchedule() {
       aValue = a[sortField] || '';
       bValue = b[sortField] || '';
     }
-    
+
     const comparison = aValue.toString().toLowerCase().localeCompare(bValue.toString().toLowerCase());
     return sortDirection === 'asc' ? comparison : -comparison;
   });
 
   const SortIcon = ({ field }) => {
     if (sortField !== field) return <ArrowUpDown className="w-4 h-4 ml-1 inline" />;
-    return sortDirection === 'asc' ? 
-      <ArrowUp className="w-4 h-4 ml-1 inline" /> : 
+    return sortDirection === 'asc' ?
+      <ArrowUp className="w-4 h-4 ml-1 inline" /> :
       <ArrowDown className="w-4 h-4 ml-1 inline" />;
   };
 
@@ -460,7 +461,7 @@ export default function OnCallSchedule() {
                     <span className="font-medium text-slate-900">
                       {selectedEntries.length} selected
                     </span>
-                    <Button 
+                    <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setSelectedEntries([])}
@@ -468,7 +469,7 @@ export default function OnCallSchedule() {
                       Clear Selection
                     </Button>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-slate-700">Change Provider:</span>
                     <Popover open={providerSelectOpen} onOpenChange={setProviderSelectOpen}>
@@ -509,7 +510,7 @@ export default function OnCallSchedule() {
                         </Command>
                       </PopoverContent>
                     </Popover>
-                    <Button 
+                    <Button
                       onClick={handleBulkUpdateProvider}
                       disabled={!bulkProvider || bulkUpdateMutation.isPending}
                       className="bg-blue-600 hover:bg-blue-700"
@@ -533,19 +534,19 @@ export default function OnCallSchedule() {
                           className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                         />
                       </th>
-                      <th 
+                      <th
                         className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                         onClick={() => handleSort('providerName')}
                       >
                         Provider <SortIcon field="providerName" />
                       </th>
-                      <th 
+                      <th
                         className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                         onClick={() => handleSort('location')}
                       >
                         Location <SortIcon field="location" />
                       </th>
-                      <th 
+                      <th
                         className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                         onClick={() => handleSort('start_date')}
                       >
@@ -554,7 +555,7 @@ export default function OnCallSchedule() {
                       <th className="text-left p-4 text-sm font-semibold text-slate-700">
                         Start Time
                       </th>
-                      <th 
+                      <th
                         className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                         onClick={() => handleSort('end_date')}
                       >
@@ -563,7 +564,7 @@ export default function OnCallSchedule() {
                       <th className="text-left p-4 text-sm font-semibold text-slate-700">
                         End Time
                       </th>
-                      <th 
+                      <th
                         className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                         onClick={() => handleSort('days')}
                       >
@@ -600,15 +601,15 @@ export default function OnCallSchedule() {
                         <td className="p-4 text-slate-600">{schedule.notes || '-'}</td>
                         <td className="p-4 text-right">
                           <div className="flex gap-2 justify-end">
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="sm"
                               onClick={() => handleEditSchedule(schedule)}
                             >
                               <Pencil className="w-4 h-4" />
                             </Button>
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="sm"
                               onClick={() => setDeleteConfirm(schedule)}
                               className="text-red-600 hover:text-red-700"
@@ -676,7 +677,7 @@ export default function OnCallSchedule() {
                       {week.map((day, dayIndex) => {
                         const daySchedules = getSchedulesForDay(day);
                         const isCurrentMonth = isSameMonth(day, currentMonth);
-                        
+
                         return (
                           <div
                             key={dayIndex}
@@ -689,15 +690,15 @@ export default function OnCallSchedule() {
                             }`}>
                               {format(day, 'd')}
                             </div>
-                            
+
                             <div className="space-y-1">
                               {daySchedules.map((schedule, schedIndex) => {
                                 const isFirstDay = isFirstDayOfSchedule(schedule, day, week);
-                                
+
                                 if (!isFirstDay) return null;
-                                
+
                                 const span = getScheduleSpan(schedule, day, week);
-                                
+
                                 return (
                                   <div
                                     key={schedule.id}
