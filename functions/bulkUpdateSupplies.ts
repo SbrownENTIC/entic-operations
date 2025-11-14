@@ -169,36 +169,52 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get all supplies
+    // Get all supplies once at the start
     const supplies = await base44.asServiceRole.entities.Supply.list();
     
     let updated = 0;
     let notFound = [];
+    const batchSize = 3; // Process only 3 at a time
     
-    // Process sequentially with delays to avoid rate limits
-    for (let i = 0; i < supplyData.length; i++) {
-      const data = supplyData[i];
-      const supply = supplies.find(s => s.item_number === data.item_number);
+    // Process in small batches
+    for (let i = 0; i < supplyData.length; i += batchSize) {
+      const batch = supplyData.slice(i, i + batchSize);
       
-      if (supply) {
-        await base44.asServiceRole.entities.Supply.update(supply.id, {
-          product_name: data.product_name,
-          unit_price: data.unit_price,
-          units: data.units || null
-        });
-        updated++;
-      } else {
-        notFound.push(data.item_number);
-      }
+      // Process batch in parallel
+      const updatePromises = batch.map(async (data) => {
+        const supply = supplies.find(s => s.item_number === data.item_number);
+        
+        if (supply) {
+          await base44.asServiceRole.entities.Supply.update(supply.id, {
+            product_name: data.product_name,
+            unit_price: data.unit_price,
+            units: data.units || null
+          });
+          return { success: true, item: data.item_number };
+        } else {
+          return { success: false, item: data.item_number };
+        }
+      });
       
-      // Add a small delay after every 5 updates
-      if ((i + 1) % 5 === 0) {
-        await delay(30000);
+      const results = await Promise.all(updatePromises);
+      
+      results.forEach(result => {
+        if (result.success) {
+          updated++;
+        } else {
+          notFound.push(result.item);
+        }
+      });
+      
+      // Add 2 second delay between batches
+      if (i + batchSize < supplyData.length) {
+        await delay(2000);
       }
     }
 
     return Response.json({
       success: true,
+      message: `Updated ${updated} out of ${supplyData.length} supplies`,
       updated,
       total: supplyData.length,
       notFound: notFound.length > 0 ? notFound : undefined
