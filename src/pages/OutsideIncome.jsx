@@ -40,6 +40,7 @@ export default function OutsideIncome() {
   const [sortField, setSortField] = useState('created_date');
   const [sortDirection, setSortDirection] = useState('desc');
   const [linkingOnCall, setLinkingOnCall] = useState(false);
+  const [linkingProviders, setLinkingProviders] = useState(false); // Added state
   const [linkMessage, setLinkMessage] = useState('');
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -133,6 +134,20 @@ export default function OutsideIncome() {
       setLinkMessage('Error linking on-call dates: ' + error.message);
     } finally {
       setLinkingOnCall(false);
+    }
+  };
+
+  const handleLinkStFrancisProviders = async () => {
+    setLinkingProviders(true);
+    setLinkMessage('');
+    try {
+      const response = await base44.functions.invoke('linkStFrancisProviders', {});
+      setLinkMessage(response.data.message);
+      queryClient.invalidateQueries({ queryKey: ['outside-income'] });
+    } catch (error) {
+      setLinkMessage('Error linking providers: ' + error.message);
+    } finally {
+      setLinkingProviders(false);
     }
   };
 
@@ -355,6 +370,15 @@ export default function OutsideIncome() {
             >
               <UserCheck className={`w-4 h-4 ${linkingOnCall ? 'animate-spin' : ''}`} />
               {linkingOnCall ? 'Linking...' : 'Link On-Call Dates'}
+            </Button>
+            <Button // New button for linking St. Francis Providers
+              onClick={handleLinkStFrancisProviders}
+              disabled={linkingProviders}
+              variant="outline"
+              className="gap-2 border-blue-600 text-blue-600 hover:bg-blue-50"
+            >
+              <UserCheck className={`w-4 h-4 ${linkingProviders ? 'animate-spin' : ''}`} />
+              {linkingProviders ? 'Linking...' : 'Link St. Francis Providers'}
             </Button>
             {selectedIncomes.length > 0 && (
               <Button
