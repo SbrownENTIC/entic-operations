@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -6,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, UserCheck } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, UserCheck, Link as LinkIcon } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -36,6 +35,7 @@ export default function Invoices() {
   const [bulkDateProviderPaid, setBulkDateProviderPaid] = useState('');
   const [bulkProviderPaid, setBulkProviderPaid] = useState(false);
   const [updatingProviders, setUpdatingProviders] = useState(false);
+  const [fixingLinks, setFixingLinks] = useState(false);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -208,6 +208,21 @@ export default function Invoices() {
     }
   };
 
+  const handleFixOutsideIncomeLinks = async () => {
+    setFixingLinks(true);
+    setSyncMessage('');
+    try {
+      const response = await base44.functions.invoke('fixOutsideIncomeLinks', {});
+      setSyncMessage(response.data.message);
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['outside-income'] });
+    } catch (error) {
+      setSyncMessage('Error fixing links: ' + error.message);
+    } finally {
+      setFixingLinks(false);
+    }
+  };
+
   const handleSelectAll = (checked) => {
     if (checked) {
       setSelectedInvoices(sortedInvoices.map(invoice => invoice.id));
@@ -330,6 +345,15 @@ export default function Invoices() {
             <p className="text-slate-600 mt-1">Manage invoices for outside income</p>
           </div>
           <div className="flex gap-3 flex-wrap">
+            <Button
+              onClick={handleFixOutsideIncomeLinks}
+              disabled={fixingLinks}
+              variant="outline"
+              className="gap-2 border-green-600 text-green-600 hover:bg-green-50"
+            >
+              <LinkIcon className={`w-4 h-4 ${fixingLinks ? 'animate-spin' : ''}`} />
+              {fixingLinks ? 'Fixing...' : 'Fix Income Links'}
+            </Button>
             <Button
               onClick={handleUpdateAllProviders}
               disabled={updatingProviders}
