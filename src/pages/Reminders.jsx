@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -293,7 +294,7 @@ The Operations Team`;
           />
         )}
 
-        <Card className="border-slate-200 shadow-sm">
+        <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
           <CardHeader className="border-b border-slate-100">
             <div className="flex items-center gap-4">
               <Search className="w-5 h-5 text-slate-400" />
@@ -306,7 +307,7 @@ The Operations Team`;
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto max-h-[calc(100vh-350px)] overflow-y-auto">
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                   <tr>

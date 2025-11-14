@@ -612,8 +612,8 @@ export default function Payments() {
           />
         )}
 
-        <Card className="border-slate-200 shadow-sm">
-          <CardHeader className="border-b border-slate-100">
+        <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
+          <CardHeader className="border-b border-slate-100 space-y-4">
             <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
               <div className="flex items-center gap-4 flex-1">
                 <Search className="w-5 h-5 text-slate-400" />
@@ -635,7 +635,7 @@ export default function Payments() {
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto max-h-[calc(100vh-400px)] overflow-y-auto">
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
@@ -765,7 +765,7 @@ export default function Payments() {
               </table>
               {sortedPayments.length === 0 && (
                 <div className="text-center py-12 text-slate-500">
-                  {filterUnallocated ? 'No unallocated payments found' : 'No payments found'}
+                  No payments found
                 </div>
               )}
             </div>

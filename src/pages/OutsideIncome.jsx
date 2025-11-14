@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -231,7 +232,7 @@ export default function OutsideIncome() {
     });
 
   return (
-    <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
+    <div className="p-6 md:p-8 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
@@ -268,6 +269,7 @@ export default function OutsideIncome() {
           <OutsideIncomeForm
             income={editingIncome}
             providers={providers}
+            programLocations={programLocations}
             onSubmit={handleSubmit}
             onCancel={() => {
               setShowForm(false);
@@ -277,8 +279,8 @@ export default function OutsideIncome() {
           />
         )}
 
-        <Card className="border-slate-200 shadow-sm">
-          <CardHeader className="border-b border-slate-100">
+        <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
+          <CardHeader className="border-b border-slate-100 space-y-4">
             <div className="flex items-center gap-4">
               <Search className="w-5 h-5 text-slate-400" />
               <Input
@@ -293,7 +295,7 @@ export default function OutsideIncome() {
             {isLoading ? (
               <div className="text-center py-12 text-slate-500">Loading...</div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto max-h-[calc(100vh-400px)] overflow-y-auto">
                 <table className="w-full">
                   <thead className="bg-slate-50 border-b border-slate-200">
                     <tr>
@@ -434,7 +436,7 @@ export default function OutsideIncome() {
                 </table>
                 {sortedIncomes.length === 0 && (
                   <div className="text-center py-12 text-slate-500">
-                    No outside income records found
+                    No income records found
                   </div>
                 )}
               </div>
