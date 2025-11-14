@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -408,7 +407,7 @@ export default function Reports() {
 
     const grandTotal = filteredInvoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
     const grandReceived = filteredInvoices.reduce((sum, inv) => sum + (inv.amount_received || 0), 0);
-    const grandBalance = filteredInvoices.reduce((sum, inv => {
+    const grandBalance = filteredInvoices.reduce((sum, inv) => {
       const balance = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
       return sum + balance;
     }, 0);
