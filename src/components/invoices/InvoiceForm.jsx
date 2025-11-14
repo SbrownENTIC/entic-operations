@@ -287,17 +287,20 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
     }
   };
 
-  // SHOW ALL INCOME RECORDS when editing an invoice (for imported data)
-  // Show only pending records when creating a new invoice
-  const availableIncomes = invoice ? incomes : incomes.filter(inc => inc.status === 'pending');
-
-  // Count how many are actually linked to THIS invoice
-  const linkedCount = invoice
+  // Calculate comprehensive income statistics
+  const totalIncomes = incomes.length;
+  const linkedToAnyInvoice = incomes.filter(inc => inc.invoice_id).length;
+  const availableIncomes = incomes.filter(inc => !inc.invoice_id || inc.invoice_id === invoice?.id).length;
+  const linkedToThisInvoice = invoice
     ? incomes.filter(inc => inc.invoice_id === invoice.id || formData.outside_income_ids.includes(inc.id)).length
-    : 0;
+    : formData.outside_income_ids.length;
+
+  // SHOW ALL INCOME RECORDS when editing an invoice (for imported data)
+  // Show only pending/available records when creating a new invoice
+  const displayableIncomes = invoice ? incomes : incomes.filter(inc => !inc.invoice_id);
 
   // Filter incomes based on search term
-  const filteredIncomes = availableIncomes.filter(income => {
+  const filteredIncomes = displayableIncomes.filter(income => {
     if (!incomeSearchTerm) return true;
 
     const provider = providers.find(p => p.id === income.provider_id);
@@ -651,13 +654,30 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
 
           </div>
 
-          {availableIncomes.length > 0 && (
+          {displayableIncomes.length > 0 && (
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>Outside Income Records ({incomes.length} total, {linkedCount} linked to this invoice)</Label>
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                  <div>
+                    <p className="text-slate-600">Total Records</p>
+                    <p className="text-xl font-bold text-blue-900">{totalIncomes}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-600">Linked (Any Invoice)</p>
+                    <p className="text-xl font-bold text-green-700">{linkedToAnyInvoice}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-600">Available</p>
+                    <p className="text-xl font-bold text-orange-700">{availableIncomes}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-600">Linked to This</p>
+                    <p className="text-xl font-bold text-blue-700">{linkedToThisInvoice}</p>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2">
                 <Search className="w-4 h-4 text-slate-400" />
                 <Input
                   placeholder="Search by provider, facility, or amount..."
