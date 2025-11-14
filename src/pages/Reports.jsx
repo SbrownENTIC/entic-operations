@@ -38,7 +38,7 @@ export default function Reports() {
   const isLoading = paymentsLoading || invoicesLoading || providersLoading || incomesLoading;
 
   const formatCurrency = (amount) => {
-    return '$' + amount.toLocaleString('en-US', { minimumFractionDigals: 2, maximumFractionDigits: 2 });
+    return '$' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
   const exportToCSV = (data, filename) => {
@@ -431,6 +431,23 @@ export default function Reports() {
     );
   }
 
+  // Calculate invoice totals by provider for the Invoice by Provider tab
+  const filteredInvoicesForProvider = filterByDateRange(invoices, 'invoice_date');
+  const invoiceTotalsByProvider = {};
+  
+  filteredInvoicesForProvider.forEach(inv => {
+    const provider = providers.find(p => p.id === inv.staff_member_id);
+    const providerName = provider?.full_name || 'Unknown';
+    
+    if (!invoiceTotalsByProvider[providerName]) {
+      invoiceTotalsByProvider[providerName] = 0;
+    }
+    
+    invoiceTotalsByProvider[providerName] += inv.total || 0;
+  });
+
+  const sortedProviderTotals = Object.entries(invoiceTotalsByProvider).sort(([a], [b]) => a.localeCompare(b));
+
   return (
     <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -672,32 +689,19 @@ export default function Reports() {
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                      <p className="text-sm text-slate-600">Total Invoices</p>
-                      <p className="text-2xl font-bold text-blue-700">{invoices.length}</p>
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200">
+                    <h3 className="text-lg font-semibold text-slate-900 mb-4">Total Invoices by Provider</h3>
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {sortedProviderTotals.map(([providerName, total]) => (
+                        <div key={providerName} className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200">
+                          <span className="font-medium text-slate-900">{providerName}</span>
+                          <span className="text-lg font-bold text-blue-700">{formatCurrency(total)}</span>
+                        </div>
+                      ))}
                     </div>
-                    <div className="bg-green-50 p-4 rounded-lg">
-                      <p className="text-sm text-slate-600">Total Invoiced</p>
-                      <p className="text-2xl font-bold text-green-700">
-                        {formatCurrency(invoices.reduce((sum, inv) => sum + (inv.total || 0), 0))}
-                      </p>
-                    </div>
-                    <div className="bg-purple-50 p-4 rounded-lg">
-                      <p className="text-sm text-slate-600">Total Received</p>
-                      <p className="text-2xl font-bold text-purple-700">
-                        {formatCurrency(invoices.reduce((sum, inv) => sum + (inv.amount_received || 0), 0))}
-                      </p>
-                    </div>
-                    <div className="bg-orange-50 p-4 rounded-lg">
-                      <p className="text-sm text-slate-600">Total Outstanding</p>
-                      <p className="text-2xl font-bold text-orange-700">
-                        {formatCurrency(invoices.reduce((sum, inv) => {
-                          const balance = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
-                          return sum + (balance > 0 ? balance : 0);
-                        }, 0))}
-                      </p>
-                    </div>
+                    {sortedProviderTotals.length === 0 && (
+                      <p className="text-center text-slate-500 py-8">No invoices found for the selected date range</p>
+                    )}
                   </div>
                   <p className="text-sm text-slate-600">
                     This report shows all invoices organized by provider, with subtotals for each provider 
