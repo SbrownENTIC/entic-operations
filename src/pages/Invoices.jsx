@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -6,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, UserCheck, Link as LinkIcon, AlertTriangle, Zap, Printer } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, AlertTriangle, Zap, Printer, AlertCircle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -35,11 +34,10 @@ export default function Invoices() {
   const [selectedInvoices, setSelectedInvoices] = useState([]);
   const [bulkDateProviderPaid, setBulkDateProviderPaid] = useState('');
   const [bulkProviderPaid, setBulkProviderPaid] = useState(false);
-  const [updatingProviders, setUpdatingProviders] = useState(false);
-  const [fixingLinks, setFixingLinks] = useState(false);
   const [diagnosing, setDiagnosing] = useState(false);
   const [forceSyncing, setForceSyncing] = useState(false);
   const [diagnosticResults, setDiagnosticResults] = useState(null);
+  const [filterNoIncome, setFilterNoIncome] = useState(false);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -219,35 +217,6 @@ export default function Invoices() {
     }
   };
 
-  const handleUpdateAllProviders = async () => {
-    setUpdatingProviders(true);
-    setSyncMessage('');
-    try {
-      const response = await base44.functions.invoke('updateInvoiceProviders', {});
-      setSyncMessage(response.data.message);
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-    } catch (error) {
-      setSyncMessage('Error updating providers: ' + error.message);
-    } finally {
-      setUpdatingProviders(false);
-    }
-  };
-
-  const handleFixOutsideIncomeLinks = async () => {
-    setFixingLinks(true);
-    setSyncMessage('');
-    try {
-      const response = await base44.functions.invoke('fixOutsideIncomeLinks', {});
-      setSyncMessage(response.data.message);
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      queryClient.invalidateQueries({ queryKey: ['outside-income'] });
-    } catch (error) {
-      setSyncMessage('Error fixing links: ' + error.message);
-    } finally {
-      setFixingLinks(false);
-    }
-  };
-
   const handleDiagnoseData = async () => {
     setDiagnosing(true);
     setSyncMessage('');
@@ -318,6 +287,12 @@ export default function Invoices() {
     window.print();
   };
 
+  const handleInvoiceNumberClick = (invoice) => {
+    setEditingInvoice(invoice);
+    setPreselectedIncomes([]);
+    setShowForm(true);
+  };
+
   const formatCurrency = (amount) => {
     return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
@@ -336,15 +311,20 @@ export default function Invoices() {
     ...invoice,
     provider: providers.find(p => p.id === invoice.staff_member_id),
     providerName: providers.find(p => p.id === invoice.staff_member_id)?.full_name || '',
-    balance: (invoice.amount_expected || invoice.total || 0) - (invoice.amount_received || 0)
+    balance: (invoice.amount_expected || invoice.total || 0) - (invoice.amount_received || 0),
+    hasOutsideIncome: invoice.outside_income_ids && invoice.outside_income_ids.length > 0
   }));
 
-  const filteredInvoices = invoicesWithProviders.filter(invoice =>
-    invoice.program_group?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    invoice.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    invoice.provider?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    invoice.month?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredInvoices = invoicesWithProviders.filter(invoice => {
+    const matchesSearch = invoice.program_group?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      invoice.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      invoice.provider?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      invoice.month?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesNoIncomeFilter = !filterNoIncome || !invoice.hasOutsideIncome;
+    
+    return matchesSearch && matchesNoIncomeFilter;
+  });
 
   const sortedInvoices = [...filteredInvoices].sort((a, b) => {
     let aValue, bValue;
@@ -412,9 +392,7 @@ export default function Invoices() {
           .no-print { display: none !important; }
           .print-content table { width: 100%; border-collapse: collapse; }
           .print-content th, .print-content td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-          .print-content thead { background-color: #f5f5f5; }
-          .print-content th.print-cursor-default { cursor: default !important; }
-          .print-content tr.print-hover-bg-white:hover { background-color: white !important; }
+          .print-content th { background-color: #f5f5f5; }
         }
       `}</style>
       <div className="max-w-7xl mx-auto space-y-6">
@@ -448,24 +426,6 @@ export default function Invoices() {
             >
               <Zap className={`w-4 h-4 ${forceSyncing ? 'animate-spin' : ''}`} />
               {forceSyncing ? 'Syncing...' : 'Force Sync Links'}
-            </Button>
-            <Button
-              onClick={handleFixOutsideIncomeLinks}
-              disabled={fixingLinks}
-              variant="outline"
-              className="gap-2 border-green-600 text-green-600 hover:bg-green-50"
-            >
-              <LinkIcon className={`w-4 h-4 ${fixingLinks ? 'animate-spin' : ''}`} />
-              {fixingLinks ? 'Fixing...' : 'Fix Income Links'}
-            </Button>
-            <Button
-              onClick={handleUpdateAllProviders}
-              disabled={updatingProviders}
-              variant="outline"
-              className="gap-2 border-purple-600 text-purple-600 hover:bg-purple-50"
-            >
-              <UserCheck className={`w-4 h-4 ${updatingProviders ? 'animate-spin' : ''}`} />
-              {updatingProviders ? 'Updating...' : 'Update All Providers'}
             </Button>
             <Button
               onClick={handleSyncBalances}
@@ -584,14 +544,24 @@ export default function Invoices() {
 
           <Card className="border-slate-200 shadow-sm">
             <CardHeader className="border-b border-slate-100 space-y-4 no-print">
-              <div className="flex items-center gap-4">
-                <Search className="w-5 h-5 text-slate-400" />
-                <Input
-                  placeholder="Search invoices..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="max-w-md border-slate-200"
-                />
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                <div className="flex items-center gap-4 flex-1">
+                  <Search className="w-5 h-5 text-slate-400" />
+                  <Input
+                    placeholder="Search invoices..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="max-w-md border-slate-200"
+                  />
+                </div>
+                <Button
+                  variant={filterNoIncome ? "default" : "outline"}
+                  onClick={() => setFilterNoIncome(!filterNoIncome)}
+                  className={filterNoIncome ? "bg-orange-600 hover:bg-orange-700" : ""}
+                >
+                  <AlertCircle className="w-4 h-4 mr-2" />
+                  {filterNoIncome ? "Showing No Income" : "Show Without Income"}
+                </Button>
               </div>
               {selectedInvoices.length > 0 && (
                 <div className="flex flex-col gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
@@ -657,55 +627,55 @@ export default function Invoices() {
                         />
                       </th>
                       <th 
-                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default print-cursor-default"
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
                         onClick={() => handleSort('invoice_number')}
                       >
                         Invoice # <SortIcon field="invoice_number" />
                       </th>
                       <th 
-                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default print-cursor-default"
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
                         onClick={() => handleSort('program_group')}
                       >
                         Program Group <SortIcon field="program_group" />
                       </th>
                       <th 
-                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default print-cursor-default"
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
                         onClick={() => handleSort('providerName')}
                       >
                         Provider <SortIcon field="providerName" />
                       </th>
                       <th 
-                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default print-cursor-default"
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
                         onClick={() => handleSort('month')}
                       >
                         Month <SortIcon field="month" />
                       </th>
                       <th 
-                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default print-cursor-default"
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
                         onClick={() => handleSort('invoice_date')}
                       >
                         Date <SortIcon field="invoice_date" />
                       </th>
                       <th 
-                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default print-cursor-default"
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
                         onClick={() => handleSort('total')}
                       >
                         Total <SortIcon field="total" />
                       </th>
                       <th 
-                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default print-cursor-default"
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
                         onClick={() => handleSort('amount_received')}
                       >
                         Paid <SortIcon field="amount_received" />
                       </th>
                       <th 
-                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default print-cursor-default"
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
                         onClick={() => handleSort('balance')}
                       >
                         Balance <SortIcon field="balance" />
                       </th>
                       <th 
-                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default print-cursor-default"
+                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
                         onClick={() => handleSort('status')}
                       >
                         Status <SortIcon field="status" />
@@ -715,7 +685,7 @@ export default function Invoices() {
                   </thead>
                   <tbody>
                     {sortedInvoices.map((invoice) => (
-                      <tr key={invoice.id} className={`border-b border-slate-100 hover:bg-slate-50 transition-colors print:hover:bg-white print-hover-bg-white ${selectedInvoices.includes(invoice.id) ? 'bg-blue-50' : ''}`}>
+                      <tr key={invoice.id} className={`border-b border-slate-100 hover:bg-slate-50 transition-colors print:hover:bg-white ${selectedInvoices.includes(invoice.id) ? 'bg-blue-50' : ''} ${!invoice.hasOutsideIncome ? 'bg-orange-50/30' : ''}`}>
                         <td className="p-4 no-print">
                           <input
                             type="checkbox"
@@ -724,7 +694,14 @@ export default function Invoices() {
                             className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                           />
                         </td>
-                        <td className="p-4 font-medium text-slate-900">{invoice.invoice_number || '-'}</td>
+                        <td className="p-4">
+                          <button
+                            onClick={() => handleInvoiceNumberClick(invoice)}
+                            className="font-medium text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                          >
+                            {invoice.invoice_number || '-'}
+                          </button>
+                        </td>
                         <td className="p-4 text-slate-600">{invoice.program_group}</td>
                         <td className="p-4 text-slate-900">{invoice.provider?.full_name || '-'}</td>
                         <td className="p-4 text-slate-600">{invoice.month || '-'}</td>
