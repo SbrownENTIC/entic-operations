@@ -890,6 +890,9 @@ export default function Dashboard() {
                                 <div className="text-xs text-slate-600 truncate">
                                   {providers.find(p => p.id === inv.staff_member_id)?.full_name || 'Unknown'}
                                 </div>
+                                <div className="text-xs text-slate-500 truncate mt-0.5">
+                                  {inv.program_group || 'No Location'}
+                                </div>
                                 {isUConn && inv.month && (
                                   <div className="text-xs text-blue-600 font-medium mt-0.5">
                                     {inv.month}
