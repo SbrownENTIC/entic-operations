@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Users, AlertTriangle, Award, FileText, GraduationCap, DollarSign, CheckCircle2, Clock, Building2, RefreshCw, Wallet, Download } from "lucide-react";
 import { differenceInDays, parseISO, format } from "date-fns";
 import { Link } from "react-router-dom";
@@ -14,6 +15,7 @@ import FinancialDetailModal from "../components/dashboard/FinancialDetailModal";
 export default function Dashboard() {
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState('');
+  const [invoiceLocationFilter, setInvoiceLocationFilter] = useState('all');
   const [modalState, setModalState] = useState({
     isOpen: false,
     title: '',
@@ -454,7 +456,12 @@ export default function Dashboard() {
       ['Invoice Number', 'Program Group', 'Provider', 'Date', 'Status', 'Total', 'Amount Received']
     ];
     
-    invoices.forEach(inv => {
+    // Filter invoices for export based on the current UI filter
+    const invoicesToExport = invoiceLocationFilter === 'all' 
+      ? invoices
+      : invoices.filter(inv => inv.program_group === invoiceLocationFilter);
+
+    invoicesToExport.forEach(inv => {
       const provider = providers.find(p => p.id === inv.staff_member_id);
       rows.push([
         inv.invoice_number || '',
@@ -469,6 +476,13 @@ export default function Dashboard() {
     
     exportToCSV(rows, 'invoice_summary');
   };
+
+  // Get unique program groups from invoices for the filter
+  const availableLocations = ['all', ...new Set(invoices.map(inv => inv.program_group).filter(Boolean))].sort((a, b) => {
+    if (a === 'all') return -1; // 'all' always first
+    if (b === 'all') return 1;
+    return a.localeCompare(b);
+  });
 
   return (
     <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
@@ -808,15 +822,29 @@ export default function Dashboard() {
           <CardHeader className="border-b border-slate-100">
             <div className="flex items-center justify-between">
               <CardTitle>Invoice Summary by Status</CardTitle>
-              <Button
-                onClick={exportInvoiceSummary}
-                variant="outline"
-                size="sm"
-                className="gap-2"
-              >
-                <Download className="w-4 h-4" />
-                Export
-              </Button>
+              <div className="flex items-center gap-3">
+                <Select value={invoiceLocationFilter} onValueChange={setInvoiceLocationFilter}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Filter by Location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableLocations.map(loc => (
+                      <SelectItem key={loc} value={loc}>
+                        {loc === 'all' ? 'All Locations' : loc}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  onClick={exportInvoiceSummary}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Export
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="p-6">
@@ -830,48 +858,54 @@ export default function Dashboard() {
                 'Partial': { invoices: invoices.filter(inv => inv.status === 'partial'), color: 'indigo' },
                 'Paid To ENTIC': { invoices: invoices.filter(inv => inv.status === 'paid_to_entic'), color: 'emerald' },
                 'Provider Paid': { invoices: invoices.filter(inv => inv.status === 'provider_paid'), color: 'purple' },
-              }).map(([status, { invoices: statusInvoices, color }]) => (
-                <Card key={status} className={`border-${color}-200 bg-${color}-50/30 shadow-sm`}>
-                  <CardHeader className="pb-3 border-b border-slate-200 bg-white">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-slate-900 text-sm">{status}</h3>
-                      <Badge className={`bg-${color}-100 text-${color}-800 border-${color}-300`}>
-                        {statusInvoices.length}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-3">
-                    {statusInvoices.length > 0 ? (
-                      <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                        {statusInvoices.map(inv => {
-                          const isUConn = inv.program_group === 'UConn';
-                          return (
-                            <Link 
-                              key={inv.id} 
-                              to={`${createPageUrl("Invoices")}?edit=${inv.id}`}
-                              className={`block text-sm px-3 py-2 bg-white hover:bg-${color}-100 rounded border border-slate-200 hover:border-${color}-400 transition-all shadow-sm hover:shadow`}
-                            >
-                              <div className="font-medium text-slate-900">
-                                {inv.invoice_number || 'N/A'}
-                              </div>
-                              <div className="text-xs text-slate-600 truncate">
-                                {providers.find(p => p.id === inv.staff_member_id)?.full_name || 'Unknown'}
-                              </div>
-                              {isUConn && inv.month && (
-                                <div className="text-xs text-blue-600 font-medium mt-0.5">
-                                  {inv.month}
-                                </div>
-                              )}
-                            </Link>
-                          );
-                        })}
+              }).map(([status, { invoices: statusInvoices, color }]) => {
+                const filteredStatusInvoices = invoiceLocationFilter === 'all' 
+                  ? statusInvoices 
+                  : statusInvoices.filter(inv => inv.program_group === invoiceLocationFilter);
+                
+                return (
+                  <Card key={status} className={`border-${color}-200 bg-${color}-50/30 shadow-sm`}>
+                    <CardHeader className="pb-3 border-b border-slate-200 bg-white">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-slate-900 text-sm">{status}</h3>
+                        <Badge className={`bg-${color}-100 text-${color}-800 border-${color}-300`}>
+                          {filteredStatusInvoices.length}
+                        </Badge>
                       </div>
-                    ) : (
-                      <p className="text-center py-8 text-slate-400 text-sm">No invoices</p>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardHeader>
+                    <CardContent className="p-3">
+                      {filteredStatusInvoices.length > 0 ? (
+                        <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                          {filteredStatusInvoices.map(inv => {
+                            const isUConn = inv.program_group === 'UConn';
+                            return (
+                              <Link 
+                                key={inv.id} 
+                                to={`${createPageUrl("Invoices")}?edit=${inv.id}`}
+                                className={`block text-sm px-3 py-2 bg-white hover:bg-${color}-100 rounded border border-slate-200 hover:border-${color}-400 transition-all shadow-sm hover:shadow`}
+                              >
+                                <div className="font-medium text-slate-900">
+                                  {inv.invoice_number || 'N/A'}
+                                </div>
+                                <div className="text-xs text-slate-600 truncate">
+                                  {providers.find(p => p.id === inv.staff_member_id)?.full_name || 'Unknown'}
+                                </div>
+                                {isUConn && inv.month && (
+                                  <div className="text-xs text-blue-600 font-medium mt-0.5">
+                                    {inv.month}
+                                  </div>
+                                )}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-center py-8 text-slate-400 text-sm">No invoices</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
