@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -55,6 +55,13 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
   const [uploadingDraft, setUploadingDraft] = useState(false);
   const [uploadingApproved, setUploadingApproved] = useState(false);
   const [incomeSearchTerm, setIncomeSearchTerm] = useState("");
+  
+  // Track if user has manually edited these fields
+  const manualEditFlags = useRef({
+    subtotal: false,
+    total: false,
+    amount_expected: false
+  });
 
   const { data: providers = [] } = useQuery({
     queryKey: ['providers'],
@@ -110,6 +117,13 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
         ...invoice,
         outside_income_ids: invoice.outside_income_ids || []
       });
+      // If editing existing invoice, mark all monetary fields as manually edited
+      // to prevent auto-updates overriding existing data.
+      manualEditFlags.current = {
+        subtotal: true,
+        total: true,
+        amount_expected: true
+      };
     } else if (preselectedIncomes.length > 0) {
       const selectedIncomes = incomes.filter(inc => preselectedIncomes.includes(inc.id));
       const totalDays = selectedIncomes.reduce((sum, inc) => sum + (inc.days_worked || 0), 0);
@@ -136,21 +150,39 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
         total: totalAmount,
         amount_expected: totalAmount
       }));
+      // These values are auto-filled, so they are not manually edited yet.
+      manualEditFlags.current = {
+        subtotal: false,
+        total: false,
+        amount_expected: false
+      };
     }
   }, [invoice, preselectedIncomes, incomes, programLocations]);
 
-  // Recalculate totals whenever outside_income_ids changes
+  // Recalculate totals whenever outside_income_ids changes - BUT only if not manually edited
   useEffect(() => {
     const selectedIncomes = incomes.filter(inc => formData.outside_income_ids.includes(inc.id));
     const totalDays = selectedIncomes.reduce((sum, inc) => sum + (inc.days_worked || 0), 0);
     const totalAmount = selectedIncomes.reduce((sum, inc) => sum + (inc.total_amount || 0), 0);
 
+    const updates = {
+      days_worked: totalDays
+    };
+
+    // Only update these fields if they haven't been manually edited
+    if (!manualEditFlags.current.subtotal) {
+      updates.subtotal = totalAmount;
+    }
+    if (!manualEditFlags.current.total) {
+      updates.total = totalAmount;
+    }
+    if (!manualEditFlags.current.amount_expected) {
+      updates.amount_expected = totalAmount;
+    }
+
     setFormData(prev => ({
       ...prev,
-      days_worked: totalDays,
-      subtotal: totalAmount,
-      total: totalAmount,
-      amount_expected: totalAmount
+      ...updates
     }));
   }, [formData.outside_income_ids, incomes]);
 
@@ -288,6 +320,12 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
       if (type === 'draft') setUploadingDraft(false);
       else setUploadingApproved(false);
     }
+  };
+
+  // Mark field as manually edited when user changes it
+  const handleManualEdit = (field, value) => {
+    manualEditFlags.current[field] = true;
+    setFormData({ ...formData, [field]: parseFloat(value) });
   };
 
   // Incomes available for linking (not linked to other invoices OR linked to this invoice)
@@ -494,7 +532,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                 type="number"
                 step="0.01"
                 value={formData.subtotal}
-                onChange={(e) => setFormData({ ...formData, subtotal: parseFloat(e.target.value) })}
+                onChange={(e) => handleManualEdit('subtotal', e.target.value)}
               />
             </div>
 
@@ -505,7 +543,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                 type="number"
                 step="0.01"
                 value={formData.total}
-                onChange={(e) => setFormData({ ...formData, total: parseFloat(e.target.value) })}
+                onChange={(e) => handleManualEdit('total', e.target.value)}
               />
             </div>
 
@@ -516,7 +554,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                 type="number"
                 step="0.01"
                 value={formData.amount_expected}
-                onChange={(e) => setFormData({ ...formData, amount_expected: parseFloat(e.target.value) })}
+                onChange={(e) => handleManualEdit('amount_expected', e.target.value)}
               />
             </div>
 
