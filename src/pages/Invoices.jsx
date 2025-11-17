@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, AlertTriangle, Zap, Printer, AlertCircle } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Printer, AlertCircle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -29,14 +29,9 @@ export default function Invoices() {
   const [preselectedIncomes, setPreselectedIncomes] = useState([]);
   const [sortField, setSortField] = useState('invoice_date');
   const [sortDirection, setSortDirection] = useState('desc');
-  const [syncing, setSyncing] = useState(false);
-  const [syncMessage, setSyncMessage] = useState('');
   const [selectedInvoices, setSelectedInvoices] = useState([]);
   const [bulkDateProviderPaid, setBulkDateProviderPaid] = useState('');
   const [bulkProviderPaid, setBulkProviderPaid] = useState(false);
-  const [diagnosing, setDiagnosing] = useState(false);
-  const [forceSyncing, setForceSyncing] = useState(false);
-  const [diagnosticResults, setDiagnosticResults] = useState(null);
   const [filterNoIncome, setFilterNoIncome] = useState(false);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -203,51 +198,6 @@ export default function Invoices() {
     setPreselectedIncomes([]);
   };
 
-  const handleSyncBalances = async () => {
-    setSyncing(true);
-    setSyncMessage('');
-    try {
-      const response = await base44.functions.invoke('syncInvoiceBalances', {});
-      setSyncMessage(response.data.message);
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-    } catch (error) {
-      setSyncMessage('Error syncing balances: ' + error.message);
-    } finally {
-      setSyncing(false);
-    }
-  };
-
-  const handleDiagnoseData = async () => {
-    setDiagnosing(true);
-    setSyncMessage('');
-    setDiagnosticResults(null);
-    try {
-      const response = await base44.functions.invoke('diagnoseInvoiceData', {});
-      setDiagnosticResults(response.data);
-      setSyncMessage(`Found ${response.data.summary.total_issues} issues (${response.data.summary.high_severity} high, ${response.data.summary.medium_severity} medium)`);
-    } catch (error) {
-      setSyncMessage('Error diagnosing data: ' + error.message);
-    } finally {
-      setDiagnosing(false);
-    }
-  };
-
-  const handleForceSyncLinks = async () => {
-    setForceSyncing(true);
-    setSyncMessage('');
-    setDiagnosticResults(null);
-    try {
-      const response = await base44.functions.invoke('forceSyncIncomeLinks', {});
-      setSyncMessage(response.data.message);
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      queryClient.invalidateQueries({ queryKey: ['outside-income'] });
-    } catch (error) {
-      setSyncMessage('Error force syncing: ' + error.message);
-    } finally {
-      setForceSyncing(false);
-    }
-  };
-
   const handleSelectAll = (checked) => {
     if (checked) {
       setSelectedInvoices(sortedInvoices.map(invoice => invoice.id));
@@ -376,12 +326,6 @@ export default function Invoices() {
     return invoice.status?.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
 
-  const severityColors = {
-    HIGH: 'bg-red-100 border-red-300 text-red-900',
-    MEDIUM: 'bg-orange-100 border-orange-300 text-orange-900',
-    LOW: 'bg-yellow-100 border-yellow-300 text-yellow-900'
-  };
-
   return (
     <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
       <style>{`
@@ -411,32 +355,6 @@ export default function Invoices() {
               Print
             </Button>
             <Button
-              onClick={handleDiagnoseData}
-              disabled={diagnosing}
-              variant="outline"
-              className="gap-2 border-orange-600 text-orange-600 hover:bg-orange-50"
-            >
-              <AlertTriangle className={`w-4 h-4 ${diagnosing ? 'animate-spin' : ''}`} />
-              {diagnosing ? 'Diagnosing...' : 'Diagnose Data'}
-            </Button>
-            <Button
-              onClick={handleForceSyncLinks}
-              disabled={forceSyncing}
-              className="gap-2 bg-red-600 hover:bg-red-700 text-white"
-            >
-              <Zap className={`w-4 h-4 ${forceSyncing ? 'animate-spin' : ''}`} />
-              {forceSyncing ? 'Syncing...' : 'Force Sync Links'}
-            </Button>
-            <Button
-              onClick={handleSyncBalances}
-              disabled={syncing}
-              variant="outline"
-              className="gap-2"
-            >
-              <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-              {syncing ? 'Syncing...' : 'Sync Invoice Balances'}
-            </Button>
-            <Button
               onClick={() => {
                 setEditingInvoice(null);
                 setPreselectedIncomes([]);
@@ -449,79 +367,6 @@ export default function Invoices() {
             </Button>
           </div>
         </div>
-
-        {syncMessage && (
-          <Card className="border-blue-200 bg-blue-50 no-print">
-            <CardContent className="p-4">
-              <p className="text-sm text-blue-900">{syncMessage}</p>
-            </CardContent>
-          </Card>
-        )}
-
-        {diagnosticResults && (
-          <Card className="border-orange-200 bg-orange-50 no-print">
-            <CardHeader className="border-b border-orange-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-orange-900">Data Diagnostic Report</h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setDiagnosticResults(null)}
-                  className="text-orange-700"
-                >
-                  Close
-                </Button>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                <div>
-                  <p className="text-sm text-orange-700">Total Invoices</p>
-                  <p className="text-2xl font-bold text-orange-900">{diagnosticResults.summary.total_invoices}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-orange-700">Total Incomes</p>
-                  <p className="text-2xl font-bold text-orange-900">{diagnosticResults.summary.total_incomes}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-orange-700">Linked Incomes</p>
-                  <p className="text-2xl font-bold text-green-700">{diagnosticResults.summary.linked_incomes}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-orange-700">Unlinked Incomes</p>
-                  <p className="text-2xl font-bold text-blue-700">{diagnosticResults.summary.unlinked_incomes}</p>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-6 max-h-96 overflow-y-auto space-y-3">
-              {diagnosticResults.issues.length === 0 ? (
-                <div className="text-center py-8 text-green-800 font-medium">
-                  ✓ No data issues found! Everything looks good.
-                </div>
-              ) : (
-                diagnosticResults.issues.map((issue, idx) => (
-                  <div key={idx} className={`p-4 rounded border ${severityColors[issue.severity]}`}>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge className={`${issue.severity === 'HIGH' ? 'bg-red-600' : issue.severity === 'MEDIUM' ? 'bg-orange-600' : 'bg-yellow-600'} text-white`}>
-                            {issue.severity}
-                          </Badge>
-                          <span className="font-semibold">{issue.type}</span>
-                        </div>
-                        <p className="text-sm">{issue.issue}</p>
-                        {issue.invoice_number && (
-                          <p className="text-xs mt-1">Invoice: {issue.invoice_number}</p>
-                        )}
-                        {issue.difference && (
-                          <p className="text-xs mt-1">Difference: ${issue.difference.toFixed(2)}</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        )}
 
         {showForm && (
           <div className="no-print">
