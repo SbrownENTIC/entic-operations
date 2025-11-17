@@ -843,20 +843,28 @@ export default function Dashboard() {
                   <CardContent className="p-3">
                     {statusInvoices.length > 0 ? (
                       <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                        {statusInvoices.map(inv => (
-                          <Link 
-                            key={inv.id} 
-                            to={`${createPageUrl("Invoices")}?edit=${inv.id}`}
-                            className={`block text-sm px-3 py-2 bg-white hover:bg-${color}-100 rounded border border-slate-200 hover:border-${color}-400 transition-all shadow-sm hover:shadow`}
-                          >
-                            <div className="font-medium text-slate-900">
-                              {inv.invoice_number || 'N/A'}
-                            </div>
-                            <div className="text-xs text-slate-600 truncate">
-                              {providers.find(p => p.id === inv.staff_member_id)?.full_name || 'Unknown'}
-                            </div>
-                          </Link>
-                        ))}
+                        {statusInvoices.map(inv => {
+                          const isUConn = inv.program_group === 'UConn';
+                          return (
+                            <Link 
+                              key={inv.id} 
+                              to={`${createPageUrl("Invoices")}?edit=${inv.id}`}
+                              className={`block text-sm px-3 py-2 bg-white hover:bg-${color}-100 rounded border border-slate-200 hover:border-${color}-400 transition-all shadow-sm hover:shadow`}
+                            >
+                              <div className="font-medium text-slate-900">
+                                {inv.invoice_number || 'N/A'}
+                              </div>
+                              <div className="text-xs text-slate-600 truncate">
+                                {providers.find(p => p.id === inv.staff_member_id)?.full_name || 'Unknown'}
+                              </div>
+                              {isUConn && inv.month && (
+                                <div className="text-xs text-blue-600 font-medium mt-0.5">
+                                  {inv.month}
+                                </div>
+                              )}
+                            </Link>
+                          );
+                        })}
                       </div>
                     ) : (
                       <p className="text-center py-8 text-slate-400 text-sm">No invoices</p>
