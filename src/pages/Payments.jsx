@@ -534,24 +534,6 @@ export default function Payments() {
           </div>
           <div className="flex gap-3 flex-wrap">
             <Button
-              onClick={handleFixPaymentAllocations}
-              disabled={fixingAllocations}
-              variant="outline"
-              className="gap-2 border-orange-600 text-orange-600 hover:bg-orange-50"
-            >
-              <Wrench className={`w-4 h-4 ${fixingAllocations ? 'animate-spin' : ''}`} />
-              {fixingAllocations ? 'Fixing...' : 'Fix Allocations'}
-            </Button>
-            <Button
-              onClick={handleUpdatePaymentMonths}
-              disabled={updatingMonths}
-              variant="outline"
-              className="gap-2"
-            >
-              <RefreshCw className={`w-4 h-4 ${updatingMonths ? 'animate-spin' : ''}`} />
-              {updatingMonths ? 'Updating...' : 'Update Payment Months'}
-            </Button>
-            <Button
               onClick={exportAllocations}
               variant="outline"
               className="border-blue-600 text-blue-600 hover:bg-blue-50"
