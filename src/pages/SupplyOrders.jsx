@@ -41,7 +41,13 @@ export default function SupplyOrders() {
   });
 
   const markReceivedMutation = useMutation({
-    mutationFn: (orderId) => base44.entities.SupplyOrder.update(orderId, { status: 'received' }),
+    mutationFn: (order) => {
+      const updatedItems = order.items.map(item => ({ ...item, received: true }));
+      return base44.entities.SupplyOrder.update(order.id, { 
+        status: 'received',
+        items: updatedItems
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['supply-orders'] });
     }
@@ -230,7 +236,7 @@ export default function SupplyOrders() {
                             <Button 
                               variant="outline"
                               size="sm"
-                              onClick={() => markReceivedMutation.mutate(order.id)}
+                              onClick={() => markReceivedMutation.mutate(order)}
                               className="text-green-600 border-green-600 hover:bg-green-50"
                               disabled={markReceivedMutation.isPending}
                             >

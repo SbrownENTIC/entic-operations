@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { X, Plus, Trash2, Search, Check } from "lucide-react";
+import { X, Plus, Trash2, Search, Check, CheckSquare } from "lucide-react";
 
 export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = useState({
@@ -48,7 +48,7 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
   const addItem = () => {
     setFormData({
       ...formData,
-      items: [...formData.items, { supply_id: '', supply_name: '', quantity: 1, unit_price: 0 }]
+      items: [...formData.items, { supply_id: '', supply_name: '', quantity: 1, unit_price: 0, received: false }]
     });
   };
 
@@ -58,7 +58,8 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
       ...newItems[index], 
       supply_id: supply.id,
       supply_name: supply.product_name,
-      unit_price: supply.unit_price || 0
+      unit_price: supply.unit_price || 0,
+      received: newItems[index].received || false
     };
     setFormData({ ...formData, items: newItems });
     setItemSelectOpen({ ...itemSelectOpen, [index]: false });
@@ -159,15 +160,42 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
           <div>
             <div className="flex items-center justify-between mb-4">
               <Label>Order Items</Label>
-              <Button type="button" variant="outline" size="sm" onClick={addItem}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Item
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => {
+                    const allReceived = formData.items.every(item => item.received);
+                    const newItems = formData.items.map(item => ({ ...item, received: !allReceived }));
+                    setFormData({ ...formData, items: newItems });
+                  }}
+                  className="gap-2"
+                >
+                  <CheckSquare className="w-4 h-4" />
+                  {formData.items.every(item => item.received) ? 'Unmark All' : 'Mark All Received'}
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={addItem}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Item
+                </Button>
+              </div>
             </div>
             <div className="space-y-3">
               {formData.items.map((item, index) => (
                 <div key={index} className="space-y-2">
                   <div className="grid grid-cols-12 gap-3 items-end">
+                    <div className="col-span-1 space-y-1 flex items-end">
+                      <div className="h-10 flex items-center justify-center">
+                        <input
+                          type="checkbox"
+                          checked={item.received || false}
+                          onChange={(e) => updateItem(index, 'received', e.target.checked)}
+                          className="w-5 h-5 rounded border-slate-300 text-green-600 focus:ring-green-500"
+                          title="Mark as received"
+                        />
+                      </div>
+                    </div>
                     <div className="col-span-4 space-y-1">
                       <Label className="text-xs text-slate-600">Item/Product</Label>
                       <Popover open={itemSelectOpen[index]} onOpenChange={(open) => setItemSelectOpen({ ...itemSelectOpen, [index]: open })}>
