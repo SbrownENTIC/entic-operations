@@ -189,7 +189,7 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
                               {supplies.map((supply) => (
                                 <CommandItem
                                   key={supply.id}
-                                  value={supply.product_name}
+                                  value={`${supply.item_number || ''} ${supply.product_name}`}
                                   onSelect={() => selectSupply(index, supply)}
                                   className="flex items-start"
                                 >
@@ -201,7 +201,7 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
                                   <div className="flex flex-col flex-1 min-w-0">
                                     <span className="break-words">{supply.product_name}</span>
                                     <span className="text-xs text-slate-500">
-                                      {supply.vendor} - ${supply.unit_price?.toFixed(2) || '0.00'}
+                                      {supply.item_number && `Item# ${supply.item_number} • `}{supply.vendor} - ${supply.unit_price?.toFixed(2) || '0.00'}
                                     </span>
                                   </div>
                                 </CommandItem>
