@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2 } from "lucide-react";
+import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2, FileText } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import SupplyOrderForm from "../components/supplies/SupplyOrderForm";
 
@@ -222,6 +222,22 @@ export default function SupplyOrders() {
                       </td>
                       <td className="p-4 text-right">
                         <div className="flex gap-2 justify-end">
+                          {order.order_pdf_url && (
+                            <a
+                              href={order.order_pdf_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <Button 
+                                variant="outline"
+                                size="sm"
+                                className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                              >
+                                <FileText className="w-4 h-4 mr-1" />
+                                View PDF
+                              </Button>
+                            </a>
+                          )}
                           {order.status !== 'received' && (
                             <Button 
                               variant="outline"
