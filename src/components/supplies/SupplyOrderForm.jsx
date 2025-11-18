@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { X, Plus, Trash2, Search, Check, Upload, FileText } from "lucide-react";
+import { X, Plus, Trash2, Search, Check } from "lucide-react";
 
 export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = useState({
@@ -22,11 +22,9 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
     tax: 0,
     total_amount: 0,
     items: [],
-    order_pdf_url: '',
     notes: ''
   });
   const [itemSelectOpen, setItemSelectOpen] = useState({});
-  const [uploadingPdf, setUploadingPdf] = useState(false);
 
   const { data: supplies = [] } = useQuery({
     queryKey: ['supplies'],
@@ -77,21 +75,6 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
     const newItems = [...formData.items];
     newItems[index] = { ...newItems[index], [field]: value };
     setFormData({ ...formData, items: newItems });
-  };
-
-  const handlePdfUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadingPdf(true);
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setFormData({ ...formData, order_pdf_url: file_url });
-    } catch (error) {
-      alert('Failed to upload PDF: ' + error.message);
-    } finally {
-      setUploadingPdf(false);
-    }
   };
 
   return (
@@ -283,39 +266,6 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
               <span className="text-2xl font-bold text-green-600">
                 ${((formData.items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0)) + (formData.tax || 0)).toFixed(2)}
               </span>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="order_pdf">Order Confirmation PDF</Label>
-            <div className="flex items-center gap-3">
-              <label htmlFor="order_pdf" className="cursor-pointer">
-                <div className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-md hover:bg-slate-50 transition-colors">
-                  <Upload className="w-4 h-4 text-slate-600" />
-                  <span className="text-sm text-slate-700">
-                    {uploadingPdf ? 'Uploading...' : 'Upload PDF'}
-                  </span>
-                </div>
-                <input
-                  id="order_pdf"
-                  type="file"
-                  accept=".pdf"
-                  onChange={handlePdfUpload}
-                  disabled={uploadingPdf}
-                  className="hidden"
-                />
-              </label>
-              {formData.order_pdf_url && (
-                <a
-                  href={formData.order_pdf_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors"
-                >
-                  <FileText className="w-4 h-4" />
-                  <span className="text-sm font-medium">View PDF</span>
-                </a>
-              )}
             </div>
           </div>
 
