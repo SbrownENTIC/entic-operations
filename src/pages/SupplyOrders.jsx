@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -6,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import SupplyOrderForm from "../components/supplies/SupplyOrderForm";
 
@@ -41,6 +40,13 @@ export default function SupplyOrders() {
     }
   });
 
+  const markReceivedMutation = useMutation({
+    mutationFn: (orderId) => base44.entities.SupplyOrder.update(orderId, { status: 'received' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['supply-orders'] });
+    }
+  });
+
   const handleSubmit = (data) => {
     if (editingOrder) {
       updateMutation.mutate({ id: editingOrder.id, data });
@@ -72,7 +78,7 @@ export default function SupplyOrders() {
   const sortedOrders = [...filteredOrders].sort((a, b) => {
     let aValue, bValue;
     
-    if (sortField === 'order_date' || sortField === 'expected_delivery' || sortField === 'actual_delivery') {
+    if (sortField === 'order_date') {
       aValue = a[sortField] ? new Date(a[sortField]) : new Date(0);
       bValue = b[sortField] ? new Date(b[sortField]) : new Date(0);
       return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
@@ -97,10 +103,16 @@ export default function SupplyOrders() {
   };
 
   const statusColors = {
-    ordered: "bg-blue-100 text-blue-800",
-    shipped: "bg-yellow-100 text-yellow-800",
-    delivered: "bg-green-100 text-green-800",
-    cancelled: "bg-red-100 text-red-800"
+    order_placed: "bg-blue-100 text-blue-800",
+    partially_received: "bg-yellow-100 text-yellow-800",
+    received: "bg-green-100 text-green-800"
+  };
+
+  const formatStatus = (status) => {
+    if (status === 'order_placed') return 'Order Placed';
+    if (status === 'partially_received') return 'Partially Received';
+    if (status === 'received') return 'Received';
+    return status;
   };
 
   return (
@@ -178,18 +190,6 @@ export default function SupplyOrders() {
                     </th>
                     <th 
                       className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 bg-slate-50"
-                      onClick={() => handleSort('expected_delivery')}
-                    >
-                      Expected <SortIcon field="expected_delivery" />
-                    </th>
-                    <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 bg-slate-50"
-                      onClick={() => handleSort('actual_delivery')}
-                    >
-                      Actual <SortIcon field="actual_delivery" />
-                    </th>
-                    <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 bg-slate-50"
                       onClick={() => handleSort('total_amount')}
                     >
                       Total <SortIcon field="total_amount" />
@@ -212,31 +212,39 @@ export default function SupplyOrders() {
                       <td className="p-4 text-slate-600">
                         {format(parseISO(order.order_date), 'MMM d, yyyy')}
                       </td>
-                      <td className="p-4 text-slate-600">
-                        {order.expected_delivery ? format(parseISO(order.expected_delivery), 'MMM d, yyyy') : '-'}
-                      </td>
-                      <td className="p-4 text-slate-600">
-                        {order.actual_delivery ? format(parseISO(order.actual_delivery), 'MMM d, yyyy') : '-'}
-                      </td>
                       <td className="p-4 font-medium text-green-600">
                         ${formatCurrency(order.total_amount || 0)}
                       </td>
                       <td className="p-4">
                         <Badge className={statusColors[order.status]}>
-                          {order.status}
+                          {formatStatus(order.status)}
                         </Badge>
                       </td>
                       <td className="p-4 text-right">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => {
-                            setEditingOrder(order);
-                            setShowForm(true);
-                          }}
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
+                        <div className="flex gap-2 justify-end">
+                          {order.status !== 'received' && (
+                            <Button 
+                              variant="outline"
+                              size="sm"
+                              onClick={() => markReceivedMutation.mutate(order.id)}
+                              className="text-green-600 border-green-600 hover:bg-green-50"
+                              disabled={markReceivedMutation.isPending}
+                            >
+                              <CheckCircle2 className="w-4 h-4 mr-1" />
+                              Mark Received
+                            </Button>
+                          )}
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                              setEditingOrder(order);
+                              setShowForm(true);
+                            }}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}

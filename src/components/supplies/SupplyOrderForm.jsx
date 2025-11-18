@@ -18,7 +18,6 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
     location: 'Glastonbury',
     order_date: '',
     status: 'order_placed',
-    order_delivered: false,
     subtotal: 0,
     tax: 0,
     total_amount: 0,
@@ -43,15 +42,7 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
     const subtotal = formData.items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0);
     const total = subtotal + (formData.tax || 0);
     
-    // Auto-update status based on order_delivered checkbox
-    let status = formData.status;
-    if (formData.order_delivered && status !== 'order_received') {
-      status = 'order_received';
-    } else if (!formData.order_delivered && status === 'order_received') {
-      status = 'order_placed';
-    }
-    
-    onSubmit({ ...formData, status, subtotal, total_amount: total });
+    onSubmit({ ...formData, subtotal, total_amount: total });
   };
 
   const addItem = () => {
@@ -158,26 +149,10 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="order_placed">Order Placed</SelectItem>
-                  <SelectItem value="partially_delivered">Partially Delivered</SelectItem>
-                  <SelectItem value="order_received">Order Received</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="partially_received">Partially Received</SelectItem>
+                  <SelectItem value="received">Received</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-
-            <div className="space-y-2 flex items-end pb-2">
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="order_delivered"
-                  checked={formData.order_delivered}
-                  onChange={(e) => setFormData({ ...formData, order_delivered: e.target.checked })}
-                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                />
-                <Label htmlFor="order_delivered" className="cursor-pointer font-medium">
-                  Order Delivered
-                </Label>
-              </div>
             </div>
           </div>
 
