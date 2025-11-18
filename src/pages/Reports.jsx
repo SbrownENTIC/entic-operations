@@ -839,10 +839,13 @@ export default function Reports() {
               <CardContent className="p-6">
                 <div className="space-y-6">
                   <div>
-                    <h3 className="text-sm font-semibold text-slate-900 mb-2">Order Status Summary</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      {(() => {
-                        const filtered = filterByDateRange(supplyOrders, 'order_date');
+                    {(() => {
+                      const filtered = filterByDateRange(supplyOrders, 'order_date');
+                      return (
+                        <>
+                          <h3 className="text-sm font-semibold text-slate-900 mb-2">Order Status Summary ({filtered.length})</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            {(() => {
                         const orderPlaced = filtered.filter(o => o.status === 'order_placed');
                         const partiallyReceived = filtered.filter(o => o.status === 'partially_received');
                         const received = filtered.filter(o => o.status === 'received');
@@ -903,11 +906,14 @@ export default function Reports() {
                                 {formatCurrency(received.reduce((sum, o) => sum + (o.total_amount || 0), 0))}
                               </p>
                             </button>
-                          </>
-                        );
-                      })()}
-                    </div>
-                  </div>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
 
                   <div>
                     <h3 className="text-md font-semibold text-slate-900 mb-3">Average by Location</h3>
