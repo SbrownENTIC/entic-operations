@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -41,6 +40,7 @@ export default function ProviderTimeOff() {
   const [selectedEntries, setSelectedEntries] = useState([]);
   const [bulkStatus, setBulkStatus] = useState('');
   const [bulkProvider, setBulkProvider] = useState('');
+  const [bulkReason, setBulkReason] = useState('');
   const [providerSelectOpen, setProviderSelectOpen] = useState(false);
   const [viewingDayEntries, setViewingDayEntries] = useState(null); // New state for day entries modal
   const queryClient = useQueryClient();
@@ -93,6 +93,7 @@ export default function ProviderTimeOff() {
       setSelectedEntries([]);
       setBulkStatus('');
       setBulkProvider('');
+      setBulkReason('');
     }
   });
 
@@ -138,6 +139,12 @@ export default function ProviderTimeOff() {
   const handleBulkUpdateProvider = () => {
     if (selectedEntries.length > 0 && bulkProvider) {
       bulkUpdateMutation.mutate({ ids: selectedEntries, updateData: { provider_id: bulkProvider } });
+    }
+  };
+
+  const handleBulkUpdateReason = () => {
+    if (selectedEntries.length > 0 && bulkReason) {
+      bulkUpdateMutation.mutate({ ids: selectedEntries, updateData: { reason: bulkReason } });
     }
   };
 
@@ -422,6 +429,23 @@ export default function ProviderTimeOff() {
                         className="bg-blue-600 hover:bg-blue-700"
                       >
                         {bulkUpdateMutation.isPending ? 'Updating...' : 'Update Status'}
+                      </Button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-slate-700">Change Reason:</span>
+                      <Input
+                        placeholder="Enter reason..."
+                        value={bulkReason}
+                        onChange={(e) => setBulkReason(e.target.value)}
+                        className="w-64"
+                      />
+                      <Button 
+                        onClick={handleBulkUpdateReason}
+                        disabled={!bulkReason || bulkUpdateMutation.isPending}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        {bulkUpdateMutation.isPending ? 'Updating...' : 'Update Reason'}
                       </Button>
                     </div>
                   </div>
