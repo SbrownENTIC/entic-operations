@@ -19,6 +19,8 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
     order_date: '',
     status: 'order_placed',
     order_delivered: false,
+    subtotal: 0,
+    tax: 0,
     total_amount: 0,
     items: [],
     notes: ''
@@ -38,7 +40,8 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const total = formData.items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0);
+    const subtotal = formData.items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0);
+    const total = subtotal + (formData.tax || 0);
     
     // Auto-update status based on order_delivered checkbox
     let status = formData.status;
@@ -48,7 +51,7 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
       status = 'order_placed';
     }
     
-    onSubmit({ ...formData, status, total_amount: total });
+    onSubmit({ ...formData, status, subtotal, total_amount: total });
   };
 
   const addItem = () => {
@@ -261,6 +264,33 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+
+          <div className="bg-slate-50 rounded-lg p-4 space-y-3 border border-slate-200">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-slate-700">Subtotal:</span>
+              <span className="text-lg font-semibold text-slate-900">
+                ${(formData.items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0)).toFixed(2)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center gap-4">
+              <Label htmlFor="tax" className="text-sm font-medium text-slate-700">Tax ($):</Label>
+              <Input
+                id="tax"
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                value={formData.tax || ''}
+                onChange={(e) => setFormData({ ...formData, tax: parseFloat(e.target.value) || 0 })}
+                className="w-32 text-right"
+              />
+            </div>
+            <div className="flex justify-between items-center pt-2 border-t border-slate-300">
+              <span className="text-base font-bold text-slate-900">Total:</span>
+              <span className="text-2xl font-bold text-green-600">
+                ${((formData.items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0)) + (formData.tax || 0)).toFixed(2)}
+              </span>
             </div>
           </div>
 
