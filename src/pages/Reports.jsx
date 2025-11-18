@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -7,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, FileText, DollarSign, Clock, Users } from "lucide-react";
+import { Download, FileText, DollarSign, Clock, Users, Package } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 
 export default function Reports() {
@@ -36,7 +35,12 @@ export default function Reports() {
     queryFn: () => base44.entities.OutsideIncome.list()
   });
 
-  const isLoading = paymentsLoading || invoicesLoading || providersLoading || incomesLoading;
+  const { data: supplyOrders = [], isLoading: ordersLoading } = useQuery({
+    queryKey: ['supply-orders'],
+    queryFn: () => base44.entities.SupplyOrder.list('-order_date')
+  });
+
+  const isLoading = paymentsLoading || invoicesLoading || providersLoading || incomesLoading || ordersLoading;
 
   const formatCurrency = (amount) => {
     return '$' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -418,6 +422,97 @@ export default function Reports() {
     exportToCSV(rows, 'invoice_by_provider_report');
   };
 
+  // REPORT 5: Supply Orders Report
+  const generateSupplyOrderReport = () => {
+    const filteredOrders = filterByDateRange(supplyOrders, 'order_date');
+
+    const rows = [
+      ['Supply Orders Report', '', '', '', '', '', '', '', ''],
+      ['', '', '', '', '', '', '', '', ''],
+      ['AVERAGE BY LOCATION', '', '', '', '', '', '', '', ''],
+      ['Location', 'Number of Orders', 'Total Spent', 'Average Order Value', '', '', '', '', '']
+    ];
+
+    // Calculate by location
+    const byLocation = {};
+    filteredOrders.forEach(order => {
+      const location = order.location || 'Unknown';
+      if (!byLocation[location]) {
+        byLocation[location] = { count: 0, total: 0 };
+      }
+      byLocation[location].count++;
+      byLocation[location].total += order.total_amount || 0;
+    });
+
+    Object.entries(byLocation).sort(([a], [b]) => a.localeCompare(b)).forEach(([location, data]) => {
+      rows.push([
+        location,
+        data.count,
+        data.total,
+        data.count > 0 ? data.total / data.count : 0,
+        '', '', '', '', ''
+      ]);
+    });
+
+    rows.push(['', '', '', '', '', '', '', '', '']);
+    rows.push(['AVERAGE BY MONTH', '', '', '', '', '', '', '', '']);
+    rows.push(['Month', 'Number of Orders', 'Total Spent', 'Average Order Value', '', '', '', '', '']);
+
+    // Calculate by month
+    const byMonth = {};
+    filteredOrders.forEach(order => {
+      const month = format(parseISO(order.order_date), 'yyyy-MM');
+      if (!byMonth[month]) {
+        byMonth[month] = { count: 0, total: 0 };
+      }
+      byMonth[month].count++;
+      byMonth[month].total += order.total_amount || 0;
+    });
+
+    Object.entries(byMonth).sort(([a], [b]) => b.localeCompare(a)).forEach(([month, data]) => {
+      rows.push([
+        format(parseISO(month + '-01'), 'MMMM yyyy'),
+        data.count,
+        data.total,
+        data.count > 0 ? data.total / data.count : 0,
+        '', '', '', '', ''
+      ]);
+    });
+
+    rows.push(['', '', '', '', '', '', '', '', '']);
+    rows.push(['AVERAGE BY YEAR', '', '', '', '', '', '', '', '']);
+    rows.push(['Year', 'Number of Orders', 'Total Spent', 'Average Order Value', '', '', '', '', '']);
+
+    // Calculate by year
+    const byYear = {};
+    filteredOrders.forEach(order => {
+      const year = format(parseISO(order.order_date), 'yyyy');
+      if (!byYear[year]) {
+        byYear[year] = { count: 0, total: 0 };
+      }
+      byYear[year].count++;
+      byYear[year].total += order.total_amount || 0;
+    });
+
+    Object.entries(byYear).sort(([a], [b]) => b.localeCompare(a)).forEach(([year, data]) => {
+      rows.push([
+        year,
+        data.count,
+        data.total,
+        data.count > 0 ? data.total / data.count : 0,
+        '', '', '', '', ''
+      ]);
+    });
+
+    rows.push(['', '', '', '', '', '', '', '', '']);
+    rows.push(['GRAND TOTAL', '', '', '', '', '', '', '', '']);
+    const grandTotal = filteredOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+    const grandAverage = filteredOrders.length > 0 ? grandTotal / filteredOrders.length : 0;
+    rows.push(['All Orders', filteredOrders.length, grandTotal, grandAverage, '', '', '', '', '']);
+
+    exportToCSV(rows, 'supply_orders_report');
+  };
+
   if (isLoading) {
     return (
       <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
@@ -492,7 +587,7 @@ export default function Reports() {
         </Card>
 
         <Tabs defaultValue="allocation" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 h-auto">
             <TabsTrigger value="allocation" className="gap-2 py-3">
               <DollarSign className="w-4 h-4" />
               Payment Allocations
@@ -508,6 +603,10 @@ export default function Reports() {
             <TabsTrigger value="provider" className="gap-2 py-3">
               <Users className="w-4 h-4" />
               Invoice by Provider
+            </TabsTrigger>
+            <TabsTrigger value="supplies" className="gap-2 py-3">
+              <Package className="w-4 h-4" />
+              Supply Orders
             </TabsTrigger>
           </TabsList>
 
@@ -714,6 +813,121 @@ export default function Reports() {
                   <p className="text-sm text-slate-600">
                     This report shows all invoices organized by provider, with subtotals for each provider 
                     and a grand total. Perfect for reviewing provider compensation.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="supplies">
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader className="border-b border-slate-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Supply Orders Report</CardTitle>
+                    <p className="text-sm text-slate-500 mt-1">
+                      Supply spending analysis by location, month, and year
+                    </p>
+                  </div>
+                  <Button onClick={generateSupplyOrderReport} className="gap-2">
+                    <Download className="w-4 h-4" />
+                    Export to CSV
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-md font-semibold text-slate-900 mb-3">Average by Location</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {(() => {
+                        const byLocation = {};
+                        filterByDateRange(supplyOrders, 'order_date').forEach(order => {
+                          const location = order.location || 'Unknown';
+                          if (!byLocation[location]) {
+                            byLocation[location] = { count: 0, total: 0 };
+                          }
+                          byLocation[location].count++;
+                          byLocation[location].total += order.total_amount || 0;
+                        });
+
+                        return Object.entries(byLocation).sort(([a], [b]) => a.localeCompare(b)).map(([location, data]) => (
+                          <div key={location} className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                            <p className="text-sm font-medium text-slate-700">{location}</p>
+                            <p className="text-2xl font-bold text-blue-700 mt-1">
+                              {formatCurrency(data.count > 0 ? data.total / data.count : 0)}
+                            </p>
+                            <p className="text-xs text-slate-500 mt-1">{data.count} orders • {formatCurrency(data.total)} total</p>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-md font-semibold text-slate-900 mb-3">Average by Month (Last 12 Months)</h3>
+                    <div className="overflow-auto">
+                      <div className="flex gap-3 pb-2">
+                        {(() => {
+                          const byMonth = {};
+                          filterByDateRange(supplyOrders, 'order_date').forEach(order => {
+                            const month = format(parseISO(order.order_date), 'yyyy-MM');
+                            if (!byMonth[month]) {
+                              byMonth[month] = { count: 0, total: 0 };
+                            }
+                            byMonth[month].count++;
+                            byMonth[month].total += order.total_amount || 0;
+                          });
+
+                          return Object.entries(byMonth)
+                            .sort(([a], [b]) => b.localeCompare(a))
+                            .slice(0, 12)
+                            .map(([month, data]) => (
+                              <div key={month} className="bg-green-50 p-4 rounded-lg border border-green-200 min-w-[140px]">
+                                <p className="text-xs font-medium text-slate-700">{format(parseISO(month + '-01'), 'MMM yyyy')}</p>
+                                <p className="text-xl font-bold text-green-700 mt-1">
+                                  {formatCurrency(data.count > 0 ? data.total / data.count : 0)}
+                                </p>
+                                <p className="text-xs text-slate-500 mt-1">{data.count} orders</p>
+                              </div>
+                            ));
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-md font-semibold text-slate-900 mb-3">Average by Year</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                      {(() => {
+                        const byYear = {};
+                        filterByDateRange(supplyOrders, 'order_date').forEach(order => {
+                          const year = format(parseISO(order.order_date), 'yyyy');
+                          if (!byYear[year]) {
+                            byYear[year] = { count: 0, total: 0 };
+                          }
+                          byYear[year].count++;
+                          byYear[year].total += order.total_amount || 0;
+                        });
+
+                        return Object.entries(byYear)
+                          .sort(([a], [b]) => b.localeCompare(a))
+                          .map(([year, data]) => (
+                            <div key={year} className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                              <p className="text-sm font-medium text-slate-700">{year}</p>
+                              <p className="text-2xl font-bold text-purple-700 mt-1">
+                                {formatCurrency(data.count > 0 ? data.total / data.count : 0)}
+                              </p>
+                              <p className="text-xs text-slate-500 mt-1">{data.count} orders • {formatCurrency(data.total)} total</p>
+                            </div>
+                          ));
+                      })()}
+                    </div>
+                  </div>
+
+                  <p className="text-sm text-slate-600">
+                    This report shows supply order spending patterns across locations, months, and years. 
+                    Average values help identify spending trends and budget planning.
                   </p>
                 </div>
               </CardContent>
