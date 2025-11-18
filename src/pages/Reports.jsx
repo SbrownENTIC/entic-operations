@@ -839,6 +839,58 @@ export default function Reports() {
               <CardContent className="p-6">
                 <div className="space-y-6">
                   <div>
+                    <h3 className="text-md font-semibold text-slate-900 mb-3">Order Status Summary</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {(() => {
+                        const filtered = filterByDateRange(supplyOrders, 'order_date');
+                        const orderPlaced = filtered.filter(o => o.status === 'order_placed');
+                        const partiallyReceived = filtered.filter(o => o.status === 'partially_received');
+                        
+                        return (
+                          <>
+                            <button
+                              onClick={() => setSupplyOrderDetail({ 
+                                type: 'status', 
+                                name: 'Order Placed', 
+                                data: { 
+                                  count: orderPlaced.length, 
+                                  total: orderPlaced.reduce((sum, o) => sum + (o.total_amount || 0), 0),
+                                  orders: orderPlaced 
+                                }
+                              })}
+                              className="bg-blue-50 p-4 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors text-left"
+                            >
+                              <p className="text-sm font-medium text-slate-700">Order Placed</p>
+                              <p className="text-3xl font-bold text-blue-700 mt-2">{orderPlaced.length}</p>
+                              <p className="text-sm text-slate-600 mt-1">
+                                {formatCurrency(orderPlaced.reduce((sum, o) => sum + (o.total_amount || 0), 0))} total
+                              </p>
+                            </button>
+                            <button
+                              onClick={() => setSupplyOrderDetail({ 
+                                type: 'status', 
+                                name: 'Partially Received', 
+                                data: { 
+                                  count: partiallyReceived.length, 
+                                  total: partiallyReceived.reduce((sum, o) => sum + (o.total_amount || 0), 0),
+                                  orders: partiallyReceived 
+                                }
+                              })}
+                              className="bg-yellow-50 p-4 rounded-lg border border-yellow-200 hover:bg-yellow-100 transition-colors text-left"
+                            >
+                              <p className="text-sm font-medium text-slate-700">Partially Received</p>
+                              <p className="text-3xl font-bold text-yellow-700 mt-2">{partiallyReceived.length}</p>
+                              <p className="text-sm text-slate-600 mt-1">
+                                {formatCurrency(partiallyReceived.reduce((sum, o) => sum + (o.total_amount || 0), 0))} total
+                              </p>
+                            </button>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+
+                  <div>
                     <h3 className="text-md font-semibold text-slate-900 mb-3">Average by Location</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                       {(() => {
