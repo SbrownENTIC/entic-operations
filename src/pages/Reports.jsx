@@ -555,34 +555,34 @@ export default function Reports() {
         </div>
 
         <Card className="border-slate-200 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-lg">Date Range Filter</CardTitle>
-            <p className="text-sm text-slate-500 mt-1">Filter all reports by date range (leave blank for all data)</p>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-4 items-end">
-              <div className="flex-1 min-w-[200px]">
-                <label className="block text-sm font-medium text-slate-700 mb-2">Start Date</label>
+          <CardContent className="p-4">
+            <div className="flex flex-wrap gap-3 items-center">
+              <span className="text-sm font-medium text-slate-700">Date Range:</span>
+              <div className="flex items-center gap-2">
                 <Input
                   type="date"
                   value={dateRange.start}
                   onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+                  className="w-40"
+                  placeholder="Start"
                 />
-              </div>
-              <div className="flex-1 min-w-[200px]">
-                <label className="block text-sm font-medium text-slate-700 mb-2">End Date</label>
+                <span className="text-slate-500">to</span>
                 <Input
                   type="date"
                   value={dateRange.end}
                   onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+                  className="w-40"
+                  placeholder="End"
                 />
               </div>
               <Button
                 onClick={() => setDateRange({ start: '', end: '' })}
                 variant="outline"
+                size="sm"
               >
-                Clear Dates
+                Clear
               </Button>
+              <span className="text-xs text-slate-500 ml-2">Leave blank for all data</span>
             </div>
           </CardContent>
         </Card>
