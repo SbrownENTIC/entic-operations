@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, FileText, DollarSign, Clock, Users, Package } from "lucide-react";
+import { Download, FileText, DollarSign, Clock, Users, Package, X } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 
 export default function Reports() {
@@ -14,6 +14,7 @@ export default function Reports() {
     start: '',
     end: ''
   });
+  const [supplyOrderDetail, setSupplyOrderDetail] = useState(null);
 
   const { data: payments = [], isLoading: paymentsLoading } = useQuery({
     queryKey: ['payments'],
@@ -842,98 +843,257 @@ export default function Reports() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                       {(() => {
                         const byLocation = {};
-                        filterByDateRange(supplyOrders, 'order_date').forEach(order => {
+                        const filtered = filterByDateRange(supplyOrders, 'order_date');
+                        filtered.forEach(order => {
                           const location = order.location || 'Unknown';
                           if (!byLocation[location]) {
-                            byLocation[location] = { count: 0, total: 0 };
+                            byLocation[location] = { count: 0, total: 0, orders: [] };
                           }
                           byLocation[location].count++;
                           byLocation[location].total += order.total_amount || 0;
+                          byLocation[location].orders.push(order);
                         });
 
                         return Object.entries(byLocation).sort(([a], [b]) => a.localeCompare(b)).map(([location, data]) => (
-                          <div key={location} className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                          <button
+                            key={location}
+                            onClick={() => setSupplyOrderDetail({ type: 'location', name: location, data })}
+                            className="bg-blue-50 p-4 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors text-left"
+                          >
                             <p className="text-sm font-medium text-slate-700">{location}</p>
                             <p className="text-2xl font-bold text-blue-700 mt-1">
                               {formatCurrency(data.count > 0 ? data.total / data.count : 0)}
                             </p>
                             <p className="text-xs text-slate-500 mt-1">{data.count} orders • {formatCurrency(data.total)} total</p>
-                          </div>
+                          </button>
                         ));
                       })()}
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="text-md font-semibold text-slate-900 mb-3">Average by Month (Last 12 Months)</h3>
+                    <h3 className="text-md font-semibold text-slate-900 mb-3">Average by Month & Location (Last 12 Months)</h3>
                     <div className="overflow-auto">
-                      <div className="flex gap-3 pb-2">
-                        {(() => {
-                          const byMonth = {};
-                          filterByDateRange(supplyOrders, 'order_date').forEach(order => {
-                            const month = format(parseISO(order.order_date), 'yyyy-MM');
-                            if (!byMonth[month]) {
-                              byMonth[month] = { count: 0, total: 0 };
-                            }
-                            byMonth[month].count++;
-                            byMonth[month].total += order.total_amount || 0;
-                          });
+                      <table className="w-full text-sm">
+                        <thead className="bg-slate-100 border-b border-slate-200 sticky top-0">
+                          <tr>
+                            <th className="text-left p-3 font-semibold text-slate-700">Month</th>
+                            {(() => {
+                              const locations = [...new Set(supplyOrders.map(o => o.location || 'Unknown'))].sort();
+                              return locations.map(loc => (
+                                <th key={loc} className="text-right p-3 font-semibold text-slate-700">{loc}</th>
+                              ));
+                            })()}
+                            <th className="text-right p-3 font-semibold text-slate-700 bg-slate-200">Total Avg</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(() => {
+                            const byMonthLocation = {};
+                            const filtered = filterByDateRange(supplyOrders, 'order_date');
+                            filtered.forEach(order => {
+                              const month = format(parseISO(order.order_date), 'yyyy-MM');
+                              const location = order.location || 'Unknown';
+                              if (!byMonthLocation[month]) byMonthLocation[month] = {};
+                              if (!byMonthLocation[month][location]) {
+                                byMonthLocation[month][location] = { count: 0, total: 0, orders: [] };
+                              }
+                              byMonthLocation[month][location].count++;
+                              byMonthLocation[month][location].total += order.total_amount || 0;
+                              byMonthLocation[month][location].orders.push(order);
+                            });
 
-                          return Object.entries(byMonth)
-                            .sort(([a], [b]) => b.localeCompare(a))
-                            .slice(0, 12)
-                            .map(([month, data]) => (
-                              <div key={month} className="bg-green-50 p-4 rounded-lg border border-green-200 min-w-[140px]">
-                                <p className="text-xs font-medium text-slate-700">{format(parseISO(month + '-01'), 'MMM yyyy')}</p>
-                                <p className="text-xl font-bold text-green-700 mt-1">
-                                  {formatCurrency(data.count > 0 ? data.total / data.count : 0)}
-                                </p>
-                                <p className="text-xs text-slate-500 mt-1">{data.count} orders</p>
-                              </div>
-                            ));
-                        })()}
-                      </div>
+                            const locations = [...new Set(supplyOrders.map(o => o.location || 'Unknown'))].sort();
+                            
+                            return Object.entries(byMonthLocation)
+                              .sort(([a], [b]) => b.localeCompare(a))
+                              .slice(0, 12)
+                              .map(([month, locationData]) => {
+                                const monthTotal = Object.values(locationData).reduce((sum, d) => sum + d.total, 0);
+                                const monthCount = Object.values(locationData).reduce((sum, d) => sum + d.count, 0);
+                                const monthAvg = monthCount > 0 ? monthTotal / monthCount : 0;
+
+                                return (
+                                  <tr key={month} className="border-b border-slate-100 hover:bg-slate-50">
+                                    <td className="p-3 font-medium text-slate-900">{format(parseISO(month + '-01'), 'MMM yyyy')}</td>
+                                    {locations.map(loc => {
+                                      const data = locationData[loc];
+                                      return (
+                                        <td key={loc} className="p-3 text-right">
+                                          {data ? (
+                                            <button
+                                              onClick={() => setSupplyOrderDetail({ type: 'month-location', name: `${format(parseISO(month + '-01'), 'MMM yyyy')} - ${loc}`, data })}
+                                              className="text-green-700 font-medium hover:text-green-900 hover:underline"
+                                            >
+                                              {formatCurrency(data.total / data.count)}
+                                            </button>
+                                          ) : (
+                                            <span className="text-slate-400">-</span>
+                                          )}
+                                        </td>
+                                      );
+                                    })}
+                                    <td className="p-3 text-right font-bold bg-slate-50 text-slate-900">
+                                      {formatCurrency(monthAvg)}
+                                    </td>
+                                  </tr>
+                                );
+                              });
+                          })()}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="text-md font-semibold text-slate-900 mb-3">Average by Year</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                      {(() => {
-                        const byYear = {};
-                        filterByDateRange(supplyOrders, 'order_date').forEach(order => {
-                          const year = format(parseISO(order.order_date), 'yyyy');
-                          if (!byYear[year]) {
-                            byYear[year] = { count: 0, total: 0 };
-                          }
-                          byYear[year].count++;
-                          byYear[year].total += order.total_amount || 0;
-                        });
+                    <h3 className="text-md font-semibold text-slate-900 mb-3">Average by Year & Location</h3>
+                    <div className="overflow-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-slate-100 border-b border-slate-200">
+                          <tr>
+                            <th className="text-left p-3 font-semibold text-slate-700">Year</th>
+                            {(() => {
+                              const locations = [...new Set(supplyOrders.map(o => o.location || 'Unknown'))].sort();
+                              return locations.map(loc => (
+                                <th key={loc} className="text-right p-3 font-semibold text-slate-700">{loc}</th>
+                              ));
+                            })()}
+                            <th className="text-right p-3 font-semibold text-slate-700 bg-slate-200">Total Avg</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(() => {
+                            const byYearLocation = {};
+                            const filtered = filterByDateRange(supplyOrders, 'order_date');
+                            filtered.forEach(order => {
+                              const year = format(parseISO(order.order_date), 'yyyy');
+                              const location = order.location || 'Unknown';
+                              if (!byYearLocation[year]) byYearLocation[year] = {};
+                              if (!byYearLocation[year][location]) {
+                                byYearLocation[year][location] = { count: 0, total: 0, orders: [] };
+                              }
+                              byYearLocation[year][location].count++;
+                              byYearLocation[year][location].total += order.total_amount || 0;
+                              byYearLocation[year][location].orders.push(order);
+                            });
 
-                        return Object.entries(byYear)
-                          .sort(([a], [b]) => b.localeCompare(a))
-                          .map(([year, data]) => (
-                            <div key={year} className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-                              <p className="text-sm font-medium text-slate-700">{year}</p>
-                              <p className="text-2xl font-bold text-purple-700 mt-1">
-                                {formatCurrency(data.count > 0 ? data.total / data.count : 0)}
-                              </p>
-                              <p className="text-xs text-slate-500 mt-1">{data.count} orders • {formatCurrency(data.total)} total</p>
-                            </div>
-                          ));
-                      })()}
+                            const locations = [...new Set(supplyOrders.map(o => o.location || 'Unknown'))].sort();
+                            
+                            return Object.entries(byYearLocation)
+                              .sort(([a], [b]) => b.localeCompare(a))
+                              .map(([year, locationData]) => {
+                                const yearTotal = Object.values(locationData).reduce((sum, d) => sum + d.total, 0);
+                                const yearCount = Object.values(locationData).reduce((sum, d) => sum + d.count, 0);
+                                const yearAvg = yearCount > 0 ? yearTotal / yearCount : 0;
+
+                                return (
+                                  <tr key={year} className="border-b border-slate-100 hover:bg-slate-50">
+                                    <td className="p-3 font-medium text-slate-900">{year}</td>
+                                    {locations.map(loc => {
+                                      const data = locationData[loc];
+                                      return (
+                                        <td key={loc} className="p-3 text-right">
+                                          {data ? (
+                                            <button
+                                              onClick={() => setSupplyOrderDetail({ type: 'year-location', name: `${year} - ${loc}`, data })}
+                                              className="text-purple-700 font-medium hover:text-purple-900 hover:underline"
+                                            >
+                                              {formatCurrency(data.total / data.count)}
+                                            </button>
+                                          ) : (
+                                            <span className="text-slate-400">-</span>
+                                          )}
+                                        </td>
+                                      );
+                                    })}
+                                    <td className="p-3 text-right font-bold bg-slate-50 text-slate-900">
+                                      {formatCurrency(yearAvg)}
+                                    </td>
+                                  </tr>
+                                );
+                              });
+                          })()}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
 
                   <p className="text-sm text-slate-600">
-                    This report shows supply order spending patterns across locations, months, and years. 
-                    Average values help identify spending trends and budget planning.
+                    Click on any value to see detailed order breakdown. Average values help identify spending trends and budget planning.
                   </p>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
+
+        {supplyOrderDetail && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSupplyOrderDetail(null)}>
+            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
+              <div className="sticky top-0 bg-white border-b border-slate-200 p-4 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-slate-900">{supplyOrderDetail.name} - Order Details</h3>
+                <button onClick={() => setSupplyOrderDetail(null)} className="text-slate-500 hover:text-slate-700">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <p className="text-sm text-slate-600">Total Orders</p>
+                    <p className="text-2xl font-bold text-blue-700">{supplyOrderDetail.data.count}</p>
+                  </div>
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    <p className="text-sm text-slate-600">Total Spent</p>
+                    <p className="text-2xl font-bold text-green-700">{formatCurrency(supplyOrderDetail.data.total)}</p>
+                  </div>
+                  <div className="bg-purple-50 p-4 rounded-lg">
+                    <p className="text-sm text-slate-600">Average Order</p>
+                    <p className="text-2xl font-bold text-purple-700">
+                      {formatCurrency(supplyOrderDetail.data.count > 0 ? supplyOrderDetail.data.total / supplyOrderDetail.data.count : 0)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="overflow-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-100 border-b border-slate-200">
+                      <tr>
+                        <th className="text-left p-3 font-semibold text-slate-700">Order #</th>
+                        <th className="text-left p-3 font-semibold text-slate-700">Date</th>
+                        <th className="text-left p-3 font-semibold text-slate-700">Location</th>
+                        <th className="text-right p-3 font-semibold text-slate-700">Items</th>
+                        <th className="text-right p-3 font-semibold text-slate-700">Total</th>
+                        <th className="text-left p-3 font-semibold text-slate-700">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {supplyOrderDetail.data.orders.sort((a, b) => new Date(b.order_date) - new Date(a.order_date)).map(order => (
+                        <tr key={order.id} className="border-b border-slate-100 hover:bg-slate-50">
+                          <td className="p-3 font-medium text-slate-900">{order.order_number || '-'}</td>
+                          <td className="p-3 text-slate-600">{format(parseISO(order.order_date), 'MMM d, yyyy')}</td>
+                          <td className="p-3 text-slate-600">{order.location}</td>
+                          <td className="p-3 text-right text-slate-600">{order.items?.length || 0}</td>
+                          <td className="p-3 text-right font-medium text-green-700">{formatCurrency(order.total_amount || 0)}</td>
+                          <td className="p-3">
+                            <Badge className={
+                              order.status === 'received' ? 'bg-green-100 text-green-800' :
+                              order.status === 'partially_received' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-blue-100 text-blue-800'
+                            }>
+                              {order.status === 'order_placed' ? 'Order Placed' :
+                               order.status === 'partially_received' ? 'Partially Received' :
+                               'Received'}
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
