@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -726,11 +725,12 @@ export default function Payments() {
                       >
                         Status <SortIcon field="status" />
                       </th>
+                      <th className="text-left p-4 text-sm font-semibold text-slate-700">Linked Invoices</th>
                       <th className="text-left p-4 text-sm font-semibold text-slate-700">Allocations</th>
                       <th className="text-right p-4 text-sm font-semibold text-slate-700 no-print">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                      </tr>
+                      </thead>
+                      <tbody>
                     {sortedPayments.map((payment, index) => (
                       <tr key={payment.id} className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${
                         payment.unallocated_amount > 0 ? 'bg-orange-50/30' : ''
@@ -765,6 +765,29 @@ export default function Payments() {
                           <Badge className={`${statusColors[payment.status]} badge`}>
                             {payment.status === 'entic_paid' ? 'ENTIC Paid' : capitalize(payment.status)}
                           </Badge>
+                        </td>
+                        <td className="p-4">
+                          {payment.allocations && payment.allocations.length > 0 ? (
+                            <div className="space-y-1">
+                              {payment.allocations.map((allocation, idx) => {
+                                const invoice = invoices.find(inv => inv.id === allocation.invoice_id);
+                                return (
+                                  <div key={idx} className="text-xs">
+                                    <span className="font-medium text-slate-900">
+                                      {invoice?.invoice_number || 'N/A'}
+                                    </span>
+                                    {invoice?.month && (
+                                      <span className="text-slate-500 ml-1">
+                                        ({invoice.month})
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 text-sm">-</span>
+                          )}
                         </td>
                         <td className="p-4 text-slate-600">
                           {payment.allocations?.length || 0} {payment.allocations?.length === 1 ? 'Allocation' : 'Allocations'}
