@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,12 +10,11 @@ import { X, Plus, Trash2 } from "lucide-react";
 export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = useState({
     order_number: '',
-    vendor: '',
-    location: 'Glastonbury', // Added location field with default value
+    vendor: 'Staples',
+    location: 'Glastonbury',
     order_date: '',
-    expected_delivery: '',
-    actual_delivery: '',
-    status: 'ordered',
+    status: 'order_placed',
+    order_delivered: false,
     total_amount: 0,
     items: [],
     notes: ''
@@ -31,7 +29,16 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
   const handleSubmit = (e) => {
     e.preventDefault();
     const total = formData.items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0);
-    onSubmit({ ...formData, total_amount: total });
+    
+    // Auto-update status based on order_delivered checkbox
+    let status = formData.status;
+    if (formData.order_delivered && status !== 'order_received') {
+      status = 'order_received';
+    } else if (!formData.order_delivered && status === 'order_received') {
+      status = 'order_placed';
+    }
+    
+    onSubmit({ ...formData, status, total_amount: total });
   };
 
   const addItem = () => {
@@ -78,12 +85,14 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
 
             <div className="space-y-2">
               <Label htmlFor="vendor">Vendor *</Label>
-              <Input
-                id="vendor"
-                value={formData.vendor}
-                onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
-                required
-              />
+              <Select value={formData.vendor} onValueChange={(value) => setFormData({ ...formData, vendor: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Staples">Staples</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* New Location field */}
@@ -114,38 +123,36 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="expected_delivery">Expected Delivery</Label>
-              <Input
-                id="expected_delivery"
-                type="date"
-                value={formData.expected_delivery}
-                onChange={(e) => setFormData({ ...formData, expected_delivery: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="actual_delivery">Actual Delivery</Label>
-              <Input
-                id="actual_delivery"
-                type="date"
-                value={formData.actual_delivery}
-                onChange={(e) => setFormData({ ...formData, actual_delivery: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="status">Status *</Label>
-              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+              <Label htmlFor="status">Status</Label>
+              <Select 
+                value={formData.status} 
+                onValueChange={(value) => setFormData({ ...formData, status: value })}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ordered">Ordered</SelectItem>
-                  <SelectItem value="shipped">Shipped</SelectItem>
-                  <SelectItem value="delivered">Delivered</SelectItem>
+                  <SelectItem value="order_placed">Order Placed</SelectItem>
+                  <SelectItem value="partially_delivered">Partially Delivered</SelectItem>
+                  <SelectItem value="order_received">Order Received</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2 flex items-end pb-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="order_delivered"
+                  checked={formData.order_delivered}
+                  onChange={(e) => setFormData({ ...formData, order_delivered: e.target.checked })}
+                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                <Label htmlFor="order_delivered" className="cursor-pointer font-medium">
+                  Order Delivered
+                </Label>
+              </div>
             </div>
           </div>
 
