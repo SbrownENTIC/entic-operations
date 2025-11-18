@@ -175,10 +175,10 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
                           <Button
                             variant="outline"
                             role="combobox"
-                            className="w-full justify-between font-normal"
+                            className="w-full justify-between font-normal h-auto min-h-[40px] whitespace-normal text-left py-2"
                           >
-                            {item.supply_name || "Select item..."}
-                            <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            <span className="break-words pr-2 flex-1">{item.supply_name || "Select item..."}</span>
+                            <Search className="h-4 w-4 shrink-0 opacity-50" />
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-80 p-0" align="start">
