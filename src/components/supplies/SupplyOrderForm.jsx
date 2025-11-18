@@ -168,7 +168,7 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
               {formData.items.map((item, index) => (
                 <div key={index} className="space-y-2">
                   <div className="grid grid-cols-12 gap-3 items-end">
-                    <div className="col-span-5 space-y-1">
+                    <div className="col-span-4 space-y-1">
                       <Label className="text-xs text-slate-600">Item/Product</Label>
                       <Popover open={itemSelectOpen[index]} onOpenChange={(open) => setItemSelectOpen({ ...itemSelectOpen, [index]: open })}>
                         <PopoverTrigger asChild>
@@ -211,7 +211,7 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
                         </PopoverContent>
                       </Popover>
                     </div>
-                    <div className="col-span-3 space-y-1">
+                    <div className="col-span-2 space-y-1">
                       <Label className="text-xs text-slate-600">Quantity</Label>
                       <Input
                         type="number"
@@ -220,7 +220,7 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
                         onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value))}
                       />
                     </div>
-                    <div className="col-span-3 space-y-1">
+                    <div className="col-span-2 space-y-1">
                       <Label className="text-xs text-slate-600">Unit Price ($) <span className="text-slate-400 font-normal">(editable)</span></Label>
                       <Input
                         type="number"
@@ -229,6 +229,12 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
                         value={item.unit_price}
                         onChange={(e) => updateItem(index, 'unit_price', parseFloat(e.target.value))}
                       />
+                    </div>
+                    <div className="col-span-3 space-y-1">
+                      <Label className="text-xs text-slate-600">Subtotal</Label>
+                      <div className="h-10 px-3 py-2 bg-slate-50 rounded-md border border-slate-200 flex items-center font-medium text-slate-900">
+                        ${((item.quantity || 0) * (item.unit_price || 0)).toFixed(2)}
+                      </div>
                     </div>
                     <div className="col-span-1 space-y-1">
                       <Label className="text-xs text-transparent">Del</Label>
