@@ -213,14 +213,15 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
                                   key={supply.id}
                                   value={supply.product_name}
                                   onSelect={() => selectSupply(index, supply)}
+                                  className="flex items-start"
                                 >
                                   <Check
-                                    className={`mr-2 h-4 w-4 ${
+                                    className={`mr-2 h-4 w-4 flex-shrink-0 mt-0.5 ${
                                       item.supply_id === supply.id ? "opacity-100" : "opacity-0"
                                     }`}
                                   />
-                                  <div className="flex flex-col">
-                                    <span>{supply.product_name}</span>
+                                  <div className="flex flex-col flex-1 min-w-0">
+                                    <span className="break-words">{supply.product_name}</span>
                                     <span className="text-xs text-slate-500">
                                       {supply.vendor} - ${supply.unit_price?.toFixed(2) || '0.00'}
                                     </span>
@@ -242,7 +243,7 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
                       />
                     </div>
                     <div className="col-span-3 space-y-1">
-                      <Label className="text-xs text-slate-600">Unit Price ($)</Label>
+                      <Label className="text-xs text-slate-600">Unit Price ($) <span className="text-slate-400 font-normal">(editable)</span></Label>
                       <Input
                         type="number"
                         step="0.01"
