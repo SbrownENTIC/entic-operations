@@ -839,12 +839,13 @@ export default function Reports() {
               <CardContent className="p-6">
                 <div className="space-y-6">
                   <div>
-                    <h3 className="text-md font-semibold text-slate-900 mb-3">Order Status Summary</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <h3 className="text-sm font-semibold text-slate-900 mb-2">Order Status Summary</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       {(() => {
                         const filtered = filterByDateRange(supplyOrders, 'order_date');
                         const orderPlaced = filtered.filter(o => o.status === 'order_placed');
                         const partiallyReceived = filtered.filter(o => o.status === 'partially_received');
+                        const received = filtered.filter(o => o.status === 'received');
                         
                         return (
                           <>
@@ -858,12 +859,12 @@ export default function Reports() {
                                   orders: orderPlaced 
                                 }
                               })}
-                              className="bg-blue-50 p-4 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors text-left"
+                              className="bg-blue-50 p-3 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors text-left"
                             >
-                              <p className="text-sm font-medium text-slate-700">Order Placed</p>
-                              <p className="text-3xl font-bold text-blue-700 mt-2">{orderPlaced.length}</p>
-                              <p className="text-sm text-slate-600 mt-1">
-                                {formatCurrency(orderPlaced.reduce((sum, o) => sum + (o.total_amount || 0), 0))} total
+                              <p className="text-xs font-medium text-slate-700">Order Placed</p>
+                              <p className="text-xl font-bold text-blue-700 mt-1">{orderPlaced.length}</p>
+                              <p className="text-xs text-slate-600 mt-0.5">
+                                {formatCurrency(orderPlaced.reduce((sum, o) => sum + (o.total_amount || 0), 0))}
                               </p>
                             </button>
                             <button
@@ -876,12 +877,30 @@ export default function Reports() {
                                   orders: partiallyReceived 
                                 }
                               })}
-                              className="bg-yellow-50 p-4 rounded-lg border border-yellow-200 hover:bg-yellow-100 transition-colors text-left"
+                              className="bg-yellow-50 p-3 rounded-lg border border-yellow-200 hover:bg-yellow-100 transition-colors text-left"
                             >
-                              <p className="text-sm font-medium text-slate-700">Partially Received</p>
-                              <p className="text-3xl font-bold text-yellow-700 mt-2">{partiallyReceived.length}</p>
-                              <p className="text-sm text-slate-600 mt-1">
-                                {formatCurrency(partiallyReceived.reduce((sum, o) => sum + (o.total_amount || 0), 0))} total
+                              <p className="text-xs font-medium text-slate-700">Partially Received</p>
+                              <p className="text-xl font-bold text-yellow-700 mt-1">{partiallyReceived.length}</p>
+                              <p className="text-xs text-slate-600 mt-0.5">
+                                {formatCurrency(partiallyReceived.reduce((sum, o) => sum + (o.total_amount || 0), 0))}
+                              </p>
+                            </button>
+                            <button
+                              onClick={() => setSupplyOrderDetail({ 
+                                type: 'status', 
+                                name: 'Received', 
+                                data: { 
+                                  count: received.length, 
+                                  total: received.reduce((sum, o) => sum + (o.total_amount || 0), 0),
+                                  orders: received 
+                                }
+                              })}
+                              className="bg-green-50 p-3 rounded-lg border border-green-200 hover:bg-green-100 transition-colors text-left"
+                            >
+                              <p className="text-xs font-medium text-slate-700">Received</p>
+                              <p className="text-xl font-bold text-green-700 mt-1">{received.length}</p>
+                              <p className="text-xs text-slate-600 mt-0.5">
+                                {formatCurrency(received.reduce((sum, o) => sum + (o.total_amount || 0), 0))}
                               </p>
                             </button>
                           </>
