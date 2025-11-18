@@ -42,7 +42,22 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
     const subtotal = formData.items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0);
     const total = subtotal + (formData.tax || 0);
     
-    onSubmit({ ...formData, subtotal, total_amount: total });
+    // Auto-update status based on received items
+    const receivedCount = formData.items.filter(item => item.received).length;
+    const totalItems = formData.items.length;
+    let status = formData.status;
+    
+    if (totalItems > 0) {
+      if (receivedCount === 0) {
+        status = 'order_placed';
+      } else if (receivedCount === totalItems) {
+        status = 'received';
+      } else {
+        status = 'partially_received';
+      }
+    }
+    
+    onSubmit({ ...formData, subtotal, total_amount: total, status });
   };
 
   const addItem = () => {
@@ -185,18 +200,7 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
               {formData.items.map((item, index) => (
                 <div key={index} className="space-y-2">
                   <div className="grid grid-cols-12 gap-3 items-end">
-                    <div className="col-span-1 space-y-1 flex items-end">
-                      <div className="h-10 flex items-center justify-center">
-                        <input
-                          type="checkbox"
-                          checked={item.received || false}
-                          onChange={(e) => updateItem(index, 'received', e.target.checked)}
-                          className="w-5 h-5 rounded border-slate-300 text-green-600 focus:ring-green-500"
-                          title="Mark as received"
-                        />
-                      </div>
-                    </div>
-                    <div className="col-span-4 space-y-1">
+                    <div className="col-span-5 space-y-1">
                       <Label className="text-xs text-slate-600">Item/Product</Label>
                       <Popover open={itemSelectOpen[index]} onOpenChange={(open) => setItemSelectOpen({ ...itemSelectOpen, [index]: open })}>
                         <PopoverTrigger asChild>
@@ -258,10 +262,21 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
                         onChange={(e) => updateItem(index, 'unit_price', parseFloat(e.target.value))}
                       />
                     </div>
-                    <div className="col-span-3 space-y-1">
+                    <div className="col-span-2 space-y-1">
                       <Label className="text-xs text-slate-600">Subtotal</Label>
                       <div className="h-10 px-3 py-2 bg-slate-50 rounded-md border border-slate-200 flex items-center font-medium text-slate-900">
                         ${((item.quantity || 0) * (item.unit_price || 0)).toFixed(2)}
+                      </div>
+                    </div>
+                    <div className="col-span-1 space-y-1">
+                      <Label className="text-xs text-slate-600">Received</Label>
+                      <div className="h-10 flex items-center justify-center">
+                        <input
+                          type="checkbox"
+                          checked={item.received || false}
+                          onChange={(e) => updateItem(index, 'received', e.target.checked)}
+                          className="w-5 h-5 rounded border-slate-300 text-green-600 focus:ring-green-500"
+                        />
                       </div>
                     </div>
                     <div className="col-span-1 space-y-1">
