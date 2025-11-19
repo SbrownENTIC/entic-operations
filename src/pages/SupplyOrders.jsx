@@ -103,12 +103,12 @@ export default function SupplyOrders() {
   const handleFillItemNumbers = async () => {
     setFilling(true);
     setFillMessage('');
-    setShowForm(false); // Close any open forms
+    setShowForm(false);
     setEditingOrder(null);
     try {
       const response = await base44.functions.invoke('fillSupplyOrderItemNumbers');
       setFillMessage(response.data.message);
-      await queryClient.invalidateQueries({ queryKey: ['supply-orders'] });
+      await queryClient.refetchQueries({ queryKey: ['supply-orders'] });
     } catch (error) {
       setFillMessage('Error: ' + (error.response?.data?.error || error.message));
     } finally {
