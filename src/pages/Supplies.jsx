@@ -11,7 +11,7 @@ export default function Supplies() {
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingSupply, setEditingSupply] = useState(null);
-  const [sortField, setSortField] = useState('product_name');
+  const [sortField, setSortField] = useState('item_number');
   const [sortDirection, setSortDirection] = useState('asc');
   const [importing, setImporting] = useState(false);
   const [importMessage, setImportMessage] = useState('');
