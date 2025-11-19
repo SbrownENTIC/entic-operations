@@ -109,16 +109,26 @@ export default function SupplyOrders() {
   };
 
   const statusColors = {
+    pending_review: "bg-yellow-100 text-yellow-800",
+    pending_fulfillment: "bg-blue-100 text-blue-800",
+    approved: "bg-green-100 text-green-800",
+    rejected: "bg-red-100 text-red-800",
     order_placed: "bg-blue-100 text-blue-800",
-    partially_received: "bg-yellow-100 text-yellow-800",
+    partially_received: "bg-orange-100 text-orange-800",
     received: "bg-green-100 text-green-800"
   };
 
   const formatStatus = (status) => {
-    if (status === 'order_placed') return 'Order Placed';
-    if (status === 'partially_received') return 'Partially Received';
-    if (status === 'received') return 'Received';
-    return status;
+    const statusMap = {
+      'pending_review': 'Pending Review',
+      'pending_fulfillment': 'Pending Fulfillment',
+      'approved': 'Approved',
+      'rejected': 'Rejected',
+      'order_placed': 'Order Placed',
+      'partially_received': 'Partially Received',
+      'received': 'Received'
+    };
+    return statusMap[status] || status;
   };
 
   return (
@@ -197,6 +207,9 @@ export default function SupplyOrders() {
                     >
                       Order Date <SortIcon field="order_date" />
                     </th>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700 bg-slate-50">
+                      Items
+                    </th>
                     <th 
                       className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 bg-slate-50"
                       onClick={() => handleSort('total_amount')}
@@ -215,22 +228,38 @@ export default function SupplyOrders() {
                 <tbody>
                   {sortedOrders.map((order, index) => (
                     <tr key={order.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                      <td className="p-4 text-slate-500 font-medium">{index + 1}</td>
-                      <td className="p-4 font-medium text-slate-900">{order.order_number || '-'}</td>
-                      <td className="p-4 text-slate-600">{order.vendor}</td>
-                      <td className="p-4 text-slate-600">{order.location}</td>
-                      <td className="p-4 text-slate-600">
+                      <td className="p-4 text-slate-500 font-medium" rowSpan={order.items?.length > 0 ? order.items.length : 1}>{index + 1}</td>
+                      <td className="p-4 font-medium text-slate-900" rowSpan={order.items?.length > 0 ? order.items.length : 1}>{order.order_number || '-'}</td>
+                      <td className="p-4 text-slate-600" rowSpan={order.items?.length > 0 ? order.items.length : 1}>{order.vendor}</td>
+                      <td className="p-4 text-slate-600" rowSpan={order.items?.length > 0 ? order.items.length : 1}>{order.location}</td>
+                      <td className="p-4 text-slate-600" rowSpan={order.items?.length > 0 ? order.items.length : 1}>
                         {format(parseISO(order.order_date), 'MMM d, yyyy')}
                       </td>
-                      <td className="p-4 font-medium text-green-600">
+                      <td className="p-4">
+                        {order.items && order.items.length > 0 ? (
+                          <div>
+                            <div className="text-xs text-slate-500">
+                              {order.items[0].item_number && `#${order.items[0].item_number} - `}
+                              {order.items[0].supply_name}
+                            </div>
+                            <div className="text-sm text-slate-600">
+                              Qty: {order.items[0].quantity} @ ${order.items[0].unit_price?.toFixed(2)}
+                              {order.items[0].received && <span className="ml-2 text-green-600">✓</span>}
+                            </div>
+                          </div>
+                        ) : (
+                          '-'
+                        )}
+                      </td>
+                      <td className="p-4 font-medium text-green-600" rowSpan={order.items?.length > 0 ? order.items.length : 1}>
                         ${formatCurrency(order.total_amount || 0)}
                       </td>
-                      <td className="p-4">
+                      <td className="p-4" rowSpan={order.items?.length > 0 ? order.items.length : 1}>
                         <Badge className={statusColors[order.status]}>
                           {formatStatus(order.status)}
                         </Badge>
                       </td>
-                      <td className="p-4 text-right">
+                      <td className="p-4 text-right" rowSpan={order.items?.length > 0 ? order.items.length : 1}>
                         <div className="flex gap-2 justify-end">
                           {order.status !== 'received' && (
                             <Button 
@@ -257,6 +286,22 @@ export default function SupplyOrders() {
                         </div>
                       </td>
                     </tr>
+                    {order.items && order.items.slice(1).map((item, itemIdx) => (
+                      <tr key={`${order.id}-item-${itemIdx}`} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td className="p-4">
+                          <div>
+                            <div className="text-xs text-slate-500">
+                              {item.item_number && `#${item.item_number} - `}
+                              {item.supply_name}
+                            </div>
+                            <div className="text-sm text-slate-600">
+                              Qty: {item.quantity} @ ${item.unit_price?.toFixed(2)}
+                              {item.received && <span className="ml-2 text-green-600">✓</span>}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
                   ))}
                 </tbody>
               </table>
