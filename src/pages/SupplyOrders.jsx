@@ -261,13 +261,13 @@ export default function SupplyOrders() {
                        </Badge>
                      </td>
                      <td className="p-4 text-right">
-                       <div className="flex gap-2 justify-end">
+                       <div className="flex flex-col gap-2 items-end">
                          {order.status !== 'order_placed' && order.status !== 'received' && (
                            <Button 
                              variant="outline"
                              size="sm"
                              onClick={() => markOrderedMutation.mutate(order)}
-                             className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                             className="text-blue-600 border-blue-600 hover:bg-blue-50 w-full"
                              disabled={markOrderedMutation.isPending}
                            >
                              Mark Ordered
@@ -278,31 +278,33 @@ export default function SupplyOrders() {
                              variant="outline"
                              size="sm"
                              onClick={() => markReceivedMutation.mutate(order)}
-                             className="text-green-600 border-green-600 hover:bg-green-50"
+                             className="text-green-600 border-green-600 hover:bg-green-50 w-full"
                              disabled={markReceivedMutation.isPending}
                            >
                              <CheckCircle2 className="w-4 h-4 mr-1" />
                              Mark Received
                            </Button>
                          )}
-                         <Button 
-                           variant="ghost" 
-                           size="sm"
-                           onClick={() => {
-                             setEditingOrder(order);
-                             setShowForm(true);
-                           }}
-                         >
-                           <Pencil className="w-4 h-4" />
-                         </Button>
-                         <Button 
-                           variant="ghost" 
-                           size="sm"
-                           onClick={() => setDeletingOrder(order)}
-                           className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                         >
-                           <Trash2 className="w-4 h-4" />
-                         </Button>
+                         <div className="flex gap-2 justify-end w-full">
+                           <Button 
+                             variant="ghost" 
+                             size="sm"
+                             onClick={() => {
+                               setEditingOrder(order);
+                               setShowForm(true);
+                             }}
+                           >
+                             <Pencil className="w-4 h-4" />
+                           </Button>
+                           <Button 
+                             variant="ghost" 
+                             size="sm"
+                             onClick={() => setDeletingOrder(order)}
+                             className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                           >
+                             <Trash2 className="w-4 h-4" />
+                           </Button>
+                         </div>
                        </div>
                      </td>
                    </tr>
