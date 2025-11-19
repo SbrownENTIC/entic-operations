@@ -162,10 +162,18 @@ export default function SupplyOrderDetail() {
                   {order.items?.map((item, index) => {
                     // If item_number is missing, look it up from supplies by ID or name
                     let itemNumber = item.item_number;
-                    if (!itemNumber) {
-                      const supply = item.supply_id 
+                    if (!itemNumber && item.supply_name) {
+                      // Try exact match first
+                      let supply = item.supply_id 
                         ? supplies.find(s => s.id === item.supply_id)
                         : supplies.find(s => s.product_name === item.supply_name);
+                      
+                      // If no exact match, try case-insensitive match
+                      if (!supply) {
+                        const searchName = item.supply_name.toLowerCase().trim();
+                        supply = supplies.find(s => s.product_name?.toLowerCase().trim() === searchName);
+                      }
+                      
                       itemNumber = supply?.item_number;
                     }
                     
