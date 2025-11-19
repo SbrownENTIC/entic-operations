@@ -73,6 +73,7 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
       ...newItems[index], 
       supply_id: supply.id,
       supply_name: supply.product_name,
+      item_number: supply.item_number,
       unit_price: supply.unit_price || 0,
       received: newItems[index].received || false
     };
@@ -164,6 +165,10 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="pending_review">Pending Review</SelectItem>
+                  <SelectItem value="pending_fulfillment">Pending Fulfillment</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
                   <SelectItem value="order_placed">Order Placed</SelectItem>
                   <SelectItem value="partially_received">Partially Received</SelectItem>
                   <SelectItem value="received">Received</SelectItem>
@@ -209,7 +214,12 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
                             role="combobox"
                             className="w-full justify-between font-normal h-auto min-h-[40px] whitespace-normal text-left py-2"
                           >
-                            <span className="break-words pr-2 flex-1">{item.supply_name || "Select item..."}</span>
+                            <div className="flex flex-col flex-1 pr-2">
+                              <span className="break-words">{item.supply_name || "Select item..."}</span>
+                              {item.item_number && (
+                                <span className="text-xs text-slate-500">Item# {item.item_number}</span>
+                              )}
+                            </div>
                             <Search className="h-4 w-4 shrink-0 opacity-50" />
                           </Button>
                         </PopoverTrigger>
