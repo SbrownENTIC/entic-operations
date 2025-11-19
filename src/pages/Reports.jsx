@@ -961,7 +961,7 @@ export default function Reports() {
                                 <th key={loc} className="text-right p-3 font-semibold text-slate-700">{loc}</th>
                               ));
                             })()}
-                            <th className="text-right p-3 font-semibold text-slate-700 bg-slate-200">Monthly Avg Order</th>
+                            <th className="text-right p-3 font-semibold text-slate-700 bg-slate-200">Month Order Average</th>
                           </tr>
                         </thead>
                         <tbody>
