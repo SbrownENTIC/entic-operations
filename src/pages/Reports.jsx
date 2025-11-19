@@ -982,7 +982,7 @@ export default function Reports() {
 
                             const locations = [...new Set(supplyOrders.map(o => o.location || 'Unknown'))].sort();
                             
-                            return Object.entries(byMonthLocation)
+                            const monthRows = Object.entries(byMonthLocation)
                               .sort(([a], [b]) => b.localeCompare(a))
                               .slice(0, 12)
                               .map(([month, locationData]) => {
@@ -1016,7 +1016,40 @@ export default function Reports() {
                                   </tr>
                                 );
                               });
-                          })()}
+
+                            // Calculate totals for each location
+                            const locationTotals = {};
+                            locations.forEach(loc => {
+                              locationTotals[loc] = 0;
+                            });
+
+                            Object.values(byMonthLocation).forEach(locationData => {
+                              locations.forEach(loc => {
+                                if (locationData[loc]) {
+                                  locationTotals[loc] += locationData[loc].total;
+                                }
+                              });
+                            });
+
+                            const grandTotal = Object.values(locationTotals).reduce((sum, total) => sum + total, 0);
+
+                            return (
+                              <>
+                                {monthRows}
+                                <tr className="border-t-2 border-slate-300 bg-slate-100 font-bold">
+                                  <td className="p-3 text-slate-900">Total</td>
+                                  {locations.map(loc => (
+                                    <td key={loc} className="p-3 text-right text-slate-900">
+                                      {formatCurrency(locationTotals[loc])}
+                                    </td>
+                                  ))}
+                                  <td className="p-3 text-right bg-slate-200 text-slate-900">
+                                    {formatCurrency(grandTotal)}
+                                  </td>
+                                </tr>
+                              </>
+                            );
+                            })()}
                         </tbody>
                       </table>
                     </div>
