@@ -137,6 +137,15 @@ export default function Supplies() {
       return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
     }
     
+    if (sortField === 'item_number') {
+      // Try to parse as numbers for proper numeric sorting
+      const aNum = parseFloat(aValue);
+      const bNum = parseFloat(bValue);
+      if (!isNaN(aNum) && !isNaN(bNum)) {
+        return sortDirection === 'asc' ? aNum - bNum : bNum - aNum;
+      }
+    }
+    
     const comparison = aValue.toString().toLowerCase().localeCompare(bValue.toString().toLowerCase());
     return sortDirection === 'asc' ? comparison : -comparison;
   });
