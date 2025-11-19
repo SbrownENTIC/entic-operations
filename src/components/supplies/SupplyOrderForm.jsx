@@ -214,7 +214,7 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
               {formData.items.map((item, index) => (
                 <div key={index} className="space-y-2">
                   <div className="grid grid-cols-12 gap-3 items-end">
-                    <div className="col-span-5 space-y-1">
+                    <div className="col-span-4 space-y-1">
                       <Label className="text-xs text-slate-600">Item/Product</Label>
                       <Popover open={itemSelectOpen[index]} onOpenChange={(open) => setItemSelectOpen({ ...itemSelectOpen, [index]: open })}>
                         <PopoverTrigger asChild>
@@ -260,10 +260,16 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
                             </CommandGroup>
                           </Command>
                         </PopoverContent>
-                      </Popover>
-                    </div>
-                    <div className="col-span-2 space-y-1">
-                      <Label className="text-xs text-slate-600">Quantity</Label>
+                        </Popover>
+                        </div>
+                        <div className="col-span-1 space-y-1">
+                        <Label className="text-xs text-slate-600">Item #</Label>
+                        <div className="h-10 px-2 py-2 bg-slate-50 rounded-md border border-slate-200 flex items-center text-xs text-slate-600 overflow-hidden">
+                        {item.item_number || '-'}
+                        </div>
+                        </div>
+                        <div className="col-span-2 space-y-1">
+                        <Label className="text-xs text-slate-600">Quantity</Label>
                       <Input
                         type="number"
                         placeholder="Quantity"
