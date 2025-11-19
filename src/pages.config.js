@@ -15,6 +15,7 @@ import ProviderTimeOff from './pages/ProviderTimeOff';
 import Reminders from './pages/Reminders';
 import SimpleDashboard from './pages/SimpleDashboard';
 import Reports from './pages/Reports';
+import SupplyRequest from './pages/SupplyRequest';
 import __Layout from './Layout.jsx';
 
 
@@ -36,6 +37,7 @@ export const PAGES = {
     "Reminders": Reminders,
     "SimpleDashboard": SimpleDashboard,
     "Reports": Reports,
+    "SupplyRequest": SupplyRequest,
 }
 
 export const pagesConfig = {
