@@ -191,18 +191,19 @@ export default function PublicSupplyRequest() {
                                 <CommandItem
                                   key={supply.id}
                                   value={`${supply.item_number || ''} ${supply.product_name}`}
-                                  onSelect={() => {
+                                  onSelect={(e) => {
+                                    e.preventDefault();
                                     if (!alreadyAdded) {
-                                      setFormData({
-                                        ...formData,
-                                        items: [...formData.items, {
+                                      setFormData(prev => ({
+                                        ...prev,
+                                        items: [...prev.items, {
                                           supply_id: supply.id,
                                           supply_name: supply.product_name,
                                           quantity: 1,
                                           unit_price: supply.unit_price || 0,
                                           vendor: supply.vendor || 'Staples'
                                         }]
-                                      });
+                                      }));
                                     }
                                   }}
                                   className="flex items-start"
