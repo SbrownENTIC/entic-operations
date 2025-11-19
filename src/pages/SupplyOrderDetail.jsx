@@ -27,6 +27,12 @@ export default function SupplyOrderDetail() {
     enabled: !!orderId
   });
 
+  const { data: supplies = [] } = useQuery({
+    queryKey: ['supplies'],
+    queryFn: () => base44.entities.Supply.list(),
+    enabled: !!order
+  });
+
   const formatCurrency = (amount) => {
     return '$' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
@@ -153,23 +159,27 @@ export default function SupplyOrderDetail() {
                   </tr>
                 </thead>
                 <tbody>
-                  {order.items?.map((item, index) => (
-                    <tr key={index} className="border-b border-slate-100 hover:bg-slate-50">
-                      <td className="p-4">
-                        <p className="font-medium text-slate-900">{item.supply_name}</p>
-                      </td>
-                      <td className="p-4">
-                        {item.item_number ? (
-                          <Link 
-                            to={createPageUrl('Supplies') + '?search=' + encodeURIComponent(item.item_number)}
-                            className="text-blue-600 hover:text-blue-800 hover:underline"
-                          >
-                            {item.item_number}
-                          </Link>
-                        ) : (
-                          <span className="text-slate-400">-</span>
-                        )}
-                      </td>
+                  {order.items?.map((item, index) => {
+                    // If item_number is missing, look it up from supplies
+                    const itemNumber = item.item_number || supplies.find(s => s.id === item.supply_id)?.item_number;
+                    
+                    return (
+                      <tr key={index} className="border-b border-slate-100 hover:bg-slate-50">
+                        <td className="p-4">
+                          <p className="font-medium text-slate-900">{item.supply_name}</p>
+                        </td>
+                        <td className="p-4">
+                          {itemNumber ? (
+                            <Link 
+                              to={createPageUrl('Supplies') + '?search=' + encodeURIComponent(itemNumber)}
+                              className="text-blue-600 hover:text-blue-800 hover:underline"
+                            >
+                              {itemNumber}
+                            </Link>
+                          ) : (
+                            <span className="text-slate-400">-</span>
+                          )}
+                        </td>
                       <td className="p-4 text-right text-slate-600">{item.quantity}</td>
                       <td className="p-4 text-right text-slate-600">
                         {formatCurrency(item.unit_price || 0)}
@@ -177,15 +187,16 @@ export default function SupplyOrderDetail() {
                       <td className="p-4 text-right font-medium text-slate-900">
                         {formatCurrency((item.quantity || 0) * (item.unit_price || 0))}
                       </td>
-                      <td className="p-4 text-center">
-                        {item.received ? (
-                          <Badge className="bg-green-100 text-green-800">Yes</Badge>
-                        ) : (
-                          <Badge className="bg-slate-100 text-slate-600">No</Badge>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                        <td className="p-4 text-center">
+                          {item.received ? (
+                            <Badge className="bg-green-100 text-green-800">Yes</Badge>
+                          ) : (
+                            <Badge className="bg-slate-100 text-slate-600">No</Badge>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
                 <tfoot className="bg-slate-50 border-t border-slate-200">
                   <tr>
