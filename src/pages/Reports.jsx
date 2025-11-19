@@ -1005,7 +1005,7 @@ export default function Reports() {
                                               {formatCurrency(data.total / data.count)}
                                             </button>
                                           ) : (
-                                            <span className="text-slate-400">-</span>
+                                            <span className="text-slate-400">{formatCurrency(0)}</span>
                                           )}
                                         </td>
                                       );
