@@ -16,22 +16,30 @@ Deno.serve(async (req) => {
     }
 
     // Extract data from the uploaded Excel file
-    const extractResult = await base44.integrations.Core.ExtractDataFromUploadedFile({
-      file_url: file_url,
-      json_schema: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            item_number: { type: "string", description: "From 'Item Numb.' column" },
-            product_name: { type: "string", description: "From 'Product Name' column" },
-            unit_price: { type: "number", description: "From 'Unit Price' column" },
-            units: { type: "string", description: "From 'Units' column" },
-            image_url: { type: "string", description: "From 'Image URL' column" }
+    let extractResult;
+    try {
+      extractResult = await base44.integrations.Core.ExtractDataFromUploadedFile({
+        file_url: file_url,
+        json_schema: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              item_number: { type: "string" },
+              product_name: { type: "string" },
+              unit_price: { type: "number" },
+              units: { type: "string" },
+              image_url: { type: "string" }
+            }
           }
         }
-      }
-    });
+      });
+    } catch (extractError) {
+      return Response.json({ 
+        error: 'Failed to extract data from file', 
+        details: extractError.message 
+      }, { status: 400 });
+    }
 
     if (extractResult.status === 'error') {
       return Response.json({ 
@@ -40,7 +48,17 @@ Deno.serve(async (req) => {
       }, { status: 400 });
     }
 
-    const supplies = Array.isArray(extractResult.output) ? extractResult.output : extractResult.output.supplies || [];
+    let supplies = extractResult.output;
+    if (!Array.isArray(supplies)) {
+      supplies = supplies.supplies || [];
+    }
+
+    if (!supplies || supplies.length === 0) {
+      return Response.json({ 
+        error: 'No data found in file',
+        details: 'The file appears to be empty or has no valid rows'
+      }, { status: 400 });
+    }
     
     // Get all existing supplies
     const existingSupplies = await base44.asServiceRole.entities.Supply.list();
@@ -48,33 +66,39 @@ Deno.serve(async (req) => {
     let created = 0;
     let updated = 0;
     let skipped = 0;
+    const errors = [];
 
     for (const supplyData of supplies) {
-      if (!supplyData.item_number || !supplyData.product_name) {
+      try {
+        if (!supplyData.item_number || !supplyData.product_name) {
+          skipped++;
+          continue;
+        }
+
+        // Find existing supply by item_number
+        const existing = existingSupplies.find(s => s.item_number === supplyData.item_number);
+
+        const data = {
+          item_number: supplyData.item_number,
+          product_name: supplyData.product_name,
+          vendor: supplyData.vendor || 'Staples',
+          unit_price: parseFloat(supplyData.unit_price) || 0,
+          units: supplyData.units || 'each',
+          image_url: supplyData.image_url || ''
+        };
+
+        if (existing) {
+          // Update existing supply
+          await base44.asServiceRole.entities.Supply.update(existing.id, data);
+          updated++;
+        } else {
+          // Create new supply
+          await base44.asServiceRole.entities.Supply.create(data);
+          created++;
+        }
+      } catch (itemError) {
+        errors.push(`Error processing ${supplyData.item_number}: ${itemError.message}`);
         skipped++;
-        continue;
-      }
-
-      // Find existing supply by item_number
-      const existing = existingSupplies.find(s => s.item_number === supplyData.item_number);
-
-      const data = {
-        item_number: supplyData.item_number,
-        product_name: supplyData.product_name,
-        vendor: supplyData.vendor || 'Staples',
-        unit_price: supplyData.unit_price || 0,
-        units: supplyData.units || 'each',
-        image_url: supplyData.image_url || ''
-      };
-
-      if (existing) {
-        // Update existing supply
-        await base44.asServiceRole.entities.Supply.update(existing.id, data);
-        updated++;
-      } else {
-        // Create new supply
-        await base44.asServiceRole.entities.Supply.create(data);
-        created++;
       }
     }
 
@@ -83,10 +107,12 @@ Deno.serve(async (req) => {
       message: `Import complete: ${created} created, ${updated} updated, ${skipped} skipped`,
       created,
       updated,
-      skipped
+      skipped,
+      errors: errors.length > 0 ? errors : undefined
     });
 
   } catch (error) {
+    console.error('Import error:', error);
     return Response.json({ 
       error: error.message,
       stack: error.stack 
