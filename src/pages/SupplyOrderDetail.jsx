@@ -160,8 +160,14 @@ export default function SupplyOrderDetail() {
                 </thead>
                 <tbody>
                   {order.items?.map((item, index) => {
-                    // If item_number is missing, look it up from supplies
-                    const itemNumber = item.item_number || supplies.find(s => s.id === item.supply_id)?.item_number;
+                    // If item_number is missing, look it up from supplies by ID or name
+                    let itemNumber = item.item_number;
+                    if (!itemNumber) {
+                      const supply = item.supply_id 
+                        ? supplies.find(s => s.id === item.supply_id)
+                        : supplies.find(s => s.product_name === item.supply_name);
+                      itemNumber = supply?.item_number;
+                    }
                     
                     return (
                       <tr key={index} className="border-b border-slate-100 hover:bg-slate-50">
