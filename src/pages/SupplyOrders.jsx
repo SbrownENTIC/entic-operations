@@ -64,6 +64,15 @@ export default function SupplyOrders() {
     }
   });
 
+  const markOrderedMutation = useMutation({
+    mutationFn: (order) => {
+      return base44.entities.SupplyOrder.update(order.id, { status: 'order_placed' });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['supply-orders'] });
+    }
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.SupplyOrder.delete(id),
     onSuccess: () => {
@@ -253,6 +262,17 @@ export default function SupplyOrders() {
                      </td>
                      <td className="p-4 text-right">
                        <div className="flex gap-2 justify-end">
+                         {order.status !== 'order_placed' && order.status !== 'received' && (
+                           <Button 
+                             variant="outline"
+                             size="sm"
+                             onClick={() => markOrderedMutation.mutate(order)}
+                             className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                             disabled={markOrderedMutation.isPending}
+                           >
+                             Mark Ordered
+                           </Button>
+                         )}
                          {order.status !== 'received' && (
                            <Button 
                              variant="outline"
