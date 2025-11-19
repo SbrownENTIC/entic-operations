@@ -12,11 +12,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Plus, Trash2, Search, Check, CheckCircle, AlertCircle } from "lucide-react";
 
 export default function PublicSupplyRequest() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const locationParam = urlParams.get('location') || '';
-  
   const [formData, setFormData] = useState({
-    location: locationParam || 'Glastonbury',
+    location: 'Glastonbury',
     requester_name: '',
     requester_email: '',
     requested_date: new Date().toISOString().split('T')[0],
@@ -32,12 +29,6 @@ export default function PublicSupplyRequest() {
     queryKey: ['supplies'],
     queryFn: () => base44.entities.Supply.list('product_name')
   });
-
-  useEffect(() => {
-    if (locationParam) {
-      setFormData(prev => ({ ...prev, location: locationParam }));
-    }
-  }, [locationParam]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -64,7 +55,7 @@ export default function PublicSupplyRequest() {
       
       // Reset form
       setFormData({
-        location: locationParam || 'Glastonbury',
+        location: 'Glastonbury',
         requester_name: '',
         requester_email: '',
         requested_date: new Date().toISOString().split('T')[0],
