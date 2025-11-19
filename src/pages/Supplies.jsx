@@ -186,29 +186,9 @@ export default function Supplies() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center py-12 text-slate-500">Loading...</div>
         </div>
-        </div>
-
-        <AlertDialog open={!!deletingSupply} onOpenChange={() => setDeletingSupply(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Supply Item</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete "{deletingSupply?.product_name}"? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deleteMutation.mutate(deletingSupply.id)}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-        </AlertDialog>
-        );
-        }
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 md:p-8 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
@@ -391,6 +371,26 @@ export default function Supplies() {
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={!!deletingSupply} onOpenChange={() => setDeletingSupply(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Supply Item</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deletingSupply?.product_name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteMutation.mutate(deletingSupply.id)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
