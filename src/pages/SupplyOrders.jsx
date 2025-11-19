@@ -26,6 +26,8 @@ export default function SupplyOrders() {
   const [deletingOrder, setDeletingOrder] = useState(null);
   const [sortField, setSortField] = useState('order_date');
   const [sortDirection, setSortDirection] = useState('desc');
+  const [filling, setFilling] = useState(false);
+  const [fillMessage, setFillMessage] = useState('');
   const queryClient = useQueryClient();
 
   const { data: orders = [] } = useQuery({
@@ -98,6 +100,20 @@ export default function SupplyOrders() {
     }
   };
 
+  const handleFillItemNumbers = async () => {
+    setFilling(true);
+    setFillMessage('');
+    try {
+      const response = await base44.functions.invoke('fillSupplyOrderItemNumbers');
+      setFillMessage(response.data.message);
+      queryClient.invalidateQueries({ queryKey: ['supply-orders'] });
+    } catch (error) {
+      setFillMessage('Error: ' + (error.response?.data?.error || error.message));
+    } finally {
+      setFilling(false);
+    }
+  };
+
   // Format currency with commas
   const formatCurrency = (amount) => {
     return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -159,17 +175,35 @@ export default function SupplyOrders() {
             <h1 className="text-3xl font-bold text-slate-900">Supply Orders</h1>
             <p className="text-slate-600 mt-1">Track supply orders and deliveries</p>
           </div>
-          <Button
-            onClick={() => {
-              setEditingOrder(null);
-              setShowForm(true);
-            }}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            New Order
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleFillItemNumbers}
+              variant="outline"
+              disabled={filling}
+              className="border-purple-600 text-purple-600 hover:bg-purple-50"
+            >
+              {filling ? 'Filling...' : 'Fill Item Numbers'}
+            </Button>
+            <Button
+              onClick={() => {
+                setEditingOrder(null);
+                setShowForm(true);
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              New Order
+            </Button>
+          </div>
         </div>
+
+        {fillMessage && (
+          <Card className="border-purple-200 bg-purple-50">
+            <CardContent className="p-4">
+              <p className="text-sm text-purple-900">{fillMessage}</p>
+            </CardContent>
+          </Card>
+        )}
 
         {showForm && (
           <SupplyOrderForm
