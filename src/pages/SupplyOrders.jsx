@@ -5,7 +5,17 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2 } from "lucide-react";
+import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { format, parseISO } from "date-fns";
 import SupplyOrderForm from "../components/supplies/SupplyOrderForm";
 
@@ -13,6 +23,7 @@ export default function SupplyOrders() {
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingOrder, setEditingOrder] = useState(null);
+  const [deletingOrder, setDeletingOrder] = useState(null);
   const [sortField, setSortField] = useState('order_date');
   const [sortDirection, setSortDirection] = useState('desc');
   const queryClient = useQueryClient();
@@ -50,6 +61,14 @@ export default function SupplyOrders() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['supply-orders'] });
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.SupplyOrder.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['supply-orders'] });
+      setDeletingOrder(null);
     }
   });
 
@@ -256,6 +275,14 @@ export default function SupplyOrders() {
                          >
                            <Pencil className="w-4 h-4" />
                          </Button>
+                         <Button 
+                           variant="ghost" 
+                           size="sm"
+                           onClick={() => setDeletingOrder(order)}
+                           className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                         >
+                           <Trash2 className="w-4 h-4" />
+                         </Button>
                        </div>
                      </td>
                    </tr>
@@ -270,6 +297,26 @@ export default function SupplyOrders() {
             </div>
           </CardContent>
         </Card>
+
+        <AlertDialog open={!!deletingOrder} onOpenChange={() => setDeletingOrder(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Supply Order</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this order? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deletingOrder && deleteMutation.mutate(deletingOrder.id)}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
