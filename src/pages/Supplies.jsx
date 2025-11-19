@@ -27,6 +27,15 @@ export default function Supplies() {
   const [importMessage, setImportMessage] = useState('');
   const [deletingSupply, setDeletingSupply] = useState(null);
 
+  // Check URL parameters for search term
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const search = params.get('search');
+    if (search) {
+      setSearchTerm(search);
+    }
+  }, []);
+
   const queryClient = useQueryClient();
 
   const { data: supplies = [], isLoading } = useQuery({
