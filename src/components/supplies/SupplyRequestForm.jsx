@@ -36,26 +36,6 @@ export default function SupplyRequestForm({ onSubmit, onCancel, isLoading, userL
     onSubmit(formData);
   };
 
-  const addItem = () => {
-    setFormData({
-      ...formData,
-      items: [...formData.items, { supply_id: '', supply_name: '', quantity: 1, unit_price: 0, vendor: '' }]
-    });
-  };
-
-  const selectSupply = (index, supply) => {
-    const newItems = [...formData.items];
-    newItems[index] = { 
-      ...newItems[index], 
-      supply_id: supply.id,
-      supply_name: supply.product_name,
-      unit_price: supply.unit_price || 0,
-      vendor: supply.vendor || 'Staples'
-    };
-    setFormData({ ...formData, items: newItems });
-    setItemSelectOpen({ ...itemSelectOpen, [index]: false });
-  };
-
   const removeItem = (index) => {
     setFormData({
       ...formData,
@@ -68,8 +48,6 @@ export default function SupplyRequestForm({ onSubmit, onCancel, isLoading, userL
     newItems[index] = { ...newItems[index], [field]: value };
     setFormData({ ...formData, items: newItems });
   };
-
-  const estimatedTotal = formData.items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0);
 
   return (
     <Card className="border-slate-200 shadow-sm">
@@ -112,108 +90,99 @@ export default function SupplyRequestForm({ onSubmit, onCancel, isLoading, userL
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <Label>Requested Items</Label>
-              <Button type="button" variant="outline" size="sm" onClick={addItem}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Item
-              </Button>
-            </div>
-            <div className="space-y-3">
-              {formData.items.map((item, index) => (
-                <div key={index} className="space-y-2">
-                  <div className="grid grid-cols-12 gap-3 items-end">
-                    <div className="col-span-5 space-y-1">
-                      <Label className="text-xs text-slate-600">Item/Product</Label>
-                      <Popover open={itemSelectOpen[index]} onOpenChange={(open) => setItemSelectOpen({ ...itemSelectOpen, [index]: open })}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className="w-full justify-between font-normal h-auto min-h-[40px] whitespace-normal text-left py-2"
-                          >
-                            <span className="break-words pr-2 flex-1">{item.supply_name || "Select item..."}</span>
-                            <Search className="h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-80 p-0" align="start">
-                          <Command>
-                            <CommandInput placeholder="Search supplies..." />
-                            <CommandEmpty>No supply found.</CommandEmpty>
-                            <CommandGroup className="max-h-64 overflow-auto">
-                              {supplies.map((supply) => (
-                                <CommandItem
-                                  key={supply.id}
-                                  value={`${supply.item_number || ''} ${supply.product_name}`}
-                                  onSelect={() => selectSupply(index, supply)}
-                                  className="flex items-start"
-                                >
-                                  <Check
-                                    className={`mr-2 h-4 w-4 flex-shrink-0 mt-0.5 ${
-                                      item.supply_id === supply.id ? "opacity-100" : "opacity-0"
-                                    }`}
-                                  />
-                                  <div className="flex flex-col flex-1 min-w-0">
-                                    <span className="break-words">{supply.product_name}</span>
-                                    <span className="text-xs text-slate-500">
-                                      {supply.item_number && `Item# ${supply.item_number} • `}{supply.vendor} - ${supply.unit_price?.toFixed(2) || '0.00'}
-                                    </span>
-                                  </div>
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    <div className="col-span-2 space-y-1">
-                      <Label className="text-xs text-slate-600">Quantity</Label>
-                      <Input
-                        type="number"
-                        placeholder="Quantity"
-                        value={item.quantity}
-                        onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value))}
-                        min="1"
-                        required
-                      />
-                    </div>
-                    <div className="col-span-2 space-y-1">
-                      <Label className="text-xs text-slate-600">Unit Price</Label>
-                      <div className="h-10 px-3 py-2 bg-slate-50 rounded-md border border-slate-200 flex items-center text-slate-600">
-                        ${(item.unit_price || 0).toFixed(2)}
+            <div className="space-y-4">
+              <div>
+                <Label className="mb-2 block">Search and Add Items</Label>
+                <Popover open={itemSelectOpen['main']} onOpenChange={(open) => setItemSelectOpen({ ...itemSelectOpen, 'main': open })}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full justify-between font-normal"
+                    >
+                      <span>Search supplies to add...</span>
+                      <Search className="h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search supplies..." />
+                      <CommandEmpty>No supply found.</CommandEmpty>
+                      <CommandGroup className="max-h-64 overflow-auto">
+                        {supplies.map((supply) => {
+                          const alreadyAdded = formData.items.some(item => item.supply_id === supply.id);
+                          return (
+                            <CommandItem
+                              key={supply.id}
+                              value={`${supply.item_number || ''} ${supply.product_name}`}
+                              onSelect={() => {
+                                if (!alreadyAdded) {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    items: [...prev.items, {
+                                      supply_id: supply.id,
+                                      supply_name: supply.product_name,
+                                      quantity: 1,
+                                      unit_price: supply.unit_price || 0,
+                                      vendor: supply.vendor || 'Staples'
+                                    }]
+                                  }));
+                                }
+                              }}
+                              className="flex items-start"
+                              disabled={alreadyAdded}
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 flex-shrink-0 mt-0.5 ${
+                                  alreadyAdded ? "opacity-100" : "opacity-0"
+                                }`}
+                              />
+                              <div className="flex flex-col flex-1 min-w-0">
+                                <span className="break-words">{supply.product_name}</span>
+                                <span className="text-xs text-slate-500">
+                                  {supply.item_number && `Item# ${supply.item_number}`}
+                                  {supply.vendor && ` • ${supply.vendor}`}
+                                </span>
+                              </div>
+                            </CommandItem>
+                          );
+                        })}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {formData.items.length > 0 && (
+                <div>
+                  <Label className="mb-2 block">Selected Items ({formData.items.length})</Label>
+                  <div className="space-y-2">
+                    {formData.items.map((item, index) => (
+                      <div key={index} className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-lg">
+                        <div className="flex-1">
+                          <p className="font-medium text-slate-900">{item.supply_name}</p>
+                          {item.vendor && <p className="text-sm text-slate-500">{item.vendor}</p>}
+                        </div>
+                        <div className="w-24">
+                          <Label className="text-xs text-slate-600">Quantity</Label>
+                          <Input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value))}
+                            min="1"
+                            required
+                            className="mt-1"
+                          />
+                        </div>
+                        <Button type="button" variant="ghost" size="icon" onClick={() => removeItem(index)}>
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        </Button>
                       </div>
-                    </div>
-                    <div className="col-span-2 space-y-1">
-                      <Label className="text-xs text-slate-600">Subtotal</Label>
-                      <div className="h-10 px-3 py-2 bg-slate-50 rounded-md border border-slate-200 flex items-center font-medium text-slate-900">
-                        ${((item.quantity || 0) * (item.unit_price || 0)).toFixed(2)}
-                      </div>
-                    </div>
-                    <div className="col-span-1 space-y-1">
-                      <Label className="text-xs text-transparent">Del</Label>
-                      <Button type="button" variant="ghost" size="icon" onClick={() => removeItem(index)}>
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      </Button>
-                    </div>
+                    ))}
                   </div>
-                </div>
-              ))}
-              {formData.items.length === 0 && (
-                <div className="text-center py-8 text-slate-500 border border-dashed border-slate-300 rounded-lg">
-                  No items added yet. Click "Add Item" to start your request.
                 </div>
               )}
             </div>
-          </div>
-
-          <div className="bg-slate-50 rounded-lg p-4 space-y-2 border border-slate-200">
-            <div className="flex justify-between items-center">
-              <span className="text-base font-bold text-slate-900">Estimated Total:</span>
-              <span className="text-2xl font-bold text-blue-600">
-                ${estimatedTotal.toFixed(2)}
-              </span>
-            </div>
-            <p className="text-xs text-slate-500">*This is an estimate. Actual prices may vary.</p>
           </div>
 
           <div className="space-y-2">
