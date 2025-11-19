@@ -15,51 +15,44 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'file_url is required' }, { status: 400 });
     }
 
-    // Extract data from the uploaded Excel file
-    let extractResult;
-    try {
-      extractResult = await base44.integrations.Core.ExtractDataFromUploadedFile({
-        file_url: file_url,
-        json_schema: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              item_number: { type: "string" },
-              product_name: { type: "string" },
-              unit_price: { type: "number" },
-              units: { type: "string" },
-              image_url: { type: "string" }
-            }
-          }
-        }
-      });
-    } catch (extractError) {
+    // Fetch the CSV file
+    const fileResponse = await fetch(file_url);
+    if (!fileResponse.ok) {
       return Response.json({ 
-        error: 'Failed to extract data from file', 
-        details: extractError.message 
+        error: 'Failed to fetch file', 
+        details: `HTTP ${fileResponse.status}` 
       }, { status: 400 });
     }
 
-    if (extractResult.status === 'error') {
-      return Response.json({ 
-        error: 'Failed to extract data from file', 
-        details: extractResult.details 
-      }, { status: 400 });
-    }
-
-    let supplies = extractResult.output;
-    if (!Array.isArray(supplies)) {
-      supplies = supplies.supplies || [];
-    }
-
-    if (!supplies || supplies.length === 0) {
+    const csvText = await fileResponse.text();
+    
+    // Parse CSV manually
+    const lines = csvText.split('\n').filter(line => line.trim());
+    if (lines.length < 2) {
       return Response.json({ 
         error: 'No data found in file',
-        details: 'The file appears to be empty or has no valid rows'
+        details: 'CSV file must have at least a header row and one data row'
       }, { status: 400 });
     }
+
+    // Parse header row
+    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, '').toLowerCase().replace(/\s+/g, '_'));
     
+    // Find column indexes
+    const itemNumberIndex = headers.findIndex(h => h === 'item_number');
+    const productNameIndex = headers.findIndex(h => h === 'product_name');
+    const vendorIndex = headers.findIndex(h => h === 'vendor');
+    const unitPriceIndex = headers.findIndex(h => h === 'unit_price');
+    const unitsIndex = headers.findIndex(h => h === 'units');
+    const imageUrlIndex = headers.findIndex(h => h === 'image_url');
+
+    if (itemNumberIndex === -1 || productNameIndex === -1) {
+      return Response.json({ 
+        error: 'Missing required columns',
+        details: 'CSV must have "Item Number" and "Product Name" columns'
+      }, { status: 400 });
+    }
+
     // Get all existing supplies
     const existingSupplies = await base44.asServiceRole.entities.Supply.list();
     
@@ -68,23 +61,49 @@ Deno.serve(async (req) => {
     let skipped = 0;
     const errors = [];
 
-    for (const supplyData of supplies) {
+    // Parse data rows
+    for (let i = 1; i < lines.length; i++) {
       try {
-        if (!supplyData.item_number || !supplyData.product_name) {
+        const line = lines[i];
+        if (!line.trim()) continue;
+
+        // Simple CSV parsing (handles quoted values)
+        const values = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let j = 0; j < line.length; j++) {
+          const char = line[j];
+          
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            values.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        values.push(current.trim());
+
+        const itemNumber = values[itemNumberIndex]?.replace(/"/g, '').trim();
+        const productName = values[productNameIndex]?.replace(/"/g, '').trim();
+
+        if (!itemNumber || !productName) {
           skipped++;
           continue;
         }
 
         // Find existing supply by item_number
-        const existing = existingSupplies.find(s => s.item_number === supplyData.item_number);
+        const existing = existingSupplies.find(s => s.item_number === itemNumber);
 
         const data = {
-          item_number: supplyData.item_number,
-          product_name: supplyData.product_name,
-          vendor: supplyData.vendor || 'Staples',
-          unit_price: parseFloat(supplyData.unit_price) || 0,
-          units: supplyData.units || 'each',
-          image_url: supplyData.image_url || ''
+          item_number: itemNumber,
+          product_name: productName,
+          vendor: vendorIndex !== -1 ? values[vendorIndex]?.replace(/"/g, '').trim() || 'Staples' : 'Staples',
+          unit_price: unitPriceIndex !== -1 ? parseFloat(values[unitPriceIndex]?.replace(/"/g, '')) || 0 : 0,
+          units: unitsIndex !== -1 ? values[unitsIndex]?.replace(/"/g, '').trim() || 'each' : 'each',
+          image_url: imageUrlIndex !== -1 ? values[imageUrlIndex]?.replace(/"/g, '').trim() || '' : ''
         };
 
         if (existing) {
@@ -97,7 +116,7 @@ Deno.serve(async (req) => {
           created++;
         }
       } catch (itemError) {
-        errors.push(`Error processing ${supplyData.item_number}: ${itemError.message}`);
+        errors.push(`Error processing row ${i + 1}: ${itemError.message}`);
         skipped++;
       }
     }
