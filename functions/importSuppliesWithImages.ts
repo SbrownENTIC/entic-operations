@@ -120,21 +120,20 @@ Deno.serve(async (req) => {
           product_name: productName,
           vendor: vendorIndex !== -1 ? values[vendorIndex]?.replace(/"/g, '').trim() || 'Staples' : 'Staples',
           unit_price: unitPriceIndex !== -1 ? parseFloat(values[unitPriceIndex]?.replace(/"/g, '')) || 0 : 0,
-          units: unitsIndex !== -1 ? values[unitsIndex]?.replace(/"/g, '').trim() || 'each' : 'each',
-          image_url: csvImageUrl
+          units: unitsIndex !== -1 ? values[unitsIndex]?.replace(/"/g, '').trim() || 'each' : 'each'
         };
 
         if (existing) {
-          // Don't include image_url in update if existing supply already has one
-          // This preserves manually edited image URLs
-          if (existing.image_url) {
-            delete data.image_url;
+          // Preserve manually updated image URLs - only update if CSV has value and existing doesn't
+          if (csvImageUrl && !existing.image_url) {
+            data.image_url = csvImageUrl;
           }
           // Update existing supply
           await base44.asServiceRole.entities.Supply.update(existing.id, data);
           updated++;
         } else {
-          // Create new supply with image URL from CSV
+          // Create new supply with image URL
+          data.image_url = csvImageUrl;
           await base44.asServiceRole.entities.Supply.create(data);
           created++;
         }
