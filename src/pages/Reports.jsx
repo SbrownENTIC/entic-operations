@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, FileText, DollarSign, Clock, Users, Package, X } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
+import { Link } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 
 export default function Reports() {
   const [dateRange, setDateRange] = useState({
@@ -1146,26 +1148,33 @@ export default function Reports() {
                       </tr>
                     </thead>
                     <tbody>
-                      {supplyOrderDetail.data.orders.sort((a, b) => new Date(b.order_date) - new Date(a.order_date)).map(order => (
-                        <tr key={order.id} className="border-b border-slate-100 hover:bg-slate-50">
-                          <td className="p-3 font-medium text-slate-900">{order.order_number || '-'}</td>
-                          <td className="p-3 text-slate-600">{format(parseISO(order.order_date), 'MMM d, yyyy')}</td>
-                          <td className="p-3 text-slate-600">{order.location}</td>
-                          <td className="p-3 text-right text-slate-600">{order.items?.length || 0}</td>
-                          <td className="p-3 text-right font-medium text-green-700">{formatCurrency(order.total_amount || 0)}</td>
-                          <td className="p-3">
-                            <Badge className={
-                              order.status === 'received' ? 'bg-green-100 text-green-800' :
-                              order.status === 'partially_received' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-blue-100 text-blue-800'
-                            }>
-                              {order.status === 'order_placed' ? 'Order Placed' :
-                               order.status === 'partially_received' ? 'Partially Received' :
-                               'Received'}
-                            </Badge>
-                          </td>
-                        </tr>
-                      ))}
+                     {supplyOrderDetail.data.orders.sort((a, b) => new Date(b.order_date) - new Date(a.order_date)).map(order => (
+                       <tr key={order.id} className="border-b border-slate-100 hover:bg-slate-50">
+                         <td className="p-3">
+                           <Link 
+                             to={createPageUrl('SupplyOrderDetail') + '?id=' + order.id}
+                             className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                           >
+                             {order.order_number || '-'}
+                           </Link>
+                         </td>
+                         <td className="p-3 text-slate-600">{format(parseISO(order.order_date), 'MMM d, yyyy')}</td>
+                         <td className="p-3 text-slate-600">{order.location}</td>
+                         <td className="p-3 text-right text-slate-600">{order.items?.length || 0}</td>
+                         <td className="p-3 text-right font-medium text-green-700">{formatCurrency(order.total_amount || 0)}</td>
+                         <td className="p-3">
+                           <Badge className={
+                             order.status === 'received' ? 'bg-green-100 text-green-800' :
+                             order.status === 'partially_received' ? 'bg-yellow-100 text-yellow-800' :
+                             'bg-blue-100 text-blue-800'
+                           }>
+                             {order.status === 'order_placed' ? 'Order Placed' :
+                              order.status === 'partially_received' ? 'Partially Received' :
+                              'Received'}
+                           </Badge>
+                         </td>
+                       </tr>
+                     ))}
                     </tbody>
                   </table>
                 </div>
