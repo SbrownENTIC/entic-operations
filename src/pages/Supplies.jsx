@@ -66,7 +66,8 @@ export default function Supplies() {
       setImportMessage(response.data.message);
       queryClient.invalidateQueries({ queryKey: ['supplies'] });
     } catch (error) {
-      setImportMessage('Error importing file: ' + error.message);
+      const errorDetails = error.response?.data?.details || error.response?.data?.error || error.message;
+      setImportMessage('Error importing file: ' + errorDetails);
     } finally {
       setImporting(false);
       event.target.value = '';
