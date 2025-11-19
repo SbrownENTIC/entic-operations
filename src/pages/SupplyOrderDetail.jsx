@@ -145,6 +145,7 @@ export default function SupplyOrderDetail() {
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">Item</th>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Item Number</th>
                     <th className="text-right p-4 text-sm font-semibold text-slate-700">Quantity</th>
                     <th className="text-right p-4 text-sm font-semibold text-slate-700">Unit Price</th>
                     <th className="text-right p-4 text-sm font-semibold text-slate-700">Line Total</th>
@@ -155,12 +156,10 @@ export default function SupplyOrderDetail() {
                   {order.items?.map((item, index) => (
                     <tr key={index} className="border-b border-slate-100 hover:bg-slate-50">
                       <td className="p-4">
-                        <div>
-                          <p className="font-medium text-slate-900">{item.supply_name}</p>
-                          {item.item_number && (
-                            <p className="text-xs text-slate-500">Item# {item.item_number}</p>
-                          )}
-                        </div>
+                        <p className="font-medium text-slate-900">{item.supply_name}</p>
+                      </td>
+                      <td className="p-4 text-slate-600">
+                        {item.item_number || '-'}
                       </td>
                       <td className="p-4 text-right text-slate-600">{item.quantity}</td>
                       <td className="p-4 text-right text-slate-600">
@@ -181,7 +180,7 @@ export default function SupplyOrderDetail() {
                 </tbody>
                 <tfoot className="bg-slate-50 border-t border-slate-200">
                   <tr>
-                    <td colSpan="3" className="p-4 text-right font-semibold text-slate-900">
+                    <td colSpan="4" className="p-4 text-right font-semibold text-slate-900">
                       Subtotal:
                     </td>
                     <td className="p-4 text-right font-semibold text-slate-900">
@@ -190,7 +189,7 @@ export default function SupplyOrderDetail() {
                     <td></td>
                   </tr>
                   <tr>
-                    <td colSpan="3" className="p-4 text-right font-semibold text-slate-900">
+                    <td colSpan="4" className="p-4 text-right font-semibold text-slate-900">
                       Tax:
                     </td>
                     <td className="p-4 text-right font-semibold text-slate-900">
@@ -199,7 +198,7 @@ export default function SupplyOrderDetail() {
                     <td></td>
                   </tr>
                   <tr>
-                    <td colSpan="3" className="p-4 text-right text-lg font-bold text-slate-900">
+                    <td colSpan="4" className="p-4 text-right text-lg font-bold text-slate-900">
                       Total:
                     </td>
                     <td className="p-4 text-right text-lg font-bold text-green-600">
