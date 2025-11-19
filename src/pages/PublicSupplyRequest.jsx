@@ -191,8 +191,7 @@ export default function PublicSupplyRequest() {
                                 <CommandItem
                                   key={supply.id}
                                   value={`${supply.item_number || ''} ${supply.product_name}`}
-                                  onSelect={(e) => {
-                                    e.preventDefault();
+                                  onSelect={(currentValue) => {
                                     if (!alreadyAdded) {
                                       setFormData(prev => ({
                                         ...prev,
@@ -205,6 +204,7 @@ export default function PublicSupplyRequest() {
                                         }]
                                       }));
                                     }
+                                    // Don't close the popover - keep it open for multiple selections
                                   }}
                                   className="flex items-start"
                                   disabled={alreadyAdded}
