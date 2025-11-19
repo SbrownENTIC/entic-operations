@@ -1017,50 +1017,7 @@ export default function Reports() {
                                 );
                               });
 
-                            // Calculate averages for each location
-                            const locationAverages = {};
-                            locations.forEach(loc => {
-                              let totalAmount = 0;
-                              let totalCount = 0;
-
-                              Object.values(byMonthLocation).forEach(locationData => {
-                                if (locationData[loc]) {
-                                  totalAmount += locationData[loc].total;
-                                  totalCount += locationData[loc].count;
-                                }
-                              });
-
-                              locationAverages[loc] = totalCount > 0 ? totalAmount / totalCount : 0;
-                            });
-
-                            const overallAvg = (() => {
-                              let totalAmount = 0;
-                              let totalCount = 0;
-                              Object.values(byMonthLocation).forEach(locationData => {
-                                Object.values(locationData).forEach(data => {
-                                  totalAmount += data.total;
-                                  totalCount += data.count;
-                                });
-                              });
-                              return totalCount > 0 ? totalAmount / totalCount : 0;
-                            })();
-
-                            return (
-                              <>
-                                {monthRows}
-                                <tr className="border-t-2 border-slate-300 bg-slate-100 font-bold">
-                                  <td className="p-3 text-slate-900">Average</td>
-                                  {locations.map(loc => (
-                                    <td key={loc} className="p-3 text-right text-slate-900">
-                                      {formatCurrency(locationAverages[loc])}
-                                    </td>
-                                  ))}
-                                  <td className="p-3 text-right bg-slate-200 text-slate-900">
-                                    {formatCurrency(overallAvg)}
-                                  </td>
-                                </tr>
-                              </>
-                            );
+                            return monthRows;
                             })()}
                         </tbody>
                       </table>
