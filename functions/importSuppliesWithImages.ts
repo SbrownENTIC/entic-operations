@@ -15,25 +15,40 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'file_url is required' }, { status: 400 });
     }
 
-    // Extract data from the uploaded Excel file
+    // Extract data from the uploaded Excel file using LLM with internet context
     let extractResult;
     try {
-      extractResult = await base44.integrations.Core.ExtractDataFromUploadedFile({
-        file_url: file_url,
-        json_schema: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              item_number: { type: "string" },
-              product_name: { type: "string" },
-              unit_price: { type: "number" },
-              units: { type: "string" },
-              image_url: { type: "string" }
+      const llmResponse = await base44.integrations.Core.InvokeLLM({
+        prompt: `Extract supply catalog data from this Excel file. Return a JSON array of supply items with these fields:
+- item_number (string): The item or SKU number
+- product_name (string): The product name
+- unit_price (number): The unit price as a number
+- units (string): The unit type (e.g., "each", "box", "case")
+- image_url (string): The image URL if present
+
+Return only the array of items, nothing else.`,
+        file_urls: [file_url],
+        response_json_schema: {
+          type: "object",
+          properties: {
+            items: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  item_number: { type: "string" },
+                  product_name: { type: "string" },
+                  unit_price: { type: "number" },
+                  units: { type: "string" },
+                  image_url: { type: "string" }
+                }
+              }
             }
           }
         }
       });
+      
+      extractResult = { output: llmResponse.items || llmResponse, status: 'success' };
     } catch (extractError) {
       return Response.json({ 
         error: 'Failed to extract data from file', 
