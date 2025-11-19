@@ -1017,34 +1017,46 @@ export default function Reports() {
                                 );
                               });
 
-                            // Calculate totals for each location
-                            const locationTotals = {};
+                            // Calculate averages for each location
+                            const locationAverages = {};
                             locations.forEach(loc => {
-                              locationTotals[loc] = 0;
-                            });
+                              let totalAmount = 0;
+                              let totalCount = 0;
 
-                            Object.values(byMonthLocation).forEach(locationData => {
-                              locations.forEach(loc => {
+                              Object.values(byMonthLocation).forEach(locationData => {
                                 if (locationData[loc]) {
-                                  locationTotals[loc] += locationData[loc].total;
+                                  totalAmount += locationData[loc].total;
+                                  totalCount += locationData[loc].count;
                                 }
                               });
+
+                              locationAverages[loc] = totalCount > 0 ? totalAmount / totalCount : 0;
                             });
 
-                            const grandTotal = Object.values(locationTotals).reduce((sum, total) => sum + total, 0);
+                            const overallAvg = (() => {
+                              let totalAmount = 0;
+                              let totalCount = 0;
+                              Object.values(byMonthLocation).forEach(locationData => {
+                                Object.values(locationData).forEach(data => {
+                                  totalAmount += data.total;
+                                  totalCount += data.count;
+                                });
+                              });
+                              return totalCount > 0 ? totalAmount / totalCount : 0;
+                            })();
 
                             return (
                               <>
                                 {monthRows}
                                 <tr className="border-t-2 border-slate-300 bg-slate-100 font-bold">
-                                  <td className="p-3 text-slate-900">Total</td>
+                                  <td className="p-3 text-slate-900">Average</td>
                                   {locations.map(loc => (
                                     <td key={loc} className="p-3 text-right text-slate-900">
-                                      {formatCurrency(locationTotals[loc])}
+                                      {formatCurrency(locationAverages[loc])}
                                     </td>
                                   ))}
                                   <td className="p-3 text-right bg-slate-200 text-slate-900">
-                                    {formatCurrency(grandTotal)}
+                                    {formatCurrency(overallAvg)}
                                   </td>
                                 </tr>
                               </>
