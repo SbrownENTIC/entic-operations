@@ -1,11 +1,10 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown, Upload, Image as ImageIcon } from "lucide-react";
 import SupplyForm from "../components/supplies/SupplyForm";
 
 export default function Supplies() {
@@ -14,6 +13,8 @@ export default function Supplies() {
   const [editingSupply, setEditingSupply] = useState(null);
   const [sortField, setSortField] = useState('product_name');
   const [sortDirection, setSortDirection] = useState('asc');
+  const [importing, setImporting] = useState(false);
+  const [importMessage, setImportMessage] = useState('');
 
   const queryClient = useQueryClient();
 
@@ -45,6 +46,30 @@ export default function Supplies() {
       updateMutation.mutate({ id: editingSupply.id, data });
     } else {
       createMutation.mutate(data);
+    }
+  };
+
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    setImporting(true);
+    setImportMessage('');
+
+    try {
+      // Upload the file
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+
+      // Import the supplies
+      const response = await base44.functions.invoke('importSuppliesWithImages', { file_url });
+
+      setImportMessage(response.data.message);
+      queryClient.invalidateQueries({ queryKey: ['supplies'] });
+    } catch (error) {
+      setImportMessage('Error importing file: ' + error.message);
+    } finally {
+      setImporting(false);
+      event.target.value = '';
     }
   };
 
@@ -107,17 +132,46 @@ export default function Supplies() {
             <h1 className="text-3xl font-bold text-slate-900">Supply Catalog</h1>
             <p className="text-slate-600 mt-1">Manage your supply inventory</p>
           </div>
-          <Button
-            onClick={() => {
-              setEditingSupply(null);
-              setShowForm(true);
-            }}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Supply Item
-          </Button>
+          <div className="flex gap-2">
+            <label>
+              <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                onChange={handleFileUpload}
+                className="hidden"
+                disabled={importing}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={importing}
+                onClick={(e) => e.currentTarget.previousElementSibling.click()}
+                className="border-blue-600 text-blue-600 hover:bg-blue-50"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                {importing ? 'Importing...' : 'Import Excel'}
+              </Button>
+            </label>
+            <Button
+              onClick={() => {
+                setEditingSupply(null);
+                setShowForm(true);
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Supply Item
+            </Button>
+          </div>
         </div>
+
+        {importMessage && (
+          <Card className="border-blue-200 bg-blue-50">
+            <CardContent className="p-4">
+              <p className="text-sm text-blue-900">{importMessage}</p>
+            </CardContent>
+          </Card>
+        )}
 
         {showForm && (
           <SupplyForm
@@ -149,6 +203,9 @@ export default function Supplies() {
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                   <tr>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700 w-20">
+                      Image
+                    </th>
                     <th 
                       className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                       onClick={() => handleSort('item_number')}
@@ -185,6 +242,19 @@ export default function Supplies() {
                 <tbody>
                   {sortedSupplies.map((supply) => (
                     <tr key={supply.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                      <td className="p-4">
+                        {supply.image_url ? (
+                          <img 
+                            src={supply.image_url} 
+                            alt={supply.product_name}
+                            className="w-16 h-16 object-contain rounded border border-slate-200"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 bg-slate-100 rounded border border-slate-200 flex items-center justify-center">
+                            <ImageIcon className="w-6 h-6 text-slate-400" />
+                          </div>
+                        )}
+                      </td>
                       <td className="p-4 text-slate-600">{supply.item_number || '-'}</td>
                       <td className="p-4 font-medium text-slate-900">{supply.product_name}</td>
                       <td className="p-4 text-slate-600">{supply.vendor || '-'}</td>
