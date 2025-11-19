@@ -185,6 +185,15 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
                   type="button" 
                   variant="outline" 
                   size="sm" 
+                  onClick={() => setFormData({ ...formData, status: 'order_placed' })}
+                  className="gap-2"
+                >
+                  Mark Ordered
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
                   onClick={() => {
                     const allReceived = formData.items.every(item => item.received);
                     const newItems = formData.items.map(item => ({ ...item, received: !allReceived }));
