@@ -17,6 +17,7 @@ import SimpleDashboard from './pages/SimpleDashboard';
 import Reports from './pages/Reports';
 import SupplyRequest from './pages/SupplyRequest';
 import PublicSupplyRequest from './pages/PublicSupplyRequest';
+import SupplyOrderDetail from './pages/SupplyOrderDetail';
 import __Layout from './Layout.jsx';
 
 
@@ -40,6 +41,7 @@ export const PAGES = {
     "Reports": Reports,
     "SupplyRequest": SupplyRequest,
     "PublicSupplyRequest": PublicSupplyRequest,
+    "SupplyOrderDetail": SupplyOrderDetail,
 }
 
 export const pagesConfig = {
