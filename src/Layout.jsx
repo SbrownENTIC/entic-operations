@@ -1,6 +1,8 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
 import { 
   LayoutDashboard, 
   Users, 
@@ -14,7 +16,8 @@ import {
   ShieldCheck,
   Boxes,
   BarChart3,
-  HeartPulse
+  HeartPulse,
+  Bell
 } from "lucide-react";
 import {
   Sidebar,
@@ -106,6 +109,15 @@ const navigationItems = [
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
 
+  const { data: pendingOrders = [] } = useQuery({
+    queryKey: ['pending-review-orders'],
+    queryFn: async () => {
+      const orders = await base44.entities.SupplyOrder.filter({ status: 'pending_review' });
+      return orders;
+    },
+    refetchInterval: 30000 // Refetch every 30 seconds
+  });
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -134,14 +146,27 @@ export default function Layout({ children, currentPageName }) {
         
         <Sidebar className="border-r border-slate-200/60 bg-white/80 backdrop-blur-sm">
           <SidebarHeader className="border-b border-slate-200/60 p-6 bg-gradient-to-br from-blue-50 to-indigo-50">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                <HeartPulse className="w-6 h-6 text-white" />
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <HeartPulse className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-slate-900 text-lg">ENTIC Operations Center</h2>
+                  <p className="text-xs text-slate-600">Provider Management</p>
+                </div>
               </div>
-              <div>
-                <h2 className="font-bold text-slate-900 text-lg">ENTIC Operations Center</h2>
-                <p className="text-xs text-slate-600">Provider Management</p>
-              </div>
+              <Link 
+                to={createPageUrl("SupplyOrders")}
+                className="relative p-2 hover:bg-white/50 rounded-lg transition-colors"
+              >
+                <Bell className="w-5 h-5 text-slate-600" />
+                {pendingOrders.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                    {pendingOrders.length}
+                  </span>
+                )}
+              </Link>
             </div>
           </SidebarHeader>
           
