@@ -4,7 +4,17 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown, Upload, Image as ImageIcon, Download } from "lucide-react";
+import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown, Upload, Image as ImageIcon, Download, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import SupplyForm from "../components/supplies/SupplyForm";
 
 export default function Supplies() {
@@ -15,6 +25,7 @@ export default function Supplies() {
   const [sortDirection, setSortDirection] = useState('asc');
   const [importing, setImporting] = useState(false);
   const [importMessage, setImportMessage] = useState('');
+  const [deletingSupply, setDeletingSupply] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -38,6 +49,14 @@ export default function Supplies() {
       queryClient.invalidateQueries({ queryKey: ['supplies'] });
       setShowForm(false);
       setEditingSupply(null);
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.Supply.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['supplies'] });
+      setDeletingSupply(null);
     }
   });
 
@@ -167,9 +186,29 @@ export default function Supplies() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center py-12 text-slate-500">Loading...</div>
         </div>
-      </div>
-    );
-  }
+        </div>
+
+        <AlertDialog open={!!deletingSupply} onOpenChange={() => setDeletingSupply(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Supply Item</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deletingSupply?.product_name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteMutation.mutate(deletingSupply.id)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+        </AlertDialog>
+        );
+        }
 
   return (
     <div className="p-6 md:p-8 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
@@ -318,16 +357,26 @@ export default function Supplies() {
                       </td>
                       <td className="p-4 text-slate-600">{supply.units || '-'}</td>
                       <td className="p-4 text-right">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => {
-                            setEditingSupply(supply);
-                            setShowForm(true);
-                          }}
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
+                        <div className="flex justify-end gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                              setEditingSupply(supply);
+                              setShowForm(true);
+                            }}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => setDeletingSupply(supply)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
