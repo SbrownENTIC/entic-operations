@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown, Upload, Image as ImageIcon } from "lucide-react";
+import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown, Upload, Image as ImageIcon, Download } from "lucide-react";
 import SupplyForm from "../components/supplies/SupplyForm";
 
 export default function Supplies() {
@@ -74,6 +74,43 @@ export default function Supplies() {
     }
   };
 
+  const handleExport = () => {
+    const rows = [
+      ['Item Number', 'Product Name', 'Vendor', 'Unit Price', 'Units', 'Image URL']
+    ];
+
+    supplies.forEach(supply => {
+      rows.push([
+        supply.item_number || '',
+        supply.product_name || '',
+        supply.vendor || '',
+        supply.unit_price || '',
+        supply.units || '',
+        supply.image_url || ''
+      ]);
+    });
+
+    const csvContent = rows.map(row => 
+      row.map(cell => {
+        const cellStr = String(cell);
+        if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+          return '"' + cellStr.replace(/"/g, '""') + '"';
+        }
+        return cellStr;
+      }).join(',')
+    ).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `supply_catalog_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleSort = (field) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -134,6 +171,14 @@ export default function Supplies() {
             <p className="text-slate-600 mt-1">Manage your supply inventory</p>
           </div>
           <div className="flex gap-2">
+            <Button
+              onClick={handleExport}
+              variant="outline"
+              className="border-green-600 text-green-600 hover:bg-green-50"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Export CSV
+            </Button>
             <label>
               <input
                 type="file"
