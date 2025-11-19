@@ -19,6 +19,23 @@ Deno.serve(async (req) => {
     let updatedCount = 0;
     let itemsUpdated = 0;
 
+    // Helper function for fuzzy matching
+    const fuzzyMatch = (str1, str2) => {
+      if (!str1 || !str2) return false;
+      const s1 = str1.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+      const s2 = str2.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+      
+      // Exact match after normalization
+      if (s1 === s2) return true;
+      
+      // Check if one contains the other (at least 80% match)
+      if (s1.length > 10 && s2.length > 10) {
+        if (s1.includes(s2) || s2.includes(s1)) return true;
+      }
+      
+      return false;
+    };
+
     // Process each order
     for (const order of orders) {
       if (!order.items || order.items.length === 0) continue;
@@ -28,7 +45,7 @@ Deno.serve(async (req) => {
         // Skip if item already has item_number
         if (item.item_number) return item;
         
-        // Try to find matching supply by ID or name
+        // Try to find matching supply by ID
         let supply = item.supply_id 
           ? supplies.find(s => s.id === item.supply_id)
           : null;
@@ -44,11 +61,16 @@ Deno.serve(async (req) => {
           supply = supplies.find(s => s.product_name?.toLowerCase().trim() === searchName);
         }
         
+        // If still not found, try fuzzy matching
+        if (!supply && item.supply_name) {
+          supply = supplies.find(s => fuzzyMatch(s.product_name, item.supply_name));
+        }
+        
         // If supply found with item_number, update the item
         if (supply && supply.item_number) {
           itemsUpdated++;
           orderUpdated = true;
-          return { ...item, item_number: supply.item_number };
+          return { ...item, item_number: supply.item_number, supply_id: supply.id };
         }
         
         return item;
