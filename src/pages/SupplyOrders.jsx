@@ -266,7 +266,13 @@ export default function SupplyOrders() {
                            <Button 
                              variant="outline"
                              size="sm"
-                             onClick={() => markOrderedMutation.mutate(order)}
+                             onClick={() => {
+                               if (!order.order_number || order.order_number.trim() === '') {
+                                 alert('Please ensure to update order number, before marking as ordered.');
+                                 return;
+                               }
+                               markOrderedMutation.mutate(order);
+                             }}
                              className="text-blue-600 border-blue-600 hover:bg-blue-50 w-full"
                              disabled={markOrderedMutation.isPending}
                            >
