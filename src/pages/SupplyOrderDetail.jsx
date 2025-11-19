@@ -158,8 +158,17 @@ export default function SupplyOrderDetail() {
                       <td className="p-4">
                         <p className="font-medium text-slate-900">{item.supply_name}</p>
                       </td>
-                      <td className="p-4 text-slate-600">
-                        {item.item_number || '-'}
+                      <td className="p-4">
+                        {item.item_number ? (
+                          <Link 
+                            to={createPageUrl('Supplies') + '?search=' + encodeURIComponent(item.item_number)}
+                            className="text-blue-600 hover:text-blue-800 hover:underline"
+                          >
+                            {item.item_number}
+                          </Link>
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
                       </td>
                       <td className="p-4 text-right text-slate-600">{item.quantity}</td>
                       <td className="p-4 text-right text-slate-600">
