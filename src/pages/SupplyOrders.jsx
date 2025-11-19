@@ -257,9 +257,6 @@ export default function SupplyOrders() {
                     >
                       Location <SortIcon field="location" />
                     </th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700 bg-slate-50">
-                      Items
-                    </th>
                     <th 
                       className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 bg-slate-50"
                       onClick={() => handleSort('order_date')}
@@ -288,21 +285,6 @@ export default function SupplyOrders() {
                      <td className="p-4 font-medium text-slate-900">{order.order_number || '-'}</td>
                      <td className="p-4 text-slate-600">{order.vendor}</td>
                      <td className="p-4 text-slate-600">{order.location}</td>
-                     <td className="p-4 text-slate-600">
-                       <div className="text-xs space-y-1">
-                         {order.items?.slice(0, 3).map((item, idx) => (
-                           <div key={idx} className="flex items-center gap-1">
-                             {item.item_number && (
-                               <span className="font-mono text-slate-500">#{item.item_number}</span>
-                             )}
-                             <span className="truncate max-w-[200px]">{item.supply_name}</span>
-                           </div>
-                         ))}
-                         {order.items?.length > 3 && (
-                           <div className="text-slate-400">+{order.items.length - 3} more</div>
-                         )}
-                       </div>
-                     </td>
                      <td className="p-4 text-slate-600">
                        {format(parseISO(order.order_date), 'MMM d, yyyy')}
                      </td>

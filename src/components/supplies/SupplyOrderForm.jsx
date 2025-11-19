@@ -33,7 +33,10 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
 
   useEffect(() => {
     if (order) {
-      setFormData(order);
+      setFormData({
+        ...order,
+        items: order.items || []
+      });
     }
   }, [order]);
 
