@@ -10,7 +10,8 @@ export default function SupplyForm({ supply, supplies, onSubmit, onCancel, isLoa
     product_name: '',
     vendor: '',
     unit_price: '',
-    units: ''
+    units: '',
+    image_url: ''
   });
 
   useEffect(() => {
@@ -20,7 +21,8 @@ export default function SupplyForm({ supply, supplies, onSubmit, onCancel, isLoa
         product_name: supply.product_name || '',
         vendor: supply.vendor || '',
         unit_price: supply.unit_price || '',
-        units: supply.units || ''
+        units: supply.units || '',
+        image_url: supply.image_url || ''
       });
     }
   }, [supply]);
@@ -107,6 +109,23 @@ export default function SupplyForm({ supply, supplies, onSubmit, onCancel, isLoa
                 onChange={(e) => setFormData({ ...formData, units: e.target.value })}
                 placeholder="e.g., box, each, case"
               />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="image_url">Image URL</Label>
+              <Input
+                id="image_url"
+                value={formData.image_url}
+                onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                placeholder="https://example.com/image.jpg"
+              />
+              {formData.image_url && (
+                <img 
+                  src={formData.image_url} 
+                  alt="Preview"
+                  className="mt-2 w-32 h-32 object-contain rounded border border-slate-200"
+                />
+              )}
             </div>
           </div>
 
