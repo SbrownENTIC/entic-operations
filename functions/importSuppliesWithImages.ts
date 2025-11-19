@@ -113,21 +113,27 @@ Deno.serve(async (req) => {
         // Find existing supply by item_number
         const existing = existingSupplies.find(s => s.item_number === itemNumber);
 
+        const csvImageUrl = imageUrlIndex !== -1 ? values[imageUrlIndex]?.replace(/"/g, '').trim() || '' : '';
+
         const data = {
           item_number: itemNumber,
           product_name: productName,
           vendor: vendorIndex !== -1 ? values[vendorIndex]?.replace(/"/g, '').trim() || 'Staples' : 'Staples',
           unit_price: unitPriceIndex !== -1 ? parseFloat(values[unitPriceIndex]?.replace(/"/g, '')) || 0 : 0,
-          units: unitsIndex !== -1 ? values[unitsIndex]?.replace(/"/g, '').trim() || 'each' : 'each',
-          image_url: imageUrlIndex !== -1 ? values[imageUrlIndex]?.replace(/"/g, '').trim() || '' : ''
+          units: unitsIndex !== -1 ? values[unitsIndex]?.replace(/"/g, '').trim() || 'each' : 'each'
         };
 
         if (existing) {
+          // Preserve manually updated image URLs - only update if CSV has value and existing doesn't
+          if (csvImageUrl && !existing.image_url) {
+            data.image_url = csvImageUrl;
+          }
           // Update existing supply
           await base44.asServiceRole.entities.Supply.update(existing.id, data);
           updated++;
         } else {
-          // Create new supply
+          // Create new supply with image URL
+          data.image_url = csvImageUrl;
           await base44.asServiceRole.entities.Supply.create(data);
           created++;
         }
