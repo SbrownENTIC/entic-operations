@@ -109,16 +109,18 @@ export default function SupplyOrders() {
   };
 
   const statusColors = {
+    pending_review: "bg-yellow-100 text-yellow-800",
+    pending_fulfillment: "bg-blue-100 text-blue-800",
+    approved: "bg-green-100 text-green-800",
+    rejected: "bg-red-100 text-red-800",
     order_placed: "bg-blue-100 text-blue-800",
     partially_received: "bg-yellow-100 text-yellow-800",
     received: "bg-green-100 text-green-800"
   };
 
   const formatStatus = (status) => {
-    if (status === 'order_placed') return 'Order Placed';
-    if (status === 'partially_received') return 'Partially Received';
-    if (status === 'received') return 'Received';
-    return status;
+    if (!status) return '-';
+    return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
 
   return (
@@ -214,49 +216,73 @@ export default function SupplyOrders() {
                 </thead>
                 <tbody>
                   {sortedOrders.map((order, index) => (
-                    <tr key={order.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                      <td className="p-4 text-slate-500 font-medium">{index + 1}</td>
-                      <td className="p-4 font-medium text-slate-900">{order.order_number || '-'}</td>
-                      <td className="p-4 text-slate-600">{order.vendor}</td>
-                      <td className="p-4 text-slate-600">{order.location}</td>
-                      <td className="p-4 text-slate-600">
-                        {format(parseISO(order.order_date), 'MMM d, yyyy')}
-                      </td>
-                      <td className="p-4 font-medium text-green-600">
-                        ${formatCurrency(order.total_amount || 0)}
-                      </td>
-                      <td className="p-4">
-                        <Badge className={statusColors[order.status]}>
-                          {formatStatus(order.status)}
-                        </Badge>
-                      </td>
-                      <td className="p-4 text-right">
-                        <div className="flex gap-2 justify-end">
-                          {order.status !== 'received' && (
-                            <Button 
-                              variant="outline"
-                              size="sm"
-                              onClick={() => markReceivedMutation.mutate(order)}
-                              className="text-green-600 border-green-600 hover:bg-green-50"
-                              disabled={markReceivedMutation.isPending}
-                            >
-                              <CheckCircle2 className="w-4 h-4 mr-1" />
-                              Mark Received
-                            </Button>
-                          )}
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => {
-                              setEditingOrder(order);
-                              setShowForm(true);
-                            }}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
+                   <>
+                     <tr key={order.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                       <td className="p-4 text-slate-500 font-medium">{index + 1}</td>
+                       <td className="p-4 font-medium text-slate-900">{order.order_number || '-'}</td>
+                       <td className="p-4 text-slate-600">{order.vendor}</td>
+                       <td className="p-4 text-slate-600">{order.location}</td>
+                       <td className="p-4 text-slate-600">
+                         {format(parseISO(order.order_date), 'MMM d, yyyy')}
+                       </td>
+                       <td className="p-4 font-medium text-green-600">
+                         ${formatCurrency(order.total_amount || 0)}
+                       </td>
+                       <td className="p-4">
+                         <Badge className={statusColors[order.status]}>
+                           {formatStatus(order.status)}
+                         </Badge>
+                       </td>
+                       <td className="p-4 text-right">
+                         <div className="flex gap-2 justify-end">
+                           {order.status !== 'received' && (
+                             <Button 
+                               variant="outline"
+                               size="sm"
+                               onClick={() => markReceivedMutation.mutate(order)}
+                               className="text-green-600 border-green-600 hover:bg-green-50"
+                               disabled={markReceivedMutation.isPending}
+                             >
+                               <CheckCircle2 className="w-4 h-4 mr-1" />
+                               Mark Received
+                             </Button>
+                           )}
+                           <Button 
+                             variant="ghost" 
+                             size="sm"
+                             onClick={() => {
+                               setEditingOrder(order);
+                               setShowForm(true);
+                             }}
+                           >
+                             <Pencil className="w-4 h-4" />
+                           </Button>
+                         </div>
+                       </td>
+                     </tr>
+                     {order.items && order.items.length > 0 && (
+                       <tr key={`${order.id}-items`} className="border-b border-slate-100 bg-slate-50/50">
+                         <td colSpan="8" className="p-4">
+                           <div className="text-sm text-slate-600 space-y-1">
+                             <div className="font-semibold mb-2">Order Items:</div>
+                             {order.items.map((item, idx) => (
+                               <div key={idx} className="flex items-center gap-2 pl-4">
+                                 <span className="text-slate-500">•</span>
+                                 <span className="font-medium">{item.supply_name}</span>
+                                 {item.item_number && (
+                                   <span className="text-slate-400">({item.item_number})</span>
+                                 )}
+                                 <span className="text-slate-400">× {item.quantity}</span>
+                                 {item.received && (
+                                   <span className="text-green-600 text-xs">✓ Received</span>
+                                 )}
+                               </div>
+                             ))}
+                           </div>
+                         </td>
+                       </tr>
+                     )}
+                   </>
                   ))}
                 </tbody>
               </table>
