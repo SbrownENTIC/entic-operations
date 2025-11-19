@@ -35,8 +35,24 @@ Deno.serve(async (req) => {
       }, { status: 400 });
     }
 
-    // Parse header row
-    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, '').toLowerCase().replace(/\s+/g, '_'));
+    // Parse header row - handle CSV properly
+    const headerLine = lines[0];
+    const headers = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < headerLine.length; i++) {
+      const char = headerLine[i];
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        headers.push(current.trim().replace(/"/g, '').toLowerCase().replace(/\s+/g, '_'));
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    headers.push(current.trim().replace(/"/g, '').toLowerCase().replace(/\s+/g, '_'));
     
     // Find column indexes
     const itemNumberIndex = headers.findIndex(h => h === 'item_number');
