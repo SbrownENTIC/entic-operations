@@ -19,20 +19,15 @@ Deno.serve(async (req) => {
     const extractResult = await base44.integrations.Core.ExtractDataFromUploadedFile({
       file_url: file_url,
       json_schema: {
-        type: "object",
-        properties: {
-          supplies: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                item_number: { type: "string" },
-                product_name: { type: "string" },
-                unit_price: { type: "number" },
-                units: { type: "string" },
-                image_url: { type: "string" }
-              }
-            }
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            item_number: { type: "string", description: "From 'Item Numb.' column" },
+            product_name: { type: "string", description: "From 'Product Name' column" },
+            unit_price: { type: "number", description: "From 'Unit Price' column" },
+            units: { type: "string", description: "From 'Units' column" },
+            image_url: { type: "string", description: "From 'Image URL' column" }
           }
         }
       }
@@ -45,7 +40,7 @@ Deno.serve(async (req) => {
       }, { status: 400 });
     }
 
-    const supplies = extractResult.output.supplies || extractResult.output;
+    const supplies = Array.isArray(extractResult.output) ? extractResult.output : extractResult.output.supplies || [];
     
     // Get all existing supplies
     const existingSupplies = await base44.asServiceRole.entities.Supply.list();
