@@ -287,8 +287,8 @@ export default function ProviderTimeOff() {
   return (
     <>
     <div className="h-screen overflow-hidden flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <div className="flex-shrink-0 p-6 md:p-8">
-        <div className="max-w-7xl mx-auto space-y-6">
+      <div className="flex-shrink-0 p-4 md:p-6">
+        <div className="max-w-7xl mx-auto space-y-4">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Provider Time Off & CME Tracker</h1>
