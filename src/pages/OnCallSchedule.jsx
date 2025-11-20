@@ -652,7 +652,7 @@ export default function OnCallSchedule() {
                 {/* Calendar Header */}
                 <div className="grid grid-cols-7 border-b border-slate-200 min-w-[900px]">
                   {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                    <div key={day} className="p-3 text-center text-sm font-semibold text-slate-700 border-r border-slate-200 last:border-r-0">
+                    <div key={day} className="p-1.5 text-center text-xs font-semibold text-slate-700 border-r border-slate-200 last:border-r-0">
                       {day}
                     </div>
                   ))}
@@ -661,7 +661,7 @@ export default function OnCallSchedule() {
                 {/* Calendar Grid */}
                 <div className="min-w-[900px]">
                   {weeks.map((week, weekIndex) => (
-                    <div key={weekIndex} className="grid grid-cols-7" style={{ minHeight: '100px' }}>
+                    <div key={weekIndex} className="grid grid-cols-7" style={{ minHeight: '65px' }}>
                       {week.map((day, dayIndex) => {
                         const daySchedules = getSchedulesForDay(day);
                         const isCurrentMonth = isSameMonth(day, currentMonth);
@@ -669,17 +669,17 @@ export default function OnCallSchedule() {
                         return (
                           <div
                             key={dayIndex}
-                            className={`border-r border-b border-slate-200 last:border-r-0 p-2 relative ${
+                            className={`border-r border-b border-slate-200 last:border-r-0 relative ${
                               !isCurrentMonth ? 'bg-slate-50' : 'bg-white'
                             }`}
                           >
-                            <div className={`text-sm font-medium mb-2 ${
+                            <div className={`absolute top-0.5 left-0.5 text-[10px] font-medium z-20 ${
                               !isCurrentMonth ? 'text-slate-400' : 'text-slate-700'
                             }`}>
                               {format(day, 'd')}
                             </div>
 
-                            <div className="space-y-1">
+                            <div className="space-y-0">
                               {daySchedules.map((schedule, schedIndex) => {
                                 const isFirstDay = isFirstDayOfSchedule(schedule, day, week);
 
@@ -691,10 +691,9 @@ export default function OnCallSchedule() {
                                   <div
                                    key={schedule.id}
                                    onClick={() => handleEditSchedule(schedule)}
-                                   className={`absolute left-1 right-1 ${schedule.color} text-white text-xs px-1 py-0.5 rounded cursor-pointer hover:opacity-90 transition-opacity shadow-sm z-10`}
+                                   className={`absolute inset-0 ${schedule.color} text-white text-xs px-1.5 py-1 rounded cursor-pointer hover:opacity-90 transition-opacity shadow-sm z-10 flex flex-col justify-center`}
                                    style={{
-                                     width: `calc(${span * 100}% + ${(span - 1) * 100}%)`,
-                                     top: `${22 + schedIndex * 24}px`
+                                     width: `calc(${span * 100}% + ${(span - 1) * 1}px)`,
                                    }}
                                   >
                                    <div className="text-[9px] truncate leading-tight">
