@@ -182,14 +182,14 @@ export default function Layout({ children, currentPageName }) {
         <div className="px-4 lg:px-6">
           <div className="flex items-center justify-between h-16">
             {/* Logo and Brand */}
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-1">
               <img 
                 src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/691521cbabed77e5043c7037/267bf0119_thumbnail_ENTIC_horizontal_BKGD.png" 
                 alt="ENTIC Logo" 
                 className="h-8 w-auto"
               />
-              <div className="hidden md:block">
-                <h2 className="font-bold text-slate-900 text-sm">Operations Center</h2>
+              <div>
+                <h2 className="font-bold text-slate-900 text-xs">Operations Center</h2>
                 <p className="text-xs text-slate-600">Provider Management</p>
               </div>
             </div>
