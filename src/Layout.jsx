@@ -118,6 +118,15 @@ export default function Layout({ children, currentPageName }) {
     refetchInterval: 30000 // Refetch every 30 seconds
   });
 
+  // Hide sidebar for public pages
+  if (currentPageName === 'PublicSupplyRequest') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+        {children}
+      </div>
+    );
+  }
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
