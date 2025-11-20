@@ -13,7 +13,7 @@ import { Plus, Trash2, Search, Check, CheckCircle, AlertCircle } from "lucide-re
 
 export default function PublicSupplyRequest() {
   const [formData, setFormData] = useState({
-    location: '',
+    location: '', // No default location - user must select
     requester_name: '',
     requester_email: '',
     requested_date: new Date().toISOString().split('T')[0],
