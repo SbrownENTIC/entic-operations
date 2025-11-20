@@ -393,24 +393,6 @@ export default function OnCallSchedule() {
               {viewMode === 'calendar' ? 'List View' : 'Calendar View'}
             </Button>
             <Button
-              onClick={handleUpdateAllProviders}
-              disabled={updatingProviders}
-              variant="outline"
-              className="gap-2 border-purple-600 text-purple-600 hover:bg-purple-50"
-            >
-              <UserCheck className={`w-4 h-4 ${updatingProviders ? 'animate-spin' : ''}`} />
-              {updatingProviders ? 'Updating...' : 'Update All Providers'}
-            </Button>
-            <Button
-              onClick={handleSync2026StFrancis}
-              disabled={syncing}
-              variant="outline"
-              className="gap-2"
-            >
-              <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-              {syncing ? 'Syncing...' : 'Sync 2026 St. Francis'}
-            </Button>
-            <Button
               onClick={() => {
                 setEditingSchedule(null);
                 setShowForm(true);
@@ -707,25 +689,20 @@ export default function OnCallSchedule() {
 
                                 return (
                                   <div
-                                    key={schedule.id}
-                                    onClick={() => handleEditSchedule(schedule)}
-                                    className={`absolute left-2 right-0 ${schedule.color} text-white text-xs px-2 py-1.5 rounded cursor-pointer hover:opacity-90 transition-opacity shadow-sm z-10`}
-                                    style={{
-                                      width: `calc(${span * 100}% + ${(span - 1) * 100}%)`,
-                                      top: `${40 + schedIndex * 36}px`
-                                    }}
+                                   key={schedule.id}
+                                   onClick={() => handleEditSchedule(schedule)}
+                                   className={`absolute left-2 right-0 ${schedule.color} text-white text-xs px-1.5 py-1 rounded cursor-pointer hover:opacity-90 transition-opacity shadow-sm z-10`}
+                                   style={{
+                                     width: `calc(${span * 100}% + ${(span - 1) * 100}%)`,
+                                     top: `${30 + schedIndex * 28}px`
+                                   }}
                                   >
-                                    <div className="font-semibold truncate">
+                                    <div className="text-[10px] truncate">
                                       {schedule.start_time} - {schedule.end_time}
                                     </div>
-                                    <div className="font-medium truncate">
+                                    <div className="font-medium truncate text-[11px]">
                                       {schedule.provider?.full_name}
                                     </div>
-                                    {schedule.provider?.phone && (
-                                      <div className="truncate text-[10px] opacity-90">
-                                        {schedule.provider.phone}
-                                      </div>
-                                    )}
                                   </div>
                                 );
                               })}
