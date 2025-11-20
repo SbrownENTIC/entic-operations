@@ -59,7 +59,8 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
   const manualEditFlags = useRef({
     subtotal: false,
     total: false,
-    amount_expected: false
+    amount_expected: false,
+    status: false
   });
 
   const { data: providers = [] } = useQuery({
@@ -116,12 +117,13 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
         ...invoice,
         outside_income_ids: invoice.outside_income_ids || []
       });
-      // If editing existing invoice, mark all monetary fields as manually edited
+      // If editing existing invoice, mark all fields as manually edited
       // to prevent auto-updates overriding existing data.
       manualEditFlags.current = {
         subtotal: true,
         total: true,
-        amount_expected: true
+        amount_expected: true,
+        status: true
       };
     } else if (preselectedIncomes.length > 0) {
       const selectedIncomes = incomes.filter(inc => preselectedIncomes.includes(inc.id));
@@ -153,7 +155,8 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
       manualEditFlags.current = {
         subtotal: false,
         total: false,
-        amount_expected: false
+        amount_expected: false,
+        status: false
       };
     }
   }, [invoice, preselectedIncomes, incomes, programLocations]);
@@ -206,7 +209,17 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
     }
   }, [formData.staff_member_id, providers]);
 
-  // Removed auto-status updates to preserve manual status changes
+  useEffect(() => {
+    if (!manualEditFlags.current.status && formData.provider_paid) {
+      setFormData(prev => ({ ...prev, status: 'provider_paid' }));
+    }
+  }, [formData.provider_paid]);
+
+  useEffect(() => {
+    if (!manualEditFlags.current.status && formData.invoice_sent_to_vendor && formData.status !== 'sent_to_vendor' && formData.status !== 'paid_to_entic' && formData.status !== 'provider_paid') {
+      setFormData(prev => ({ ...prev, status: 'sent_to_vendor' }));
+    }
+  }, [formData.invoice_sent_to_vendor, formData.status]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -471,7 +484,10 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
 
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
-              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+              <Select value={formData.status} onValueChange={(value) => {
+                manualEditFlags.current.status = true;
+                setFormData({ ...formData, status: value });
+              }}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
