@@ -691,18 +691,23 @@ export default function OnCallSchedule() {
                                   <div
                                    key={schedule.id}
                                    onClick={() => handleEditSchedule(schedule)}
-                                   className={`absolute left-2 right-0 ${schedule.color} text-white text-xs px-1.5 py-1 rounded cursor-pointer hover:opacity-90 transition-opacity shadow-sm z-10`}
+                                   className={`absolute left-1 right-1 ${schedule.color} text-white text-xs px-1 py-0.5 rounded cursor-pointer hover:opacity-90 transition-opacity shadow-sm z-10`}
                                    style={{
                                      width: `calc(${span * 100}% + ${(span - 1) * 100}%)`,
-                                     top: `${30 + schedIndex * 28}px`
+                                     top: `${22 + schedIndex * 24}px`
                                    }}
                                   >
-                                    <div className="text-[10px] truncate">
-                                      {schedule.start_time} - {schedule.end_time}
-                                    </div>
-                                    <div className="font-medium truncate text-[11px]">
-                                      {schedule.provider?.full_name}
-                                    </div>
+                                   <div className="text-[9px] truncate leading-tight">
+                                     {schedule.start_time} - {schedule.end_time}
+                                   </div>
+                                   <div className="font-semibold truncate text-[10px] leading-tight">
+                                     {schedule.provider?.full_name}
+                                   </div>
+                                   {schedule.provider?.phone && (
+                                     <div className="truncate text-[9px] opacity-90 leading-tight">
+                                       {schedule.provider.phone}
+                                     </div>
+                                   )}
                                   </div>
                                 );
                               })}
