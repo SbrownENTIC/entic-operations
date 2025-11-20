@@ -511,54 +511,41 @@ export default function Dashboard() {
         )}
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Active Providers</CardTitle>
-              <Users className="w-4 h-4 text-blue-600" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="border-3 border-orange-500 bg-gradient-to-br from-orange-100 to-orange-50 shadow-xl shadow-orange-200/50 hover:scale-105 transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-orange-300">
+              <CardTitle className="text-base font-bold text-slate-900">Licenses Expiring (60d)</CardTitle>
+              <AlertTriangle className="w-6 h-6 text-orange-700 animate-pulse" />
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-slate-900">{activeProviders}</div>
-              <Link to={createPageUrl("Providers")} className="text-xs text-blue-600 hover:underline">
-                View all providers →
-              </Link>
-            </CardContent>
-          </Card>
-
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Licenses Expiring (60d)</CardTitle>
-              <AlertTriangle className="w-4 h-4 text-yellow-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-slate-900">{licensesExpiring60Days.length}</div>
-              <Link to={createPageUrl("Licenses")} className="text-xs text-blue-600 hover:underline">
+            <CardContent className="pt-4">
+              <div className="text-5xl font-bold text-orange-700 mb-2">{licensesExpiring60Days.length}</div>
+              <Link to={createPageUrl("Licenses")} className="text-sm text-orange-700 hover:text-orange-900 font-semibold hover:underline">
                 View licenses →
               </Link>
             </CardContent>
           </Card>
 
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Privileges Expiring (30d)</CardTitle>
-              <Award className="w-4 h-4 text-purple-600" />
+          <Card className="border-3 border-purple-500 bg-gradient-to-br from-purple-100 to-purple-50 shadow-xl shadow-purple-200/50 hover:scale-105 transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-purple-300">
+              <CardTitle className="text-base font-bold text-slate-900">Privileges Expiring (30d)</CardTitle>
+              <Award className="w-6 h-6 text-purple-700 animate-pulse" />
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-slate-900">{privilegesExpiring30Days.length}</div>
-              <Link to={createPageUrl("ClinicalPrivileges")} className="text-xs text-blue-600 hover:underline">
+            <CardContent className="pt-4">
+              <div className="text-5xl font-bold text-purple-700 mb-2">{privilegesExpiring30Days.length}</div>
+              <Link to={createPageUrl("ClinicalPrivileges")} className="text-sm text-purple-700 hover:text-purple-900 font-semibold hover:underline">
                 View privileges →
               </Link>
             </CardContent>
           </Card>
 
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Pending Invoices</CardTitle>
-              <FileText className="w-4 h-4 text-yellow-600" />
+          <Card className="border-3 border-yellow-500 bg-gradient-to-br from-yellow-100 to-yellow-50 shadow-xl shadow-yellow-200/50 hover:scale-105 transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-yellow-300">
+              <CardTitle className="text-base font-bold text-slate-900">Pending Invoices</CardTitle>
+              <FileText className="w-6 h-6 text-yellow-700 animate-pulse" />
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-slate-900">{pendingInvoices}</div>
-              <Link to={createPageUrl("Invoices")} className="text-xs text-blue-600 hover:underline">
+            <CardContent className="pt-4">
+              <div className="text-5xl font-bold text-yellow-700 mb-2">{pendingInvoices}</div>
+              <Link to={createPageUrl("Invoices")} className="text-sm text-yellow-700 hover:text-yellow-900 font-semibold hover:underline">
                 View invoices →
               </Link>
             </CardContent>
