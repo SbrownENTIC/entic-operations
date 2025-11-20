@@ -408,5 +408,6 @@ export default function Supplies() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </>
   );
 }
