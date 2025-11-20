@@ -193,26 +193,16 @@ export default function SupplyOrders() {
             <h1 className="text-2xl font-bold text-slate-900">Supply Orders</h1>
             <p className="text-slate-600 text-sm">Track supply orders and deliveries</p>
           </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={handleFillItemNumbers}
-              variant="outline"
-              disabled={filling}
-              className="border-purple-600 text-purple-600 hover:bg-purple-50"
-            >
-              {filling ? 'Filling...' : 'Fill Item Numbers'}
-            </Button>
-            <Button
-              onClick={() => {
-                setEditingOrder(null);
-                setShowForm(true);
-              }}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              New Order
-            </Button>
-          </div>
+          <Button
+            onClick={() => {
+              setEditingOrder(null);
+              setShowForm(true);
+            }}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            New Order
+          </Button>
         </div>
 
         {fillMessage && (
