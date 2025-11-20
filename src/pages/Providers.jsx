@@ -287,21 +287,25 @@ export default function Providers() {
                           {provider.termination_date ? format(parseISO(provider.termination_date), 'MM-dd-yyyy') : '-'}
                         </td>
                         <td className="p-4">
-                          <div className="flex items-center gap-2">
-                            {hasFluVaccine ? (
-                              <>
-                                <CheckCircle className="w-5 h-5 text-green-600" />
-                                <span className="text-sm text-slate-600">
-                                  {format(parseISO(provider.flu_vaccine_date), 'MM-dd-yyyy')}
-                                </span>
-                              </>
-                            ) : (
-                              <>
-                                <XCircle className="w-5 h-5 text-red-600" />
-                                <span className="text-sm text-slate-400">Not current</span>
-                              </>
-                            )}
-                          </div>
+                          {provider.role === 'ENT MD' ? (
+                            <div className="flex items-center gap-2">
+                              {hasFluVaccine ? (
+                                <>
+                                  <CheckCircle className="w-5 h-5 text-green-600" />
+                                  <span className="text-sm text-slate-600">
+                                    {format(parseISO(provider.flu_vaccine_date), 'MM-dd-yyyy')}
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  <XCircle className="w-5 h-5 text-red-600" />
+                                  <span className="text-sm text-slate-400">Not current</span>
+                                </>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-sm text-slate-400">-</span>
+                          )}
                         </td>
                         <td className="p-4 text-right">
                           <div className="flex gap-2 justify-end">
