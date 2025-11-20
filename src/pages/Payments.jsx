@@ -526,7 +526,7 @@ export default function Payments() {
           .print-content .overflow-auto { overflow: visible !important; max-height: none !important; }
         }
       `}</style>
-      <div className="flex-shrink-0 p-2 md:p-3">
+      <div className="flex-shrink-0 p-2 md:p-3 overflow-y-auto max-h-[calc(100vh-200px)]">
         <div className="max-w-7xl mx-auto w-full space-y-2">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 no-print">
           <div>
