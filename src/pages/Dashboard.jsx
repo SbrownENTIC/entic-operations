@@ -486,20 +486,9 @@ export default function Dashboard() {
   return (
     <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
-            <p className="text-slate-600 mt-1">Overview of your medical practice</p>
-          </div>
-          <Button 
-            onClick={handleSyncPaymentsAndInvoices}
-            disabled={syncing}
-            variant="outline"
-            className="gap-2"
-          >
-            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-            {syncing ? 'Syncing...' : 'Sync Payments & Invoices'}
-          </Button>
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
+          <p className="text-slate-600 mt-1">Overview of your medical practice</p>
         </div>
 
         {syncMessage && (
