@@ -409,48 +409,12 @@ export default function OutsideIncome() {
               Print
             </Button>
             <Button
-              onClick={handleFixAmounts}
-              disabled={fixingAmounts}
-              variant="outline"
-              className="gap-2 border-orange-600 text-orange-600 hover:bg-orange-50"
-            >
-              <DollarSign className={`w-4 h-4 ${fixingAmounts ? 'animate-spin' : ''}`} />
-              {fixingAmounts ? 'Fixing...' : 'Fix Amounts'}
-            </Button>
-            <Button
               onClick={exportToCSV}
               variant="outline"
               className="gap-2"
             >
               <Download className="w-4 h-4" />
               Export CSV
-            </Button>
-            <Button
-              onClick={handleLinkOnCallDates}
-              disabled={linkingOnCall}
-              variant="outline"
-              className="gap-2 border-purple-600 text-purple-600 hover:bg-purple-50"
-            >
-              <UserCheck className={`w-4 h-4 ${linkingOnCall ? 'animate-spin' : ''}`} />
-              {linkingOnCall ? 'Linking...' : 'Link On-Call Dates'}
-            </Button>
-            <Button
-              onClick={handleLinkStFrancisProviders}
-              disabled={linkingProviders}
-              variant="outline"
-              className="gap-2 border-blue-600 text-blue-600 hover:bg-blue-50"
-            >
-              <UserCheck className={`w-4 h-4 ${linkingProviders ? 'animate-spin' : ''}`} />
-              {linkingProviders ? 'Linking...' : 'Link St. Francis Providers'}
-            </Button>
-            <Button
-              onClick={handleLinkUConnProviders}
-              disabled={linkingUConnProviders}
-              variant="outline"
-              className="gap-2 border-green-600 text-green-600 hover:bg-green-50"
-            >
-              <UserCheck className={`w-4 h-4 ${linkingUConnProviders ? 'animate-spin' : ''}`} />
-              {linkingUConnProviders ? 'Linking...' : 'Link UConn Providers'}
             </Button>
             {selectedIncomes.length > 0 && (
               <Button
