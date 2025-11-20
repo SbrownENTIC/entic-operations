@@ -795,12 +795,12 @@ export default function Dashboard() {
                 {doctorsNonCompliant.map(doctor => {
                   const credits = cmeByProvider[doctor.id] || 0;
                   return (
-                    <div key={doctor.id} className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-200">
+                    <div key={doctor.id} className="flex items-center justify-between p-4 bg-gradient-to-r from-red-100 to-red-50 rounded-lg border-2 border-red-400 shadow-md hover:shadow-lg transition-all duration-200">
                       <div className="flex-1">
-                        <p className="font-medium text-slate-900">{doctor.full_name}</p>
-                        <p className="text-sm text-slate-600">{credits} CME credits</p>
+                        <p className="font-bold text-slate-900">{doctor.full_name}</p>
+                        <p className="text-sm text-slate-700 font-medium">{credits} / 3 CME credits</p>
                       </div>
-                      <Badge variant="secondary" className="bg-red-100 text-red-800">
+                      <Badge className="bg-red-600 text-white border-0 font-bold">
                         Non-compliant
                       </Badge>
                     </div>
@@ -928,44 +928,54 @@ export default function Dashboard() {
 
 function LicenseExpirationCard({ title, licenses, providers, severity }) {
   const severityColors = {
-    high: 'border-red-200 bg-red-50',
-    medium: 'border-orange-200 bg-orange-50',
-    low: 'border-yellow-200 bg-yellow-50',
-    info: 'border-blue-200 bg-blue-50'
+    high: 'border-red-500 bg-gradient-to-br from-red-100 to-red-50 shadow-lg shadow-red-200/50',
+    medium: 'border-orange-500 bg-gradient-to-br from-orange-100 to-orange-50 shadow-lg shadow-orange-200/50',
+    low: 'border-yellow-500 bg-gradient-to-br from-yellow-100 to-yellow-50 shadow-lg shadow-yellow-200/50',
+    info: 'border-blue-400 bg-gradient-to-br from-blue-50 to-slate-50 shadow-md'
+  };
+
+  const iconClasses = {
+    high: 'text-red-700 w-5 h-5 animate-pulse',
+    medium: 'text-orange-700 w-5 h-5',
+    low: 'text-yellow-700 w-5 h-5',
+    info: 'text-blue-600 w-4 h-4'
+  };
+
+  const itemColors = {
+    high: 'bg-white border-red-300 hover:border-red-400 hover:shadow-md',
+    medium: 'bg-white border-orange-300 hover:border-orange-400 hover:shadow-md',
+    low: 'bg-white border-yellow-300 hover:border-yellow-400 hover:shadow-md',
+    info: 'bg-white border-blue-200 hover:border-blue-300 hover:shadow-md'
   };
 
   return (
-    <Card className={`border shadow-sm ${severityColors[severity]}`}>
-      <CardHeader className="border-b border-slate-100 bg-white">
+    <Card className={`border-2 ${severityColors[severity]} transition-all duration-300 hover:scale-105`}>
+      <CardHeader className="border-b-2 border-slate-200 bg-white/80 backdrop-blur-sm">
         <div className="flex items-center gap-2">
-          <AlertTriangle className={`w-4 h-4 ${
-            severity === 'high' ? 'text-red-600' : 
-            severity === 'medium' ? 'text-orange-600' : 
-            severity === 'low' ? 'text-yellow-600' :
-            'text-blue-600'
-          }`} />
-          <CardTitle className="text-sm">{title}</CardTitle>
+          <AlertTriangle className={iconClasses[severity]} />
+          <CardTitle className="text-sm font-bold text-slate-900">{title}</CardTitle>
         </div>
+        <div className="text-2xl font-bold text-slate-900 mt-2">{licenses.length}</div>
       </CardHeader>
-      <CardContent className="p-4 bg-white">
+      <CardContent className="p-4 bg-white/60 backdrop-blur-sm">
         {licenses.length > 0 ? (
           <div className="space-y-2">
             {licenses.slice(0, 3).map(license => {
               const provider = providers.find(p => p.id === license.provider_id);
               const daysUntil = differenceInDays(parseISO(license.expiration_date), new Date());
               return (
-                <div key={license.id} className="flex items-center justify-between p-2 bg-slate-50 rounded border border-slate-200">
+                <div key={license.id} className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all duration-200 ${itemColors[severity]}`}>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-slate-900 text-sm truncate">{provider?.full_name}</p>
-                    <p className="text-xs text-slate-600">
+                    <p className="font-semibold text-slate-900 text-sm truncate">{provider?.full_name}</p>
+                    <p className="text-xs text-slate-700 font-medium">
                       {license.license_type}
                     </p>
                   </div>
-                  <Badge variant="outline" className={`text-xs ml-2 ${
-                    daysUntil <= 7 ? 'border-red-300 text-red-700' : 
-                    daysUntil <= 14 ? 'border-orange-300 text-orange-700' : 
-                    daysUntil <= 30 ? 'border-yellow-300 text-yellow-700' :
-                    'border-blue-300 text-blue-700'
+                  <Badge className={`text-xs ml-2 font-bold ${
+                    daysUntil <= 7 ? 'bg-red-600 text-white border-0' : 
+                    daysUntil <= 14 ? 'bg-orange-600 text-white border-0' : 
+                    daysUntil <= 30 ? 'bg-yellow-600 text-white border-0' :
+                    'bg-blue-600 text-white border-0'
                   }`}>
                     {daysUntil}d
                   </Badge>
@@ -973,13 +983,16 @@ function LicenseExpirationCard({ title, licenses, providers, severity }) {
               );
             })}
             {licenses.length > 3 && (
-              <p className="text-xs text-slate-500 text-center pt-1">
-                +{licenses.length - 3} more
-              </p>
+              <Link to={createPageUrl("Licenses")} className="block text-xs text-blue-600 hover:text-blue-800 font-semibold text-center pt-2 hover:underline">
+                View all {licenses.length} →
+              </Link>
             )}
           </div>
         ) : (
-          <p className="text-center py-4 text-slate-500 text-sm">None expiring</p>
+          <div className="text-center py-6 bg-green-50 rounded-lg border border-green-200">
+            <CheckCircle2 className="w-8 h-8 text-green-600 mx-auto mb-1" />
+            <p className="text-sm text-green-700 font-medium">None expiring</p>
+          </div>
         )}
       </CardContent>
     </Card>
