@@ -37,41 +37,6 @@ const navigationItems = [
     icon: LayoutDashboard,
   },
   {
-    title: "Providers",
-    url: createPageUrl("Providers"),
-    icon: Users,
-  },
-  {
-    title: "Clinical Privileges",
-    url: createPageUrl("ClinicalPrivileges"),
-    icon: Award,
-  },
-  {
-    title: "CME Tracking",
-    url: createPageUrl("CMETracking"),
-    icon: GraduationCap,
-  },
-  {
-    title: "Licenses",
-    url: createPageUrl("Licenses"),
-    icon: ShieldCheck,
-  },
-  {
-    title: "Time Off & CME",
-    url: createPageUrl("ProviderTimeOff"),
-    icon: Calendar,
-  },
-  {
-    title: "Supply Catalog",
-    url: createPageUrl("Supplies"),
-    icon: Boxes,
-  },
-  {
-    title: "Supply Orders",
-    url: createPageUrl("SupplyOrders"),
-    icon: Package,
-  },
-  {
     title: "On-Call Schedule",
     url: createPageUrl("OnCallSchedule"),
     icon: Calendar,
@@ -86,18 +51,53 @@ const navigationItems = [
     url: createPageUrl("Invoices"),
     icon: FileText,
   },
-];
-
-const moreMenuItems = [
+  {
+    title: "Supply Orders",
+    url: createPageUrl("SupplyOrders"),
+    icon: Package,
+  },
   {
     title: "Payments",
     url: createPageUrl("Payments"),
     icon: CreditCard,
   },
   {
+    title: "Time Off & CME",
+    url: createPageUrl("ProviderTimeOff"),
+    icon: Calendar,
+  },
+  {
     title: "Reminders",
     url: createPageUrl("Reminders"),
     icon: Bell,
+  },
+];
+
+const moreMenuItems = [
+  {
+    title: "Providers",
+    url: createPageUrl("Providers"),
+    icon: Users,
+  },
+  {
+    title: "Clinical Privileges",
+    url: createPageUrl("ClinicalPrivileges"),
+    icon: Award,
+  },
+  {
+    title: "Licenses",
+    url: createPageUrl("Licenses"),
+    icon: ShieldCheck,
+  },
+  {
+    title: "CME Tracking",
+    url: createPageUrl("CMETracking"),
+    icon: GraduationCap,
+  },
+  {
+    title: "Supply Catalog",
+    url: createPageUrl("Supplies"),
+    icon: Boxes,
   },
   {
     title: "Reports",
@@ -214,7 +214,7 @@ export default function Layout({ children, currentPageName }) {
                 <Link
                   key={item.title}
                   to={item.url}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 border w-[140px] justify-center ${
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 border min-w-[145px] justify-center ${
                     location.pathname === item.url
                       ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md border-blue-600'
                       : 'bg-white text-slate-700 hover:bg-blue-50 border-slate-200 hover:border-blue-300 shadow-sm hover:shadow'
