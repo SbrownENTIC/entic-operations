@@ -224,6 +224,9 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Check if status was manually changed
+    const statusChanged = invoice && invoice.status !== formData.status;
+
     let finalData = { ...formData };
 
     if (!finalData.invoice_number && finalData.program_group === 'UConn') {
@@ -250,7 +253,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
       finalData.sent_to_vendor_at = invoice?.sent_to_vendor_at || null;
     }
 
-    onSubmit(finalData);
+    onSubmit(finalData, statusChanged);
   };
 
   const toggleIncome = (incomeId) => {
@@ -483,7 +486,14 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
+              <Label htmlFor="status">
+                Status
+                {invoice?.manual_status_override && (
+                  <span className="ml-2 text-xs text-orange-600 font-normal">
+                    🔒 Manual Override - Won't Auto-Update
+                  </span>
+                )}
+              </Label>
               <Select value={formData.status} onValueChange={(value) => {
                 manualEditFlags.current.status = true;
                 setFormData({ ...formData, status: value });
