@@ -650,9 +650,9 @@ export default function OnCallSchedule() {
             <CardContent className="p-0 flex-1 overflow-auto">
               <div className="bg-white overflow-x-auto">
                 {/* Calendar Header */}
-                <div className="grid grid-cols-7 border-b border-slate-200 min-w-[900px]">
+                <div className="grid grid-cols-7 border-b-2 border-slate-300 min-w-[900px] bg-slate-100">
                   {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                    <div key={day} className="p-1.5 text-center text-xs font-semibold text-slate-700 border-r border-slate-200 last:border-r-0">
+                    <div key={day} className="p-2 text-center text-xs font-bold text-slate-800 border-r-2 border-slate-300 last:border-r-0">
                       {day}
                     </div>
                   ))}
@@ -669,12 +669,12 @@ export default function OnCallSchedule() {
                         return (
                           <div
                             key={dayIndex}
-                            className={`border-r border-b border-slate-200 last:border-r-0 relative ${
-                              !isCurrentMonth ? 'bg-slate-50' : 'bg-white'
+                            className={`border-r-2 border-b-2 border-slate-300 last:border-r-0 relative ${
+                              !isCurrentMonth ? 'bg-slate-100' : 'bg-white'
                             }`}
                           >
-                            <div className={`absolute top-0.5 left-0.5 text-[10px] font-medium z-20 ${
-                              !isCurrentMonth ? 'text-slate-400' : 'text-slate-700'
+                            <div className={`absolute top-1 left-1 text-xs font-bold z-20 px-1.5 py-0.5 rounded ${
+                              !isCurrentMonth ? 'text-slate-400 bg-slate-200' : 'text-slate-800 bg-slate-100'
                             }`}>
                               {format(day, 'd')}
                             </div>
