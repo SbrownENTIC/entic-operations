@@ -189,21 +189,31 @@ export default function Layout({ children, currentPageName }) {
                 className="h-8 w-auto"
               />
               <div>
-                <h2 className="font-bold text-slate-900 text-xs">Operations Center</h2>
-                <p className="text-xs text-slate-600">Provider Management</p>
+                <h2 className="font-bold text-slate-900 text-sm">Operations Center</h2>
               </div>
             </div>
 
             {/* Desktop Navigation */}
-            <div className="hidden lg:flex items-center gap-1 flex-1 justify-center px-8">
+            <div className="hidden lg:flex items-center gap-2 flex-1 justify-center px-8">
+              <Link 
+                to={createPageUrl("SupplyOrders") + "?filter=pending"}
+                className="relative p-2 hover:bg-blue-50 rounded-lg transition-all border border-transparent hover:border-blue-200"
+              >
+                <Bell className="w-5 h-5 text-slate-600" />
+                {pendingOrders.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg">
+                    {pendingOrders.length}
+                  </span>
+                )}
+              </Link>
               {navigationItems.map((item) => (
                 <Link
                   key={item.title}
                   to={item.url}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 border ${
                     location.pathname === item.url
-                      ? 'bg-blue-100 text-blue-700 font-medium'
-                      : 'text-slate-700 hover:bg-slate-100'
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md border-blue-600'
+                      : 'bg-white text-slate-700 hover:bg-blue-50 border-slate-200 hover:border-blue-300 shadow-sm hover:shadow'
                   }`}
                 >
                   <item.icon className="w-4 h-4" />
@@ -212,11 +222,11 @@ export default function Layout({ children, currentPageName }) {
               ))}
             </div>
 
-            {/* Right side - Notifications and Mobile Menu */}
+            {/* Right side - Mobile Menu */}
             <div className="flex items-center gap-2">
               <Link 
                 to={createPageUrl("SupplyOrders") + "?filter=pending"}
-                className="relative p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                className="relative p-2 hover:bg-slate-100 rounded-lg transition-colors lg:hidden"
               >
                 <Bell className="w-5 h-5 text-slate-600" />
                 {pendingOrders.length > 0 && (

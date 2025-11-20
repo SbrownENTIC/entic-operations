@@ -184,8 +184,9 @@ export default function SupplyOrders() {
   };
 
   return (
-    <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="h-screen overflow-hidden flex flex-col bg-slate-50">
+      <div className="flex-shrink-0 p-6 md:p-8">
+        <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Supply Orders</h1>
@@ -232,9 +233,13 @@ export default function SupplyOrders() {
             isLoading={createMutation.isPending || updateMutation.isPending}
           />
         )}
+        </div>
+      </div>
 
-        <Card className="border-slate-200 shadow-sm">
-          <CardHeader className="border-b border-slate-100">
+      <div className="flex-1 overflow-hidden px-6 md:px-8 pb-6">
+        <div className="max-w-7xl mx-auto h-full">
+        <Card className="border-slate-200 shadow-sm h-full flex flex-col">
+          <CardHeader className="border-b border-slate-100 flex-shrink-0">
             <div className="flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-2 flex-1 min-w-[200px]">
                 <Search className="w-5 h-5 text-slate-400" />
@@ -263,8 +268,8 @@ export default function SupplyOrders() {
               </Select>
             </div>
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-auto max-h-[calc(100vh-230px)]">
+          <CardContent className="p-0 flex-1 overflow-hidden">
+            <div className="overflow-auto h-full">
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                   <tr>
