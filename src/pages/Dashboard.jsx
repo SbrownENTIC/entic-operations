@@ -598,7 +598,7 @@ export default function Dashboard() {
         <Card className="border-slate-200 shadow-sm">
           <CardHeader className="border-b border-slate-100 py-4">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Invoice Summary by Status</CardTitle>
+              <CardTitle className="text-lg">Invoice Summary by Status ({invoices.length})</CardTitle>
               <div className="flex items-center gap-3">
                 <Select value={invoiceLocationFilter} onValueChange={setInvoiceLocationFilter}>
                   <SelectTrigger className="w-48">
