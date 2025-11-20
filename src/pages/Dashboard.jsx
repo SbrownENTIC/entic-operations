@@ -761,48 +761,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* License Expirations Detail */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-slate-900">License Expirations</h2>
-            <Button
-              onClick={exportLicenseExpirations}
-              variant="outline"
-              size="sm"
-              className="gap-2"
-            >
-              <Download className="w-4 h-4" />
-              Export
-            </Button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <LicenseExpirationCard
-              title="Expiring in 7 Days"
-              licenses={licensesExpiring7Days}
-              providers={providers}
-              severity="high"
-            />
-            <LicenseExpirationCard
-              title="Expiring in 14 Days"
-              licenses={licensesExpiring14Days}
-              providers={providers}
-              severity="medium"
-            />
-            <LicenseExpirationCard
-              title="Expiring in 30 Days"
-              licenses={licensesExpiring30Days}
-              providers={providers}
-              severity="low"
-            />
-            <LicenseExpirationCard
-              title="Expiring in 60 Days"
-              licenses={licensesExpiring60Days}
-              providers={providers}
-              severity="info"
-            />
-          </div>
-        </div>
-
         {/* CME Compliance - Only Non-Compliant Doctors */}
         <Card className="border-slate-200 shadow-sm">
           <CardHeader className="border-b border-slate-100">
