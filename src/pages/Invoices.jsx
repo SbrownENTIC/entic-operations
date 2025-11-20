@@ -570,6 +570,9 @@ export default function Invoices() {
                       >
                         Status <SortIcon field="status" />
                       </th>
+                      <th className="text-center p-4 text-sm font-semibold text-slate-700 no-print">
+                        Manual
+                      </th>
                       <th className="text-right p-4 text-sm font-semibold text-slate-700 no-print">Actions</th>
                     </tr>
                   </thead>
@@ -611,6 +614,23 @@ export default function Invoices() {
                           <Badge className={statusColors[invoice.status]}>
                             {getStatusLabel(invoice)}
                           </Badge>
+                        </td>
+                        <td className="p-4 text-center no-print">
+                          {invoice.manual_status_override && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                await base44.entities.Invoice.update(invoice.id, { manual_status_override: false });
+                                queryClient.invalidateQueries({ queryKey: ['invoices'] });
+                              }}
+                              className="text-orange-600 hover:text-orange-700"
+                              title="Click to allow automatic status updates"
+                            >
+                              🔒
+                            </Button>
+                          )}
                         </td>
                         <td className="p-4 text-right no-print">
                           <div className="flex gap-2 justify-end">
