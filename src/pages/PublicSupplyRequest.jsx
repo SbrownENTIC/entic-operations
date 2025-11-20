@@ -95,11 +95,13 @@ export default function PublicSupplyRequest() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6 md:p-8">
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="text-center">
-          <div className="flex items-center justify-center gap-3 mb-2">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-              <HeartPulse className="w-7 h-7 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-slate-900">ENTIC Supply Request Form</h1>
+          <div className="flex flex-col items-center gap-4 mb-2">
+            <img 
+              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/691521cbabed77e5043c7037/267bf0119_thumbnail_ENTIC_horizontal_BKGD.png" 
+              alt="ENTIC Logo" 
+              className="h-16 w-auto"
+            />
+            <h1 className="text-3xl font-bold text-slate-900">Supply Request Form</h1>
           </div>
           <p className="text-slate-600 mt-2">Request supplies for your location</p>
         </div>

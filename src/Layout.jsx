@@ -156,12 +156,14 @@ export default function Layout({ children, currentPageName }) {
         <Sidebar className="border-r border-slate-200/60 bg-white/80 backdrop-blur-sm">
           <SidebarHeader className="border-b border-slate-200/60 p-6 bg-gradient-to-br from-blue-50 to-indigo-50">
             <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <HeartPulse className="w-6 h-6 text-white" />
-                </div>
+              <div className="flex flex-col gap-2">
+                <img 
+                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/691521cbabed77e5043c7037/267bf0119_thumbnail_ENTIC_horizontal_BKGD.png" 
+                  alt="ENTIC Logo" 
+                  className="h-10 w-auto"
+                />
                 <div>
-                  <h2 className="font-bold text-slate-900 text-lg">ENTIC Operations Center</h2>
+                  <h2 className="font-bold text-slate-900 text-lg">Operations Center</h2>
                   <p className="text-xs text-slate-600">Provider Management</p>
                 </div>
               </div>
