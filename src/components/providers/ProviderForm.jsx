@@ -50,7 +50,7 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
         ...provider,
         program_locations: provider.program_locations || [],
         termination_date: provider.termination_date || '',
-        flu_vaccine_year: provider.flu_vaccine_year || '',
+        flu_vaccine_year: String(provider.flu_vaccine_year || ''),
         flu_vaccine_date: provider.flu_vaccine_date || ''
       });
     }
@@ -88,7 +88,7 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
     // Clean up formData to ensure flu_vaccine_year is a string or empty
     const cleanedData = {
       ...formData,
-      flu_vaccine_year: formData.flu_vaccine_year || ''
+      flu_vaccine_year: String(formData.flu_vaccine_year || '')
     };
     
     // First create/update the provider
