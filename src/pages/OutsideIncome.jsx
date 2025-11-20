@@ -379,6 +379,7 @@ export default function OutsideIncome() {
     });
 
   return (
+    <>
     <div className="h-screen overflow-hidden flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <style>{`
         @media print {
@@ -733,6 +734,6 @@ export default function OutsideIncome() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }

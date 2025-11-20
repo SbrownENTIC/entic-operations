@@ -509,6 +509,7 @@ export default function Payments() {
   };
 
   return (
+    <>
     <div className="h-screen overflow-hidden flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <style>{`
         @media print {
@@ -854,6 +855,6 @@ export default function Payments() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }

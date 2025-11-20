@@ -327,6 +327,7 @@ export default function Invoices() {
   };
 
   return (
+    <>
     <div className="h-screen overflow-hidden flex flex-col bg-slate-50">
       <style>{`
         @media print {
@@ -631,6 +632,6 @@ export default function Invoices() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }

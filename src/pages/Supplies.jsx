@@ -200,6 +200,7 @@ export default function Supplies() {
   }
 
   return (
+    <>
     <div className="h-screen overflow-hidden flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <div className="flex-shrink-0 p-6 md:p-8">
         <div className="max-w-7xl mx-auto space-y-6">
