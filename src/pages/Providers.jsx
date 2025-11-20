@@ -44,25 +44,32 @@ export default function Providers() {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         
+        let updated = false;
         for (const provider of providers) {
           if (provider.status === 'active' && provider.termination_date) {
             const terminationDate = new Date(provider.termination_date);
             terminationDate.setHours(0, 0, 0, 0);
             
             if (terminationDate <= today) {
+              // Ensure we keep all existing fields and only update status
               await base44.entities.Provider.update(provider.id, {
-                status: 'inactive'
+                ...provider,
+                status: 'inactive',
+                flu_vaccine_year: String(provider.flu_vaccine_year || '')
               });
+              updated = true;
             }
           }
         }
         
-        queryClient.invalidateQueries({ queryKey: ['providers'] });
+        if (updated) {
+          queryClient.invalidateQueries({ queryKey: ['providers'] });
+        }
       };
       
       checkTerminations();
     }
-  }, [providers.length]);
+  }, [providers.length, queryClient]);
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Provider.create(data),
