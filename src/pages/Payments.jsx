@@ -526,11 +526,11 @@ export default function Payments() {
           .print-content .overflow-auto { overflow: visible !important; max-height: none !important; }
         }
       `}</style>
-      <div className="flex-shrink-0 p-2 md:p-3">
-        <div className="max-w-7xl mx-auto w-full space-y-3">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 no-print">
+      <div className="flex-shrink-0 p-4 md:p-6">
+        <div className="max-w-7xl mx-auto w-full space-y-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 no-print">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Payments</h1>
+            <h1 className="text-3xl font-bold text-slate-900">Payments</h1>
             <p className="text-slate-600 mt-1">Track and allocate payments to invoices</p>
           </div>
           <div className="flex gap-3 flex-wrap">
