@@ -4,23 +4,24 @@ import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { 
-  LayoutDashboard, 
-  Users, 
-  Award, 
-  GraduationCap,
-  Package,
-  Calendar,
-  DollarSign,
-  FileText,
-  CreditCard,
-  ShieldCheck,
-  Boxes,
-  BarChart3,
-  HeartPulse,
-  Bell,
-  Menu,
-  X
-} from "lucide-react";
+        LayoutDashboard, 
+        Users, 
+        Award, 
+        GraduationCap,
+        Package,
+        Calendar,
+        DollarSign,
+        FileText,
+        CreditCard,
+        ShieldCheck,
+        Boxes,
+        BarChart3,
+        HeartPulse,
+        Bell,
+        Menu,
+        X,
+        MoreVertical
+      } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -85,6 +86,9 @@ const navigationItems = [
     url: createPageUrl("Invoices"),
     icon: FileText,
   },
+];
+
+const moreMenuItems = [
   {
     title: "Payments",
     url: createPageUrl("Payments"),
@@ -93,7 +97,7 @@ const navigationItems = [
   {
     title: "Reminders",
     url: createPageUrl("Reminders"),
-    icon: Calendar,
+    icon: Bell,
   },
   {
     title: "Reports",
@@ -180,13 +184,13 @@ export default function Layout({ children, currentPageName }) {
       {/* Top Navigation */}
       <nav className="bg-white/90 backdrop-blur-sm border-b border-slate-200/60 shadow-sm sticky top-0 z-50">
         <div className="px-4 lg:px-6">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-20">
             {/* Logo and Brand */}
             <div className="flex flex-col gap-1">
               <img 
                 src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/691521cbabed77e5043c7037/267bf0119_thumbnail_ENTIC_horizontal_BKGD.png" 
                 alt="ENTIC Logo" 
-                className="h-8 w-auto"
+                className="h-10 w-auto"
               />
               <div>
                 <h2 className="font-bold text-slate-900 text-sm">Operations Center</h2>
@@ -210,16 +214,40 @@ export default function Layout({ children, currentPageName }) {
                 <Link
                   key={item.title}
                   to={item.url}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 border ${
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 border w-[140px] justify-center ${
                     location.pathname === item.url
                       ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md border-blue-600'
                       : 'bg-white text-slate-700 hover:bg-blue-50 border-slate-200 hover:border-blue-300 shadow-sm hover:shadow'
                   }`}
                 >
-                  <item.icon className="w-4 h-4" />
-                  <span>{item.title}</span>
+                  <item.icon className="w-4 h-4 flex-shrink-0" />
+                  <span className="truncate">{item.title}</span>
                 </Link>
               ))}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-1 px-2 py-2 rounded-lg text-sm font-medium border border-slate-200 hover:border-blue-300 shadow-sm hover:shadow"
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  {moreMenuItems.map((item) => (
+                    <DropdownMenuItem key={item.title} asChild>
+                      <Link
+                        to={item.url}
+                        className="flex items-center gap-2 cursor-pointer"
+                      >
+                        <item.icon className="w-4 h-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             {/* Right side - Mobile Menu */}
@@ -253,6 +281,21 @@ export default function Layout({ children, currentPageName }) {
             <div className="lg:hidden border-t border-slate-200 py-2 bg-white">
               <div className="grid grid-cols-2 gap-1 max-h-[70vh] overflow-y-auto">
                 {navigationItems.map((item) => (
+                  <Link
+                    key={item.title}
+                    to={item.url}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm transition-all ${
+                      location.pathname === item.url
+                        ? 'bg-blue-100 text-blue-700 font-medium'
+                        : 'text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <item.icon className="w-4 h-4" />
+                    <span>{item.title}</span>
+                  </Link>
+                ))}
+                {moreMenuItems.map((item) => (
                   <Link
                     key={item.title}
                     to={item.url}
