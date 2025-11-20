@@ -99,7 +99,12 @@ export default function Invoices() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }) => {
+    mutationFn: async ({ id, data, statusChanged }) => {
+      // If status was manually changed, set the override flag
+      if (statusChanged) {
+        data.manual_status_override = true;
+      }
+      
       const originalInvoice = invoices.find(inv => inv.id === id);
       const originalIncomeIds = originalInvoice?.outside_income_ids || [];
       const newIncomeIds = data.outside_income_ids || [];
@@ -164,6 +169,10 @@ export default function Invoices() {
 
   const bulkUpdateMutation = useMutation({
     mutationFn: async ({ ids, updateData }) => {
+      // Mark as manually overridden if status is being changed
+      if (updateData.status) {
+        updateData.manual_status_override = true;
+      }
       const updates = ids.map(id => 
         base44.entities.Invoice.update(id, updateData)
       );
