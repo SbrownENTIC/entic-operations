@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -37,6 +36,33 @@ export default function Providers() {
     queryKey: ['providers'],
     queryFn: () => base44.entities.Provider.list('full_name')
   });
+
+  // Automatically check and update terminations when providers load
+  React.useEffect(() => {
+    if (providers.length > 0) {
+      const checkTerminations = async () => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        for (const provider of providers) {
+          if (provider.status === 'active' && provider.termination_date) {
+            const terminationDate = new Date(provider.termination_date);
+            terminationDate.setHours(0, 0, 0, 0);
+            
+            if (terminationDate <= today) {
+              await base44.entities.Provider.update(provider.id, {
+                status: 'inactive'
+              });
+            }
+          }
+        }
+        
+        queryClient.invalidateQueries({ queryKey: ['providers'] });
+      };
+      
+      checkTerminations();
+    }
+  }, [providers.length]);
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Provider.create(data),
@@ -158,36 +184,17 @@ export default function Providers() {
             <h1 className="text-3xl font-bold text-slate-900">Providers</h1>
             <p className="text-slate-600 mt-1">Manage provider information and credentials</p>
           </div>
-          <div className="flex gap-3">
-            <Button
-              onClick={handleCheckTerminations}
-              disabled={checkingTerminations}
-              variant="outline"
-              className="gap-2"
-            >
-              <AlertCircle className={`w-4 h-4 ${checkingTerminations ? 'animate-spin' : ''}`} />
-              {checkingTerminations ? 'Checking...' : 'Check Terminations'}
-            </Button>
-            <Button
-              onClick={() => {
-                setEditingProvider(null);
-                setShowForm(true);
-              }}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Provider
-            </Button>
-          </div>
+          <Button
+            onClick={() => {
+              setEditingProvider(null);
+              setShowForm(true);
+            }}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Provider
+          </Button>
         </div>
-
-        {terminationMessage && (
-          <Card className="border-blue-200 bg-blue-50">
-            <CardContent className="p-4">
-              <p className="text-sm text-blue-900">{terminationMessage}</p>
-            </CardContent>
-          </Card>
-        )}
 
         {showForm && (
           <ProviderForm
