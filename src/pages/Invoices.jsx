@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Printer, AlertCircle } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, parseISO } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -32,6 +33,7 @@ export default function Invoices() {
   const [selectedInvoices, setSelectedInvoices] = useState([]);
   const [bulkDateProviderPaid, setBulkDateProviderPaid] = useState('');
   const [bulkProviderPaid, setBulkProviderPaid] = useState(false);
+  const [bulkStatusUpdate, setBulkStatusUpdate] = useState('');
   const [filterNoIncome, setFilterNoIncome] = useState(false);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -172,6 +174,7 @@ export default function Invoices() {
       setSelectedInvoices([]);
       setBulkDateProviderPaid('');
       setBulkProviderPaid(false);
+      setBulkStatusUpdate('');
     }
   });
 
@@ -225,6 +228,10 @@ export default function Invoices() {
       if (bulkProviderPaid) {
         updateData.provider_paid = true;
         updateData.status = 'provider_paid';
+      }
+      
+      if (bulkStatusUpdate) {
+        updateData.status = bulkStatusUpdate;
       }
       
       if (Object.keys(updateData).length > 0) {
@@ -431,6 +438,29 @@ export default function Invoices() {
                   
                   <div className="flex flex-wrap items-center gap-4">
                     <div className="flex items-center gap-2">
+                      <span className="text-sm text-slate-700">Status:</span>
+                      <Select 
+                        value={bulkStatusUpdate} 
+                        onValueChange={setBulkStatusUpdate}
+                      >
+                        <SelectTrigger className="w-52 bg-white">
+                          <SelectValue placeholder="Update Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="not_started">Not Started</SelectItem>
+                          <SelectItem value="draft">Draft</SelectItem>
+                          <SelectItem value="pending_providers_approval">Pending Providers Approval</SelectItem>
+                          <SelectItem value="pending_providers_time">Pending Providers Time</SelectItem>
+                          <SelectItem value="sent_for_approval">Sent for Approval</SelectItem>
+                          <SelectItem value="approved">Approved</SelectItem>
+                          <SelectItem value="sent_to_vendor">Sent to Vendor</SelectItem>
+                          <SelectItem value="paid_to_entic">Paid to ENTIC</SelectItem>
+                          <SelectItem value="provider_paid">Provider Paid</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex items-center gap-2">
                       <span className="text-sm text-slate-700">Date Provider Paid:</span>
                       <Input
                         type="date"
@@ -455,7 +485,7 @@ export default function Invoices() {
 
                     <Button 
                       onClick={handleBulkUpdate}
-                      disabled={(!bulkDateProviderPaid && !bulkProviderPaid) || bulkUpdateMutation.isPending}
+                      disabled={(!bulkDateProviderPaid && !bulkProviderPaid && !bulkStatusUpdate) || bulkUpdateMutation.isPending}
                       className="bg-blue-600 hover:bg-blue-700"
                     >
                       {bulkUpdateMutation.isPending ? 'Updating...' : 'Update Selected'}
