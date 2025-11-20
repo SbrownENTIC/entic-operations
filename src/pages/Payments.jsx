@@ -511,24 +511,9 @@ export default function Payments() {
   return (
     <>
     <div className="h-screen overflow-hidden flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <style>{`
-        @media print {
-          body * { visibility: hidden !important; }
-          .print-content, .print-content * { visibility: visible !important; }
-          .print-content { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
-          .no-print { display: none !important; }
-          .print-content table { width: 100% !important; border-collapse: collapse !important; margin-top: 1rem !important; }
-          .print-content th, .print-content td { border: 1px solid #ddd !important; padding: 8px !important; text-align: left !important; font-size: 10px !important; }
-          .print-content th { background-color: #f5f5f5 !important; }
-          .print-content .badge { padding: 2px 4px !important; font-size: 8px !important; }
-          .print-content h1, .print-content p { color: #000 !important; }
-          /* Ensure Card and its content appear correctly */
-          .print-content .card, .print-content .card-content { border: none !important; box-shadow: none !important; background: none !important; }
-          .print-content .overflow-auto { overflow: visible !important; max-height: none !important; }
-        }
-      `}</style>
-      <div className="flex-shrink-0 p-6 md:p-8">
-        <div className="max-w-7xl mx-auto w-full space-y-6">
+...
+      <div className="flex-shrink-0 p-4 md:p-6">
+        <div className="max-w-7xl mx-auto w-full space-y-4">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 no-print">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Payments</h1>
@@ -625,7 +610,7 @@ export default function Payments() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden px-6 md:px-8 pb-6">
+      <div className="flex-1 overflow-hidden px-4 md:px-6 pb-4">
         <div className="max-w-7xl mx-auto w-full h-full">
         <div className="print-content h-full flex flex-col">
           <div className="hidden print:block mb-4">

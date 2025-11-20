@@ -202,8 +202,8 @@ export default function Supplies() {
   return (
     <>
     <div className="h-screen overflow-hidden flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <div className="flex-shrink-0 p-6 md:p-8">
-        <div className="max-w-7xl mx-auto space-y-6">
+      <div className="flex-shrink-0 p-4 md:p-6">
+        <div className="max-w-7xl mx-auto space-y-4">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Supply Catalog</h1>
@@ -273,7 +273,7 @@ export default function Supplies() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden px-6 md:px-8 pb-6">
+      <div className="flex-1 overflow-hidden px-4 md:px-6 pb-4">
         <div className="max-w-7xl mx-auto h-full">
         <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm h-full flex flex-col">
           <CardHeader className="border-b border-slate-100 space-y-4 flex-shrink-0">

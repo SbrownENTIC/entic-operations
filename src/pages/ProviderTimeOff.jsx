@@ -338,7 +338,7 @@ export default function ProviderTimeOff() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden px-6 md:px-8 pb-6">
+      <div className="flex-1 overflow-hidden px-4 md:px-6 pb-4">
         <div className="max-w-7xl mx-auto h-full">
         {viewMode === 'list' ? (
           <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm h-full flex flex-col">

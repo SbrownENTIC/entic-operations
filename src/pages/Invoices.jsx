@@ -392,7 +392,7 @@ export default function Invoices() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden px-6 md:px-8 pb-6">
+      <div className="flex-1 overflow-hidden px-4 md:px-6 pb-4">
         <div className="max-w-7xl mx-auto h-full">
         <div className="print-content h-full flex flex-col">
           <div className="hidden print:block mb-4">
