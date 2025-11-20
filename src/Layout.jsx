@@ -108,15 +108,26 @@ const navigationItems = [
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
+  const [previousCount, setPreviousCount] = React.useState(0);
 
   const { data: pendingOrders = [] } = useQuery({
     queryKey: ['pending-review-orders'],
     queryFn: async () => {
-      const orders = await base44.entities.SupplyOrder.filter({ status: 'pending_review' });
-      return orders;
+      const reviewOrders = await base44.entities.SupplyOrder.filter({ status: 'pending_review' });
+      const fulfillmentOrders = await base44.entities.SupplyOrder.filter({ status: 'pending_fulfillment' });
+      return [...reviewOrders, ...fulfillmentOrders];
     },
     refetchInterval: 30000 // Refetch every 30 seconds
   });
+
+  // Play notification sound when new orders arrive
+  React.useEffect(() => {
+    if (pendingOrders.length > previousCount && previousCount > 0) {
+      const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZURE');
+      audio.play().catch(() => {}); // Ignore if autoplay is blocked
+    }
+    setPreviousCount(pendingOrders.length);
+  }, [pendingOrders.length]);
 
   // Hide sidebar for public pages
   if (currentPageName === 'PublicSupplyRequest') {
