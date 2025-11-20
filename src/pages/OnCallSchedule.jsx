@@ -691,9 +691,12 @@ export default function OnCallSchedule() {
                                   <div
                                    key={schedule.id}
                                    onClick={() => handleEditSchedule(schedule)}
-                                   className={`absolute inset-0 ${schedule.color} text-white text-xs px-1.5 py-1 rounded cursor-pointer hover:opacity-90 transition-opacity shadow-sm z-10 flex flex-col justify-center`}
+                                   className={`absolute ${schedule.color} text-white text-xs px-1.5 py-1 rounded cursor-pointer hover:opacity-90 transition-opacity shadow-sm z-10 flex flex-col justify-center`}
                                    style={{
-                                     width: `calc(${span * 100}% + ${(span - 1) * 1}px)`,
+                                     width: `calc(${span * 100}% + ${(span - 1) * 1}px - 4px)`,
+                                     top: '2px',
+                                     bottom: '2px',
+                                     left: '2px',
                                    }}
                                   >
                                    <div className="text-[9px] truncate leading-tight">
