@@ -85,8 +85,14 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Clean up formData to ensure flu_vaccine_year is a string or empty
+    const cleanedData = {
+      ...formData,
+      flu_vaccine_year: formData.flu_vaccine_year || ''
+    };
+    
     // First create/update the provider
-    const savedProvider = await onSubmit(formData);
+    const savedProvider = await onSubmit(cleanedData);
     
     // If creating a new provider and we have licenses or CME records
     if (!provider && savedProvider) {
