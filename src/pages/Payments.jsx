@@ -522,7 +522,6 @@ export default function Payments() {
           .print-content th { background-color: #f5f5f5 !important; }
           .print-content .badge { padding: 2px 4px !important; font-size: 8px !important; }
           .print-content h1, .print-content p { color: #000 !important; }
-          /* Ensure Card and its content appear correctly */
           .print-content .card, .print-content .card-content { border: none !important; box-shadow: none !important; background: none !important; }
           .print-content .overflow-auto { overflow: visible !important; max-height: none !important; }
         }
