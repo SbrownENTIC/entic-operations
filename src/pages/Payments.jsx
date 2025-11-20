@@ -101,22 +101,27 @@ export default function Payments() {
 
       let newStatus = invoice.status;
 
-      // IMPORTANT: Preserve provider_paid status if the checkbox is checked
-      if (invoice.provider_paid) {
-        newStatus = 'provider_paid';
-      } else if (balance <= 0 && amountReceived > 0) {
-        newStatus = 'paid_to_entic';
-      } else if (amountReceived > 0 && balance > 0) {
-        newStatus = 'partial';
-      } else if (amountReceived === 0 && invoice.status !== 'pending' && invoice.status !== 'unpaid') {
-        newStatus = 'pending';
+      // Skip status update if manually overridden
+      if (!invoice.manual_status_override) {
+        // IMPORTANT: Preserve provider_paid status if the checkbox is checked
+        if (invoice.provider_paid) {
+          newStatus = 'provider_paid';
+        } else if (balance <= 0 && amountReceived > 0) {
+          newStatus = 'paid_to_entic';
+        } else if (amountReceived > 0 && balance > 0) {
+          newStatus = 'partial';
+        } else if (amountReceived === 0 && invoice.status !== 'pending' && invoice.status !== 'unpaid') {
+          newStatus = 'pending';
+        }
       }
 
-      if (invoice.amount_received !== amountReceived || invoice.status !== newStatus) {
-        await base44.entities.Invoice.update(invoice.id, {
-          amount_received: amountReceived,
-          status: newStatus
-        });
+      const updateData = { amount_received: amountReceived };
+      if (!invoice.manual_status_override && invoice.status !== newStatus) {
+        updateData.status = newStatus;
+      }
+
+      if (invoice.amount_received !== amountReceived || (!invoice.manual_status_override && invoice.status !== newStatus)) {
+        await base44.entities.Invoice.update(invoice.id, updateData);
       }
     }
   };

@@ -178,9 +178,9 @@ export default function Invoices() {
     }
   });
 
-  const handleSubmit = (data) => {
+  const handleSubmit = (data, statusChanged) => {
     if (editingInvoice) {
-      updateMutation.mutate({ id: editingInvoice.id, data });
+      updateMutation.mutate({ id: editingInvoice.id, data, statusChanged });
     } else {
       createMutation.mutate(data);
     }
