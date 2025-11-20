@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -375,8 +374,9 @@ export default function OnCallSchedule() {
   const selectedProviderForBulk = providers.find(p => p.id === bulkProvider);
 
   return (
-    <div className="p-6 md:p-8 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="h-screen overflow-hidden flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="flex-shrink-0 p-6 md:p-8">
+        <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">On-Call Schedule</h1>
@@ -443,9 +443,14 @@ export default function OnCallSchedule() {
           />
         )}
 
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-hidden px-6 md:px-8 pb-6">
+        <div className="max-w-7xl mx-auto h-full">
         {viewMode === 'list' ? (
-          <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
-            <CardHeader className="border-b border-slate-100 space-y-4">
+          <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm h-full flex flex-col">
+            <CardHeader className="border-b border-slate-100 space-y-4 flex-shrink-0">
               <div className="flex items-center gap-4">
                 <Search className="w-5 h-5 text-slate-400" />
                 <Input
@@ -521,8 +526,8 @@ export default function OnCallSchedule() {
                 </div>
               )}
             </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-auto max-h-[calc(100vh-280px)]">
+            <CardContent className="p-0 flex-1 overflow-hidden">
+              <div className="overflow-auto h-full">
                 <table className="w-full">
                   <thead className="sticky top-0 bg-slate-50 border-b border-slate-200 z-10">
                     <tr>
@@ -631,8 +636,8 @@ export default function OnCallSchedule() {
             </CardContent>
           </Card>
         ) : (
-          <Card className="border-slate-200 shadow-sm overflow-hidden">
-            <CardHeader className="border-b border-slate-100 p-4">
+          <Card className="border-slate-200 shadow-sm overflow-hidden h-full flex flex-col">
+            <CardHeader className="border-b border-slate-100 p-4 flex-shrink-0">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold">{format(currentMonth, 'MMMM yyyy')}</h2>
                 <div className="flex items-center gap-2">
@@ -659,7 +664,7 @@ export default function OnCallSchedule() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-0">
+            <CardContent className="p-0 flex-1 overflow-auto">
               <div className="bg-white overflow-x-auto">
                 {/* Calendar Header */}
                 <div className="grid grid-cols-7 border-b border-slate-200 min-w-[900px]">
@@ -734,7 +739,9 @@ export default function OnCallSchedule() {
             </CardContent>
           </Card>
         )}
+        </div>
       </div>
+    </div>
 
       <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
         <AlertDialogContent>

@@ -509,7 +509,7 @@ export default function Payments() {
   };
 
   return (
-    <div className="p-6 md:p-8 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
+    <div className="h-screen overflow-hidden flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <style>{`
         @media print {
           body * { visibility: hidden !important; }
@@ -526,7 +526,8 @@ export default function Payments() {
           .print-content .overflow-auto { overflow: visible !important; max-height: none !important; }
         }
       `}</style>
-      <div className="max-w-7xl mx-auto w-full space-y-6">
+      <div className="flex-shrink-0 p-6 md:p-8">
+        <div className="max-w-7xl mx-auto w-full space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 no-print">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Payments</h1>
@@ -620,15 +621,19 @@ export default function Payments() {
             isLoading={createMutation.isPending || updateMutation.isPending}
           />
         )}
+        </div>
+      </div>
 
-        <div className="print-content">
+      <div className="flex-1 overflow-hidden px-6 md:px-8 pb-6">
+        <div className="max-w-7xl mx-auto w-full h-full">
+        <div className="print-content h-full flex flex-col">
           <div className="hidden print:block mb-4">
             <h1 className="text-2xl font-bold mb-1">Payments Report</h1>
             <p className="text-sm text-gray-600">Generated on {format(new Date(), 'MMM d, yyyy')}</p>
           </div>
 
-          <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm card">
-            <CardHeader className="border-b border-slate-100 space-y-4 no-print">
+          <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm card h-full flex flex-col">
+            <CardHeader className="border-b border-slate-100 space-y-4 no-print flex-shrink-0">
               <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
                 <div className="flex items-center gap-4 flex-1">
                   <Search className="w-5 h-5 text-slate-400" />
@@ -649,8 +654,8 @@ export default function Payments() {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="p-0 card-content">
-              <div className="overflow-auto max-h-[calc(100vh-230px)] print:max-h-none print:overflow-visible">
+            <CardContent className="p-0 card-content flex-1 overflow-hidden">
+              <div className="overflow-auto h-full print:max-h-none print:overflow-visible">
                 <table className="w-full">
                   <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                     <tr>
@@ -816,7 +821,9 @@ export default function Payments() {
             </CardContent>
           </Card>
         </div>
+        </div>
       </div>
+    </div>
 
       {viewingPayment && (
         <PaymentDetailModal

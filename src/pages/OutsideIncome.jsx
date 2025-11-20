@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -380,7 +379,7 @@ export default function OutsideIncome() {
     });
 
   return (
-    <div className="p-6 md:p-8 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
+    <div className="h-screen overflow-hidden flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <style>{`
         @media print {
           body * { visibility: hidden; }
@@ -392,7 +391,8 @@ export default function OutsideIncome() {
           .print-content th { background-color: #f5f5f5; }
         }
       `}</style>
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="flex-shrink-0 p-6 md:p-8">
+        <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 no-print">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Outside Income</h1>
@@ -499,15 +499,19 @@ export default function OutsideIncome() {
             </CardContent>
           </Card>
         )}
+        </div>
+      </div>
 
-        <div className="print-content">
+      <div className="flex-1 overflow-hidden px-6 md:px-8 pb-6">
+        <div className="max-w-7xl mx-auto h-full">
+        <div className="print-content h-full flex flex-col">
           <div className="hidden print:block mb-4">
             <h1 className="text-2xl font-bold">Outside Income Report</h1>
             <p className="text-sm text-gray-600">Generated on {format(new Date(), 'MMM d, yyyy')}</p>
           </div>
 
-          <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
-            <CardHeader className="border-b border-slate-100 space-y-4 no-print">
+          <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm h-full flex flex-col">
+            <CardHeader className="border-b border-slate-100 space-y-4 no-print flex-shrink-0">
               <div className="flex items-center gap-4">
                 <Search className="w-5 h-5 text-slate-400" />
                 <Input
@@ -560,8 +564,8 @@ export default function OutsideIncome() {
                 </div>
               )}
             </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-auto max-h-[calc(100vh-230px)] print:max-h-none print:overflow-visible">
+            <CardContent className="p-0 flex-1 overflow-hidden">
+              <div className="overflow-auto h-full print:max-h-none print:overflow-visible">
                 <table className="w-full">
                     <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                       <tr>
@@ -706,7 +710,9 @@ export default function OutsideIncome() {
             </CardContent>
           </Card>
         </div>
+        </div>
       </div>
+    </div>
 
       <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
         <AlertDialogContent>
