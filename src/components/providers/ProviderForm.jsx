@@ -26,7 +26,14 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
     termination_date: '',
     flu_vaccine_year: '',
     flu_vaccine_date: '',
-    notes: ''
+    notes: '',
+    ...(provider ? {
+      ...provider,
+      program_locations: provider.program_locations || [],
+      termination_date: provider.termination_date || '',
+      flu_vaccine_year: String(provider.flu_vaccine_year || ''),
+      flu_vaccine_date: provider.flu_vaccine_date || ''
+    } : {})
   });
 
   const [licenses, setLicenses] = useState([]);
@@ -46,13 +53,14 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
 
   useEffect(() => {
     if (provider) {
-      setFormData({
+      setFormData(prev => ({
+        ...prev,
         ...provider,
         program_locations: provider.program_locations || [],
         termination_date: provider.termination_date || '',
         flu_vaccine_year: String(provider.flu_vaccine_year || ''),
         flu_vaccine_date: provider.flu_vaccine_date || ''
-      });
+      }));
     }
   }, [provider]);
 
