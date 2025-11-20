@@ -376,12 +376,12 @@ export default function OnCallSchedule() {
   return (
     <>
     <div className="h-screen overflow-hidden flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <div className="flex-shrink-0 p-6 md:p-8">
-        <div className="max-w-7xl mx-auto space-y-4">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex-shrink-0 p-2 md:p-3">
+        <div className="max-w-7xl mx-auto space-y-2">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">On-Call Schedule</h1>
-            <p className="text-slate-600 mt-1">Manage provider on-call schedules</p>
+            <h1 className="text-2xl font-bold text-slate-900">On-Call Schedule</h1>
+            <p className="text-slate-600 text-sm">Manage provider on-call schedules</p>
           </div>
           <div className="flex gap-3 flex-wrap">
             <Button
