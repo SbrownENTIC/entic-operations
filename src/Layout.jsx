@@ -123,8 +123,37 @@ export default function Layout({ children, currentPageName }) {
   // Play notification sound when new orders arrive
   React.useEffect(() => {
     if (pendingOrders.length > previousCount && previousCount > 0) {
-      const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZURE');
-      audio.play().catch(() => {}); // Ignore if autoplay is blocked
+      // Create doorbell ding-dong sound
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      
+      const playDoorbell = () => {
+        // First ding (higher pitch)
+        const oscillator1 = audioContext.createOscillator();
+        const gainNode1 = audioContext.createGain();
+        oscillator1.connect(gainNode1);
+        gainNode1.connect(audioContext.destination);
+        oscillator1.frequency.value = 800;
+        oscillator1.type = 'sine';
+        gainNode1.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode1.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+        oscillator1.start(audioContext.currentTime);
+        oscillator1.stop(audioContext.currentTime + 0.3);
+        
+        // Second dong (lower pitch)
+        const oscillator2 = audioContext.createOscillator();
+        const gainNode2 = audioContext.createGain();
+        oscillator2.connect(gainNode2);
+        gainNode2.connect(audioContext.destination);
+        oscillator2.frequency.value = 600;
+        oscillator2.type = 'sine';
+        gainNode2.gain.setValueAtTime(0, audioContext.currentTime + 0.3);
+        gainNode2.gain.setValueAtTime(0.3, audioContext.currentTime + 0.3);
+        gainNode2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.7);
+        oscillator2.start(audioContext.currentTime + 0.3);
+        oscillator2.stop(audioContext.currentTime + 0.7);
+      };
+      
+      playDoorbell();
     }
     setPreviousCount(pendingOrders.length);
   }, [pendingOrders.length]);
