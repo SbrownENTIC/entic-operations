@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -207,17 +206,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
     }
   }, [formData.staff_member_id, providers]);
 
-  useEffect(() => {
-    if (formData.provider_paid) {
-      setFormData(prev => ({ ...prev, status: 'provider_paid' }));
-    }
-  }, [formData.provider_paid]);
-
-  useEffect(() => {
-    if (formData.invoice_sent_to_vendor && formData.status !== 'sent_to_vendor' && formData.status !== 'paid_to_entic' && formData.status !== 'provider_paid') {
-      setFormData(prev => ({ ...prev, status: 'sent_to_vendor' }));
-    }
-  }, [formData.invoice_sent_to_vendor, formData.status]);
+  // Removed auto-status updates to preserve manual status changes
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -288,32 +277,10 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
 
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
 
-      setFormData(prev => {
-        const updates = {
-          [type === 'draft' ? 'draft_invoice_url' : 'approved_invoice_url']: file_url
-        };
-
-        // Auto-update status based on program group and document type
-        if (prev.program_group === 'St. Francis') {
-          // St. Francis: Both draft and approved invoices set status to 'sent_to_vendor'
-          updates.status = 'sent_to_vendor';
-          updates.sent_to_vendor_at = new Date().toISOString();
-          updates.invoice_sent_to_vendor = true;
-        } else {
-          // All other facilities (including UConn)
-          if (type === 'draft') {
-            updates.status = 'sent_for_approval';
-            updates.sent_for_approval_at = new Date().toISOString();
-            updates.invoice_sent_for_approval = true;
-          } else if (type === 'approved') {
-            updates.status = 'sent_to_vendor';
-            updates.sent_to_vendor_at = new Date().toISOString();
-            updates.invoice_sent_to_vendor = true;
-          }
-        }
-
-        return { ...prev, ...updates };
-      });
+      setFormData(prev => ({
+        ...prev,
+        [type === 'draft' ? 'draft_invoice_url' : 'approved_invoice_url']: file_url
+      }));
     } catch (error) {
       console.error('Upload failed:', error);
     } finally {
@@ -658,16 +625,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                   </Button>
                 )}
               </div>
-              {formData.program_group === 'St. Francis' && (
-                <p className="text-xs text-slate-500">
-                  ⚡ Uploading will auto-update status to "Sent to Vendor"
-                </p>
-              )}
-              {formData.program_group && formData.program_group !== 'St. Francis' && (
-                <p className="text-xs text-slate-500">
-                  ⚡ Uploading will auto-update status to "Sent for Approval"
-                </p>
-              )}
+
             </div>
 
             <div className="space-y-2">
@@ -688,9 +646,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                   </Button>
                 )}
               </div>
-              <p className="text-xs text-slate-500">
-                ⚡ Uploading will auto-update status to "Sent to Vendor"
-              </p>
+
             </div>
 
           </div>
