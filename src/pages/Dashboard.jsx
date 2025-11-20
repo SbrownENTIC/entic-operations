@@ -630,7 +630,6 @@ export default function Dashboard() {
                 'Not Started': { invoices: invoices.filter(inv => inv.status === 'not_started'), color: 'gray' },
                 'Draft': { invoices: invoices.filter(inv => inv.status === 'draft'), color: 'slate' },
                 'Sent for Approval': { invoices: invoices.filter(inv => inv.status === 'pending_providers_approval' || inv.status === 'pending_providers_time' || inv.status === 'sent_for_approval'), color: 'yellow' },
-                'Approved': { invoices: invoices.filter(inv => inv.status === 'approved'), color: 'green' },
                 'Sent To Vendor': { invoices: invoices.filter(inv => inv.status === 'sent_to_vendor'), color: 'blue' },
                 'Partial': { invoices: invoices.filter(inv => inv.status === 'partial'), color: 'indigo' },
                 'Paid To ENTIC': { invoices: invoices.filter(inv => inv.status === 'paid_to_entic'), color: 'emerald' },
