@@ -285,8 +285,9 @@ export default function ProviderTimeOff() {
   const selectedProviderForBulk = providers.find(p => p.id === bulkProvider);
 
   return (
-    <div className="p-6 md:p-8 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="h-screen overflow-hidden flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="flex-shrink-0 p-6 md:p-8">
+        <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Provider Time Off & CME Tracker</h1>
@@ -333,10 +334,14 @@ export default function ProviderTimeOff() {
             isLoading={createMutation.isPending || updateMutation.isPending}
           />
         )}
+        </div>
+      </div>
 
+      <div className="flex-1 overflow-hidden px-6 md:px-8 pb-6">
+        <div className="max-w-7xl mx-auto h-full">
         {viewMode === 'list' ? (
-          <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
-            <CardHeader className="border-b border-slate-100 space-y-4">
+          <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm h-full flex flex-col">
+            <CardHeader className="border-b border-slate-100 space-y-4 flex-shrink-0">
               <div className="flex items-center gap-4">
                 <Search className="w-5 h-5 text-slate-400" />
                 <Input
@@ -452,8 +457,8 @@ export default function ProviderTimeOff() {
                 </div>
               )}
             </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-auto max-h-[calc(100vh-230px)]">
+            <CardContent className="p-0 flex-1 overflow-hidden">
+              <div className="overflow-auto h-full">
                 <table className="w-full">
                   <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                     <tr>
@@ -579,8 +584,8 @@ export default function ProviderTimeOff() {
             </CardContent>
           </Card>
         ) : (
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="border-b border-slate-100">
+          <Card className="border-slate-200 shadow-sm h-full flex flex-col">
+            <CardHeader className="border-b border-slate-100 flex-shrink-0">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold">
                   {format(currentMonth, 'MMMM yyyy')}
@@ -610,7 +615,7 @@ export default function ProviderTimeOff() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="p-6 flex-1 overflow-auto">
               <div className="grid grid-cols-7 gap-2">
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
                   <div key={day} className="text-center font-semibold text-slate-700 text-sm p-2">
@@ -666,7 +671,9 @@ export default function ProviderTimeOff() {
             </CardContent>
           </Card>
         )}
+        </div>
       </div>
+    </div>
 
       {/* Day Entries Modal */}
       <Dialog open={!!viewingDayEntries} onOpenChange={() => setViewingDayEntries(null)}>
@@ -761,6 +768,5 @@ export default function ProviderTimeOff() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
   );
 }

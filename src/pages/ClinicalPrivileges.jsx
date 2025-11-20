@@ -271,6 +271,7 @@ export default function ClinicalPrivileges() {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
 
       <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>

@@ -273,6 +273,7 @@ export default function Licenses() {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );

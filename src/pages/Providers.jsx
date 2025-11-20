@@ -352,6 +352,7 @@ export default function Providers() {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
 
       <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
