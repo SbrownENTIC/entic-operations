@@ -192,12 +192,12 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
 
   return (
     <>
-      <Card className="border-blue-200 bg-blue-50/30">
-        <CardHeader>
+      <Card className="border-blue-200 bg-blue-50/30 max-h-[90vh] flex flex-col">
+        <CardHeader className="flex-shrink-0">
           <CardTitle>{payment ? 'Edit Payment' : 'Record New Payment'}</CardTitle>
         </CardHeader>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <CardContent>
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+          <CardContent className="flex-1 overflow-y-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-slate-700 mb-1 block">
@@ -482,7 +482,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
               />
             </div>
           </CardContent>
-          <CardFooter className="border-t border-slate-100 p-6 flex justify-end gap-3">
+          <CardFooter className="flex-shrink-0 border-t border-slate-100 p-6 flex justify-end gap-3">
             <Button type="button" variant="outline" onClick={onCancel}>
               Cancel
             </Button>
