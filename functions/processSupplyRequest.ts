@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
     const total = subtotal;
 
     // Determine status and notification
-    const needsReview = flags.length > 0;
+    const needsReview = flags.length > 0 || (notes && notes.trim().length > 0);
     const status = needsReview ? 'pending_review' : 'pending_fulfillment';
 
     // Create the supply order
