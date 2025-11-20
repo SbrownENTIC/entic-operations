@@ -17,21 +17,17 @@ import {
   Boxes,
   BarChart3,
   HeartPulse,
-  Bell
+  Bell,
+  Menu,
+  X
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarHeader,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const navigationItems = [
   {
@@ -109,6 +105,7 @@ const navigationItems = [
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const [previousCount, setPreviousCount] = React.useState(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   const { data: pendingOrders = [] } = useQuery({
     queryKey: ['pending-review-orders'],
@@ -117,17 +114,15 @@ export default function Layout({ children, currentPageName }) {
       const fulfillmentOrders = await base44.entities.SupplyOrder.filter({ status: 'pending_fulfillment' });
       return [...reviewOrders, ...fulfillmentOrders];
     },
-    refetchInterval: 30000 // Refetch every 30 seconds
+    refetchInterval: 30000
   });
 
   // Play notification sound when new orders arrive
   React.useEffect(() => {
     if (pendingOrders.length > previousCount && previousCount > 0) {
-      // Create doorbell ding-dong sound
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
       
       const playDoorbell = () => {
-        // First ding (higher pitch)
         const oscillator1 = audioContext.createOscillator();
         const gainNode1 = audioContext.createGain();
         oscillator1.connect(gainNode1);
@@ -139,7 +134,6 @@ export default function Layout({ children, currentPageName }) {
         oscillator1.start(audioContext.currentTime);
         oscillator1.stop(audioContext.currentTime + 0.3);
         
-        // Second dong (lower pitch)
         const oscillator2 = audioContext.createOscillator();
         const gainNode2 = audioContext.createGain();
         oscillator2.connect(gainNode2);
@@ -158,7 +152,7 @@ export default function Layout({ children, currentPageName }) {
     setPreviousCount(pendingOrders.length);
   }, [pendingOrders.length]);
 
-  // Hide sidebar for public pages
+  // Hide navigation for public pages
   if (currentPageName === 'PublicSupplyRequest') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -168,48 +162,61 @@ export default function Layout({ children, currentPageName }) {
   }
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-        <style>{`
-          :root {
-            --primary: 217 91% 35%;
-            --primary-foreground: 0 0% 100%;
-            --background: 210 20% 98%;
-            --card: 0 0% 100%;
-            --card-foreground: 222.2 47.4% 11.2%;
-            --muted: 214 32% 95%;
-            --muted-foreground: 215 16% 47%;
-            --accent: 210 40% 96%;
-            --accent-foreground: 222.2 47.4% 11.2%;
-          }
-          
-          .sidebar-menu-item:hover {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%);
-          }
-          
-          .sidebar-menu-item-active {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(99, 102, 241, 0.15) 100%);
-            border-left: 3px solid #3b82f6;
-          }
-        `}</style>
-        
-        <Sidebar className="border-r border-slate-200/60 bg-white/80 backdrop-blur-sm">
-          <SidebarHeader className="border-b border-slate-200/60 p-6 bg-gradient-to-br from-blue-50 to-indigo-50">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex flex-col gap-2">
-                <img 
-                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/691521cbabed77e5043c7037/267bf0119_thumbnail_ENTIC_horizontal_BKGD.png" 
-                  alt="ENTIC Logo" 
-                  className="h-10 w-auto"
-                />
-                <div>
-                  <h2 className="font-bold text-slate-900 text-lg">Operations Center</h2>
-                  <p className="text-xs text-slate-600">Provider Management</p>
-                </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <style>{`
+        :root {
+          --primary: 217 91% 35%;
+          --primary-foreground: 0 0% 100%;
+          --background: 210 20% 98%;
+          --card: 0 0% 100%;
+          --card-foreground: 222.2 47.4% 11.2%;
+          --muted: 214 32% 95%;
+          --muted-foreground: 215 16% 47%;
+          --accent: 210 40% 96%;
+          --accent-foreground: 222.2 47.4% 11.2%;
+        }
+      `}</style>
+      
+      {/* Top Navigation */}
+      <nav className="bg-white/90 backdrop-blur-sm border-b border-slate-200/60 shadow-sm sticky top-0 z-50">
+        <div className="px-4 lg:px-6">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo and Brand */}
+            <div className="flex items-center gap-4">
+              <img 
+                src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/691521cbabed77e5043c7037/267bf0119_thumbnail_ENTIC_horizontal_BKGD.png" 
+                alt="ENTIC Logo" 
+                className="h-8 w-auto"
+              />
+              <div className="hidden md:block">
+                <h2 className="font-bold text-slate-900 text-sm">Operations Center</h2>
+                <p className="text-xs text-slate-600">Provider Management</p>
               </div>
+            </div>
+
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex items-center gap-1 flex-1 justify-center px-8">
+              {navigationItems.map((item) => (
+                <Link
+                  key={item.title}
+                  to={item.url}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
+                    location.pathname === item.url
+                      ? 'bg-blue-100 text-blue-700 font-medium'
+                      : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <item.icon className="w-4 h-4" />
+                  <span>{item.title}</span>
+                </Link>
+              ))}
+            </div>
+
+            {/* Right side - Notifications and Mobile Menu */}
+            <div className="flex items-center gap-2">
               <Link 
                 to={createPageUrl("SupplyOrders") + "?filter=pending"}
-                className="relative p-2 hover:bg-white/50 rounded-lg transition-colors"
+                className="relative p-2 hover:bg-slate-100 rounded-lg transition-colors"
               >
                 <Bell className="w-5 h-5 text-slate-600" />
                 {pendingOrders.length > 0 && (
@@ -218,50 +225,48 @@ export default function Layout({ children, currentPageName }) {
                   </span>
                 )}
               </Link>
-            </div>
-          </SidebarHeader>
-          
-          <SidebarContent className="p-3 bg-white/50">
-            <SidebarGroup>
-              <SidebarGroupLabel className="text-xs font-semibold text-slate-600 uppercase tracking-wider px-3 py-2">
-                Navigation
-              </SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {navigationItems.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton 
-                        asChild 
-                        className={`sidebar-menu-item transition-all duration-200 rounded-lg mb-1 ${
-                          location.pathname === item.url ? 'sidebar-menu-item-active text-blue-700 font-medium' : 'text-slate-700'
-                        }`}
-                      >
-                        <Link to={item.url} className="flex items-center gap-3 px-3 py-2.5">
-                          <item.icon className="w-4 h-4" />
-                          <span className="text-sm">{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </SidebarContent>
-        </Sidebar>
 
-        <main className="flex-1 flex flex-col">
-          <header className="bg-white/80 backdrop-blur-sm border-b border-slate-200/60 px-6 py-4 md:hidden shadow-sm">
-            <div className="flex items-center gap-4">
-              <SidebarTrigger className="hover:bg-slate-100 p-2 rounded-lg transition-colors duration-200" />
-              <h1 className="text-xl font-semibold text-slate-900">ENTIC Operations Center</h1>
+              {/* Mobile Menu Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="lg:hidden"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              >
+                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </Button>
             </div>
-          </header>
-
-          <div className="flex-1 overflow-auto">
-            {children}
           </div>
-        </main>
-      </div>
-    </SidebarProvider>
+
+          {/* Mobile Navigation Dropdown */}
+          {mobileMenuOpen && (
+            <div className="lg:hidden border-t border-slate-200 py-2 bg-white">
+              <div className="grid grid-cols-2 gap-1 max-h-[70vh] overflow-y-auto">
+                {navigationItems.map((item) => (
+                  <Link
+                    key={item.title}
+                    to={item.url}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm transition-all ${
+                      location.pathname === item.url
+                        ? 'bg-blue-100 text-blue-700 font-medium'
+                        : 'text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <item.icon className="w-4 h-4" />
+                    <span>{item.title}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </nav>
+
+      {/* Main Content */}
+      <main className="flex-1">
+        {children}
+      </main>
+    </div>
   );
 }
