@@ -52,14 +52,14 @@ const navigationItems = [
     icon: FileText,
   },
   {
-    title: "Supply Orders",
-    url: createPageUrl("SupplyOrders"),
-    icon: Package,
-  },
-  {
     title: "Payments",
     url: createPageUrl("Payments"),
     icon: CreditCard,
+  },
+  {
+    title: "Supply Orders",
+    url: createPageUrl("SupplyOrders"),
+    icon: Package,
   },
   {
     title: "Time Off & CME",
