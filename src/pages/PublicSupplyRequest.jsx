@@ -13,7 +13,7 @@ import { Plus, Trash2, Search, Check, CheckCircle, AlertCircle } from "lucide-re
 
 export default function PublicSupplyRequest() {
   const [formData, setFormData] = useState({
-    location: 'Glastonbury',
+    location: '',
     requester_name: '',
     requester_email: '',
     requested_date: new Date().toISOString().split('T')[0],
@@ -45,6 +45,12 @@ export default function PublicSupplyRequest() {
       return;
     }
 
+    if (!formData.location) {
+      setSubmitStatus('error');
+      setSubmitMessage('Please select a location');
+      return;
+    }
+
     setSubmitting(true);
     setSubmitMessage('');
 
@@ -55,7 +61,7 @@ export default function PublicSupplyRequest() {
       
       // Reset form
       setFormData({
-        location: 'Glastonbury',
+        location: '',
         requester_name: '',
         requester_email: '',
         requested_date: new Date().toISOString().split('T')[0],
@@ -140,9 +146,9 @@ export default function PublicSupplyRequest() {
 
                 <div className="space-y-2">
                   <Label htmlFor="location">Location *</Label>
-                  <Select value={formData.location} onValueChange={(value) => setFormData({ ...formData, location: value })}>
+                  <Select value={formData.location} onValueChange={(value) => setFormData({ ...formData, location: value })} required>
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Select a location" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Glastonbury">Glastonbury</SelectItem>
