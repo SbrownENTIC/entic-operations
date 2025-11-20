@@ -514,12 +514,12 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="border-3 border-orange-500 bg-gradient-to-br from-orange-100 to-orange-50 shadow-xl shadow-orange-200/50 hover:scale-105 transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-orange-300">
-              <CardTitle className="text-base font-bold text-slate-900">Licenses Expiring (60d)</CardTitle>
-              <AlertTriangle className="w-6 h-6 text-orange-700 animate-pulse" />
+              <CardTitle className="text-sm font-bold text-slate-900">Licenses Expiring (60d)</CardTitle>
+              <AlertTriangle className="w-5 h-5 text-orange-700 animate-pulse" />
             </CardHeader>
-            <CardContent className="pt-4">
-              <div className="text-5xl font-bold text-orange-700 mb-2">{licensesExpiring60Days.length}</div>
-              <Link to={createPageUrl("Licenses")} className="text-sm text-orange-700 hover:text-orange-900 font-semibold hover:underline">
+            <CardContent className="pt-3">
+              <div className="text-4xl font-bold text-orange-700 mb-1">{licensesExpiring60Days.length}</div>
+              <Link to={createPageUrl("Licenses")} className="text-xs text-orange-700 hover:text-orange-900 font-semibold hover:underline">
                 View licenses →
               </Link>
             </CardContent>
@@ -527,12 +527,12 @@ export default function Dashboard() {
 
           <Card className="border-3 border-purple-500 bg-gradient-to-br from-purple-100 to-purple-50 shadow-xl shadow-purple-200/50 hover:scale-105 transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-purple-300">
-              <CardTitle className="text-base font-bold text-slate-900">Privileges Expiring (30d)</CardTitle>
-              <Award className="w-6 h-6 text-purple-700 animate-pulse" />
+              <CardTitle className="text-sm font-bold text-slate-900">Privileges Expiring (30d)</CardTitle>
+              <Award className="w-5 h-5 text-purple-700 animate-pulse" />
             </CardHeader>
-            <CardContent className="pt-4">
-              <div className="text-5xl font-bold text-purple-700 mb-2">{privilegesExpiring30Days.length}</div>
-              <Link to={createPageUrl("ClinicalPrivileges")} className="text-sm text-purple-700 hover:text-purple-900 font-semibold hover:underline">
+            <CardContent className="pt-3">
+              <div className="text-4xl font-bold text-purple-700 mb-1">{privilegesExpiring30Days.length}</div>
+              <Link to={createPageUrl("ClinicalPrivileges")} className="text-xs text-purple-700 hover:text-purple-900 font-semibold hover:underline">
                 View privileges →
               </Link>
             </CardContent>
@@ -540,12 +540,12 @@ export default function Dashboard() {
 
           <Card className="border-3 border-yellow-500 bg-gradient-to-br from-yellow-100 to-yellow-50 shadow-xl shadow-yellow-200/50 hover:scale-105 transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-yellow-300">
-              <CardTitle className="text-base font-bold text-slate-900">Pending Invoices</CardTitle>
-              <FileText className="w-6 h-6 text-yellow-700 animate-pulse" />
+              <CardTitle className="text-sm font-bold text-slate-900">Pending Invoices</CardTitle>
+              <FileText className="w-5 h-5 text-yellow-700 animate-pulse" />
             </CardHeader>
-            <CardContent className="pt-4">
-              <div className="text-5xl font-bold text-yellow-700 mb-2">{pendingInvoices}</div>
-              <Link to={createPageUrl("Invoices")} className="text-sm text-yellow-700 hover:text-yellow-900 font-semibold hover:underline">
+            <CardContent className="pt-3">
+              <div className="text-4xl font-bold text-yellow-700 mb-1">{pendingInvoices}</div>
+              <Link to={createPageUrl("Invoices")} className="text-xs text-yellow-700 hover:text-yellow-900 font-semibold hover:underline">
                 View invoices →
               </Link>
             </CardContent>
@@ -554,8 +554,8 @@ export default function Dashboard() {
 
         {/* License Expirations Detail */}
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-slate-900">License Expirations</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold text-slate-900">License Expirations</h2>
             <Button
               onClick={exportLicenseExpirations}
               variant="outline"
@@ -566,7 +566,7 @@ export default function Dashboard() {
               Export
             </Button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             <LicenseExpirationCard
               title="Expiring in 7 Days"
               licenses={licensesExpiring7Days}
@@ -593,6 +593,102 @@ export default function Dashboard() {
             />
           </div>
         </div>
+
+        {/* Invoice Summary */}
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="border-b border-slate-100 py-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">Invoice Summary by Status</CardTitle>
+              <div className="flex items-center gap-3">
+                <Select value={invoiceLocationFilter} onValueChange={setInvoiceLocationFilter}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Filter by Location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableLocations.map(loc => (
+                      <SelectItem key={loc} value={loc}>
+                        {loc === 'all' ? 'All Locations' : loc}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  onClick={exportInvoiceSummary}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Export
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+              {Object.entries({
+                'Not Started': { invoices: invoices.filter(inv => inv.status === 'not_started'), color: 'gray' },
+                'Draft': { invoices: invoices.filter(inv => inv.status === 'draft'), color: 'slate' },
+                'Sent for Approval': { invoices: invoices.filter(inv => inv.status === 'pending_providers_approval' || inv.status === 'pending_providers_time' || inv.status === 'sent_for_approval'), color: 'yellow' },
+                'Approved': { invoices: invoices.filter(inv => inv.status === 'approved'), color: 'green' },
+                'Sent To Vendor': { invoices: invoices.filter(inv => inv.status === 'sent_to_vendor'), color: 'blue' },
+                'Partial': { invoices: invoices.filter(inv => inv.status === 'partial'), color: 'indigo' },
+                'Paid To ENTIC': { invoices: invoices.filter(inv => inv.status === 'paid_to_entic'), color: 'emerald' },
+                'Provider Paid': { invoices: invoices.filter(inv => inv.status === 'provider_paid'), color: 'purple' },
+              }).map(([status, { invoices: statusInvoices, color }]) => {
+                const filteredStatusInvoices = invoiceLocationFilter === 'all' 
+                  ? statusInvoices 
+                  : statusInvoices.filter(inv => inv.program_group === invoiceLocationFilter);
+
+                return (
+                  <Card key={status} className={`border-${color}-200 bg-${color}-50/30 shadow-sm`}>
+                    <CardHeader className="pb-2 border-b border-slate-200 bg-white">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-slate-900 text-xs">{status}</h3>
+                        <Badge className={`bg-${color}-100 text-${color}-800 border-${color}-300 text-xs`}>
+                          {filteredStatusInvoices.length}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-2">
+                      {filteredStatusInvoices.length > 0 ? (
+                        <div className="space-y-1 max-h-40 overflow-y-auto pr-1">
+                          {filteredStatusInvoices.map(inv => {
+                            const isUConn = inv.program_group === 'UConn';
+                            return (
+                              <Link 
+                                key={inv.id} 
+                                to={`${createPageUrl("Invoices")}?edit=${inv.id}`}
+                                className={`block text-xs px-2 py-1.5 bg-white hover:bg-${color}-100 rounded border border-slate-200 hover:border-${color}-400 transition-all shadow-sm hover:shadow`}
+                              >
+                                <div className="font-medium text-slate-900 text-xs">
+                                  {inv.invoice_number || 'N/A'}
+                                </div>
+                                <div className="text-[10px] text-slate-600 truncate">
+                                  {providers.find(p => p.id === inv.staff_member_id)?.full_name || 'Unknown'}
+                                </div>
+                                <div className="text-[10px] text-slate-500 truncate">
+                                  {inv.program_group || 'No Location'}
+                                </div>
+                                {isUConn && inv.month && (
+                                  <div className="text-[10px] text-blue-600 font-medium">
+                                    {inv.month}
+                                  </div>
+                                )}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-center py-6 text-slate-400 text-xs">No invoices</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Financial Overview - Total */}
         <div>
@@ -748,109 +844,13 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Invoice Summary */}
-        <Card className="border-slate-200 shadow-sm">
-          <CardHeader className="border-b border-slate-100">
-            <div className="flex items-center justify-between">
-              <CardTitle>Invoice Summary by Status</CardTitle>
-              <div className="flex items-center gap-3">
-                <Select value={invoiceLocationFilter} onValueChange={setInvoiceLocationFilter}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Filter by Location" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableLocations.map(loc => (
-                      <SelectItem key={loc} value={loc}>
-                        {loc === 'all' ? 'All Locations' : loc}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  onClick={exportInvoiceSummary}
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  Export
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-              {Object.entries({
-                'Not Started': { invoices: invoices.filter(inv => inv.status === 'not_started'), color: 'gray' },
-                'Draft': { invoices: invoices.filter(inv => inv.status === 'draft'), color: 'slate' },
-                'Pending': { invoices: invoices.filter(inv => inv.status === 'pending_providers_approval' || inv.status === 'pending_providers_time' || inv.status === 'sent_for_approval'), color: 'yellow' },
-                'Approved': { invoices: invoices.filter(inv => inv.status === 'approved'), color: 'green' },
-                'Sent To Vendor': { invoices: invoices.filter(inv => inv.status === 'sent_to_vendor'), color: 'blue' },
-                'Partial': { invoices: invoices.filter(inv => inv.status === 'partial'), color: 'indigo' },
-                'Paid To ENTIC': { invoices: invoices.filter(inv => inv.status === 'paid_to_entic'), color: 'emerald' },
-                'Provider Paid': { invoices: invoices.filter(inv => inv.status === 'provider_paid'), color: 'purple' },
-              }).map(([status, { invoices: statusInvoices, color }]) => {
-                const filteredStatusInvoices = invoiceLocationFilter === 'all' 
-                  ? statusInvoices 
-                  : statusInvoices.filter(inv => inv.program_group === invoiceLocationFilter);
-                
-                return (
-                  <Card key={status} className={`border-${color}-200 bg-${color}-50/30 shadow-sm`}>
-                    <CardHeader className="pb-3 border-b border-slate-200 bg-white">
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-semibold text-slate-900 text-sm">{status}</h3>
-                        <Badge className={`bg-${color}-100 text-${color}-800 border-${color}-300`}>
-                          {filteredStatusInvoices.length}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-3">
-                      {filteredStatusInvoices.length > 0 ? (
-                        <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                          {filteredStatusInvoices.map(inv => {
-                            const isUConn = inv.program_group === 'UConn';
-                            return (
-                              <Link 
-                                key={inv.id} 
-                                to={`${createPageUrl("Invoices")}?edit=${inv.id}`}
-                                className={`block text-sm px-3 py-2 bg-white hover:bg-${color}-100 rounded border border-slate-200 hover:border-${color}-400 transition-all shadow-sm hover:shadow`}
-                              >
-                                <div className="font-medium text-slate-900">
-                                  {inv.invoice_number || 'N/A'}
-                                </div>
-                                <div className="text-xs text-slate-600 truncate">
-                                  {providers.find(p => p.id === inv.staff_member_id)?.full_name || 'Unknown'}
-                                </div>
-                                <div className="text-xs text-slate-500 truncate mt-0.5">
-                                  {inv.program_group || 'No Location'}
-                                </div>
-                                {isUConn && inv.month && (
-                                  <div className="text-xs text-blue-600 font-medium mt-0.5">
-                                    {inv.month}
-                                  </div>
-                                )}
-                              </Link>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <p className="text-center py-8 text-slate-400 text-sm">No invoices</p>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-
         {/* CME Compliance - Only Non-Compliant Doctors */}
         <Card className="border-slate-200 shadow-sm">
-          <CardHeader className="border-b border-slate-100">
+          <CardHeader className="border-b border-slate-100 py-4">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>CME Non-Compliance - Doctors Requiring Attention</CardTitle>
-                <p className="text-sm text-slate-500 mt-1">Doctors must earn 3+ CME credits</p>
+                <CardTitle className="text-lg">CME Non-Compliance - Doctors Requiring Attention</CardTitle>
+                <p className="text-xs text-slate-500 mt-1">Doctors must earn 3+ CME credits</p>
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -866,24 +866,24 @@ export default function Dashboard() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-6">
-            <div className="mb-4">
-              <div className="text-2xl font-bold text-slate-900">
+          <CardContent className="p-4">
+            <div className="mb-3">
+              <div className="text-xl font-bold text-slate-900">
                 {doctorsCompliant} / {doctors.length}
               </div>
-              <p className="text-sm text-slate-600">Doctors compliant</p>
+              <p className="text-xs text-slate-600">Doctors compliant</p>
             </div>
             {doctorsNonCompliant.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {doctorsNonCompliant.map(doctor => {
                   const credits = cmeByProvider[doctor.id] || 0;
                   return (
-                    <div key={doctor.id} className="flex items-center justify-between p-4 bg-gradient-to-r from-red-100 to-red-50 rounded-lg border-2 border-red-400 shadow-md hover:shadow-lg transition-all duration-200">
+                    <div key={doctor.id} className="flex items-center justify-between p-3 bg-gradient-to-r from-red-100 to-red-50 rounded-lg border-2 border-red-400 shadow-md hover:shadow-lg transition-all duration-200">
                       <div className="flex-1">
-                        <p className="font-bold text-slate-900">{doctor.full_name}</p>
-                        <p className="text-sm text-slate-700 font-medium">{credits} / 3 CME credits</p>
+                        <p className="font-bold text-slate-900 text-sm">{doctor.full_name}</p>
+                        <p className="text-xs text-slate-700 font-medium">{credits} / 3 CME credits</p>
                       </div>
-                      <Badge className="bg-red-600 text-white border-0 font-bold">
+                      <Badge className="bg-red-600 text-white border-0 font-bold text-xs">
                         Non-compliant
                       </Badge>
                     </div>
@@ -891,9 +891,9 @@ export default function Dashboard() {
                 })}
               </div>
             ) : (
-              <div className="text-center py-8 bg-green-50 rounded-lg border border-green-200">
-                <CheckCircle2 className="w-12 h-12 text-green-600 mx-auto mb-2" />
-                <p className="text-green-700 font-medium">All doctors are CME compliant!</p>
+              <div className="text-center py-6 bg-green-50 rounded-lg border border-green-200">
+                <CheckCircle2 className="w-10 h-10 text-green-600 mx-auto mb-2" />
+                <p className="text-green-700 font-medium text-sm">All doctors are CME compliant!</p>
               </div>
             )}
           </CardContent>
@@ -937,28 +937,28 @@ function LicenseExpirationCard({ title, licenses, providers, severity }) {
 
   return (
     <Card className={`border-2 ${severityColors[severity]} transition-all duration-300 hover:scale-105`}>
-      <CardHeader className="border-b-2 border-slate-200 bg-white/80 backdrop-blur-sm">
+      <CardHeader className="border-b-2 border-slate-200 bg-white/80 backdrop-blur-sm py-3">
         <div className="flex items-center gap-2">
           <AlertTriangle className={iconClasses[severity]} />
-          <CardTitle className="text-sm font-bold text-slate-900">{title}</CardTitle>
+          <CardTitle className="text-xs font-bold text-slate-900">{title}</CardTitle>
         </div>
-        <div className="text-2xl font-bold text-slate-900 mt-2">{licenses.length}</div>
+        <div className="text-xl font-bold text-slate-900 mt-1">{licenses.length}</div>
       </CardHeader>
-      <CardContent className="p-4 bg-white/60 backdrop-blur-sm">
+      <CardContent className="p-3 bg-white/60 backdrop-blur-sm">
         {licenses.length > 0 ? (
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {licenses.slice(0, 3).map(license => {
               const provider = providers.find(p => p.id === license.provider_id);
               const daysUntil = differenceInDays(parseISO(license.expiration_date), new Date());
               return (
-                <div key={license.id} className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all duration-200 ${itemColors[severity]}`}>
+                <div key={license.id} className={`flex items-center justify-between p-2 rounded-lg border-2 transition-all duration-200 ${itemColors[severity]}`}>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-slate-900 text-sm truncate">{provider?.full_name}</p>
-                    <p className="text-xs text-slate-700 font-medium">
+                    <p className="font-semibold text-slate-900 text-xs truncate">{provider?.full_name}</p>
+                    <p className="text-[10px] text-slate-700 font-medium">
                       {license.license_type}
                     </p>
                   </div>
-                  <Badge className={`text-xs ml-2 font-bold ${
+                  <Badge className={`text-[10px] ml-2 font-bold ${
                     daysUntil <= 7 ? 'bg-red-600 text-white border-0' : 
                     daysUntil <= 14 ? 'bg-orange-600 text-white border-0' : 
                     daysUntil <= 30 ? 'bg-yellow-600 text-white border-0' :
@@ -970,15 +970,15 @@ function LicenseExpirationCard({ title, licenses, providers, severity }) {
               );
             })}
             {licenses.length > 3 && (
-              <Link to={createPageUrl("Licenses")} className="block text-xs text-blue-600 hover:text-blue-800 font-semibold text-center pt-2 hover:underline">
+              <Link to={createPageUrl("Licenses")} className="block text-[10px] text-blue-600 hover:text-blue-800 font-semibold text-center pt-1 hover:underline">
                 View all {licenses.length} →
               </Link>
             )}
           </div>
         ) : (
-          <div className="text-center py-6 bg-green-50 rounded-lg border border-green-200">
-            <CheckCircle2 className="w-8 h-8 text-green-600 mx-auto mb-1" />
-            <p className="text-sm text-green-700 font-medium">None expiring</p>
+          <div className="text-center py-4 bg-green-50 rounded-lg border border-green-200">
+            <CheckCircle2 className="w-6 h-6 text-green-600 mx-auto mb-1" />
+            <p className="text-xs text-green-700 font-medium">None expiring</p>
           </div>
         )}
       </CardContent>
