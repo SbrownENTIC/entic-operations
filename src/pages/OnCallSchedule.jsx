@@ -650,9 +650,9 @@ export default function OnCallSchedule() {
             <CardContent className="p-0 flex-1 overflow-auto">
               <div className="bg-white overflow-x-auto">
                 {/* Calendar Header */}
-                <div className="grid grid-cols-7 border-b-2 border-slate-300 min-w-[900px] bg-slate-100">
+                <div className="grid grid-cols-7 border-b-[3px] border-slate-400 min-w-[900px] bg-slate-100">
                   {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                    <div key={day} className="p-2 text-center text-xs font-bold text-slate-800 border-r-2 border-slate-300 last:border-r-0">
+                    <div key={day} className="p-2 text-center text-xs font-bold text-slate-800 border-r-[3px] border-slate-400 last:border-r-0">
                       {day}
                     </div>
                   ))}
@@ -669,7 +669,7 @@ export default function OnCallSchedule() {
                         return (
                           <div
                             key={dayIndex}
-                            className={`border-r-2 border-b-2 border-slate-300 last:border-r-0 relative ${
+                            className={`border-r-[3px] border-b-[3px] border-slate-400 last:border-r-0 relative ${
                               !isCurrentMonth ? 'bg-slate-100' : 'bg-white'
                             }`}
                           >
