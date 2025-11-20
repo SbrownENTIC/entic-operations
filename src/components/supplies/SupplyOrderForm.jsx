@@ -268,7 +268,7 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
                         <div className="col-span-1 space-y-1">
                         <Label className="text-xs text-slate-600">Item #</Label>
                         <div className="h-10 px-2 py-2 bg-slate-50 rounded-md border border-slate-200 flex items-center text-xs text-slate-600 overflow-hidden">
-                        {item.item_number || '-'}
+                        {item.item_number || supplies.find(s => s.id === item.supply_id)?.item_number || '-'}
                         </div>
                         </div>
                         <div className="col-span-2 space-y-1">
