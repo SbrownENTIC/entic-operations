@@ -540,7 +540,7 @@ export default function Dashboard() {
 
           <Card className="border-3 border-yellow-500 bg-gradient-to-br from-yellow-100 to-yellow-50 shadow-xl shadow-yellow-200/50 hover:scale-105 transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-yellow-300">
-              <CardTitle className="text-sm font-bold text-slate-900">Pending Invoices</CardTitle>
+              <CardTitle className="text-sm font-bold text-slate-900">Sent for Approval</CardTitle>
               <FileText className="w-5 h-5 text-yellow-700 animate-pulse" />
             </CardHeader>
             <CardContent className="pt-3">
