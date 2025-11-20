@@ -168,7 +168,7 @@ export default function Layout({ children, currentPageName }) {
                 </div>
               </div>
               <Link 
-                to={createPageUrl("SupplyOrders")}
+                to={createPageUrl("SupplyOrders") + "?filter=pending_review"}
                 className="relative p-2 hover:bg-white/50 rounded-lg transition-colors"
               >
                 <Bell className="w-5 h-5 text-slate-600" />

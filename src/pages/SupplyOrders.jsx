@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2, Trash2 } from "lucide-react";
 import {
   AlertDialog,
@@ -20,8 +21,12 @@ import { format, parseISO } from "date-fns";
 import SupplyOrderForm from "../components/supplies/SupplyOrderForm";
 
 export default function SupplyOrders() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const filterParam = urlParams.get('filter');
+  
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState(filterParam === 'pending_review' ? 'pending_review' : 'all');
   const [editingOrder, setEditingOrder] = useState(null);
   const [deletingOrder, setDeletingOrder] = useState(null);
   const [sortField, setSortField] = useState('order_date');
@@ -121,11 +126,15 @@ export default function SupplyOrders() {
     return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
-  const filteredOrders = orders.filter(order =>
-    order.order_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.vendor?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.location?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredOrders = orders.filter(order => {
+    const matchesSearch = order.order_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.vendor?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.location?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
 
   const sortedOrders = [...filteredOrders].sort((a, b) => {
     let aValue, bValue;
@@ -221,14 +230,31 @@ export default function SupplyOrders() {
 
         <Card className="border-slate-200 shadow-sm">
           <CardHeader className="border-b border-slate-100">
-            <div className="flex items-center gap-4">
-              <Search className="w-5 h-5 text-slate-400" />
-              <Input
-                placeholder="Search orders..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-md border-slate-200"
-              />
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                <Search className="w-5 h-5 text-slate-400" />
+                <Input
+                  placeholder="Search orders..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="border-slate-200"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="pending_review">Pending Review</SelectItem>
+                  <SelectItem value="pending_fulfillment">Pending Fulfillment</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="order_placed">Order Placed</SelectItem>
+                  <SelectItem value="partially_received">Partially Received</SelectItem>
+                  <SelectItem value="received">Received</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardHeader>
           <CardContent className="p-0">
