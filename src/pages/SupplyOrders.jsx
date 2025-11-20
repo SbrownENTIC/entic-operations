@@ -184,6 +184,7 @@ export default function SupplyOrders() {
   };
 
   return (
+    <>
     <div className="h-screen overflow-hidden flex flex-col bg-slate-50">
       <div className="flex-shrink-0 p-6 md:p-8">
         <div className="max-w-7xl mx-auto space-y-6">
@@ -418,7 +419,9 @@ export default function SupplyOrders() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        </div>
       </div>
     </div>
+    </>
   );
 }
