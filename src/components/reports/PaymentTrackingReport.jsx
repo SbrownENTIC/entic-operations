@@ -50,8 +50,8 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
     programGroups.forEach(programGroup => {
       const groupInvoices = filteredInvoices.filter(inv => inv.program_group === programGroup);
 
-      // Only St. Francis needs Directorship/On-Call separation for now
-      const needsSeparation = programGroup === 'St. Francis';
+      // Hartford Hospital and St. Francis need Directorship/On-Call separation
+      const needsSeparation = programGroup === 'Hartford Hospital' || programGroup === 'St. Francis';
       
       if (needsSeparation) {
         // Separate by program type
@@ -68,7 +68,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
           rows.push(['', '', '', '', '', '', '', '']);
           rows.push(['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Date/Voucher Number', 'Date Paid Provider', 'Notes']);
 
-          const directorshipRate = 1750; // St. Francis directorship rate
+          const directorshipRate = programGroup === 'Hartford Hospital' ? 3250 : 1750;
           
           const directorshipInvoices = groupInvoices.filter(inv => {
             const linkedIncomes = (inv.outside_income_ids || []).map(incomeId => 
@@ -314,8 +314,9 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
           <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
             <p className="text-sm font-medium text-slate-900 mb-2">Report Structure:</p>
             <ul className="text-sm text-slate-700 space-y-1 ml-4 list-disc">
+              <li>Hartford Hospital: Separate Directorship ($3,250/month) and RVUs/On-Call tracking</li>
               <li>St. Francis: Separate Directorship ($1,750/month) and On-Call tracking</li>
-              <li>Other locations (including Hartford Hospital): Combined tracking</li>
+              <li>Other locations: Combined tracking</li>
               <li>Export opens in Excel with clear sections and totals</li>
             </ul>
           </div>
