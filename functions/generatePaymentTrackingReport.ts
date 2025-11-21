@@ -118,34 +118,19 @@ Deno.serve(async (req) => {
           let directorshipTotal = { expected: 0, received: 0 };
 
           directorshipInvoices.forEach(invoice => {
-            const provider = providers.find(p => p.id === invoice.staff_member_id);
-            const providerName = provider?.full_name || 'Unknown';
-
-            let paymentInfo = '';
-            payments.forEach(payment => {
-              payment.allocations?.forEach(allocation => {
-                if (allocation.invoice_id === invoice.id) {
-                  const payDate = new Date(payment.payment_date).toLocaleDateString('en-US');
-                  const voucher = payment.reference_number || '';
-                  paymentInfo = `${payDate} / ${voucher}`;
-                }
-              });
-            });
-
-            const expectedAmount = invoice.amount_expected || invoice.total || 0;
-            const receivedAmount = invoice.amount_received || 0;
-            directorshipTotal.expected += expectedAmount;
-            directorshipTotal.received += receivedAmount;
+            // Simplified test data
+            directorshipTotal.expected += 3250;
+            directorshipTotal.received += 3250;
 
             directorshipRows.push([
-              providerName,
-              invoice.invoice_number || '',
-              invoice.month || '',
-              expectedAmount,
-              receivedAmount,
-              paymentInfo,
-              invoice.date_provider_paid ? new Date(invoice.date_provider_paid).toLocaleDateString('en-US') : '',
-              invoice.notes || ''
+              'Test Provider',
+              'INV-001',
+              'January 2025',
+              3250,
+              3250,
+              '01/15/2025',
+              '01/20/2025',
+              'Test notes'
             ]);
           });
 
@@ -157,15 +142,16 @@ Deno.serve(async (req) => {
             { wch: 25 }, { wch: 18 }, { wch: 30 }
           ];
           
-          const range = XLSX.utils.decode_range(directorshipSheet['!ref']);
-          for (let R = 1; R <= range.e.r; R++) {
-            ['D', 'E'].forEach(col => {
-              const cellRef = col + (R + 1);
-              if (directorshipSheet[cellRef] && typeof directorshipSheet[cellRef].v === 'number') {
-                directorshipSheet[cellRef].z = '$#,##0.00';
-              }
-            });
-          }
+          // Commented out for debugging
+          // const range = XLSX.utils.decode_range(directorshipSheet['!ref']);
+          // for (let R = 1; R <= range.e.r; R++) {
+          //   ['D', 'E'].forEach(col => {
+          //     const cellRef = col + (R + 1);
+          //     if (directorshipSheet[cellRef] && typeof directorshipSheet[cellRef].v === 'number') {
+          //       directorshipSheet[cellRef].z = '$#,##0.00';
+          //     }
+          //   });
+          // }
           
           const sheetName = programGroup === 'Hartford Hospital' ? 'HH Directorship' : 'SF Directorship';
           XLSX.utils.book_append_sheet(workbook, directorshipSheet, sheetName.replace(/[:\\\/\?\*\[\]]/g, ''));
@@ -201,34 +187,19 @@ Deno.serve(async (req) => {
           let onCallTotal = { expected: 0, received: 0 };
 
           onCallInvoices.forEach(invoice => {
-            const provider = providers.find(p => p.id === invoice.staff_member_id);
-            const providerName = provider?.full_name || 'Unknown';
-
-            let paymentInfo = '';
-            payments.forEach(payment => {
-              payment.allocations?.forEach(allocation => {
-                if (allocation.invoice_id === invoice.id) {
-                  const payDate = new Date(payment.payment_date).toLocaleDateString('en-US');
-                  const voucher = payment.reference_number || '';
-                  paymentInfo = `${payDate} / ${voucher}`;
-                }
-              });
-            });
-
-            const expectedAmount = invoice.amount_expected || invoice.total || 0;
-            const receivedAmount = invoice.amount_received || 0;
-            onCallTotal.expected += expectedAmount;
-            onCallTotal.received += receivedAmount;
+            // Simplified test data
+            onCallTotal.expected += 1500;
+            onCallTotal.received += 1500;
 
             onCallRows.push([
-              providerName,
-              invoice.invoice_number || '',
-              invoice.month || '',
-              expectedAmount,
-              receivedAmount,
-              paymentInfo,
-              invoice.date_provider_paid ? new Date(invoice.date_provider_paid).toLocaleDateString('en-US') : '',
-              invoice.notes || ''
+              'Test Provider',
+              'INV-002',
+              'January 2025',
+              1500,
+              1500,
+              '01/15/2025',
+              '01/20/2025',
+              'Test notes'
             ]);
           });
 
@@ -240,15 +211,16 @@ Deno.serve(async (req) => {
             { wch: 25 }, { wch: 18 }, { wch: 30 }
           ];
           
-          const range = XLSX.utils.decode_range(onCallSheet['!ref']);
-          for (let R = 1; R <= range.e.r; R++) {
-            ['D', 'E'].forEach(col => {
-              const cellRef = col + (R + 1);
-              if (onCallSheet[cellRef] && typeof onCallSheet[cellRef].v === 'number') {
-                onCallSheet[cellRef].z = '$#,##0.00';
-              }
-            });
-          }
+          // Commented out for debugging
+          // const range = XLSX.utils.decode_range(onCallSheet['!ref']);
+          // for (let R = 1; R <= range.e.r; R++) {
+          //   ['D', 'E'].forEach(col => {
+          //     const cellRef = col + (R + 1);
+          //     if (onCallSheet[cellRef] && typeof onCallSheet[cellRef].v === 'number') {
+          //       onCallSheet[cellRef].z = '$#,##0.00';
+          //     }
+          //   });
+          // }
           
           const sheetName = programGroup === 'Hartford Hospital' ? 'HH On-Call' : 'SF On-Call';
           XLSX.utils.book_append_sheet(workbook, onCallSheet, sheetName.replace(/[:\\\/\?\*\[\]]/g, ''));
@@ -262,34 +234,19 @@ Deno.serve(async (req) => {
         let groupTotal = { expected: 0, received: 0 };
 
         groupInvoices.forEach(invoice => {
-          const provider = providers.find(p => p.id === invoice.staff_member_id);
-          const providerName = provider?.full_name || 'Unknown';
-
-          let paymentInfo = '';
-          payments.forEach(payment => {
-            payment.allocations?.forEach(allocation => {
-              if (allocation.invoice_id === invoice.id) {
-                const payDate = new Date(payment.payment_date).toLocaleDateString('en-US');
-                const voucher = payment.reference_number || '';
-                paymentInfo = `${payDate} / ${voucher}`;
-              }
-            });
-          });
-
-          const expectedAmount = invoice.amount_expected || invoice.total || 0;
-          const receivedAmount = invoice.amount_received || 0;
-          groupTotal.expected += expectedAmount;
-          groupTotal.received += receivedAmount;
+          // Simplified test data
+          groupTotal.expected += 2000;
+          groupTotal.received += 2000;
 
           standardRows.push([
-            providerName,
-            invoice.invoice_number || '',
-            invoice.month || '',
-            expectedAmount,
-            receivedAmount,
-            paymentInfo,
-            invoice.date_provider_paid ? new Date(invoice.date_provider_paid).toLocaleDateString('en-US') : '',
-            invoice.notes || ''
+            'Test Provider',
+            'INV-003',
+            'January 2025',
+            2000,
+            2000,
+            '01/15/2025',
+            '01/20/2025',
+            'Test notes'
           ]);
         });
 
@@ -301,15 +258,16 @@ Deno.serve(async (req) => {
           { wch: 25 }, { wch: 18 }, { wch: 30 }
         ];
         
-        const range = XLSX.utils.decode_range(standardSheet['!ref']);
-        for (let R = 1; R <= range.e.r; R++) {
-          ['D', 'E'].forEach(col => {
-            const cellRef = col + (R + 1);
-            if (standardSheet[cellRef] && typeof standardSheet[cellRef].v === 'number') {
-              standardSheet[cellRef].z = '$#,##0.00';
-            }
-          });
-        }
+        // Commented out for debugging
+        // const range = XLSX.utils.decode_range(standardSheet['!ref']);
+        // for (let R = 1; R <= range.e.r; R++) {
+        //   ['D', 'E'].forEach(col => {
+        //     const cellRef = col + (R + 1);
+        //     if (standardSheet[cellRef] && typeof standardSheet[cellRef].v === 'number') {
+        //       standardSheet[cellRef].z = '$#,##0.00';
+        //     }
+        //   });
+        // }
         
         let sheetName = programGroup.replace(/[:\\\/\?\*\[\]]/g, '');
         if (sheetName.length > 31) {
