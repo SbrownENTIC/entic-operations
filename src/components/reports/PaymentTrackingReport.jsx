@@ -133,11 +133,12 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
               outsideIncome.find(income => income.id === incomeId)
             ).filter(Boolean);
 
-            // Check if any linked income is from the on-call location OR has no directorship link
-            return linkedIncomes.length === 0 || linkedIncomes.some(income => 
-              income.program_location_id === onCallLocation?.id || 
-              income.program_location_id !== directorshipLocation?.id
+            // Exclude invoices that are already in directorship (no linked income has directorship location)
+            const hasDirectorshipIncome = linkedIncomes.some(income => 
+              income.program_location_id === directorshipLocation?.id
             );
+            
+            return !hasDirectorshipIncome;
           });
 
           // Sort by month
