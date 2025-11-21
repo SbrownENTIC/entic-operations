@@ -251,7 +251,7 @@ export default function PublicSupplyRequest() {
                     <div key={index} className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-lg">
                       <div className="flex-1">
                         <p className="font-medium text-slate-900">{item.supply_name}</p>
-                        {item.item_number && <p className="text-sm text-slate-500">{item.item_number}</p>}
+                        {item.item_number && <p className="text-sm text-slate-500">Item# {item.item_number}</p>}
                       </div>
                       <div className="w-24">
                         <Label className="text-xs text-slate-600">Quantity</Label>
