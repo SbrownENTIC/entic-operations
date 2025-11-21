@@ -147,8 +147,8 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
   const isDirectorship = selectedLocation?.program_type === 'Directorship';
 
   return (
-    <Card className="border-slate-200 shadow-sm">
-      <CardHeader className="border-b border-slate-100">
+    <Card className="border-slate-200 shadow-sm max-h-[90vh] flex flex-col">
+      <CardHeader className="border-b border-slate-100 flex-shrink-0">
         <div className="flex items-center justify-between">
           <CardTitle>{income ? 'Edit Income' : 'Add Outside Income'}</CardTitle>
           <Button variant="ghost" size="icon" onClick={onCancel}>
@@ -156,8 +156,8 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
           </Button>
         </div>
       </CardHeader>
-      <form onSubmit={handleSubmit}>
-        <CardContent className="p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+        <CardContent className="p-6 space-y-6 overflow-y-auto flex-1">
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="provider_id">Provider *</Label>
@@ -340,7 +340,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
             />
           </div>
         </CardContent>
-        <CardFooter className="border-t border-slate-100 p-6 flex justify-end gap-3">
+        <CardFooter className="border-t border-slate-100 p-6 flex justify-end gap-3 flex-shrink-0">
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
