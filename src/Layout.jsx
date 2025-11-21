@@ -179,6 +179,16 @@ export default function Layout({ children, currentPageName }) {
           --accent: 210 40% 96%;
           --accent-foreground: 222.2 47.4% 11.2%;
         }
+        @keyframes ring {
+          0%, 100% { transform: rotate(0deg); }
+          10%, 30% { transform: rotate(-15deg); }
+          20%, 40% { transform: rotate(15deg); }
+          50% { transform: rotate(0deg); }
+        }
+        .animate-ring {
+          animation: ring 2s ease-in-out infinite;
+          transform-origin: top center;
+        }
       `}</style>
       
       {/* Top Navigation */}
@@ -203,7 +213,7 @@ export default function Layout({ children, currentPageName }) {
                 to={createPageUrl("SupplyOrders") + "?filter=pending"}
                 className="relative p-2 hover:bg-blue-50 rounded-lg transition-all border border-transparent hover:border-blue-200"
               >
-                <Bell className="w-5 h-5 text-slate-600" />
+                <Bell className={`w-5 h-5 text-slate-600 ${pendingOrders.length > 0 ? 'animate-ring' : ''}`} />
                 {pendingOrders.length > 0 && (
                   <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg">
                     {pendingOrders.length}
@@ -256,7 +266,7 @@ export default function Layout({ children, currentPageName }) {
                 to={createPageUrl("SupplyOrders") + "?filter=pending"}
                 className="relative p-2 hover:bg-slate-100 rounded-lg transition-colors lg:hidden"
               >
-                <Bell className="w-5 h-5 text-slate-600" />
+                <Bell className={`w-5 h-5 text-slate-600 ${pendingOrders.length > 0 ? 'animate-ring' : ''}`} />
                 {pendingOrders.length > 0 && (
                   <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
                     {pendingOrders.length}
