@@ -525,11 +525,19 @@ export default function Dashboard() {
             box-shadow: 0 0 30px rgba(202, 138, 4, 0.6), 0 0 60px rgba(202, 138, 4, 0.3);
           }
         }
+        @keyframes alert-scale {
+          0%, 100% { 
+            transform: scale(1);
+          }
+          50% { 
+            transform: scale(1.03);
+          }
+        }
         .animate-alert-glow {
-          animation: alert-glow 3.2s ease-in-out infinite;
+          animation: alert-glow 3.2s ease-in-out infinite, alert-scale 3.2s ease-in-out infinite;
         }
         .animate-yellow-glow {
-          animation: yellow-glow 3.2s ease-in-out infinite;
+          animation: yellow-glow 3.2s ease-in-out infinite, alert-scale 3.2s ease-in-out infinite;
         }
       `}</style>
       <div className="max-w-7xl mx-auto space-y-6">
@@ -548,7 +556,7 @@ export default function Dashboard() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className={`bg-gradient-to-br from-red-100 to-red-50 hover:scale-105 transition-all duration-300 ${supplyOrders.length > 0 ? 'border-[5px] border-red-600 animate-alert-glow' : 'border-3 border-red-300 shadow-xl shadow-red-300/60'}`}>
+          <Card className={`bg-gradient-to-br from-red-100 to-red-50 transition-all duration-300 ${supplyOrders.length > 0 ? 'border-[5px] border-red-600 animate-alert-glow' : 'border-3 border-red-300 shadow-xl shadow-red-300/60 hover:scale-105'}`}>
             <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-red-400">
               <AlertTriangle className="w-6 h-6 text-red-700 animate-slow-pulse" />
               <CardTitle className="text-sm font-bold text-slate-900">Supply Order Requests</CardTitle>
@@ -562,7 +570,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className={`bg-gradient-to-br from-yellow-100 to-yellow-50 hover:scale-105 transition-all duration-300 ${pendingInvoices > 0 ? 'border-[5px] border-yellow-600 animate-yellow-glow' : 'border-3 border-yellow-300 shadow-xl shadow-yellow-200/50'}`}>
+          <Card className={`bg-gradient-to-br from-yellow-100 to-yellow-50 transition-all duration-300 ${pendingInvoices > 0 ? 'border-[5px] border-yellow-600 animate-yellow-glow' : 'border-3 border-yellow-300 shadow-xl shadow-yellow-200/50 hover:scale-105'}`}>
             <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-yellow-300">
               <CardTitle className="text-sm font-bold text-slate-900">Invoices Sent for Approval</CardTitle>
               <FileText className="w-5 h-5 text-yellow-700 animate-slow-pulse" />
@@ -575,7 +583,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className={`bg-gradient-to-br from-red-100 to-red-50 hover:scale-105 transition-all duration-300 ${licensesExpiring14Days.length > 0 ? 'border-[5px] border-red-600 animate-alert-glow' : 'border-3 border-red-300 shadow-xl shadow-red-200/50'}`}>
+          <Card className={`bg-gradient-to-br from-red-100 to-red-50 transition-all duration-300 ${licensesExpiring14Days.length > 0 ? 'border-[5px] border-red-600 animate-alert-glow' : 'border-3 border-red-300 shadow-xl shadow-red-200/50 hover:scale-105'}`}>
             <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-red-300">
               <AlertTriangle className="w-6 h-6 text-red-700 animate-slow-pulse" />
               <CardTitle className="text-sm font-bold text-slate-900">Licenses Expiring (14d)</CardTitle>
