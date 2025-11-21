@@ -75,7 +75,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
               outsideIncome.find(income => income.id === incomeId)
             ).filter(Boolean);
 
-            // Check if any linked income is from directorship
+            // Check if any linked income is from a directorship program/location
             const hasDirectorshipIncome = linkedIncomes.some(income => {
               // Check facility_name for "Directorship" keyword
               if (income.facility_name && income.facility_name.toLowerCase().includes('directorship')) {
@@ -93,16 +93,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
               return false;
             });
             
-            // If has directorship income, it's directorship
-            if (hasDirectorshipIncome) return true;
-            
-            // If no linked income or amount matches directorship rate, classify as directorship
-            if (linkedIncomes.length === 0) {
-              const amount = inv.amount_expected || inv.total || 0;
-              return Math.abs(amount - directorshipRate) < 1;
-            }
-            
-            return false;
+            return hasDirectorshipIncome;
           });
 
           // Sort by month
