@@ -271,18 +271,26 @@ export default function Dashboard() {
   // License expiration tracking
   const today = new Date();
   const licensesExpiring60Days = licenses.filter(l => {
+    const provider = providers.find(p => p.id === l.provider_id);
+    if (provider?.status !== 'active') return false;
     const days = differenceInDays(parseISO(l.expiration_date), today);
     return days > 0 && days <= 60;
   });
   const licensesExpiring30Days = licenses.filter(l => {
+    const provider = providers.find(p => p.id === l.provider_id);
+    if (provider?.status !== 'active') return false;
     const days = differenceInDays(parseISO(l.expiration_date), today);
     return days > 0 && days <= 30;
   });
   const licensesExpiring14Days = licenses.filter(l => {
+    const provider = providers.find(p => p.id === l.provider_id);
+    if (provider?.status !== 'active') return false;
     const days = differenceInDays(parseISO(l.expiration_date), today);
     return days > 0 && days <= 14;
   });
   const licensesExpiring7Days = licenses.filter(l => {
+    const provider = providers.find(p => p.id === l.provider_id);
+    if (provider?.status !== 'active') return false;
     const days = differenceInDays(parseISO(l.expiration_date), today);
     return days > 0 && days <= 7;
   });
