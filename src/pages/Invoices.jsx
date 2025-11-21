@@ -87,6 +87,25 @@ export default function Invoices() {
         }
       }
       
+      // Auto-create Hartford Hospital Directorship invoice if this is an RVU invoice
+      if (data.program_group === 'Hartford Hospital' && data.invoice_number && !data.invoice_number.includes('Directorship')) {
+        const directorshipInvoice = await base44.entities.Invoice.create({
+          invoice_number: `${data.invoice_number}-Directorship`,
+          program_group: 'Hartford Hospital',
+          staff_member_id: data.staff_member_id,
+          work_email: data.work_email,
+          invoice_date: data.invoice_date,
+          month: data.month,
+          status: data.status || 'not_started',
+          subtotal: 3250,
+          total: 3250,
+          amount_expected: 3250,
+          outside_income_ids: [],
+          days_worked: 0,
+          notes: 'Auto-generated Directorship invoice'
+        });
+      }
+      
       return invoice;
     },
     onSuccess: () => {
