@@ -89,8 +89,19 @@ export default function Invoices() {
       
       // Auto-create Hartford Hospital Directorship invoice if this is an RVU invoice
       if (data.program_group === 'Hartford Hospital' && data.invoice_number && !data.invoice_number.includes('Directorship')) {
+        // Find the matching directorship outside income for this provider and month
+        const directorshipIncome = incomes.find(inc => {
+          const facilityMatch = inc.facility_name?.toLowerCase().includes('directorship');
+          const providerMatch = inc.provider_id === data.staff_member_id;
+          const monthMatch = inc.work_dates && inc.work_dates.length > 0 && 
+            data.month && inc.work_dates[0].includes(data.month.split(' ')[0]);
+          return facilityMatch && providerMatch && monthMatch && !inc.invoice_id;
+        });
+        
+        const directorshipIncomeIds = directorshipIncome ? [directorshipIncome.id] : [];
+        
         const directorshipInvoice = await base44.entities.Invoice.create({
-          invoice_number: `${data.invoice_number}-Directorship`,
+          invoice_number: `${data.invoice_number} (Directorship)`,
           program_group: 'Hartford Hospital',
           staff_member_id: data.staff_member_id,
           work_email: data.work_email,
@@ -100,10 +111,19 @@ export default function Invoices() {
           subtotal: 3250,
           total: 3250,
           amount_expected: 3250,
-          outside_income_ids: [],
+          outside_income_ids: directorshipIncomeIds,
           days_worked: 0,
           notes: 'Auto-generated Directorship invoice'
         });
+        
+        // Link the directorship income to the new invoice
+        if (directorshipIncome) {
+          await base44.entities.OutsideIncome.update(directorshipIncome.id, {
+            invoice_id: directorshipInvoice.id,
+            invoice_month: data.month || '',
+            status: 'invoiced'
+          });
+        }
       }
       
       return invoice;
