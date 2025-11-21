@@ -281,6 +281,8 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
       const response = await base44.functions.invoke('generatePaymentTrackingReport', {
         dateRange,
         selectedProgramGroup
+      }, {
+        responseType: 'arraybuffer'
       });
 
       // Create blob from the response data
