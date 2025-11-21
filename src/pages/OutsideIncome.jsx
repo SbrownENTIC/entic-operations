@@ -76,10 +76,9 @@ export default function OutsideIncome() {
         );
         
         if (directorshipLocation) {
-          // Get the first day of the month from the first work date
-          const firstWorkDate = new Date(data.work_dates[0]);
-          const firstDayOfMonth = new Date(firstWorkDate.getFullYear(), firstWorkDate.getMonth(), 1);
-          const firstDayString = firstDayOfMonth.toISOString().split('T')[0];
+          // Get the first day of the month from the first work date (e.g., "2025-11-01" -> "2025-11-01")
+          const [year, month] = data.work_dates[0].split('-');
+          const firstDayString = `${year}-${month}-01`;
           
           // Create the directorship income record
           await base44.entities.OutsideIncome.create({
