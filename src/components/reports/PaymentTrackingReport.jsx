@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Download, Building2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, parseISO } from "date-fns";
-import * as XLSX from "xlsx";
 
 export default function PaymentTrackingReport({ invoices, payments, providers, programLocations, outsideIncome, dateRange, formatCurrency, exportToCSV }) {
   const [selectedProgramGroup, setSelectedProgramGroup] = useState('all');
@@ -43,7 +42,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
       return true;
     });
 
-    const workbook = XLSX.utils.book_new();
+    const rows = [];
 
     // Get unique program groups
     const programGroups = [...new Set(filteredInvoices.map(inv => inv.program_group).filter(Boolean))].sort();
@@ -55,7 +54,6 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
       const needsSeparation = programGroup === 'Hartford Hospital' || programGroup === 'St. Francis';
       
       if (needsSeparation) {
-        const rows = [];
         // Separate by program type
         const directorshipLocation = programLocations.find(pl => 
           pl.program_group === programGroup && pl.program_type === 'Directorship'
@@ -66,8 +64,9 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
 
         // DIRECTORSHIP SECTION
         if (directorshipLocation) {
-          const directorshipRows = [];
-          directorshipRows.push(['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Date/Voucher Number', 'Date Paid Provider', 'Notes']);
+          rows.push([`${programGroup} - DIRECTORSHIP TRACKING`, '', '', '', '', '', '', '']);
+          rows.push(['', '', '', '', '', '', '', '']);
+          rows.push(['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Date/Voucher Number', 'Date Paid Provider', 'Notes']);
 
           const directorshipRate = programGroup === 'Hartford Hospital' ? 3250 : 1750;
           
@@ -133,48 +132,27 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
             directorshipTotal.expected += expectedAmount;
             directorshipTotal.received += receivedAmount;
 
-            directorshipRows.push([
+            rows.push([
               providerName,
               invoice.invoice_number || '',
               invoice.month || '',
-              expectedAmount,
-              receivedAmount,
+              formatCurrency(expectedAmount),
+              formatCurrency(receivedAmount),
               paymentInfo,
               invoice.date_provider_paid ? format(parseISO(invoice.date_provider_paid), 'MM/dd/yyyy') : '',
               invoice.notes || ''
             ]);
           });
 
-          directorshipRows.push(['TOTAL', '', '', directorshipTotal.expected, directorshipTotal.received, '', '', '']);
-          
-          // Create worksheet for directorship
-          const directorshipSheet = XLSX.utils.aoa_to_sheet(directorshipRows);
-          
-          // Set column widths
-          directorshipSheet['!cols'] = [
-            { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 18 }, 
-            { wch: 25 }, { wch: 18 }, { wch: 30 }
-          ];
-          
-          // Format currency columns
-          const range = XLSX.utils.decode_range(directorshipSheet['!ref']);
-          for (let R = 1; R <= range.e.r; R++) {
-            ['D', 'E'].forEach(col => {
-              const cellRef = col + (R + 1);
-              if (directorshipSheet[cellRef] && typeof directorshipSheet[cellRef].v === 'number') {
-                directorshipSheet[cellRef].z = '$#,##0.00';
-              }
-            });
-          }
-          
-          const sheetName = programGroup === 'Hartford Hospital' ? 'HH Directorship' : 'SF Directorship';
-          XLSX.utils.book_append_sheet(workbook, directorshipSheet, sheetName);
+          rows.push(['TOTAL', '', '', formatCurrency(directorshipTotal.expected), formatCurrency(directorshipTotal.received), '', '', '']);
+          rows.push(['', '', '', '', '', '', '', '']);
         }
 
         // ON-CALL SECTION
         if (onCallLocation) {
-          const onCallRows = [];
-          onCallRows.push(['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Date/Voucher Number', 'Date Paid Provider', 'Notes']);
+          rows.push([`${programGroup} - ON-CALL TRACKING`, '', '', '', '', '', '', '']);
+          rows.push(['', '', '', '', '', '', '', '']);
+          rows.push(['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Date/Voucher Number', 'Date Paid Provider', 'Notes']);
 
           const onCallInvoices = groupInvoices.filter(inv => {
             const linkedIncomes = (inv.outside_income_ids || []).map(incomeId => 
@@ -229,48 +207,28 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
             onCallTotal.expected += expectedAmount;
             onCallTotal.received += receivedAmount;
 
-            onCallRows.push([
+            rows.push([
               providerName,
               invoice.invoice_number || '',
               invoice.month || '',
-              expectedAmount,
-              receivedAmount,
+              formatCurrency(expectedAmount),
+              formatCurrency(receivedAmount),
               paymentInfo,
               invoice.date_provider_paid ? format(parseISO(invoice.date_provider_paid), 'MM/dd/yyyy') : '',
               invoice.notes || ''
             ]);
           });
 
-          onCallRows.push(['TOTAL', '', '', onCallTotal.expected, onCallTotal.received, '', '', '']);
-          
-          // Create worksheet for on-call
-          const onCallSheet = XLSX.utils.aoa_to_sheet(onCallRows);
-          
-          // Set column widths
-          onCallSheet['!cols'] = [
-            { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 18 }, 
-            { wch: 25 }, { wch: 18 }, { wch: 30 }
-          ];
-          
-          // Format currency columns
-          const range = XLSX.utils.decode_range(onCallSheet['!ref']);
-          for (let R = 1; R <= range.e.r; R++) {
-            ['D', 'E'].forEach(col => {
-              const cellRef = col + (R + 1);
-              if (onCallSheet[cellRef] && typeof onCallSheet[cellRef].v === 'number') {
-                onCallSheet[cellRef].z = '$#,##0.00';
-              }
-            });
-          }
-          
-          const sheetName = programGroup === 'Hartford Hospital' ? 'HH On-Call' : 'SF On-Call';
-          XLSX.utils.book_append_sheet(workbook, onCallSheet, sheetName);
+          rows.push(['TOTAL', '', '', formatCurrency(onCallTotal.expected), formatCurrency(onCallTotal.received), '', '', '']);
+          rows.push(['', '', '', '', '', '', '', '']);
+          rows.push(['', '', '', '', '', '', '', '']);
         }
 
       } else {
         // Standard tracking for other locations
-        const standardRows = [];
-        standardRows.push(['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Date/Voucher Number', 'Date Paid Provider', 'Notes']);
+        rows.push([`${programGroup} - TRACKING`, '', '', '', '', '', '', '']);
+        rows.push(['', '', '', '', '', '', '', '']);
+        rows.push(['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Date/Voucher Number', 'Date Paid Provider', 'Notes']);
 
         sortByMonth(groupInvoices);
 
@@ -298,51 +256,25 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
           groupTotal.expected += expectedAmount;
           groupTotal.received += receivedAmount;
 
-          standardRows.push([
+          rows.push([
             providerName,
             invoice.invoice_number || '',
             invoice.month || '',
-            expectedAmount,
-            receivedAmount,
+            formatCurrency(expectedAmount),
+            formatCurrency(receivedAmount),
             paymentInfo,
             invoice.date_provider_paid ? format(parseISO(invoice.date_provider_paid), 'MM/dd/yyyy') : '',
             invoice.notes || ''
           ]);
         });
 
-        standardRows.push(['TOTAL', '', '', groupTotal.expected, groupTotal.received, '', '', '']);
-        
-        // Create worksheet
-        const standardSheet = XLSX.utils.aoa_to_sheet(standardRows);
-        
-        // Set column widths
-        standardSheet['!cols'] = [
-          { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 18 }, 
-          { wch: 25 }, { wch: 18 }, { wch: 30 }
-        ];
-        
-        // Format currency columns
-        const range = XLSX.utils.decode_range(standardSheet['!ref']);
-        for (let R = 1; R <= range.e.r; R++) {
-          ['D', 'E'].forEach(col => {
-            const cellRef = col + (R + 1);
-            if (standardSheet[cellRef] && typeof standardSheet[cellRef].v === 'number') {
-              standardSheet[cellRef].z = '$#,##0.00';
-            }
-          });
-        }
-        
-        // Truncate sheet name if too long (Excel limit is 31 characters)
-        let sheetName = programGroup;
-        if (sheetName.length > 31) {
-          sheetName = sheetName.substring(0, 31);
-        }
-        XLSX.utils.book_append_sheet(workbook, standardSheet, sheetName);
+        rows.push(['TOTAL', '', '', formatCurrency(groupTotal.expected), formatCurrency(groupTotal.received), '', '', '']);
+        rows.push(['', '', '', '', '', '', '', '']);
+        rows.push(['', '', '', '', '', '', '', '']);
       }
     });
 
-    // Export workbook
-    XLSX.writeFile(workbook, `payment_tracking_report_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+    exportToCSV(rows, 'payment_tracking_report');
   };
 
   const programGroupOptions = ['all', ...new Set(invoices.map(inv => inv.program_group).filter(Boolean))].sort();
