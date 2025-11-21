@@ -25,10 +25,13 @@ export default function SupplyRequest() {
     queryKey: ['mySupplyRequests', user?.email],
     queryFn: async () => {
       if (!user?.email) return [];
-      return await base44.entities.SupplyOrder.filter({ 
-        created_by: user.email,
-        status: ['pending_review', 'pending_fulfillment', 'approved', 'rejected']
+      const allOrders = await base44.entities.SupplyOrder.filter({ 
+        created_by: user.email
       });
+      // Filter to only show pending/active requests (not ordered or received)
+      return allOrders.filter(order => 
+        ['pending_review', 'pending_fulfillment', 'approved', 'rejected'].includes(order.status)
+      );
     },
     enabled: !!user?.email
   });
