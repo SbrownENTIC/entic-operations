@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
-import * as XLSX from 'npm:xlsx';
+import * as XLSX from 'npm:xlsx@0.18.5';
 
 Deno.serve(async (req) => {
   try {
@@ -10,7 +10,8 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { dateRange, selectedProgramGroup } = await req.json();
+    const body = await req.json();
+    const { dateRange, selectedProgramGroup } = body;
 
     // Fetch all data
     const [invoices, payments, providers, programLocations, outsideIncome] = await Promise.all([
@@ -326,6 +327,7 @@ Deno.serve(async (req) => {
     });
 
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('Error generating report:', error);
+    return Response.json({ error: error.message, stack: error.stack }, { status: 500 });
   }
 });

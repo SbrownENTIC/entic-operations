@@ -283,6 +283,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
         selectedProgramGroup
       });
 
+      // Create blob from the response data
       const blob = new Blob([response.data], { 
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
       });
@@ -296,7 +297,8 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
       a.remove();
     } catch (error) {
       console.error('Error generating report:', error);
-      alert('Error generating report. Please try again.');
+      console.error('Error details:', error.response?.data);
+      alert(`Error generating report: ${error.response?.data?.error || error.message || 'Please try again.'}`);
     }
   };
 
