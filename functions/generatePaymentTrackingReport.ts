@@ -11,8 +11,9 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { dateRange, selectedProgramGroup } = body;
+    const { dateRange = { start: '', end: '' }, selectedProgramGroup = 'all' } = body;
 
+    console.log('Received body:', body);
     console.log('Received dateRange:', dateRange);
     console.log('Received selectedProgramGroup:', selectedProgramGroup);
 
