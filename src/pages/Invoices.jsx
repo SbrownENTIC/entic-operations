@@ -312,16 +312,10 @@ export default function Invoices() {
     setFixingHartford(true);
     setFixMessage('');
     try {
-      // First create missing directorship invoices
-      const response1 = await base44.functions.invoke('fixHartfordDirectorshipInvoices', {});
-      
-      // Then split the payments
-      const response2 = await base44.functions.invoke('splitHartfordPayments', {});
-      
-      setFixMessage(`${response1.data.message}. ${response2.data.message}`);
+      const response = await base44.functions.invoke('fixHartfordDirectorshipInvoices', {});
+      setFixMessage(response.data.message);
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['outside-income'] });
-      queryClient.invalidateQueries({ queryKey: ['payments'] });
     } catch (error) {
       setFixMessage('Error: ' + error.message);
     } finally {
