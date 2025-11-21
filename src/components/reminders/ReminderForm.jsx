@@ -427,6 +427,7 @@ The Operations Team
                       <SelectValue placeholder="Select holiday..." />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="Office Closure">Office Closure</SelectItem>
                       <SelectItem value="Labor Day">Labor Day</SelectItem>
                       <SelectItem value="Thanksgiving">Thanksgiving</SelectItem>
                       <SelectItem value="Christmas">Christmas</SelectItem>
