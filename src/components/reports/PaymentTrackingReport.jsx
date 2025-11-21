@@ -5,8 +5,6 @@ import { Download, Building2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, parseISO } from "date-fns";
 
-import { base44 } from "@/api/base44Client";
-
 export default function PaymentTrackingReport({ invoices, payments, providers, programLocations, outsideIncome, dateRange, formatCurrency, exportToCSV }) {
   const [selectedProgramGroup, setSelectedProgramGroup] = useState('all');
 
@@ -28,7 +26,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
     });
   };
 
-  const generateReport = async () => {
+  const generateReport = () => {
     const filteredInvoices = invoices.filter(inv => {
       if (!inv.invoice_date) return false;
       const invDate = parseISO(inv.invoice_date);
@@ -276,32 +274,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
       }
     });
 
-    // Call backend function to generate Excel
-    try {
-      const response = await base44.functions.invoke('generatePaymentTrackingReport', {
-        dateRange,
-        selectedProgramGroup
-      }, {
-        responseType: 'arraybuffer'
-      });
-
-      // Create blob from the response data
-      const blob = new Blob([response.data], { 
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-      });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `payment_tracking_report_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      a.remove();
-    } catch (error) {
-      console.error('Error generating report:', error);
-      console.error('Error details:', error.response?.data);
-      alert(`Error generating report: ${error.response?.data?.error || error.message || 'Please try again.'}`);
-    }
+    exportToCSV(rows, 'payment_tracking_report');
   };
 
   const programGroupOptions = ['all', ...new Set(invoices.map(inv => inv.program_group).filter(Boolean))].sort();
