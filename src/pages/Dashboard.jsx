@@ -501,6 +501,15 @@ export default function Dashboard() {
 
   return (
     <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
+      <style>{`
+        @keyframes slow-pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        .animate-slow-pulse {
+          animation: slow-pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+      `}</style>
       <div className="max-w-7xl mx-auto space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
