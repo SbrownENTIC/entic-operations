@@ -93,8 +93,15 @@ export default function Invoices() {
         const directorshipIncome = incomes.find(inc => {
           const facilityMatch = inc.facility_name?.toLowerCase().includes('directorship');
           const providerMatch = inc.provider_id === data.staff_member_id;
-          const monthMatch = inc.work_dates && inc.work_dates.length > 0 && 
-            data.month && inc.work_dates[0].includes(data.month.split(' ')[0]);
+          
+          // Match month by comparing the date's month/year with invoice month
+          let monthMatch = false;
+          if (inc.work_dates && inc.work_dates.length > 0 && data.month) {
+            const incomeDate = new Date(inc.work_dates[0]);
+            const incomeMonthYear = format(incomeDate, 'MMMM yyyy');
+            monthMatch = incomeMonthYear === data.month;
+          }
+          
           return facilityMatch && providerMatch && monthMatch && !inc.invoice_id;
         });
         
