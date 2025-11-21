@@ -257,6 +257,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
           groupTotal.expected += expectedAmount;
           groupTotal.received += receivedAmount;
 
+          const shouldHideNotes = invoice.auto_generated || (invoice.notes && invoice.notes.toLowerCase().includes('auto-generated'));
           rows.push([
             providerName,
             invoice.invoice_number || '',
@@ -265,7 +266,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
             formatCurrency(receivedAmount),
             paymentInfo,
             invoice.date_provider_paid ? format(parseISO(invoice.date_provider_paid), 'MM/dd/yyyy') : '',
-            invoice.auto_generated ? '' : (invoice.notes || '')
+            shouldHideNotes ? '' : (invoice.notes || '')
           ]);
         });
 
