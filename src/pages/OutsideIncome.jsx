@@ -90,8 +90,7 @@ export default function OutsideIncome() {
             total_rvus: 0,
             rate: 3250,
             total_amount: 3250,
-            status: 'pending',
-            notes: 'Auto-generated Directorship income'
+            status: 'pending'
           });
         }
       }
