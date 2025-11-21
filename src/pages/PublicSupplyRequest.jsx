@@ -207,14 +207,14 @@ export default function PublicSupplyRequest() {
                                   onSelect={(currentValue) => {
                                     if (!alreadyAdded) {
                                       setFormData(prev => ({
-                                        ...prev,
-                                        items: [...prev.items, {
-                                          supply_id: supply.id,
-                                          supply_name: supply.product_name,
-                                          quantity: 1,
-                                          unit_price: supply.unit_price || 0,
-                                          vendor: supply.vendor || 'Staples'
-                                        }]
+                                       ...prev,
+                                       items: [...prev.items, {
+                                         supply_id: supply.id,
+                                         supply_name: supply.product_name,
+                                         quantity: 1,
+                                         unit_price: supply.unit_price || 0,
+                                         item_number: supply.item_number || ''
+                                       }]
                                       }));
                                     }
                                     // Don't close the popover - keep it open for multiple selections
@@ -251,7 +251,7 @@ export default function PublicSupplyRequest() {
                     <div key={index} className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-lg">
                       <div className="flex-1">
                         <p className="font-medium text-slate-900">{item.supply_name}</p>
-                        {item.vendor && <p className="text-sm text-slate-500">{item.vendor}</p>}
+                        {item.item_number && <p className="text-sm text-slate-500">{item.item_number}</p>}
                       </div>
                       <div className="w-24">
                         <Label className="text-xs text-slate-600">Quantity</Label>
