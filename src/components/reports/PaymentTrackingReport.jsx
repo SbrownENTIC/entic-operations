@@ -75,11 +75,22 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
               outsideIncome.find(income => income.id === incomeId)
             ).filter(Boolean);
 
-            // Check if any linked income is from a directorship program location
+            // Check if any linked income is from directorship
             const hasDirectorshipIncome = linkedIncomes.some(income => {
-              if (!income.program_location_id) return false;
-              const incomeLocation = programLocations.find(pl => pl.id === income.program_location_id);
-              return incomeLocation?.program_type === 'Directorship';
+              // Check facility_name for "Directorship" keyword
+              if (income.facility_name && income.facility_name.toLowerCase().includes('directorship')) {
+                return true;
+              }
+              
+              // Check program_location_id for Directorship type
+              if (income.program_location_id) {
+                const incomeLocation = programLocations.find(pl => pl.id === income.program_location_id);
+                if (incomeLocation?.program_type === 'Directorship') {
+                  return true;
+                }
+              }
+              
+              return false;
             });
             
             // If has directorship income, it's directorship
@@ -150,9 +161,20 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
 
             // Exclude invoices that have directorship income
             const hasDirectorshipIncome = linkedIncomes.some(income => {
-              if (!income.program_location_id) return false;
-              const incomeLocation = programLocations.find(pl => pl.id === income.program_location_id);
-              return incomeLocation?.program_type === 'Directorship';
+              // Check facility_name for "Directorship" keyword
+              if (income.facility_name && income.facility_name.toLowerCase().includes('directorship')) {
+                return true;
+              }
+              
+              // Check program_location_id for Directorship type
+              if (income.program_location_id) {
+                const incomeLocation = programLocations.find(pl => pl.id === income.program_location_id);
+                if (incomeLocation?.program_type === 'Directorship') {
+                  return true;
+                }
+              }
+              
+              return false;
             });
             
             return !hasDirectorshipIncome;
