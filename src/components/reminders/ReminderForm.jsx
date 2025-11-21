@@ -195,7 +195,7 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
       
       const template = `Good Morning All,
  
-This email is to notify you that our office will be closed on ${format(parseISO(formData.closure_date), 'MMMM d, yyyy')} for the ${formData.holiday_name} Holiday.
+This email is to notify you that our office will be closed on ${format(parseISO(formData.closure_date), 'MMMM d, yyyy')}${formData.holiday_name ? ' for ' + formData.holiday_name : ''}.
 
 The offices will re-open at 8am on ${format(parseISO(formData.reopen_date), 'MMMM d, yyyy')}.
 
@@ -247,11 +247,11 @@ The Operations Team
   const useHolidayTemplate = () => {
     const template = `Good Morning All,
  
-This email is to notify you that our office will be closed on ${formData.closure_date ? format(parseISO(formData.closure_date), 'MMMM d, yyyy') : '(date of Closed)'} for the ${formData.holiday_name || '(Holiday Name)'} Holiday.
+This email is to notify you that our office will be closed on ${formData.closure_date ? format(parseISO(formData.closure_date), 'MMMM d, yyyy') : '(date of Closed)'}${formData.holiday_name ? ' for ' + formData.holiday_name : ''}.
 
 The offices will re-open at 8am on ${formData.reopen_date ? format(parseISO(formData.reopen_date), 'MMMM d, yyyy') : '(Re-Open Date)'}.
 
-${formData.oncall_provider_list ? formData.oncall_provider_list : '(On-Call Provider List)'} on call during office closure ${formData.oncall_provider_list ? 'is' : 'are'} the on-call provider${formData.oncall_provider_list && !formData.oncall_provider_list.includes(',') ? '' : 's'} and can be reached at ${formData.oncall_phone_list || '(On-call Phone List)'}.
+${formData.oncall_provider_list ? formData.oncall_provider_list : '(On-Call Provider List)'} ${formData.oncall_provider_list && formData.oncall_provider_list.includes(',') ? 'are' : 'is'} the on-call provider${formData.oncall_provider_list && formData.oncall_provider_list.includes(',') ? 's' : ''} and can be reached at ${formData.oncall_phone_list || '(On-call Phone List)'}.
  
 Best Regards,
 Steve Brown  
@@ -263,7 +263,7 @@ The Operations Team
     setFormData({
       ...formData,
       email_body: template,
-      email_subject: `Office Closure - ${formData.holiday_name || 'Holiday'}`
+      email_subject: formData.reminder_name || `Office Closure - ${formData.holiday_name || ''}`
     });
   };
 
@@ -408,14 +408,13 @@ The Operations Team
             )}
           </div>
 
-          {formData.reminder_type === 'Holiday' && (
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-4">
-              <div className="flex items-center justify-between">
-                <Label className="text-base font-semibold text-slate-900">Holiday Closure Details</Label>
-                <Button type="button" onClick={useHolidayTemplate} variant="outline" size="sm">
-                  Use Template
-                </Button>
-              </div>
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-4">
+            <div className="flex items-center justify-between">
+              <Label className="text-base font-semibold text-slate-900">Office Closure Details</Label>
+              <Button type="button" onClick={useHolidayTemplate} variant="outline" size="sm">
+                Use Template
+              </Button>
+            </div>
               
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -526,7 +525,7 @@ The Operations Team
                 </div>
               </div>
             </div>
-          )}
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="email_subject">
@@ -557,11 +556,9 @@ The Operations Team
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="email_body">Email Body *</Label>
-              {formData.reminder_type === 'Holiday' && (
-                <Button type="button" onClick={useHolidayTemplate} variant="outline" size="sm">
-                  Use Holiday Template
-                </Button>
-              )}
+              <Button type="button" onClick={useHolidayTemplate} variant="outline" size="sm">
+                Use Template
+              </Button>
             </div>
             <Textarea
               id="email_body"
