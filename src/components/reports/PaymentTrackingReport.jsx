@@ -68,15 +68,28 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
           rows.push(['', '', '', '', '', '', '', '']);
           rows.push(['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Date/Voucher Number', 'Date Paid Provider', 'Notes']);
 
+          const directorshipRate = programGroup === 'Hartford Hospital' ? 3250 : 1750;
+          
           const directorshipInvoices = groupInvoices.filter(inv => {
             const linkedIncomes = (inv.outside_income_ids || []).map(incomeId => 
               outsideIncome.find(income => income.id === incomeId)
             ).filter(Boolean);
 
             // Check if any linked income is from the directorship location
-            return linkedIncomes.some(income => 
+            const hasDirectorshipIncome = linkedIncomes.some(income => 
               income.program_location_id === directorshipLocation?.id
             );
+            
+            // If has directorship income, it's directorship
+            if (hasDirectorshipIncome) return true;
+            
+            // If no linked income or amount matches directorship rate, classify as directorship
+            if (linkedIncomes.length === 0) {
+              const amount = inv.amount_expected || inv.total || 0;
+              return Math.abs(amount - directorshipRate) < 1;
+            }
+            
+            return false;
           });
 
           // Sort by month
