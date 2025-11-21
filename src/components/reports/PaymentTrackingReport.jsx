@@ -71,29 +71,8 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
           const directorshipRate = programGroup === 'Hartford Hospital' ? 3250 : 1750;
           
           const directorshipInvoices = groupInvoices.filter(inv => {
-            const linkedIncomes = (inv.outside_income_ids || []).map(incomeId => 
-              outsideIncome.find(income => income.id === incomeId)
-            ).filter(Boolean);
-
-            // Check if any linked income is from a directorship program/location
-            const hasDirectorshipIncome = linkedIncomes.some(income => {
-              // Check facility_name for "Directorship" keyword
-              if (income.facility_name && income.facility_name.toLowerCase().includes('directorship')) {
-                return true;
-              }
-              
-              // Check program_location_id for Directorship type
-              if (income.program_location_id) {
-                const incomeLocation = programLocations.find(pl => pl.id === income.program_location_id);
-                if (incomeLocation?.program_type === 'Directorship') {
-                  return true;
-                }
-              }
-              
-              return false;
-            });
-            
-            return hasDirectorshipIncome;
+            // Check if invoice number contains "(Directorship)"
+            return inv.invoice_number && inv.invoice_number.includes('(Directorship)');
           });
 
           // Sort by month
@@ -146,29 +125,8 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
           rows.push(['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Date/Voucher Number', 'Date Paid Provider', 'Notes']);
 
           const onCallInvoices = groupInvoices.filter(inv => {
-            const linkedIncomes = (inv.outside_income_ids || []).map(incomeId => 
-              outsideIncome.find(income => income.id === incomeId)
-            ).filter(Boolean);
-
-            // Exclude invoices that have directorship income
-            const hasDirectorshipIncome = linkedIncomes.some(income => {
-              // Check facility_name for "Directorship" keyword
-              if (income.facility_name && income.facility_name.toLowerCase().includes('directorship')) {
-                return true;
-              }
-              
-              // Check program_location_id for Directorship type
-              if (income.program_location_id) {
-                const incomeLocation = programLocations.find(pl => pl.id === income.program_location_id);
-                if (incomeLocation?.program_type === 'Directorship') {
-                  return true;
-                }
-              }
-              
-              return false;
-            });
-            
-            return !hasDirectorshipIncome;
+            // Exclude invoices with "(Directorship)" in the invoice number
+            return !inv.invoice_number || !inv.invoice_number.includes('(Directorship)');
           });
 
           // Sort by month
