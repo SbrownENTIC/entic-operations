@@ -211,9 +211,10 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
         formData.oncall_phone_list &&
         !formData.email_body) {  // Only auto-apply if email body is empty
       
+      const holidayText = formData.holiday_name && formData.holiday_name !== 'Office Closure' ? ` for ${formData.holiday_name}` : '';
       const template = `Good Morning All,
  
-This email is to notify you that our office will be closed on ${format(parseISO(formData.closure_date), 'MMMM d, yyyy')}${formData.holiday_name ? ' for ' + formData.holiday_name : ''}.
+This email is to notify you that our office will be closed on ${format(parseISO(formData.closure_date), 'MMMM d, yyyy')}${holidayText}.
 
 The offices will re-open at 8am on ${format(parseISO(formData.reopen_date), 'MMMM d, yyyy')}.
 
@@ -263,9 +264,10 @@ The Operations Team
   };
 
   const useHolidayTemplate = () => {
+    const holidayText = formData.holiday_name && formData.holiday_name !== 'Office Closure' ? ` for ${formData.holiday_name}` : '';
     const template = `Good Morning All,
  
-This email is to notify you that our office will be closed on ${formData.closure_date ? format(parseISO(formData.closure_date), 'MMMM d, yyyy') : '(date of Closed)'}${formData.holiday_name ? ' for ' + formData.holiday_name : ''}.
+This email is to notify you that our office will be closed on ${formData.closure_date ? format(parseISO(formData.closure_date), 'MMMM d, yyyy') : '(date of Closed)'}${holidayText}.
 
 The offices will re-open at 8am on ${formData.reopen_date ? format(parseISO(formData.reopen_date), 'MMMM d, yyyy') : '(Re-Open Date)'}.
 
