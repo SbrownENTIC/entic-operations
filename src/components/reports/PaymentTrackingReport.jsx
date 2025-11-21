@@ -315,16 +315,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
               </SelectContent>
             </Select>
           </div>
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <p className="text-sm font-medium text-slate-900 mb-2">Report Structure:</p>
-            <ul className="text-sm text-slate-700 space-y-1 ml-4 list-disc">
-              <li>Hartford Hospital: Separate Directorship ($3,250/month) and RVUs/On-Call tracking</li>
-              <li>St. Francis: Separate Directorship ($1,750/month) and On-Call tracking</li>
-              <li>Other locations: Combined tracking</li>
-              <li>Export opens in Excel with clear sections and totals</li>
-            </ul>
           </div>
-        </div>
       </CardContent>
     </Card>
   );
