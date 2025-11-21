@@ -89,17 +89,24 @@ export default function Invoices() {
       
       // Auto-create Hartford Hospital Directorship invoice if this is an RVU invoice
       if (data.program_group === 'Hartford Hospital' && data.invoice_number && !data.invoice_number.includes('Directorship')) {
+        // Fetch fresh list of incomes to ensure we have the latest data
+        const allIncomes = await base44.entities.OutsideIncome.list();
+        
         // Find the matching directorship outside income for this provider and month
-        const directorshipIncome = incomes.find(inc => {
+        const directorshipIncome = allIncomes.find(inc => {
           const facilityMatch = inc.facility_name?.toLowerCase().includes('directorship');
           const providerMatch = inc.provider_id === data.staff_member_id;
           
           // Match month by comparing the date's month/year with invoice month
           let monthMatch = false;
           if (inc.work_dates && inc.work_dates.length > 0 && data.month) {
-            const incomeDate = new Date(inc.work_dates[0]);
-            const incomeMonthYear = format(incomeDate, 'MMMM yyyy');
-            monthMatch = incomeMonthYear === data.month;
+            try {
+              const incomeDate = parseISO(inc.work_dates[0]);
+              const incomeMonthYear = format(incomeDate, 'MMMM yyyy');
+              monthMatch = incomeMonthYear === data.month;
+            } catch (e) {
+              monthMatch = false;
+            }
           }
           
           return facilityMatch && providerMatch && monthMatch && !inc.invoice_id;
