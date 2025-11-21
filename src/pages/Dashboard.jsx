@@ -517,11 +517,11 @@ export default function Dashboard() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className={`border-[5px] border-red-600 bg-gradient-to-br from-red-100 to-red-50 shadow-xl shadow-red-300/60 hover:scale-105 transition-all duration-300 ${supplyOrders.length > 0 ? 'animate-pulse' : ''}`}>
+          <Card className={`bg-gradient-to-br from-red-100 to-red-50 shadow-xl shadow-red-300/60 hover:scale-105 transition-all duration-300 ${supplyOrders.length > 0 ? 'border-[5px] border-red-600 animate-slow-pulse' : 'border-3 border-red-300'}`}>
             <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-red-400">
-              <AlertTriangle className="w-6 h-6 text-red-700 animate-pulse" />
+              <AlertTriangle className="w-6 h-6 text-red-700 animate-slow-pulse" />
               <CardTitle className="text-sm font-bold text-slate-900">Supply Order Requests</CardTitle>
-              <AlertTriangle className="w-6 h-6 text-red-700 animate-pulse" />
+              <AlertTriangle className="w-6 h-6 text-red-700 animate-slow-pulse" />
             </CardHeader>
             <CardContent className="pt-3">
               <div className="text-4xl font-bold text-red-700 mb-1">{supplyOrders.length}</div>
@@ -531,10 +531,10 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="border-3 border-yellow-500 bg-gradient-to-br from-yellow-100 to-yellow-50 shadow-xl shadow-yellow-200/50 hover:scale-105 transition-all duration-300">
+          <Card className={`bg-gradient-to-br from-yellow-100 to-yellow-50 shadow-xl shadow-yellow-200/50 hover:scale-105 transition-all duration-300 ${pendingInvoices > 0 ? 'border-[5px] border-yellow-600 animate-slow-pulse' : 'border-3 border-yellow-300'}`}>
             <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-yellow-300">
               <CardTitle className="text-sm font-bold text-slate-900">Invoices Sent for Approval</CardTitle>
-              <FileText className="w-5 h-5 text-yellow-700 animate-pulse" />
+              <FileText className="w-5 h-5 text-yellow-700 animate-slow-pulse" />
             </CardHeader>
             <CardContent className="pt-3">
               <div className="text-4xl font-bold text-yellow-700 mb-1">{pendingInvoices}</div>
@@ -544,11 +544,11 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className={`border-[5px] border-red-600 bg-gradient-to-br from-red-100 to-red-50 shadow-xl shadow-red-200/50 hover:scale-105 transition-all duration-300 ${licensesExpiring14Days.length > 0 ? 'animate-pulse' : ''}`}>
+          <Card className={`bg-gradient-to-br from-red-100 to-red-50 shadow-xl shadow-red-200/50 hover:scale-105 transition-all duration-300 ${licensesExpiring14Days.length > 0 ? 'border-[5px] border-red-600 animate-slow-pulse' : 'border-3 border-red-300'}`}>
             <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-red-300">
-              <AlertTriangle className="w-6 h-6 text-red-700 animate-pulse" />
+              <AlertTriangle className="w-6 h-6 text-red-700 animate-slow-pulse" />
               <CardTitle className="text-sm font-bold text-slate-900">Licenses Expiring (14d)</CardTitle>
-              <AlertTriangle className="w-6 h-6 text-red-700 animate-pulse" />
+              <AlertTriangle className="w-6 h-6 text-red-700 animate-slow-pulse" />
             </CardHeader>
             <CardContent className="pt-3">
               <div className="text-4xl font-bold text-red-700 mb-1">{licensesExpiring14Days.length}</div>
