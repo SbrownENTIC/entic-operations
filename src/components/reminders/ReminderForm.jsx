@@ -525,7 +525,6 @@ The Operations Team
                 </div>
               </div>
             </div>
-          </div>
 
           <div className="space-y-2">
             <Label htmlFor="email_subject">
