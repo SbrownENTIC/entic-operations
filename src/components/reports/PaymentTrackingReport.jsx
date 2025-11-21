@@ -13,16 +13,16 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
       'January': 1, 'February': 2, 'March': 3, 'April': 4, 'May': 5, 'June': 6,
       'July': 7, 'August': 8, 'September': 9, 'October': 10, 'November': 11, 'December': 12
     };
-    
+
     return invoices.sort((a, b) => {
       if (!a.month || !b.month) return 0;
       const [aMonth, aYear] = a.month.split(' ');
       const [bMonth, bYear] = b.month.split(' ');
-      
-      const yearDiff = (parseInt(aYear) || 0) - (parseInt(bYear) || 0);
+
+      const yearDiff = (parseInt(bYear) || 0) - (parseInt(aYear) || 0);
       if (yearDiff !== 0) return yearDiff;
-      
-      return (monthOrder[aMonth] || 0) - (monthOrder[bMonth] || 0);
+
+      return (monthOrder[bMonth] || 0) - (monthOrder[aMonth] || 0);
     });
   };
 
