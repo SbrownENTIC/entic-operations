@@ -8,6 +8,24 @@ import { format, parseISO } from "date-fns";
 export default function PaymentTrackingReport({ invoices, payments, providers, programLocations, dateRange, formatCurrency, exportToCSV }) {
   const [selectedProgramGroup, setSelectedProgramGroup] = useState('all');
 
+  const sortByMonth = (invoices) => {
+    const monthOrder = {
+      'January': 1, 'February': 2, 'March': 3, 'April': 4, 'May': 5, 'June': 6,
+      'July': 7, 'August': 8, 'September': 9, 'October': 10, 'November': 11, 'December': 12
+    };
+    
+    return invoices.sort((a, b) => {
+      if (!a.month || !b.month) return 0;
+      const [aMonth, aYear] = a.month.split(' ');
+      const [bMonth, bYear] = b.month.split(' ');
+      
+      const yearDiff = (parseInt(aYear) || 0) - (parseInt(bYear) || 0);
+      if (yearDiff !== 0) return yearDiff;
+      
+      return (monthOrder[aMonth] || 0) - (monthOrder[bMonth] || 0);
+    });
+  };
+
   const generateReport = () => {
     const filteredInvoices = invoices.filter(inv => {
       if (!inv.invoice_date) return false;
@@ -60,10 +78,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
           });
 
           // Sort by month
-          directorshipInvoices.sort((a, b) => {
-            if (!a.month || !b.month) return 0;
-            return a.month.localeCompare(b.month);
-          });
+          sortByMonth(directorshipInvoices);
 
           let directorshipTotal = { expected: 0, received: 0 };
 
@@ -114,10 +129,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
           const onCallInvoices = groupInvoices; // All other invoices for this group
 
           // Sort by month
-          onCallInvoices.sort((a, b) => {
-            if (!a.month || !b.month) return 0;
-            return a.month.localeCompare(b.month);
-          });
+          sortByMonth(onCallInvoices);
 
           let onCallTotal = { expected: 0, received: 0 };
 
@@ -166,10 +178,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
         rows.push(['', '', '', '', '', '', '', '']);
         rows.push(['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Date/Voucher Number', 'Date Paid Provider', 'Notes']);
 
-        groupInvoices.sort((a, b) => {
-          if (!a.month || !b.month) return 0;
-          return a.month.localeCompare(b.month);
-        });
+        sortByMonth(groupInvoices);
 
         let groupTotal = { expected: 0, received: 0 };
 
