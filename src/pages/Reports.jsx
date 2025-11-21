@@ -10,6 +10,7 @@ import { Download, FileText, DollarSign, Clock, Users, Package, X } from "lucide
 import { format, parseISO, differenceInDays } from "date-fns";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import PaymentTrackingReport from "../components/reports/PaymentTrackingReport";
 
 export default function Reports() {
   const [dateRange, setDateRange] = useState({
@@ -43,7 +44,12 @@ export default function Reports() {
     queryFn: () => base44.entities.SupplyOrder.list('-order_date')
   });
 
-  const isLoading = paymentsLoading || invoicesLoading || providersLoading || incomesLoading || ordersLoading;
+  const { data: programLocations = [], isLoading: programLocationsLoading } = useQuery({
+    queryKey: ['program-locations'],
+    queryFn: () => base44.entities.ProgramLocation.list()
+  });
+
+  const isLoading = paymentsLoading || invoicesLoading || providersLoading || incomesLoading || ordersLoading || programLocationsLoading;
 
   const formatCurrency = (amount) => {
     return '$' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -589,8 +595,12 @@ export default function Reports() {
           </CardContent>
         </Card>
 
-        <Tabs defaultValue="allocation" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 h-auto">
+        <Tabs defaultValue="payment-tracking" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6 h-auto">
+            <TabsTrigger value="payment-tracking" className="gap-2 py-3">
+              <FileText className="w-4 h-4" />
+              Payment Tracking
+            </TabsTrigger>
             <TabsTrigger value="allocation" className="gap-2 py-3">
               <DollarSign className="w-4 h-4" />
               Payment Allocations
@@ -612,6 +622,18 @@ export default function Reports() {
               Supply Orders
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="payment-tracking">
+            <PaymentTrackingReport
+              invoices={invoices}
+              payments={payments}
+              providers={providers}
+              programLocations={programLocations}
+              dateRange={dateRange}
+              formatCurrency={formatCurrency}
+              exportToCSV={exportToCSV}
+            />
+          </TabsContent>
 
           <TabsContent value="allocation">
             <Card className="border-slate-200 shadow-sm">
