@@ -555,7 +555,14 @@ The Operations Team
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email_body">Email Body *</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="email_body">Email Body *</Label>
+              {formData.reminder_type === 'Holiday' && (
+                <Button type="button" onClick={useHolidayTemplate} variant="outline" size="sm">
+                  Use Holiday Template
+                </Button>
+              )}
+            </div>
             <Textarea
               id="email_body"
               value={formData.email_body}
