@@ -319,10 +319,11 @@ Deno.serve(async (req) => {
       }
     });
 
-    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    const buffer = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' });
+    const uint8Array = new Uint8Array(buffer);
     const today = new Date().toISOString().split('T')[0];
 
-    return new Response(buffer, {
+    return new Response(uint8Array, {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
