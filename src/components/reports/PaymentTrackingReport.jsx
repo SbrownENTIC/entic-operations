@@ -110,8 +110,8 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
               providerName,
               invoice.invoice_number || '',
               invoice.month || '',
-              expectedAmount,
-              receivedAmount,
+              formatCurrency(expectedAmount),
+              formatCurrency(receivedAmount),
               paymentInfo,
               invoice.date_provider_paid ? format(parseISO(invoice.date_provider_paid), 'MM/dd/yyyy') : '',
               invoice.notes || ''
