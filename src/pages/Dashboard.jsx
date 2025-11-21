@@ -556,14 +556,14 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="border-3 border-blue-500 bg-gradient-to-br from-blue-100 to-blue-50 shadow-xl shadow-blue-200/50 hover:scale-105 transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-blue-300">
+          <Card className="border-3 border-red-600 bg-gradient-to-br from-red-100 to-red-50 shadow-xl shadow-red-300/60 hover:scale-105 transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-red-400">
               <CardTitle className="text-sm font-bold text-slate-900">Supply Order Requests</CardTitle>
-              <Package className="w-5 h-5 text-blue-700 animate-pulse" />
+              <AlertTriangle className="w-6 h-6 text-red-700 animate-pulse" />
             </CardHeader>
             <CardContent className="pt-3">
-              <div className="text-4xl font-bold text-blue-700 mb-1">{supplyOrders.length}</div>
-              <Link to={createPageUrl("SupplyOrders") + "?filter=pending"} className="text-xs text-blue-700 hover:text-blue-900 font-semibold hover:underline">
+              <div className="text-4xl font-bold text-red-700 mb-1">{supplyOrders.length}</div>
+              <Link to={createPageUrl("SupplyOrders") + "?filter=pending"} className="text-xs text-red-700 hover:text-red-900 font-semibold hover:underline">
                 View requests →
               </Link>
             </CardContent>
