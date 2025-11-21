@@ -75,10 +75,12 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
               outsideIncome.find(income => income.id === incomeId)
             ).filter(Boolean);
 
-            // Check if any linked income is from the directorship location
-            const hasDirectorshipIncome = linkedIncomes.some(income => 
-              income.program_location_id === directorshipLocation?.id
-            );
+            // Check if any linked income is from a directorship program location
+            const hasDirectorshipIncome = linkedIncomes.some(income => {
+              if (!income.program_location_id) return false;
+              const incomeLocation = programLocations.find(pl => pl.id === income.program_location_id);
+              return incomeLocation?.program_type === 'Directorship';
+            });
             
             // If has directorship income, it's directorship
             if (hasDirectorshipIncome) return true;
@@ -146,10 +148,12 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
               outsideIncome.find(income => income.id === incomeId)
             ).filter(Boolean);
 
-            // Exclude invoices that are already in directorship (no linked income has directorship location)
-            const hasDirectorshipIncome = linkedIncomes.some(income => 
-              income.program_location_id === directorshipLocation?.id
-            );
+            // Exclude invoices that have directorship income
+            const hasDirectorshipIncome = linkedIncomes.some(income => {
+              if (!income.program_location_id) return false;
+              const incomeLocation = programLocations.find(pl => pl.id === income.program_location_id);
+              return incomeLocation?.program_type === 'Directorship';
+            });
             
             return !hasDirectorshipIncome;
           });
