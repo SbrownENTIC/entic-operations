@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -50,6 +50,25 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
     queryKey: ['oncall-schedules'],
     queryFn: () => base44.entities.OnCallSchedule.list()
   });
+
+  // Reset manual edit flags when dates change to allow re-calculation
+  const prevDatesRef = React.useRef({ closure_date: '', reopen_date: '' });
+  useEffect(() => {
+    if (formData.closure_date !== prevDatesRef.current.closure_date || 
+        formData.reopen_date !== prevDatesRef.current.reopen_date) {
+      if (prevDatesRef.current.closure_date !== '' || prevDatesRef.current.reopen_date !== '') {
+        setManuallyEdited(prev => ({ 
+          ...prev, 
+          oncall_provider_list: false, 
+          oncall_phone_list: false 
+        }));
+      }
+      prevDatesRef.current = { 
+        closure_date: formData.closure_date, 
+        reopen_date: formData.reopen_date 
+      };
+    }
+  }, [formData.closure_date, formData.reopen_date]);
 
   // Auto-populate on-call providers during closure period (only if not manually edited)
   useEffect(() => {
