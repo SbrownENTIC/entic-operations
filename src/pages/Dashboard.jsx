@@ -517,14 +517,41 @@ export default function Dashboard() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="border-3 border-orange-500 bg-gradient-to-br from-orange-100 to-orange-50 shadow-xl shadow-orange-200/50 hover:scale-105 transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-orange-300">
-              <CardTitle className="text-sm font-bold text-slate-900">Licenses Expiring (60d)</CardTitle>
-              <AlertTriangle className="w-5 h-5 text-orange-700 animate-pulse" />
+          <Card className="border-3 border-red-600 bg-gradient-to-br from-red-100 to-red-50 shadow-xl shadow-red-300/60 hover:scale-105 transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-red-400">
+              <AlertTriangle className="w-6 h-6 text-red-700 animate-pulse" />
+              <CardTitle className="text-sm font-bold text-slate-900">Supply Order Requests</CardTitle>
+              <AlertTriangle className="w-6 h-6 text-red-700 animate-pulse" />
             </CardHeader>
             <CardContent className="pt-3">
-              <div className="text-4xl font-bold text-orange-700 mb-1">{licensesExpiring60Days.length}</div>
-              <Link to={createPageUrl("Licenses")} className="text-xs text-orange-700 hover:text-orange-900 font-semibold hover:underline">
+              <div className="text-4xl font-bold text-red-700 mb-1">{supplyOrders.length}</div>
+              <Link to={createPageUrl("SupplyOrders") + "?filter=pending"} className="text-xs text-red-700 hover:text-red-900 font-semibold hover:underline">
+                View requests →
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card className="border-3 border-yellow-500 bg-gradient-to-br from-yellow-100 to-yellow-50 shadow-xl shadow-yellow-200/50 hover:scale-105 transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-yellow-300">
+              <CardTitle className="text-sm font-bold text-slate-900">Invoices Sent for Approval</CardTitle>
+              <FileText className="w-5 h-5 text-yellow-700 animate-pulse" />
+            </CardHeader>
+            <CardContent className="pt-3">
+              <div className="text-4xl font-bold text-yellow-700 mb-1">{pendingInvoices}</div>
+              <Link to={createPageUrl("Invoices")} className="text-xs text-yellow-700 hover:text-yellow-900 font-semibold hover:underline">
+                View invoices →
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card className="border-3 border-red-500 bg-gradient-to-br from-red-100 to-red-50 shadow-xl shadow-red-200/50 hover:scale-105 transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-red-300">
+              <CardTitle className="text-sm font-bold text-slate-900">Licenses Expiring (14d)</CardTitle>
+              <AlertTriangle className="w-5 h-5 text-red-700 animate-pulse" />
+            </CardHeader>
+            <CardContent className="pt-3">
+              <div className="text-4xl font-bold text-red-700 mb-1">{licensesExpiring14Days.length}</div>
+              <Link to={createPageUrl("Licenses")} className="text-xs text-red-700 hover:text-red-900 font-semibold hover:underline">
                 View licenses →
               </Link>
             </CardContent>
@@ -539,32 +566,6 @@ export default function Dashboard() {
               <div className="text-4xl font-bold text-purple-700 mb-1">{privilegesExpiring30Days.length}</div>
               <Link to={createPageUrl("ClinicalPrivileges")} className="text-xs text-purple-700 hover:text-purple-900 font-semibold hover:underline">
                 View privileges →
-              </Link>
-            </CardContent>
-          </Card>
-
-          <Card className="border-3 border-yellow-500 bg-gradient-to-br from-yellow-100 to-yellow-50 shadow-xl shadow-yellow-200/50 hover:scale-105 transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-yellow-300">
-              <CardTitle className="text-sm font-bold text-slate-900">Sent for Approval</CardTitle>
-              <FileText className="w-5 h-5 text-yellow-700 animate-pulse" />
-            </CardHeader>
-            <CardContent className="pt-3">
-              <div className="text-4xl font-bold text-yellow-700 mb-1">{pendingInvoices}</div>
-              <Link to={createPageUrl("Invoices")} className="text-xs text-yellow-700 hover:text-yellow-900 font-semibold hover:underline">
-                View invoices →
-              </Link>
-            </CardContent>
-          </Card>
-
-          <Card className="border-3 border-red-600 bg-gradient-to-br from-red-100 to-red-50 shadow-xl shadow-red-300/60 hover:scale-105 transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-red-400">
-              <CardTitle className="text-sm font-bold text-slate-900">Supply Order Requests</CardTitle>
-              <AlertTriangle className="w-6 h-6 text-red-700 animate-pulse" />
-            </CardHeader>
-            <CardContent className="pt-3">
-              <div className="text-4xl font-bold text-red-700 mb-1">{supplyOrders.length}</div>
-              <Link to={createPageUrl("SupplyOrders") + "?filter=pending"} className="text-xs text-red-700 hover:text-red-900 font-semibold hover:underline">
-                View requests →
               </Link>
             </CardContent>
           </Card>
