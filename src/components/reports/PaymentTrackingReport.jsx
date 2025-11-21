@@ -38,10 +38,10 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
       if (needsSeparation) {
         // Separate by program type
         const directorshipLocation = programLocations.find(pl => 
-          pl.data.program_group === programGroup && pl.data.program_type === 'Directorship'
+          pl.program_group === programGroup && pl.program_type === 'Directorship'
         );
         const onCallLocation = programLocations.find(pl => 
-          pl.data.program_group === programGroup && pl.data.program_type === 'On-Call'
+          pl.program_group === programGroup && pl.program_type === 'On-Call'
         );
 
         // DIRECTORSHIP SECTION
