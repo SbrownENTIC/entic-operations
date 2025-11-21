@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
           outside_income_ids: directorshipIncome ? [directorshipIncome.id] : [],
           days_worked: 0,
           amount_received: 0,
-          notes: 'Auto-generated Directorship invoice (retroactive)'
+          auto_generated: true
         });
 
         created++;

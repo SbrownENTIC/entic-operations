@@ -129,7 +129,7 @@ export default function Invoices() {
           amount_expected: 3250,
           outside_income_ids: directorshipIncomeIds,
           days_worked: 0,
-          notes: 'Auto-generated Directorship invoice'
+          auto_generated: true
         });
         
         // Link the directorship income to the new invoice
