@@ -135,7 +135,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
               formatCurrency(receivedAmount),
               paymentInfo,
               invoice.date_provider_paid ? format(parseISO(invoice.date_provider_paid), 'MM/dd/yyyy') : '',
-              invoice.notes || ''
+              invoice.auto_generated ? '' : (invoice.notes || '')
             ]);
           });
 
@@ -216,7 +216,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
               formatCurrency(receivedAmount),
               paymentInfo,
               invoice.date_provider_paid ? format(parseISO(invoice.date_provider_paid), 'MM/dd/yyyy') : '',
-              invoice.notes || ''
+              invoice.auto_generated ? '' : (invoice.notes || '')
             ]);
           });
 
