@@ -629,6 +629,7 @@ export default function Reports() {
               payments={payments}
               providers={providers}
               programLocations={programLocations}
+              outsideIncome={outsideIncome}
               dateRange={dateRange}
               formatCurrency={formatCurrency}
               exportToCSV={exportToCSV}
