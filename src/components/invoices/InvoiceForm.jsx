@@ -567,11 +567,11 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
             <div className="space-y-2">
               <Label>Under/Over Amount</Label>
               <div className={`text-xl font-bold p-3 rounded-lg ${
-                formData.under_over_amount > 0 ? 'bg-green-50 text-green-700' :
-                formData.under_over_amount < 0 ? 'bg-red-50 text-red-700' :
+                (formData.under_over_amount || 0) > 0 ? 'bg-green-50 text-green-700' :
+                (formData.under_over_amount || 0) < 0 ? 'bg-red-50 text-red-700' :
                 'bg-slate-50 text-slate-700'
               }`}>
-                ${formData.under_over_amount.toFixed(2)}
+                ${(formData.under_over_amount || 0).toFixed(2)}
               </div>
             </div>
 
