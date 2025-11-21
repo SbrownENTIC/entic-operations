@@ -13,6 +13,9 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { dateRange, selectedProgramGroup } = body;
 
+    console.log('Received dateRange:', dateRange);
+    console.log('Received selectedProgramGroup:', selectedProgramGroup);
+
     // Fetch all data
     const [invoices, payments, providers, programLocations, outsideIncome] = await Promise.all([
       base44.entities.Invoice.list('-invoice_date'),
