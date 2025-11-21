@@ -188,7 +188,7 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
         </div>
       </CardHeader>
       <form onSubmit={handleSubmit}>
-        <CardContent className="p-6 space-y-6">
+        <CardContent className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="full_name">Full Name *</Label>
