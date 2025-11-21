@@ -72,7 +72,27 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
           
           const directorshipInvoices = groupInvoices.filter(inv => {
             // Check if invoice number contains "(Directorship)"
-            return inv.invoice_number && inv.invoice_number.includes('(Directorship)');
+            if (inv.invoice_number && inv.invoice_number.includes('(Directorship)')) {
+              return true;
+            }
+            
+            // Also check linked outside income for directorship
+            const linkedIncomes = (inv.outside_income_ids || []).map(incomeId => 
+              outsideIncome.find(income => income.id === incomeId)
+            ).filter(Boolean);
+
+            return linkedIncomes.some(income => {
+              if (income.facility_name && income.facility_name.toLowerCase().includes('directorship')) {
+                return true;
+              }
+              if (income.program_location_id) {
+                const incomeLocation = programLocations.find(pl => pl.id === income.program_location_id);
+                if (incomeLocation?.program_type === 'Directorship') {
+                  return true;
+                }
+              }
+              return false;
+            });
           });
 
           // Sort by month
@@ -126,7 +146,29 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
 
           const onCallInvoices = groupInvoices.filter(inv => {
             // Exclude invoices with "(Directorship)" in the invoice number
-            return !inv.invoice_number || !inv.invoice_number.includes('(Directorship)');
+            if (inv.invoice_number && inv.invoice_number.includes('(Directorship)')) {
+              return false;
+            }
+            
+            // Also check linked outside income to exclude directorship
+            const linkedIncomes = (inv.outside_income_ids || []).map(incomeId => 
+              outsideIncome.find(income => income.id === incomeId)
+            ).filter(Boolean);
+
+            const hasDirectorshipIncome = linkedIncomes.some(income => {
+              if (income.facility_name && income.facility_name.toLowerCase().includes('directorship')) {
+                return true;
+              }
+              if (income.program_location_id) {
+                const incomeLocation = programLocations.find(pl => pl.id === income.program_location_id);
+                if (incomeLocation?.program_type === 'Directorship') {
+                  return true;
+                }
+              }
+              return false;
+            });
+            
+            return !hasDirectorshipIncome;
           });
 
           // Sort by month
