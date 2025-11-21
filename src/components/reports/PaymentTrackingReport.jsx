@@ -71,12 +71,17 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
           const directorshipRate = programGroup === 'Hartford Hospital' ? 3250 : 1750;
           
           const directorshipInvoices = groupInvoices.filter(inv => {
-            // Check if invoice number contains "(Directorship)"
+            // For Hartford Hospital, ONLY use invoice number
+            if (programGroup === 'Hartford Hospital') {
+              return inv.invoice_number && inv.invoice_number.includes('(Directorship)');
+            }
+            
+            // For other programs (St. Francis), check invoice number first
             if (inv.invoice_number && inv.invoice_number.includes('(Directorship)')) {
               return true;
             }
             
-            // Also check linked outside income for directorship
+            // Then check linked outside income for directorship
             const linkedIncomes = (inv.outside_income_ids || []).map(incomeId => 
               outsideIncome.find(income => income.id === incomeId)
             ).filter(Boolean);
@@ -145,12 +150,17 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
           rows.push(['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Date/Voucher Number', 'Date Paid Provider', 'Notes']);
 
           const onCallInvoices = groupInvoices.filter(inv => {
-            // Exclude invoices with "(Directorship)" in the invoice number
+            // For Hartford Hospital, ONLY use invoice number
+            if (programGroup === 'Hartford Hospital') {
+              return !inv.invoice_number || !inv.invoice_number.includes('(Directorship)');
+            }
+            
+            // For other programs (St. Francis), check invoice number first
             if (inv.invoice_number && inv.invoice_number.includes('(Directorship)')) {
               return false;
             }
             
-            // Also check linked outside income to exclude directorship
+            // Then check linked outside income to exclude directorship
             const linkedIncomes = (inv.outside_income_ids || []).map(incomeId => 
               outsideIncome.find(income => income.id === incomeId)
             ).filter(Boolean);
