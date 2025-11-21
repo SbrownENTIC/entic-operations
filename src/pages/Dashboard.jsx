@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, AlertTriangle, Award, FileText, GraduationCap, DollarSign, CheckCircle2, Clock, Building2, RefreshCw, Wallet, Download } from "lucide-react";
+import { Users, AlertTriangle, Award, FileText, GraduationCap, DollarSign, CheckCircle2, Clock, Building2, RefreshCw, Wallet, Download, Package } from "lucide-react";
 import { differenceInDays, parseISO, format } from "date-fns";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -102,6 +102,22 @@ export default function Dashboard() {
     queryFn: async () => {
       try {
         return await base44.entities.Payment.list();
+      } catch (error) {
+        return handleQueryError(error);
+      }
+    },
+    retry: false,
+    staleTime: 30000
+  });
+
+  const { data: supplyOrders = [], isLoading: supplyOrdersLoading } = useQuery({
+    queryKey: ['flagged-supply-orders'],
+    queryFn: async () => {
+      try {
+        const allOrders = await base44.entities.SupplyOrder.list('-order_date');
+        return allOrders.filter(order => 
+          order.status === 'pending_review' || order.status === 'pending_fulfillment'
+        );
       } catch (error) {
         return handleQueryError(error);
       }
@@ -236,7 +252,7 @@ export default function Dashboard() {
 
   // Show loading state
   const isLoading = providersLoading || licensesLoading || privilegesLoading || 
-                    invoicesLoading || cmeLoading || paymentsLoading;
+                    invoicesLoading || cmeLoading || paymentsLoading || supplyOrdersLoading;
 
   if (isLoading) {
     return (
@@ -500,7 +516,7 @@ export default function Dashboard() {
         )}
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card className="border-3 border-orange-500 bg-gradient-to-br from-orange-100 to-orange-50 shadow-xl shadow-orange-200/50 hover:scale-105 transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-orange-300">
               <CardTitle className="text-sm font-bold text-slate-900">Licenses Expiring (60d)</CardTitle>
@@ -536,6 +552,19 @@ export default function Dashboard() {
               <div className="text-4xl font-bold text-yellow-700 mb-1">{pendingInvoices}</div>
               <Link to={createPageUrl("Invoices")} className="text-xs text-yellow-700 hover:text-yellow-900 font-semibold hover:underline">
                 View invoices →
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card className="border-3 border-blue-500 bg-gradient-to-br from-blue-100 to-blue-50 shadow-xl shadow-blue-200/50 hover:scale-105 transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-blue-300">
+              <CardTitle className="text-sm font-bold text-slate-900">Supply Order Requests</CardTitle>
+              <Package className="w-5 h-5 text-blue-700 animate-pulse" />
+            </CardHeader>
+            <CardContent className="pt-3">
+              <div className="text-4xl font-bold text-blue-700 mb-1">{supplyOrders.length}</div>
+              <Link to={createPageUrl("SupplyOrders") + "?filter=pending"} className="text-xs text-blue-700 hover:text-blue-900 font-semibold hover:underline">
+                View requests →
               </Link>
             </CardContent>
           </Card>
