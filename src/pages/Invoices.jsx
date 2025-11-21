@@ -35,6 +35,8 @@ export default function Invoices() {
   const [bulkProviderPaid, setBulkProviderPaid] = useState(false);
   const [bulkStatusUpdate, setBulkStatusUpdate] = useState('');
   const [filterNoIncome, setFilterNoIncome] = useState(false);
+  const [fixingHartford, setFixingHartford] = useState(false);
+  const [fixMessage, setFixMessage] = useState('');
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -306,6 +308,21 @@ export default function Invoices() {
     window.print();
   };
 
+  const handleFixHartfordInvoices = async () => {
+    setFixingHartford(true);
+    setFixMessage('');
+    try {
+      const response = await base44.functions.invoke('fixHartfordDirectorshipInvoices', {});
+      setFixMessage(response.data.message);
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['outside-income'] });
+    } catch (error) {
+      setFixMessage('Error: ' + error.message);
+    } finally {
+      setFixingHartford(false);
+    }
+  };
+
   const handleInvoiceNumberClick = (invoice) => {
     setEditingInvoice(invoice);
     setPreselectedIncomes([]);
@@ -418,6 +435,14 @@ export default function Invoices() {
           </div>
           <div className="flex gap-3 flex-wrap">
             <Button
+              onClick={handleFixHartfordInvoices}
+              variant="outline"
+              disabled={fixingHartford}
+              className="gap-2"
+            >
+              {fixingHartford ? 'Fixing...' : 'Fix Hartford Data'}
+            </Button>
+            <Button
               onClick={handlePrint}
               variant="outline"
               className="gap-2"
@@ -438,6 +463,12 @@ export default function Invoices() {
             </Button>
           </div>
         </div>
+
+        {fixMessage && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-sm text-blue-900">{fixMessage}</p>
+          </div>
+        )}
 
         {showForm && (
           <div className="no-print">
