@@ -62,7 +62,43 @@ export default function OutsideIncome() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.OutsideIncome.create(data),
+    mutationFn: async (data) => {
+      const income = await base44.entities.OutsideIncome.create(data);
+      
+      // Check if this is HH Skull Base income - auto-create Directorship income
+      const location = programLocations.find(pl => pl.id === data.program_location_id);
+      const isHHSkullBase = location?.program_location?.includes('HH Skull Base');
+      
+      if (isHHSkullBase && data.work_dates && data.work_dates.length > 0) {
+        // Find the Hartford Hospital Directorship program location
+        const directorshipLocation = programLocations.find(pl => 
+          pl.program_location?.includes('Hartford Hospital (Directorship)')
+        );
+        
+        if (directorshipLocation) {
+          // Get the first day of the month from the first work date
+          const firstWorkDate = new Date(data.work_dates[0]);
+          const firstDayOfMonth = new Date(firstWorkDate.getFullYear(), firstWorkDate.getMonth(), 1);
+          const firstDayString = firstDayOfMonth.toISOString().split('T')[0];
+          
+          // Create the directorship income record
+          await base44.entities.OutsideIncome.create({
+            provider_id: data.provider_id,
+            program_location_id: directorshipLocation.id,
+            facility_name: 'Hartford Hospital (Directorship)',
+            work_dates: [firstDayString],
+            days_worked: 0,
+            total_rvus: 0,
+            rate: 3250,
+            total_amount: 3250,
+            status: 'pending',
+            notes: 'Auto-generated Directorship income'
+          });
+        }
+      }
+      
+      return income;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['outside-income'] });
       setShowForm(false);
