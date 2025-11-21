@@ -507,7 +507,7 @@ export default function Dashboard() {
           50% { opacity: 0.5; }
         }
         .animate-slow-pulse {
-          animation: slow-pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+          animation: slow-pulse 3.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
       `}</style>
       <div className="max-w-7xl mx-auto space-y-6">
