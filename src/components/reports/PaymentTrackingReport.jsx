@@ -127,6 +127,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
             directorshipTotal.expected += expectedAmount;
             directorshipTotal.received += receivedAmount;
 
+            const shouldHideNotes = invoice.auto_generated || (invoice.notes && invoice.notes.toLowerCase().includes('auto-generated'));
             rows.push([
               providerName,
               invoice.invoice_number || '',
@@ -135,7 +136,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
               formatCurrency(receivedAmount),
               paymentInfo,
               invoice.date_provider_paid ? format(parseISO(invoice.date_provider_paid), 'MM/dd/yyyy') : '',
-              invoice.auto_generated ? '' : (invoice.notes || '')
+              shouldHideNotes ? '' : (invoice.notes || '')
             ]);
           });
 
@@ -208,6 +209,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
             onCallTotal.expected += expectedAmount;
             onCallTotal.received += receivedAmount;
 
+            const shouldHideNotes = invoice.auto_generated || (invoice.notes && invoice.notes.toLowerCase().includes('auto-generated'));
             rows.push([
               providerName,
               invoice.invoice_number || '',
@@ -216,7 +218,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
               formatCurrency(receivedAmount),
               paymentInfo,
               invoice.date_provider_paid ? format(parseISO(invoice.date_provider_paid), 'MM/dd/yyyy') : '',
-              invoice.auto_generated ? '' : (invoice.notes || '')
+              shouldHideNotes ? '' : (invoice.notes || '')
             ]);
           });
 
