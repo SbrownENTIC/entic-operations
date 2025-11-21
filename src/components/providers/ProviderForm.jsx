@@ -38,8 +38,10 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
 
   const [licenses, setLicenses] = useState([]);
   const [cmeRecords, setCmeRecords] = useState([]);
+  const [privileges, setPrivileges] = useState([]);
   const [showLicenses, setShowLicenses] = useState(false);
   const [showCME, setShowCME] = useState(false);
+  const [showPrivileges, setShowPrivileges] = useState(false);
 
   const { data: programLocations = [] } = useQuery({
     queryKey: ['program-locations'],
@@ -49,6 +51,12 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
   const { data: existingLicenses = [] } = useQuery({
     queryKey: ['licenses'],
     queryFn: () => base44.entities.License.list()
+  });
+
+  const { data: existingPrivileges = [] } = useQuery({
+    queryKey: ['privileges', provider?.id],
+    queryFn: () => base44.entities.ClinicalPrivilege.filter({ provider_id: provider.id }),
+    enabled: !!provider?.id
   });
 
   useEffect(() => {
@@ -63,6 +71,13 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
       }));
     }
   }, [provider]);
+
+  useEffect(() => {
+    if (provider && existingPrivileges.length > 0) {
+      setPrivileges(existingPrivileges);
+      setShowPrivileges(true);
+    }
+  }, [provider, existingPrivileges]);
 
   // Calculate flu vaccine year based on date
   const calculateFluVaccineYear = (dateString) => {
@@ -102,29 +117,60 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
     // First create/update the provider
     const savedProvider = await onSubmit(cleanedData);
     
-    // If creating a new provider and we have licenses or CME records
-    if (!provider && savedProvider) {
-      const providerId = savedProvider.id;
-      
-      // Create licenses
-      for (const license of licenses) {
-        const sameLicenseType = existingLicenses.filter(l => l.license_type === license.license_type);
-        const nextId = sameLicenseType.length + 1;
-        const internalNumber = `${license.license_type}-${String(nextId).padStart(3, '0')}`;
-        
-        await base44.entities.License.create({
-          ...license,
-          provider_id: providerId,
-          internal_license_number: internalNumber
-        });
+    const providerId = provider ? provider.id : savedProvider?.id;
+    
+    if (providerId) {
+      // Handle privileges for both new and existing providers
+      for (const privilege of privileges) {
+        if (privilege.id) {
+          // Update existing privilege
+          await base44.entities.ClinicalPrivilege.update(privilege.id, {
+            facility_name: privilege.facility_name,
+            granted_date: privilege.granted_date,
+            expiration_date: privilege.expiration_date,
+            status: privilege.status,
+            notes: privilege.notes
+          });
+        } else {
+          // Create new privilege
+          await base44.entities.ClinicalPrivilege.create({
+            ...privilege,
+            provider_id: providerId
+          });
+        }
       }
       
-      // Create CME records
-      for (const cme of cmeRecords) {
-        await base44.entities.CME.create({
-          ...cme,
-          provider_id: providerId
-        });
+      // Handle deleted privileges (if editing)
+      if (provider && existingPrivileges.length > 0) {
+        const currentPrivilegeIds = privileges.map(p => p.id).filter(Boolean);
+        const deletedPrivileges = existingPrivileges.filter(p => !currentPrivilegeIds.includes(p.id));
+        for (const privilege of deletedPrivileges) {
+          await base44.entities.ClinicalPrivilege.delete(privilege.id);
+        }
+      }
+      
+      // If creating a new provider and we have licenses or CME records
+      if (!provider && savedProvider) {
+        // Create licenses
+        for (const license of licenses) {
+          const sameLicenseType = existingLicenses.filter(l => l.license_type === license.license_type);
+          const nextId = sameLicenseType.length + 1;
+          const internalNumber = `${license.license_type}-${String(nextId).padStart(3, '0')}`;
+          
+          await base44.entities.License.create({
+            ...license,
+            provider_id: providerId,
+            internal_license_number: internalNumber
+          });
+        }
+        
+        // Create CME records
+        for (const cme of cmeRecords) {
+          await base44.entities.CME.create({
+            ...cme,
+            provider_id: providerId
+          });
+        }
       }
     }
   };
@@ -175,6 +221,26 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
     const newCME = [...cmeRecords];
     newCME[index] = { ...newCME[index], [field]: value };
     setCmeRecords(newCME);
+  };
+
+  const addPrivilege = () => {
+    setPrivileges([...privileges, {
+      facility_name: 'Hartford Hospital',
+      granted_date: '',
+      expiration_date: '',
+      status: 'active',
+      notes: ''
+    }]);
+  };
+
+  const removePrivilege = (index) => {
+    setPrivileges(privileges.filter((_, i) => i !== index));
+  };
+
+  const updatePrivilege = (index, field, value) => {
+    const newPrivileges = [...privileges];
+    newPrivileges[index] = { ...newPrivileges[index], [field]: value };
+    setPrivileges(newPrivileges);
   };
 
   return (
@@ -312,6 +378,75 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
               />
             </div>
           </div>
+
+          <Collapsible open={showPrivileges} onOpenChange={setShowPrivileges}>
+            <CollapsibleTrigger asChild>
+              <Button type="button" variant="outline" className="w-full justify-between">
+                <span>{provider ? 'Edit Clinical Privileges' : 'Add Clinical Privileges (Optional)'}</span>
+                {showPrivileges ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-4 space-y-4">
+              {privileges.map((privilege, index) => (
+                <div key={index} className="p-4 border border-slate-200 rounded-lg space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-semibold text-sm">Privilege {index + 1}</h4>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => removePrivilege(index)}>
+                      <Trash2 className="w-4 h-4 text-red-500" />
+                    </Button>
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Facility Name</Label>
+                      <Select value={privilege.facility_name} onValueChange={(value) => updatePrivilege(index, 'facility_name', value)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Bloomfield">Bloomfield</SelectItem>
+                          <SelectItem value="Hartford Hospital">Hartford Hospital</SelectItem>
+                          <SelectItem value="St. Francis">St. Francis</SelectItem>
+                          <SelectItem value="UConn">UConn</SelectItem>
+                          <SelectItem value="Manchester / ECHN">Manchester / ECHN</SelectItem>
+                          <SelectItem value="CCMC">CCMC</SelectItem>
+                          <SelectItem value="CTSC- CT Surgery Center">CTSC- CT Surgery Center</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Status</Label>
+                      <Select value={privilege.status} onValueChange={(value) => updatePrivilege(index, 'status', value)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="expired">Expired</SelectItem>
+                          <SelectItem value="pending">Pending</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Granted Date</Label>
+                      <Input type="date" value={privilege.granted_date} onChange={(e) => updatePrivilege(index, 'granted_date', e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Expiration Date</Label>
+                      <Input type="date" value={privilege.expiration_date} onChange={(e) => updatePrivilege(index, 'expiration_date', e.target.value)} />
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <Label>Notes</Label>
+                      <Input value={privilege.notes || ''} onChange={(e) => updatePrivilege(index, 'notes', e.target.value)} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={addPrivilege}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Privilege
+              </Button>
+            </CollapsibleContent>
+          </Collapsible>
 
           {!provider && (
             <>
