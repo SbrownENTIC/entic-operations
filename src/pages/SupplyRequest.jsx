@@ -22,18 +22,14 @@ export default function SupplyRequest() {
   }, []);
 
   const { data: myRequests = [] } = useQuery({
-    queryKey: ['mySupplyRequests', user?.email],
+    queryKey: ['pendingSupplyRequests'],
     queryFn: async () => {
-      if (!user?.email) return [];
-      const allOrders = await base44.entities.SupplyOrder.filter({ 
-        created_by: user.email
-      });
-      // Filter to only show pending/active requests (not ordered or received)
+      const allOrders = await base44.entities.SupplyOrder.list('-order_date');
+      // Show only pending review or pending fulfillment orders
       return allOrders.filter(order => 
-        ['pending_review', 'pending_fulfillment', 'approved', 'rejected'].includes(order.status)
+        order.status === 'pending_review' || order.status === 'pending_fulfillment'
       );
-    },
-    enabled: !!user?.email
+    }
   });
 
   const submitRequestMutation = useMutation({
@@ -113,7 +109,7 @@ export default function SupplyRequest() {
 
         <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
           <CardHeader className="border-b border-slate-100">
-            <CardTitle>My Requests</CardTitle>
+            <CardTitle>Order Requests</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-auto">
