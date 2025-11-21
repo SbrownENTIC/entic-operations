@@ -48,13 +48,12 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
 
   const { data: onCallSchedules = [] } = useQuery({
     queryKey: ['oncall-schedules'],
-    queryFn: () => base44.entities.OnCallSchedule.list(),
-    enabled: formData.reminder_type === 'Holiday'
+    queryFn: () => base44.entities.OnCallSchedule.list()
   });
 
   // Auto-populate on-call providers during closure period (only if not manually edited)
   useEffect(() => {
-    if (formData.closure_date && formData.reopen_date && formData.reminder_type === 'Holiday' && onCallSchedules.length > 0 
+    if (formData.closure_date && formData.reopen_date && onCallSchedules.length > 0 
         && !manuallyEdited.oncall_provider_list && !manuallyEdited.oncall_phone_list) {
       const closureDate = new Date(formData.closure_date + 'T00:00:00');
       const reopenDate = new Date(formData.reopen_date + 'T00:00:00');
@@ -100,7 +99,7 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
         }
       }
     }
-  }, [formData.closure_date, formData.reopen_date, formData.reminder_type, onCallSchedules, providers, manuallyEdited.oncall_provider_list, manuallyEdited.oncall_phone_list]);
+  }, [formData.closure_date, formData.reopen_date, onCallSchedules, providers, manuallyEdited.oncall_provider_list, manuallyEdited.oncall_phone_list]);
 
   useEffect(() => {
     if (reminder) {
