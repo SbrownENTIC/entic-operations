@@ -164,7 +164,7 @@ Deno.serve(async (req) => {
           }
           
           const sheetName = programGroup === 'Hartford Hospital' ? 'HH Directorship' : 'SF Directorship';
-          XLSX.utils.book_append_sheet(workbook, directorshipSheet, sheetName);
+          XLSX.utils.book_append_sheet(workbook, directorshipSheet, sheetName.replace(/[:\\\/\?\*\[\]]/g, ''));
         }
 
         // ON-CALL SECTION
@@ -247,7 +247,7 @@ Deno.serve(async (req) => {
           }
           
           const sheetName = programGroup === 'Hartford Hospital' ? 'HH On-Call' : 'SF On-Call';
-          XLSX.utils.book_append_sheet(workbook, onCallSheet, sheetName);
+          XLSX.utils.book_append_sheet(workbook, onCallSheet, sheetName.replace(/[:\\\/\?\*\[\]]/g, ''));
         }
       } else {
         // Standard tracking
@@ -307,7 +307,7 @@ Deno.serve(async (req) => {
           });
         }
         
-        let sheetName = programGroup;
+        let sheetName = programGroup.replace(/[:\\\/\?\*\[\]]/g, '');
         if (sheetName.length > 31) {
           sheetName = sheetName.substring(0, 31);
         }
