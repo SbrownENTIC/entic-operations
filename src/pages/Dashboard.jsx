@@ -517,7 +517,7 @@ export default function Dashboard() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="border-[5px] border-red-600 bg-gradient-to-br from-red-100 to-red-50 shadow-xl shadow-red-300/60 hover:scale-105 transition-all duration-300">
+          <Card className={`border-[5px] border-red-600 bg-gradient-to-br from-red-100 to-red-50 shadow-xl shadow-red-300/60 hover:scale-105 transition-all duration-300 ${supplyOrders.length > 0 ? 'animate-pulse' : ''}`}>
             <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-red-400">
               <AlertTriangle className="w-6 h-6 text-red-700 animate-pulse" />
               <CardTitle className="text-sm font-bold text-slate-900">Supply Order Requests</CardTitle>
@@ -544,7 +544,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="border-[5px] border-red-600 bg-gradient-to-br from-red-100 to-red-50 shadow-xl shadow-red-200/50 hover:scale-105 transition-all duration-300">
+          <Card className={`border-[5px] border-red-600 bg-gradient-to-br from-red-100 to-red-50 shadow-xl shadow-red-200/50 hover:scale-105 transition-all duration-300 ${licensesExpiring14Days.length > 0 ? 'animate-pulse' : ''}`}>
             <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-red-300">
               <AlertTriangle className="w-6 h-6 text-red-700 animate-pulse" />
               <CardTitle className="text-sm font-bold text-slate-900">Licenses Expiring (14d)</CardTitle>
