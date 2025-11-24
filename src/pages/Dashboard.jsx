@@ -295,8 +295,10 @@ export default function Dashboard() {
     return days > 0 && days <= 7;
   });
 
-  // Privilege expiration tracking
+  // Privilege expiration tracking - only privileges expiring within 30 days (not already expired)
   const privilegesExpiring30Days = privileges.filter(p => {
+    const provider = providers.find(prov => prov.id === p.provider_id);
+    if (provider?.status !== 'active') return false;
     const days = differenceInDays(parseISO(p.expiration_date), today);
     return days > 0 && days <= 30;
   });
