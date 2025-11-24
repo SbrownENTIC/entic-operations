@@ -20,7 +20,9 @@ import {
         Bell,
         Menu,
         X,
-        MoreVertical
+        MoreVertical,
+        HelpCircle,
+        Settings
       } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -103,6 +105,16 @@ const moreMenuItems = [
     title: "Reports",
     url: createPageUrl("Reports"),
     icon: BarChart3,
+  },
+  {
+    title: "User Guide",
+    url: createPageUrl("UserGuide"),
+    icon: HelpCircle,
+  },
+  {
+    title: "Admin Guide",
+    url: createPageUrl("AdminGuide"),
+    icon: Settings,
   },
 ];
 
