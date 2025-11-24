@@ -187,6 +187,17 @@ export default function ProviderDetail() {
           </Card>
         </div>
 
+        {provider.notes && (
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-lg">Notes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-slate-700 whitespace-pre-wrap">{provider.notes}</p>
+            </CardContent>
+          </Card>
+        )}
+
         {isDoctor && (
           <Card className="border-slate-200 shadow-sm">
             <CardHeader>

@@ -280,7 +280,14 @@ export default function Providers() {
                     
                     return (
                       <tr key={provider.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                        <td className="p-4 font-medium text-slate-900">{provider.full_name}</td>
+                        <td className="p-4">
+                                  <Link 
+                                    to={`${createPageUrl("ProviderDetail")}?id=${provider.id}`}
+                                    className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                                  >
+                                    {provider.full_name}
+                                  </Link>
+                                </td>
                         <td className="p-4 text-slate-600">{provider.role || '-'}</td>
                         <td className="p-4 text-slate-600">{provider.email}</td>
                         <td className="p-4">
