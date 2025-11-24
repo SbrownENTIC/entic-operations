@@ -18,8 +18,6 @@ import Reports from './pages/Reports';
 import SupplyRequest from './pages/SupplyRequest';
 import PublicSupplyRequest from './pages/PublicSupplyRequest';
 import SupplyOrderDetail from './pages/SupplyOrderDetail';
-import UserGuide from './pages/UserGuide';
-import AdminGuide from './pages/AdminGuide';
 import __Layout from './Layout.jsx';
 
 
@@ -44,8 +42,6 @@ export const PAGES = {
     "SupplyRequest": SupplyRequest,
     "PublicSupplyRequest": PublicSupplyRequest,
     "SupplyOrderDetail": SupplyOrderDetail,
-    "UserGuide": UserGuide,
-    "AdminGuide": AdminGuide,
 }
 
 export const pagesConfig = {

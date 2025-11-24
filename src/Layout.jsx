@@ -106,16 +106,6 @@ const moreMenuItems = [
     url: createPageUrl("Reports"),
     icon: BarChart3,
   },
-  {
-    title: "User Guide",
-    url: createPageUrl("UserGuide"),
-    icon: HelpCircle,
-  },
-  {
-    title: "Admin Guide",
-    url: createPageUrl("AdminGuide"),
-    icon: Settings,
-  },
 ];
 
 export default function Layout({ children, currentPageName }) {
