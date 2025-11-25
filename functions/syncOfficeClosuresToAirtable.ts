@@ -26,6 +26,19 @@ Deno.serve(async (req) => {
     const holidayReminders = allReminders.filter(r => r.reminder_type === 'Holiday');
     const otherReminders = allReminders.filter(r => r.reminder_type !== 'Holiday');
     
+    // Fetch On-Call Periods from Airtable to find matching records for linking
+    const onCallPeriodsResponse = await fetch(
+      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${ON_CALL_PERIOD_TABLE_ID}?fields%5B%5D=Start%20Date&fields%5B%5D=End%20Date`,
+      {
+        headers: {
+          'Authorization': `Bearer ${airtableApiKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    const onCallPeriodsData = await onCallPeriodsResponse.json();
+    const onCallPeriods = onCallPeriodsData.records || [];
+
     // Fetch existing Office Closures from Airtable to prevent duplicates
     const existingClosuresResponse = await fetch(
       `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${OFFICE_CLOSURES_TABLE_ID}?fields%5B%5D=Holiday%20Name&fields%5B%5D=Date%20Closed`,
