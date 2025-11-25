@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
 
     // Fetch existing Office Closures from Airtable to prevent duplicates
     const existingClosuresResponse = await fetch(
-      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${OFFICE_CLOSURES_TABLE_ID}?fields%5B%5D=Holiday%20Name&fields%5B%5D=Date%20Closed`,
+      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${OFFICE_CLOSURES_TABLE_ID}?fields%5B%5D=Closure%20Name&fields%5B%5D=Date%20Closed`,
       {
         headers: {
           'Authorization': `Bearer ${airtableApiKey}`,
@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
     const existingClosureKeys = new Set();
     if (existingClosuresData.records) {
       existingClosuresData.records.forEach(record => {
-        const name = record.fields['Holiday Name'] || '';
+        const name = record.fields['Closure Name'] || '';
         const date = record.fields['Date Closed'] || '';
         existingClosureKeys.add(`${name}|${date}`);
       });
@@ -94,27 +94,27 @@ Deno.serve(async (req) => {
 
     // Sync Holiday reminders to Office Closures table
     for (const reminder of holidayReminders) {
-      const holidayName = reminder.holiday_name || reminder.reminder_name || '';
+      const closureName = reminder.closure_name || reminder.reminder_name || '';
       const closureDate = reminder.closure_date || '';
       
-      const key = `${holidayName}|${closureDate}`;
+      const key = `${closureName}|${closureDate}`;
       if (existingClosureKeys.has(key)) {
         closuresSkipped++;
         continue;
       }
       
       const fields = {};
-      if (holidayName) fields['Holiday Name'] = holidayName;
+      if (closureName) fields['Closure Name'] = closureName;
       if (closureDate) fields['Date Closed'] = closureDate;
       if (reminder.reopen_date) fields['Date Re-Open'] = reminder.reopen_date;
       if (reminder.email_subject) fields['Subject'] = reminder.email_subject;
       if (reminder.email_body) fields['Message'] = reminder.email_body;
       fields['Enabled'] = reminder.status === 'active';
       
-      // Map holiday name/type to valid Closure Type options: Holiday, Floating Holiday, Office Closure, Reminder
+      // Map closure name/type to valid Closure Type options: Holiday, Floating Holiday, Office Closure, Reminder
       if (reminder.reminder_type === 'Office Closure' || (reminder.reminder_name || '').toLowerCase().includes('office closure')) {
         fields['Closure Type'] = 'Office Closure';
-      } else if (holidayName.toLowerCase().includes('floating')) {
+      } else if (closureName.toLowerCase().includes('floating')) {
         fields['Closure Type'] = 'Floating Holiday';
       } else {
         fields['Closure Type'] = 'Holiday';
@@ -160,10 +160,10 @@ Deno.serve(async (req) => {
           existingClosureKeys.add(key);
         } else {
           const errorData = await response.json();
-          errors.push({ table: 'Office Closures', name: holidayName, error: errorData });
+          errors.push({ table: 'Office Closures', name: closureName, error: errorData });
         }
       } catch (err) {
-        errors.push({ table: 'Office Closures', name: holidayName, error: err.message });
+        errors.push({ table: 'Office Closures', name: closureName, error: err.message });
       }
     }
 

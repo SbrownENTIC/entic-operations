@@ -21,7 +21,7 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
     send_date: '',
     closure_date: '',
     reopen_date: '',
-    holiday_name: '',
+    closure_name: '',
     oncall_provider_list: '',
     oncall_phone_list: '',
     frequency: 'once',
@@ -142,8 +142,8 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
     }
   }, [reminder]);
 
-  // Holiday to reopen date mapping
-  const holidayReopenDates = {
+  // Closure/Holiday to reopen date mapping
+  const closureReopenDates = {
     'Labor Day': { '2025': '2025-09-02', '2026': '2026-09-08' },
     'Thanksgiving': { '2025': '2025-12-01', '2026': '2026-11-30' },
     'Christmas': { '2025': '2025-12-29', '2026': '2026-12-28' },
@@ -185,44 +185,44 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
     }
   }, [formData.closure_date, formData.reminder_type, manuallyEdited.send_date]);
 
-  // Auto-populate reopen date based on holiday name and closure year (only if not manually edited)
+  // Auto-populate reopen date based on closure name and closure year (only if not manually edited)
   useEffect(() => {
-    if (formData.closure_date && formData.holiday_name && (formData.reminder_type === 'Holiday' || formData.reminder_type === 'Office Closure') && !manuallyEdited.reopen_date) {
+    if (formData.closure_date && formData.closure_name && (formData.reminder_type === 'Holiday' || formData.reminder_type === 'Office Closure') && !manuallyEdited.reopen_date) {
       const closureYear = new Date(formData.closure_date).getFullYear().toString();
-      const reopenDate = holidayReopenDates[formData.holiday_name]?.[closureYear];
+      const reopenDate = closureReopenDates[formData.closure_name]?.[closureYear];
       
       if (reopenDate && reopenDate !== formData.reopen_date) {
         setFormData(prev => ({ ...prev, reopen_date: reopenDate }));
       }
     }
-  }, [formData.closure_date, formData.holiday_name, formData.reminder_type, manuallyEdited.reopen_date]);
+  }, [formData.closure_date, formData.closure_name, formData.reminder_type, manuallyEdited.reopen_date]);
 
   // Auto-set email subject for holidays (only if not manually edited)
   useEffect(() => {
-    if (formData.closure_date && formData.holiday_name && (formData.reminder_type === 'Holiday' || formData.reminder_type === 'Office Closure') && !manuallyEdited.email_subject) {
+    if (formData.closure_date && formData.closure_name && (formData.reminder_type === 'Holiday' || formData.reminder_type === 'Office Closure') && !manuallyEdited.email_subject) {
       const closureDateFormatted = format(parseISO(formData.closure_date), 'M/d/yyyy');
-      const subject = `Office Closure Notification: ACCT6650- ${closureDateFormatted}— ${formData.holiday_name} Holiday`;
+      const subject = `Office Closure Notification: ACCT6650- ${closureDateFormatted}— ${formData.closure_name} Holiday`;
       
       if (subject !== formData.email_subject) {
         setFormData(prev => ({ ...prev, email_subject: subject }));
       }
     }
-  }, [formData.closure_date, formData.holiday_name, formData.reminder_type, manuallyEdited.email_subject]);
+  }, [formData.closure_date, formData.closure_name, formData.reminder_type, manuallyEdited.email_subject]);
 
   // Auto-apply holiday template for email body when all required fields are available
   useEffect(() => {
     if ((formData.reminder_type === 'Holiday' || formData.reminder_type === 'Office Closure') && 
         formData.closure_date && 
         formData.reopen_date && 
-        formData.holiday_name && 
+        formData.closure_name && 
         formData.oncall_provider_list && 
         formData.oncall_phone_list &&
         !formData.email_body) {  // Only auto-apply if email body is empty
       
-      const holidayText = formData.holiday_name && formData.holiday_name !== 'Office Closure' ? ` for ${formData.holiday_name}` : '';
+      const closureText = formData.closure_name && formData.closure_name !== 'Office Closure' ? ` for ${formData.closure_name}` : '';
       const template = `Good Morning All,
  
-This email is to notify you that our office will be closed on ${format(parseISO(formData.closure_date), 'MMMM d, yyyy')}${holidayText}.
+This email is to notify you that our office will be closed on ${format(parseISO(formData.closure_date), 'MMMM d, yyyy')}${closureText}.
 
 The offices will re-open at 8am on ${format(parseISO(formData.reopen_date), 'MMMM d, yyyy')}.
 
@@ -237,7 +237,7 @@ The Operations Team
 
       setFormData(prev => ({ ...prev, email_body: template }));
     }
-  }, [formData.reminder_type, formData.closure_date, formData.reopen_date, formData.holiday_name, formData.oncall_provider_list, formData.oncall_phone_list, formData.email_body]);
+  }, [formData.reminder_type, formData.closure_date, formData.reopen_date, formData.closure_name, formData.oncall_provider_list, formData.oncall_phone_list, formData.email_body]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -272,10 +272,10 @@ The Operations Team
   };
 
   const useHolidayTemplate = () => {
-    const holidayText = formData.holiday_name && formData.holiday_name !== 'Office Closure' ? ` for ${formData.holiday_name}` : '';
+    const closureText = formData.closure_name && formData.closure_name !== 'Office Closure' ? ` for ${formData.closure_name}` : '';
     const template = `Good Morning All,
  
-This email is to notify you that our office will be closed on ${formData.closure_date ? format(parseISO(formData.closure_date), 'MMMM d, yyyy') : '(date of Closed)'}${holidayText}.
+This email is to notify you that our office will be closed on ${formData.closure_date ? format(parseISO(formData.closure_date), 'MMMM d, yyyy') : '(date of Closed)'}${closureText}.
 
 The offices will re-open at 8am on ${formData.reopen_date ? format(parseISO(formData.reopen_date), 'MMMM d, yyyy') : '(Re-Open Date)'}.
 
@@ -291,7 +291,7 @@ The Operations Team
     setFormData({
       ...formData,
       email_body: template,
-      email_subject: formData.reminder_name || `Office Closure - ${formData.holiday_name || ''}`
+      email_subject: formData.reminder_name || `Office Closure - ${formData.closure_name || ''}`
     });
   };
 
@@ -447,13 +447,13 @@ The Operations Team
               
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="holiday_name">Holiday Name</Label>
+                  <Label htmlFor="closure_name">Closure Name</Label>
                   <Select
-                    value={formData.holiday_name}
-                    onValueChange={(value) => setFormData({ ...formData, holiday_name: value })}
+                    value={formData.closure_name}
+                    onValueChange={(value) => setFormData({ ...formData, closure_name: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select holiday..." />
+                      <SelectValue placeholder="Select closure..." />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Office Closure">Office Closure</SelectItem>
@@ -493,11 +493,11 @@ The Operations Team
                       setManuallyEdited(prev => ({ ...prev, reopen_date: true }));
                     }}
                   />
-                  {formData.holiday_name && formData.closure_date && (
+                  {formData.closure_name && formData.closure_date && (
                     <p className="text-xs text-slate-500">
                       {manuallyEdited.reopen_date 
                         ? '✏️ Manually overridden - edit as needed' 
-                        : '✨ Auto-populated based on holiday'}
+                        : '✨ Auto-populated based on closure name'}
                     </p>
                   )}
                 </div>
@@ -573,7 +573,7 @@ The Operations Team
               placeholder="e.g., Your medical license expires in 30 days"
               required
             />
-            {formData.reminder_type === 'Holiday' && formData.closure_date && formData.holiday_name && (
+            {formData.reminder_type === 'Holiday' && formData.closure_date && formData.closure_name && (
               <p className="text-xs text-slate-500">
                 {manuallyEdited.email_subject 
                   ? '✏️ Manually overridden - edit as needed' 
