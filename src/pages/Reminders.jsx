@@ -249,16 +249,44 @@ The Operations Team`;
             <h1 className="text-2xl font-bold text-slate-900">Reminders</h1>
             <p className="text-slate-600 text-sm">Manage automated email reminders and notifications</p>
           </div>
-          <Button
-            onClick={() => {
-              setEditingReminder(null);
-              setShowForm(true);
-            }}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Create Reminder
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={async () => {
+                setTestingReminders(true);
+                setStatusMessage(null);
+                try {
+                  const response = await base44.functions.invoke('sendScheduledReminders', {});
+                  setStatusMessage({
+                    type: 'success',
+                    message: `✅ ${response.data.message}`
+                  });
+                } catch (error) {
+                  setStatusMessage({
+                    type: 'error',
+                    message: `❌ Error: ${error.message}`
+                  });
+                } finally {
+                  setTestingReminders(false);
+                  queryClient.invalidateQueries({ queryKey: ['reminders'] });
+                }
+              }}
+              disabled={testingReminders}
+              variant="outline"
+              className="border-green-600 text-green-700 hover:bg-green-50"
+            >
+              {testingReminders ? 'Running...' : 'Test Scheduled Reminders'}
+            </Button>
+            <Button
+              onClick={() => {
+                setEditingReminder(null);
+                setShowForm(true);
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Create Reminder
+            </Button>
+          </div>
         </div>
 
         {statusMessage && (
