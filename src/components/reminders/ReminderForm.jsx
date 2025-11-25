@@ -187,7 +187,7 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
 
   // Auto-populate reopen date based on holiday name and closure year (only if not manually edited)
   useEffect(() => {
-    if (formData.closure_date && formData.holiday_name && formData.reminder_type === 'Holiday' && !manuallyEdited.reopen_date) {
+    if (formData.closure_date && formData.holiday_name && (formData.reminder_type === 'Holiday' || formData.reminder_type === 'Office Closure') && !manuallyEdited.reopen_date) {
       const closureYear = new Date(formData.closure_date).getFullYear().toString();
       const reopenDate = holidayReopenDates[formData.holiday_name]?.[closureYear];
       
@@ -199,7 +199,7 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
 
   // Auto-set email subject for holidays (only if not manually edited)
   useEffect(() => {
-    if (formData.closure_date && formData.holiday_name && formData.reminder_type === 'Holiday' && !manuallyEdited.email_subject) {
+    if (formData.closure_date && formData.holiday_name && (formData.reminder_type === 'Holiday' || formData.reminder_type === 'Office Closure') && !manuallyEdited.email_subject) {
       const closureDateFormatted = format(parseISO(formData.closure_date), 'M/d/yyyy');
       const subject = `Office Closure Notification: ACCT6650- ${closureDateFormatted}— ${formData.holiday_name} Holiday`;
       
