@@ -22,9 +22,16 @@ Deno.serve(async (req) => {
     // Fetch ALL reminders from Base44
     const allReminders = await base44.asServiceRole.entities.Reminder.list();
     
+    // Helper to identify closures (by type OR by name)
+    const isClosure = (r) => {
+      const type = r.reminder_type;
+      const name = (r.reminder_name || '').toLowerCase();
+      return type === 'Holiday' || type === 'Office Closure' || name.includes('office closure');
+    };
+
     // Split into Holiday/Office Closure and general reminders
-    const holidayReminders = allReminders.filter(r => r.reminder_type === 'Holiday' || r.reminder_type === 'Office Closure');
-    const otherReminders = allReminders.filter(r => r.reminder_type !== 'Holiday' && r.reminder_type !== 'Office Closure');
+    const holidayReminders = allReminders.filter(isClosure);
+    const otherReminders = allReminders.filter(r => !isClosure(r));
     
     // Fetch On-Call Periods from Airtable to find matching records for linking
     const onCallPeriodsResponse = await fetch(
@@ -103,7 +110,7 @@ Deno.serve(async (req) => {
       fields['Enabled'] = reminder.status === 'active';
       
       // Map holiday name/type to valid Closure Type options: Holiday, Floating Holiday, Office Closure, Reminder
-      if (reminder.reminder_type === 'Office Closure') {
+      if (reminder.reminder_type === 'Office Closure' || (reminder.reminder_name || '').toLowerCase().includes('office closure')) {
         fields['Closure Type'] = 'Office Closure';
       } else if (holidayName.toLowerCase().includes('floating')) {
         fields['Closure Type'] = 'Floating Holiday';
