@@ -79,8 +79,16 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
       
       // Find on-call schedules that overlap with closure period
       const onCallDuringClosure = onCallSchedules.filter(schedule => {
+        // Exclude schedules that end on the closure date (outgoing provider at 8am)
+        if (schedule.end_date === formData.closure_date) return false;
+
+        // Exclude schedules that start on the reopen date (incoming provider at 8am)
+        if (schedule.start_date === formData.reopen_date) return false;
+
         const startDate = new Date(schedule.start_date + 'T00:00:00');
         const endDate = new Date(schedule.end_date + 'T00:00:00');
+
+        // Check for overlap
         return (closureDate >= startDate && closureDate <= endDate) ||
                (reopenDate >= startDate && reopenDate <= endDate) ||
                (startDate >= closureDate && startDate <= reopenDate);

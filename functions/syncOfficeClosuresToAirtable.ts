@@ -114,9 +114,14 @@ Deno.serve(async (req) => {
         const closureDateObj = new Date(closureDate + 'T00:00:00');
         const matchingOnCallIds = onCallPeriods
           .filter(period => {
+            // Exclude if period ends on the closure date (morning handoff at 8am)
+            if (period.fields['End Date'] === closureDate) return false;
+
             const startDate = period.fields['Start Date'] ? new Date(period.fields['Start Date'] + 'T00:00:00') : null;
             const endDate = period.fields['End Date'] ? new Date(period.fields['End Date'] + 'T00:00:00') : null;
             if (!startDate || !endDate) return false;
+            
+            // Check if closure date falls within the period
             return closureDateObj >= startDate && closureDateObj <= endDate;
           })
           .map(period => period.id);
