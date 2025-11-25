@@ -27,6 +27,7 @@ export default function Reminders() {
   const [sortField, setSortField] = useState('send_date');
   const [sortDirection, setSortDirection] = useState('asc');
   const [statusMessage, setStatusMessage] = useState(null);
+  const [testingReminders, setTestingReminders] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: reminders = [], isLoading } = useQuery({
