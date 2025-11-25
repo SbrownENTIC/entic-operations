@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 const AIRTABLE_BASE_ID = 'app6seexOdkDrMl2U';
-const OFFICE_CLOSURES_TABLE_ID = 'tblIAlRbuaLcHhZkO';
+const OFFICE_CLOSURES_TABLE_ID = 'tbl3AVk1s0t9277R3';
 const REMINDERS_TABLE_ID = 'tblwtERPFOEwQZmg0';
 const ON_CALL_PERIOD_TABLE_ID = 'tbl3o3gNR7ca4rcTW';
 
