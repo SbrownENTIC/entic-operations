@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
-import { SMTPClient } from 'npm:emailjs@4.0.3';
+import nodemailer from 'npm:nodemailer@6.9.8';
 
 Deno.serve(async (req) => {
   try {
@@ -33,32 +33,32 @@ Deno.serve(async (req) => {
       }, { status: 500 });
     }
 
-    // Create SMTP client
-    const client = new SMTPClient({
-      user: smtpUser,
-      password: smtpPassword,
+    // Create SMTP transporter
+    const transporter = nodemailer.createTransport({
       host: smtpHost,
       port: smtpPort,
-      tls: true
+      secure: false, // true for 465, false for other ports like 587
+      auth: {
+        user: smtpUser,
+        pass: smtpPassword
+      }
     });
 
     // Prepare from field
     const fromField = from_name ? `${from_name} <${fromEmail}>` : fromEmail;
 
     // Send email via SMTP
-    const message = await client.sendAsync({
+    const info = await transporter.sendMail({
       from: fromField,
       to: to,
       subject: subject,
-      attachment: [
-        { data: body.replace(/\n/g, '<br>'), alternative: true }
-      ]
+      html: body.replace(/\n/g, '<br>')
     });
     
     return Response.json({ 
       success: true,
       message: 'Email sent successfully',
-      details: message
+      messageId: info.messageId
     });
 
   } catch (error) {
