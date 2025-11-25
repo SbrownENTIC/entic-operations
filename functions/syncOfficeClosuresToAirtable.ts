@@ -87,7 +87,13 @@ Deno.serve(async (req) => {
       if (closureDate) fields['Date Closed'] = closureDate;
       if (reminder.reopen_date) fields['Date Re-Open'] = reminder.reopen_date;
       fields['Enabled'] = reminder.status === 'active';
-      fields['Closure Type'] = holidayName; // Set closure type
+      
+      // Map holiday name to valid Closure Type options: Holiday, Floating Holiday, Reminder
+      if (holidayName.toLowerCase().includes('floating')) {
+        fields['Closure Type'] = 'Floating Holiday';
+      } else {
+        fields['Closure Type'] = 'Holiday';
+      }
 
       try {
         const response = await fetch(
