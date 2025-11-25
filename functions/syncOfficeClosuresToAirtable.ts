@@ -180,6 +180,7 @@ Deno.serve(async (req) => {
       if (reminderName) fields['Reminder Name'] = reminderName;
       if (sendDate) fields['Send Date'] = sendDate;
       if (reminder.email_subject) fields['Email Subject'] = reminder.email_subject;
+      if (reminder.email_body) fields['Message'] = reminder.email_body;
       
       // Map frequency to valid Airtable multi-select options: Annually, 90 Days, 60 Days, 30 Days, Monthly
       if (reminder.frequency) {
