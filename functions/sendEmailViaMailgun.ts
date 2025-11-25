@@ -5,9 +5,9 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     
-    // Verify user is authenticated
-    const user = await base44.auth.me();
-    if (!user) {
+    // Allow both authenticated users and service role calls (for cron jobs)
+    const isAuthenticated = await base44.auth.isAuthenticated();
+    if (!isAuthenticated) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
