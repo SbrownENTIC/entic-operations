@@ -154,7 +154,7 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
 
   // Auto-calculate send date when closure date changes (only if not manually edited)
   useEffect(() => {
-    if (formData.closure_date && formData.reminder_type === 'Holiday' && !manuallyEdited.send_date) {
+    if (formData.closure_date && (formData.reminder_type === 'Holiday' || formData.reminder_type === 'Office Closure') && !manuallyEdited.send_date) {
       const closureDate = new Date(formData.closure_date + 'T00:00:00');
       const weekday = closureDate.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
       
@@ -332,6 +332,7 @@ The Operations Team
                   <SelectItem value="License Expiration">License Expiration</SelectItem>
                   <SelectItem value="Privilege Expiration">Privilege Expiration</SelectItem>
                   <SelectItem value="Holiday">Holiday</SelectItem>
+                  <SelectItem value="Office Closure">Office Closure</SelectItem>
                   <SelectItem value="CME Due">CME Due</SelectItem>
                   <SelectItem value="Invoice Due">Invoice Due</SelectItem>
                   <SelectItem value="Custom">Custom</SelectItem>
@@ -356,21 +357,21 @@ The Operations Team
                 }}
                 required
               />
-              {formData.reminder_type === 'Holiday' && formData.closure_date && (
-                <p className="text-xs text-slate-500">
-                  {(() => {
-                    const closureDate = new Date(formData.closure_date + 'T00:00:00');
-                    const weekday = closureDate.getDay();
-                    if (weekday === 0 || weekday === 6) {
-                      return '⚠️ No email sent for weekend closures';
-                    }
-                    return manuallyEdited.send_date 
-                      ? '✏️ Manually overridden - edit as needed' 
-                      : '✨ Auto-calculated: last working day before closure';
-                  })()}
-                </p>
-              )}
-              {formData.reminder_type !== 'Holiday' && (
+              {(formData.reminder_type === 'Holiday' || formData.reminder_type === 'Office Closure') && formData.closure_date && (
+                  <p className="text-xs text-slate-500">
+                    {(() => {
+                      const closureDate = new Date(formData.closure_date + 'T00:00:00');
+                      const weekday = closureDate.getDay();
+                      if (weekday === 0 || weekday === 6) {
+                        return '⚠️ No email sent for weekend closures';
+                      }
+                      return manuallyEdited.send_date 
+                        ? '✏️ Manually overridden - edit as needed' 
+                        : '✨ Auto-calculated: last working day before closure';
+                    })()}
+                  </p>
+                )}
+              {formData.reminder_type !== 'Holiday' && formData.reminder_type !== 'Office Closure' && (
                 <p className="text-xs text-slate-500">Date when reminder should be sent</p>
               )}
             </div>
