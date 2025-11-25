@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, AlertTriangle, Award, FileText, GraduationCap, DollarSign, CheckCircle2, Clock, Building2, RefreshCw, Wallet, Download, Package } from "lucide-react";
+import { Users, AlertTriangle, Award, FileText, GraduationCap, DollarSign, CheckCircle2, Clock, Building2, RefreshCw, Wallet, Download, Package, CloudUpload } from "lucide-react";
 import { differenceInDays, parseISO, format } from "date-fns";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -22,6 +22,8 @@ export default function Dashboard() {
     type: '',
     programGroup: null
   });
+  const [airtableSyncing, setAirtableSyncing] = useState(false);
+  const [airtableMessage, setAirtableMessage] = useState('');
 
   const queryClient = useQueryClient();
 
@@ -138,6 +140,20 @@ export default function Dashboard() {
       setSyncMessage('Error syncing: ' + error.message);
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleSyncToAirtable = async (type) => {
+    setAirtableSyncing(true);
+    setAirtableMessage('');
+    try {
+      const functionName = type === 'licenses' ? 'syncLicensesToAirtable' : 'syncOfficeClosuresToAirtable';
+      const response = await base44.functions.invoke(functionName, {});
+      setAirtableMessage(response.data.message);
+    } catch (error) {
+      setAirtableMessage('Error syncing to Airtable: ' + error.message);
+    } finally {
+      setAirtableSyncing(false);
     }
   };
 
@@ -563,6 +579,50 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         )}
+
+        {airtableMessage && (
+          <Card className="border-green-200 bg-green-50">
+            <CardContent className="p-4">
+              <p className="text-sm text-green-900">{airtableMessage}</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Airtable Sync Section */}
+        <Card className="border-slate-200 shadow-sm bg-gradient-to-br from-purple-50 to-white">
+          <CardHeader className="border-b border-slate-100 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <CloudUpload className="w-5 h-5 text-purple-600" />
+                  Sync to Airtable
+                </CardTitle>
+                <p className="text-xs text-slate-500 mt-1">Push data to Airtable for automated email reminders</p>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4">
+            <div className="flex flex-wrap gap-3">
+              <Button
+                onClick={() => handleSyncToAirtable('licenses')}
+                disabled={airtableSyncing}
+                className="bg-purple-600 hover:bg-purple-700 gap-2"
+              >
+                {airtableSyncing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CloudUpload className="w-4 h-4" />}
+                Sync Licenses to Airtable
+              </Button>
+              <Button
+                onClick={() => handleSyncToAirtable('closures')}
+                disabled={airtableSyncing}
+                variant="outline"
+                className="border-purple-300 text-purple-700 hover:bg-purple-50 gap-2"
+              >
+                {airtableSyncing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CloudUpload className="w-4 h-4" />}
+                Sync Office Closures to Airtable
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
