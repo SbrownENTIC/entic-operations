@@ -46,6 +46,9 @@ Deno.serve(async (req) => {
     const onCallPeriodsData = await onCallPeriodsResponse.json();
     const onCallPeriods = onCallPeriodsData.records || [];
 
+    // Helper for normalizing keys
+    const normalize = (str) => (str || '').toLowerCase().trim();
+
     // Fetch existing Office Closures from Airtable to prevent duplicates
     const existingClosuresResponse = await fetch(
       `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${OFFICE_CLOSURES_TABLE_ID}?fields%5B%5D=Closure%20Name&fields%5B%5D=Date%20Closed`,
@@ -62,7 +65,7 @@ Deno.serve(async (req) => {
       existingClosuresData.records.forEach(record => {
         const name = record.fields['Closure Name'] || '';
         const date = record.fields['Date Closed'] || '';
-        existingClosureMap.set(`${name}|${date}`, record.id);
+        existingClosureMap.set(`${normalize(name)}|${date}`, record.id);
       });
     }
 
@@ -82,7 +85,7 @@ Deno.serve(async (req) => {
       existingRemindersData.records.forEach(record => {
         const name = record.fields['Reminder Name'] || '';
         const date = record.fields['Send Date'] || '';
-        existingReminderMap.set(`${name}|${date}`, record.id);
+        existingReminderMap.set(`${normalize(name)}|${date}`, record.id);
       });
     }
 
@@ -97,7 +100,7 @@ Deno.serve(async (req) => {
       const closureName = reminder.closure_name || reminder.reminder_name || '';
       const closureDate = reminder.closure_date || '';
       
-      const key = `${closureName}|${closureDate}`;
+      const key = `${normalize(closureName)}|${closureDate}`;
       const existingClosureId = existingClosureMap.get(key);
       
       const fields = {};
@@ -171,7 +174,7 @@ Deno.serve(async (req) => {
       const reminderName = reminder.reminder_name || '';
       const sendDate = reminder.send_date || '';
       
-      const key = `${reminderName}|${sendDate}`;
+      const key = `${normalize(reminderName)}|${sendDate}`;
       const existingReminderId = existingReminderMap.get(key);
       
       const fields = {};
