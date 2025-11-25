@@ -41,14 +41,8 @@ Deno.serve(async (req) => {
       
       fields['Enabled'] = reminder.status === 'active';
       
-      // Add on-call info if available
-      if (reminder.oncall_provider_list) {
-        fields['On-Call Provider'] = reminder.oncall_provider_list;
-      }
-      
-      if (reminder.oncall_phone_list) {
-        fields['On-Call Phone'] = reminder.oncall_phone_list;
-      }
+      // Note: On-Call Provider and On-Call Phone are computed fields in Airtable
+      // They are populated via linked records, not directly
 
       try {
         const response = await fetch(
