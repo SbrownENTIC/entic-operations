@@ -411,7 +411,7 @@ export default function SupplyOrders() {
                       <p className="text-sm text-blue-700">Order #: {summaryOrder.order_number}</p>
                     )}
                   </div>
-                  <div className="border rounded-lg overflow-hidden">
+                  <div className="border rounded-lg overflow-hidden max-h-64 overflow-y-auto">
                     <table className="w-full text-sm">
                       <thead className="bg-slate-100">
                         <tr>
