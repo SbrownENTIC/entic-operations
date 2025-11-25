@@ -107,8 +107,8 @@ Deno.serve(async (req) => {
       if (closureName) fields['Closure Name'] = closureName;
       if (closureDate) fields['Date Closed'] = closureDate;
       if (reminder.reopen_date) fields['Date Re-Open'] = reminder.reopen_date;
-      if (reminder.email_subject) fields['Subject'] = reminder.email_subject;
-      if (reminder.email_body) fields['Message'] = reminder.email_body;
+      if (reminder.email_subject) fields['Email Subject'] = reminder.email_subject;
+      if (reminder.email_body) fields['Email Body'] = reminder.email_body;
       fields['Enabled'] = reminder.status === 'active';
       
       // Map closure name/type to valid Closure Type options: Holiday, Floating Holiday, Office Closure, Reminder
@@ -182,7 +182,7 @@ Deno.serve(async (req) => {
       if (reminderName) fields['Reminder Name'] = reminderName;
       if (sendDate) fields['Send Date'] = sendDate;
       if (reminder.email_subject) fields['Email Subject'] = reminder.email_subject;
-      if (reminder.email_body) fields['Message'] = reminder.email_body;
+      if (reminder.email_body) fields['Email Body'] = reminder.email_body;
       
       // Map frequency to valid Airtable multi-select options: Annually, 90 Days, 60 Days, 30 Days, Monthly
       if (reminder.frequency) {
