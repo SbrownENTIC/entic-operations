@@ -107,6 +107,8 @@ Deno.serve(async (req) => {
       if (holidayName) fields['Holiday Name'] = holidayName;
       if (closureDate) fields['Date Closed'] = closureDate;
       if (reminder.reopen_date) fields['Date Re-Open'] = reminder.reopen_date;
+      if (reminder.email_subject) fields['Subject'] = reminder.email_subject;
+      if (reminder.email_body) fields['Message'] = reminder.email_body;
       fields['Enabled'] = reminder.status === 'active';
       
       // Map holiday name/type to valid Closure Type options: Holiday, Floating Holiday, Office Closure, Reminder
