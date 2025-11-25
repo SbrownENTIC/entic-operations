@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { SMTPClient } from 'npm:emailjs@4.0.3';
 
 Deno.serve(async (req) => {
   try {
@@ -19,52 +20,45 @@ Deno.serve(async (req) => {
       }, { status: 400 });
     }
 
-    // Get Mailgun credentials from environment
-    const apiKey = Deno.env.get('MAILGUN_API_KEY');
-    const domain = Deno.env.get('MAILGUN_DOMAIN');
+    // Get SMTP credentials from environment
+    const smtpHost = Deno.env.get('MAILGUN_SMTP_HOST');
+    const smtpPort = parseInt(Deno.env.get('MAILGUN_SMTP_PORT') || '587');
+    const smtpUser = Deno.env.get('MAILGUN_SMTP_USER');
+    const smtpPassword = Deno.env.get('MAILGUN_SMTP_PASSWORD');
     const fromEmail = Deno.env.get('MAILGUN_FROM_EMAIL');
 
-    if (!apiKey || !domain || !fromEmail) {
+    if (!smtpHost || !smtpUser || !smtpPassword || !fromEmail) {
       return Response.json({ 
-        error: 'Mailgun not configured. Please set MAILGUN_API_KEY, MAILGUN_DOMAIN, and MAILGUN_FROM_EMAIL environment variables.' 
+        error: 'SMTP not configured. Please set MAILGUN_SMTP_HOST, MAILGUN_SMTP_USER, MAILGUN_SMTP_PASSWORD, and MAILGUN_FROM_EMAIL environment variables.' 
       }, { status: 500 });
     }
+
+    // Create SMTP client
+    const client = new SMTPClient({
+      user: smtpUser,
+      password: smtpPassword,
+      host: smtpHost,
+      port: smtpPort,
+      tls: true
+    });
 
     // Prepare from field
     const fromField = from_name ? `${from_name} <${fromEmail}>` : fromEmail;
 
-    // Send email via Mailgun API
-    const mailgunUrl = `https://api.mailgun.net/v3/${domain}/messages`;
-    
-    const formData = new FormData();
-    formData.append('from', fromField);
-    formData.append('to', to);
-    formData.append('subject', subject);
-    formData.append('html', body.replace(/\n/g, '<br>'));
-
-    const response = await fetch(mailgunUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Basic ' + btoa(`api:${apiKey}`)
-      },
-      body: formData
+    // Send email via SMTP
+    const message = await client.sendAsync({
+      from: fromField,
+      to: to,
+      subject: subject,
+      attachment: [
+        { data: body.replace(/\n/g, '<br>'), alternative: true }
+      ]
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Mailgun error:', errorText);
-      return Response.json({ 
-        error: 'Failed to send email via Mailgun',
-        details: errorText
-      }, { status: response.status });
-    }
-
-    const result = await response.json();
     
     return Response.json({ 
       success: true,
       message: 'Email sent successfully',
-      mailgun_id: result.id
+      details: message
     });
 
   } catch (error) {
