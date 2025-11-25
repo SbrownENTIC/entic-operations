@@ -216,7 +216,7 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
         ? `${startDateFormatted}-${endDateFormatted}` 
         : startDateFormatted;
 
-      const subject = `Office Closure Notification: ACCT6650- ${dateRange}— ${formData.closure_name} Holiday`;
+      const subject = `Office Closure Notification: ACCT6650- ${dateRange}— ${formData.closure_name}`;
       
       if (subject !== formData.email_subject) {
         setFormData(prev => ({ ...prev, email_subject: subject }));
@@ -322,7 +322,7 @@ The Operations Team
         : startDateFormatted;
     }
 
-    const subject = `Office Closure Notification: ACCT6650- ${dateRange}— ${formData.closure_name || ''} Holiday`;
+    const subject = `Office Closure Notification: ACCT6650- ${dateRange}— ${formData.closure_name || ''}`;
 
     setFormData({
       ...formData,
