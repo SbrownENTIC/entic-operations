@@ -147,7 +147,7 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
     'Labor Day': { '2025': '2025-09-02', '2026': '2026-09-08' },
     'Thanksgiving': { '2025': '2025-12-01', '2026': '2026-11-30' },
     'Christmas': { '2025': '2025-12-29', '2026': '2026-12-28' },
-    'New Year\'s Day': { '2026': '2026-01-02' },
+    'New Year\'s Day': { '2026': '2026-01-05' },
     'Easter': { '2026': '2026-04-07' },
     'Memorial Day': { '2026': '2026-05-26' }
   };
@@ -170,9 +170,9 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
           daysToSubtract = -3;
           break;
         default: // Tuesday-Friday
-          daysToSubtract = 0; // Same day (day before closure)
+          daysToSubtract = -1; // One day before closure
           break;
-      }
+        }
       
       const sendDate = new Date(closureDate);
       sendDate.setDate(sendDate.getDate() + daysToSubtract);
@@ -200,14 +200,29 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
   // Auto-set email subject for holidays (only if not manually edited)
   useEffect(() => {
     if (formData.closure_date && formData.closure_name && (formData.reminder_type === 'Holiday' || formData.reminder_type === 'Office Closure') && !manuallyEdited.email_subject) {
-      const closureDateFormatted = format(parseISO(formData.closure_date), 'MMMM d, yyyy');
-      const subject = `Office Closure Notification: ACCT6650- ${formData.closure_name} ${closureDateFormatted}`;
+      // Calculate end date (last business day closed)
+      let endDateFormatted = '';
+      if (formData.reopen_date) {
+        const endDate = new Date(formData.reopen_date + 'T00:00:00');
+        endDate.setDate(endDate.getDate() - 1);
+        while (endDate.getDay() === 0 || endDate.getDay() === 6) {
+          endDate.setDate(endDate.getDate() - 1);
+        }
+        endDateFormatted = format(endDate, 'MM/dd/yyyy');
+      }
+
+      const startDateFormatted = format(parseISO(formData.closure_date), 'MM/dd/yyyy');
+      const dateRange = endDateFormatted && endDateFormatted !== startDateFormatted 
+        ? `${startDateFormatted}-${endDateFormatted}` 
+        : startDateFormatted;
+
+      const subject = `Office Closure Notification: ACCT6650- ${dateRange}— ${formData.closure_name} Holiday`;
       
       if (subject !== formData.email_subject) {
         setFormData(prev => ({ ...prev, email_subject: subject }));
       }
     }
-  }, [formData.closure_date, formData.closure_name, formData.reminder_type, manuallyEdited.email_subject]);
+  }, [formData.closure_date, formData.reopen_date, formData.closure_name, formData.reminder_type, manuallyEdited.email_subject]);
 
   // Auto-apply holiday template for email body when all required fields are available
   useEffect(() => {
@@ -288,8 +303,26 @@ The Operations Team
 
 `;
 
-    const closureDateFormatted = formData.closure_date ? format(parseISO(formData.closure_date), 'MMMM d, yyyy') : '';
-    const subject = `Office Closure Notification: ACCT6650- ${formData.closure_name || ''} ${closureDateFormatted}`;
+    let dateRange = '';
+    if (formData.closure_date) {
+      const startDateFormatted = format(parseISO(formData.closure_date), 'MM/dd/yyyy');
+      let endDateFormatted = '';
+      
+      if (formData.reopen_date) {
+        const endDate = new Date(formData.reopen_date + 'T00:00:00');
+        endDate.setDate(endDate.getDate() - 1);
+        while (endDate.getDay() === 0 || endDate.getDay() === 6) {
+          endDate.setDate(endDate.getDate() - 1);
+        }
+        endDateFormatted = format(endDate, 'MM/dd/yyyy');
+      }
+      
+      dateRange = endDateFormatted && endDateFormatted !== startDateFormatted 
+        ? `${startDateFormatted}-${endDateFormatted}` 
+        : startDateFormatted;
+    }
+
+    const subject = `Office Closure Notification: ACCT6650- ${dateRange}— ${formData.closure_name || ''} Holiday`;
 
     setFormData({
       ...formData,
