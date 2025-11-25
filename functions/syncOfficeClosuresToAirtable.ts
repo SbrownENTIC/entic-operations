@@ -166,7 +166,21 @@ Deno.serve(async (req) => {
       if (reminderName) fields['Reminder Name'] = reminderName;
       if (sendDate) fields['Send Date'] = sendDate;
       if (reminder.email_subject) fields['Email Subject'] = reminder.email_subject;
-      if (reminder.frequency) fields['Frequency'] = reminder.frequency;
+      
+      // Map frequency to valid Airtable multi-select options: Annually, 90 Days, 60 Days, 30 Days, Monthly
+      if (reminder.frequency) {
+        const frequencyMap = {
+          'yearly': 'Annually',
+          'quarterly': '90 Days',
+          'monthly': 'Monthly',
+          'once': null // Don't set for one-time reminders
+        };
+        const mappedFrequency = frequencyMap[reminder.frequency];
+        if (mappedFrequency) {
+          fields['Frequency'] = [mappedFrequency]; // Multi-select requires array
+        }
+      }
+      
       fields['Enabled'] = reminder.status === 'active';
 
       try {
