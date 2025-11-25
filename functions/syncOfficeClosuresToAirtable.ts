@@ -57,12 +57,12 @@ Deno.serve(async (req) => {
       }
     );
     const existingClosuresData = await existingClosuresResponse.json();
-    const existingClosureKeys = new Set();
+    const existingClosureMap = new Map();
     if (existingClosuresData.records) {
       existingClosuresData.records.forEach(record => {
         const name = record.fields['Closure Name'] || '';
         const date = record.fields['Date Closed'] || '';
-        existingClosureKeys.add(`${name}|${date}`);
+        existingClosureMap.set(`${name}|${date}`, record.id);
       });
     }
 
@@ -77,19 +77,19 @@ Deno.serve(async (req) => {
       }
     );
     const existingRemindersData = await existingRemindersResponse.json();
-    const existingReminderKeys = new Set();
+    const existingReminderMap = new Map();
     if (existingRemindersData.records) {
       existingRemindersData.records.forEach(record => {
         const name = record.fields['Reminder Name'] || '';
         const date = record.fields['Send Date'] || '';
-        existingReminderKeys.add(`${name}|${date}`);
+        existingReminderMap.set(`${name}|${date}`, record.id);
       });
     }
 
     let closuresSynced = 0;
-    let closuresSkipped = 0;
+    let closuresUpdated = 0;
     let remindersSynced = 0;
-    let remindersSkipped = 0;
+    let remindersUpdated = 0;
     let errors = [];
 
     // Sync Holiday reminders to Office Closures table
@@ -98,10 +98,7 @@ Deno.serve(async (req) => {
       const closureDate = reminder.closure_date || '';
       
       const key = `${closureName}|${closureDate}`;
-      if (existingClosureKeys.has(key)) {
-        closuresSkipped++;
-        continue;
-      }
+      const existingClosureId = existingClosureMap.get(key);
       
       const fields = {};
       if (closureName) fields['Closure Name'] = closureName;
@@ -143,10 +140,13 @@ Deno.serve(async (req) => {
       }
 
       try {
+        const method = existingClosureId ? 'PATCH' : 'POST';
+        const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${OFFICE_CLOSURES_TABLE_ID}${existingClosureId ? '/' + existingClosureId : ''}`;
+        
         const response = await fetch(
-          `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${OFFICE_CLOSURES_TABLE_ID}`,
+          url,
           {
-            method: 'POST',
+            method,
             headers: {
               'Authorization': `Bearer ${airtableApiKey}`,
               'Content-Type': 'application/json'
@@ -156,8 +156,7 @@ Deno.serve(async (req) => {
         );
 
         if (response.ok) {
-          closuresSynced++;
-          existingClosureKeys.add(key);
+          if (existingClosureId) closuresUpdated++; else closuresSynced++;
         } else {
           const errorData = await response.json();
           errors.push({ table: 'Office Closures', name: closureName, error: errorData });
@@ -173,10 +172,7 @@ Deno.serve(async (req) => {
       const sendDate = reminder.send_date || '';
       
       const key = `${reminderName}|${sendDate}`;
-      if (existingReminderKeys.has(key)) {
-        remindersSkipped++;
-        continue;
-      }
+      const existingReminderId = existingReminderMap.get(key);
       
       const fields = {};
       if (reminderName) fields['Reminder Name'] = reminderName;
@@ -201,10 +197,13 @@ Deno.serve(async (req) => {
       fields['Enabled'] = reminder.status === 'active';
 
       try {
+        const method = existingReminderId ? 'PATCH' : 'POST';
+        const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${REMINDERS_TABLE_ID}${existingReminderId ? '/' + existingReminderId : ''}`;
+
         const response = await fetch(
-          `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${REMINDERS_TABLE_ID}`,
+          url,
           {
-            method: 'POST',
+            method,
             headers: {
               'Authorization': `Bearer ${airtableApiKey}`,
               'Content-Type': 'application/json'
@@ -214,8 +213,7 @@ Deno.serve(async (req) => {
         );
 
         if (response.ok) {
-          remindersSynced++;
-          existingReminderKeys.add(key);
+          if (existingReminderId) remindersUpdated++; else remindersSynced++;
         } else {
           const errorData = await response.json();
           errors.push({ table: 'Reminders', name: reminderName, error: errorData });
@@ -226,7 +224,7 @@ Deno.serve(async (req) => {
     }
 
     // Build detailed message
-    let message = `Office Closures: ${closuresSynced} synced, ${closuresSkipped} skipped. Reminders: ${remindersSynced} synced, ${remindersSkipped} skipped`;
+    let message = `Office Closures: ${closuresSynced} created, ${closuresUpdated} updated. Reminders: ${remindersSynced} created, ${remindersUpdated} updated`;
     if (errors.length > 0) {
       message += `. ${errors.length} errors: ${errors[0]?.name} - ${JSON.stringify(errors[0]?.error?.error?.message || errors[0]?.error)}`;
     }
@@ -234,8 +232,8 @@ Deno.serve(async (req) => {
     return Response.json({
       success: true,
       message,
-      closures: { total: holidayReminders.length, synced: closuresSynced, skipped: closuresSkipped },
-      reminders: { total: otherReminders.length, synced: remindersSynced, skipped: remindersSkipped },
+      closures: { total: holidayReminders.length, created: closuresSynced, updated: closuresUpdated },
+      reminders: { total: otherReminders.length, created: remindersSynced, updated: remindersUpdated },
       errors: errors.length > 0 ? errors : undefined
     });
 
