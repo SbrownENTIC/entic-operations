@@ -45,19 +45,19 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
     const subtotal = formData.items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0);
     const total = subtotal + (formData.tax || 0);
     
-    // Auto-update status based on received items
+    // Only auto-update status based on received items if order is already in order_placed/partially_received/received state
     const receivedCount = formData.items.filter(item => item.received).length;
     const totalItems = formData.items.length;
     let status = formData.status;
     
-    if (totalItems > 0) {
-      if (receivedCount === 0) {
-        status = 'order_placed';
-      } else if (receivedCount === totalItems) {
+    const receivedStatuses = ['order_placed', 'partially_received', 'received'];
+    if (totalItems > 0 && receivedStatuses.includes(formData.status)) {
+      if (receivedCount === totalItems) {
         status = 'received';
-      } else {
+      } else if (receivedCount > 0) {
         status = 'partially_received';
       }
+      // If receivedCount === 0, keep the current status (don't force to order_placed)
     }
     
     onSubmit({ ...formData, subtotal, total_amount: total, status });
