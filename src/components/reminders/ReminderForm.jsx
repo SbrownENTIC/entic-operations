@@ -288,7 +288,7 @@ The Operations Team
   };
 
   return (
-    <Card className="border-slate-200 shadow-sm max-h-[90vh] flex flex-col">
+    <Card className="border-slate-200 shadow-sm max-h-[85vh] flex flex-col overflow-hidden">
       <CardHeader className="border-b border-slate-100 flex-shrink-0">
         <div className="flex items-center justify-between">
           <CardTitle>{reminder ? 'Edit Reminder' : 'Create Reminder'}</CardTitle>

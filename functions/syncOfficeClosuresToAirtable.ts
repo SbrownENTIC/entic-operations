@@ -24,13 +24,31 @@ Deno.serve(async (req) => {
     let errors = [];
 
     for (const reminder of reminders) {
-      const fields = {
-        'Holiday Name': reminder.holiday_name || reminder.reminder_name || '',
-        'Closure Type': 'Holiday',
-        'Date Closed': reminder.closure_date || null,
-        'Date Re-Open': reminder.reopen_date || null,
-        'Enabled': reminder.status === 'active'
-      };
+      // Build fields object - only include non-null values
+      const fields = {};
+      
+      if (reminder.holiday_name || reminder.reminder_name) {
+        fields['Holiday Name'] = reminder.holiday_name || reminder.reminder_name;
+      }
+      
+      if (reminder.closure_date) {
+        fields['Date Closed'] = reminder.closure_date;
+      }
+      
+      if (reminder.reopen_date) {
+        fields['Date Re-Open'] = reminder.reopen_date;
+      }
+      
+      fields['Enabled'] = reminder.status === 'active';
+      
+      // Add on-call info if available
+      if (reminder.oncall_provider_list) {
+        fields['On-Call Provider'] = reminder.oncall_provider_list;
+      }
+      
+      if (reminder.oncall_phone_list) {
+        fields['On-Call Phone'] = reminder.oncall_phone_list;
+      }
 
       try {
         const response = await fetch(
@@ -56,9 +74,15 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Build detailed message including any errors
+    let message = `Synced ${synced} of ${reminders.length} office closures to Airtable`;
+    if (errors.length > 0) {
+      message += `. ${errors.length} errors: ${JSON.stringify(errors[0]?.error)}`;
+    }
+
     return Response.json({
       success: true,
-      message: `Synced ${synced} office closures to Airtable`,
+      message,
       total: reminders.length,
       synced,
       errors: errors.length > 0 ? errors : undefined
