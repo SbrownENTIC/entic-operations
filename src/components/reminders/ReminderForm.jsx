@@ -200,8 +200,8 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
   // Auto-set email subject for holidays (only if not manually edited)
   useEffect(() => {
     if (formData.closure_date && formData.closure_name && (formData.reminder_type === 'Holiday' || formData.reminder_type === 'Office Closure') && !manuallyEdited.email_subject) {
-      const closureDateFormatted = format(parseISO(formData.closure_date), 'M/d/yyyy');
-      const subject = `Office Closure Notification: ACCT6650- ${closureDateFormatted}— ${formData.closure_name} Holiday`;
+      const closureDateFormatted = format(parseISO(formData.closure_date), 'MMMM d, yyyy');
+      const subject = `Office Closure Notification: ACCT6650- ${formData.closure_name} ${closureDateFormatted}`;
       
       if (subject !== formData.email_subject) {
         setFormData(prev => ({ ...prev, email_subject: subject }));
@@ -288,10 +288,13 @@ The Operations Team
 
 `;
 
+    const closureDateFormatted = formData.closure_date ? format(parseISO(formData.closure_date), 'MMMM d, yyyy') : '';
+    const subject = `Office Closure Notification: ACCT6650- ${formData.closure_name || ''} ${closureDateFormatted}`;
+
     setFormData({
       ...formData,
       email_body: template,
-      email_subject: formData.reminder_name || `Office Closure - ${formData.closure_name || ''}`
+      email_subject: subject
     });
   };
 
