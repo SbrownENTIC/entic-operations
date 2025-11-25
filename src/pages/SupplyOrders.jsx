@@ -411,25 +411,29 @@ export default function SupplyOrders() {
                       <p className="text-sm text-blue-700">Order #: {summaryOrder.order_number}</p>
                     )}
                   </div>
-                  <div className="border rounded-lg overflow-hidden max-h-64 overflow-y-auto">
+                  <div className="border rounded-lg overflow-hidden">
                     <table className="w-full text-sm">
-                      <thead className="bg-slate-100">
+                      <thead className="bg-slate-100 sticky top-0">
                         <tr>
                           <th className="text-left p-2 font-semibold text-slate-700">Item #</th>
                           <th className="text-left p-2 font-semibold text-slate-700">Product</th>
                           <th className="text-right p-2 font-semibold text-slate-700">Qty</th>
                         </tr>
                       </thead>
-                      <tbody>
-                        {summaryOrder?.items?.map((item, idx) => (
-                          <tr key={idx} className="border-t border-slate-200">
-                            <td className="p-2 text-slate-900 font-mono">{item.item_number || '-'}</td>
-                            <td className="p-2 text-slate-700">{item.supply_name}</td>
-                            <td className="p-2 text-right font-semibold text-slate-900">{item.quantity}</td>
-                          </tr>
-                        ))}
-                      </tbody>
                     </table>
+                    <div className="max-h-80 overflow-y-auto">
+                      <table className="w-full text-sm">
+                        <tbody>
+                          {summaryOrder?.items?.map((item, idx) => (
+                            <tr key={idx} className="border-t border-slate-200">
+                              <td className="p-2 text-slate-900 font-mono">{item.item_number || '-'}</td>
+                              <td className="p-2 text-slate-700">{item.supply_name}</td>
+                              <td className="p-2 text-right font-semibold text-slate-900">{item.quantity}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
               </AlertDialogDescription>
