@@ -109,6 +109,23 @@ Deno.serve(async (req) => {
         fields['Closure Type'] = 'Holiday';
       }
 
+      // Find matching On-Call Period records where closure date falls within the on-call date range
+      if (closureDate) {
+        const closureDateObj = new Date(closureDate + 'T00:00:00');
+        const matchingOnCallIds = onCallPeriods
+          .filter(period => {
+            const startDate = period.fields['Start Date'] ? new Date(period.fields['Start Date'] + 'T00:00:00') : null;
+            const endDate = period.fields['End Date'] ? new Date(period.fields['End Date'] + 'T00:00:00') : null;
+            if (!startDate || !endDate) return false;
+            return closureDateObj >= startDate && closureDateObj <= endDate;
+          })
+          .map(period => period.id);
+        
+        if (matchingOnCallIds.length > 0) {
+          fields['On-Call Link'] = matchingOnCallIds;
+        }
+      }
+
       try {
         const response = await fetch(
           `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${OFFICE_CLOSURES_TABLE_ID}`,
