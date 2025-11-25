@@ -211,7 +211,7 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
 
   // Auto-apply holiday template for email body when all required fields are available
   useEffect(() => {
-    if (formData.reminder_type === 'Holiday' && 
+    if ((formData.reminder_type === 'Holiday' || formData.reminder_type === 'Office Closure') && 
         formData.closure_date && 
         formData.reopen_date && 
         formData.holiday_name && 
