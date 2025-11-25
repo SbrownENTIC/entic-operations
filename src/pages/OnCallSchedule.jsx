@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ChevronLeft, ChevronRight, RefreshCw, Calendar as CalendarIcon, Search, Pencil, Trash2, List, ArrowUpDown, ArrowUp, ArrowDown, Check, UserCheck } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, RefreshCw, Calendar as CalendarIcon, Search, Pencil, Trash2, List, ArrowUpDown, ArrowUp, ArrowDown, Check, UserCheck, Download } from "lucide-react";
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, addMonths, subMonths, isSameDay, startOfWeek, endOfWeek, startOfDay, addDays, differenceInDays } from "date-fns";
 import OnCallForm from "../components/oncall/OnCallForm";
 import {
@@ -373,6 +373,47 @@ export default function OnCallSchedule() {
 
   const selectedProviderForBulk = providers.find(p => p.id === bulkProvider);
 
+  const exportToCSV = () => {
+    const rows = [
+      ['Provider ID', 'Provider Name', 'Phone Number', 'Location', 'Start Date', 'Start Time', 'End Date', 'End Time', 'Days', 'Notes']
+    ];
+    
+    sortedSchedules.forEach(schedule => {
+      rows.push([
+        schedule.provider_id || '',
+        schedule.provider?.full_name || '',
+        schedule.provider?.phone || '',
+        schedule.location || '',
+        schedule.start_date ? format(parseISO(schedule.start_date), 'yyyy-MM-dd') : '',
+        schedule.start_time || '',
+        schedule.end_date ? format(parseISO(schedule.end_date), 'yyyy-MM-dd') : '',
+        schedule.end_time || '',
+        schedule.days || '',
+        schedule.notes || ''
+      ]);
+    });
+    
+    const csvContent = rows.map(row => 
+      row.map(cell => {
+        const cellStr = String(cell);
+        if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+          return '"' + cellStr.replace(/"/g, '""') + '"';
+        }
+        return cellStr;
+      }).join(',')
+    ).join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `on_call_schedule_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <>
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-8">
@@ -384,6 +425,14 @@ export default function OnCallSchedule() {
             <p className="text-slate-600 text-sm">Manage provider on-call schedules</p>
           </div>
           <div className="flex gap-3 flex-wrap">
+            <Button
+              variant="outline"
+              onClick={exportToCSV}
+              className="gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Export
+            </Button>
             <Button
               variant="outline"
               onClick={() => setViewMode(viewMode === 'calendar' ? 'list' : 'calendar')}
