@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2, Trash2 } from "lucide-react";
+import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2, Trash2, ClipboardList } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +33,7 @@ export default function SupplyOrders() {
   const [sortDirection, setSortDirection] = useState('desc');
   const [filling, setFilling] = useState(false);
   const [fillMessage, setFillMessage] = useState('');
+  const [summaryOrder, setSummaryOrder] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: orders = [] } = useQuery({
@@ -359,6 +360,14 @@ export default function SupplyOrders() {
                            <Button 
                              variant="ghost" 
                              size="sm"
+                             onClick={() => setSummaryOrder(order)}
+                             title="View Order Summary"
+                           >
+                             <ClipboardList className="w-4 h-4" />
+                           </Button>
+                           <Button 
+                             variant="ghost" 
+                             size="sm"
                              onClick={() => {
                                setEditingOrder(order);
                                setShowForm(true);
@@ -389,6 +398,47 @@ export default function SupplyOrders() {
             </div>
           </CardContent>
         </Card>
+
+        <AlertDialog open={!!summaryOrder} onOpenChange={() => setSummaryOrder(null)}>
+          <AlertDialogContent className="max-w-lg">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Order Summary</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-4">
+                  <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    <p className="font-semibold text-blue-900 text-lg">{summaryOrder?.location}</p>
+                    {summaryOrder?.order_number && (
+                      <p className="text-sm text-blue-700">Order #: {summaryOrder.order_number}</p>
+                    )}
+                  </div>
+                  <div className="border rounded-lg overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-slate-100">
+                        <tr>
+                          <th className="text-left p-2 font-semibold text-slate-700">Item #</th>
+                          <th className="text-left p-2 font-semibold text-slate-700">Product</th>
+                          <th className="text-right p-2 font-semibold text-slate-700">Qty</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {summaryOrder?.items?.map((item, idx) => (
+                          <tr key={idx} className="border-t border-slate-200">
+                            <td className="p-2 text-slate-900 font-mono">{item.item_number || '-'}</td>
+                            <td className="p-2 text-slate-700">{item.supply_name}</td>
+                            <td className="p-2 text-right font-semibold text-slate-900">{item.quantity}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Close</AlertDialogCancel>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <AlertDialog open={!!deletingOrder} onOpenChange={() => setDeletingOrder(null)}>
           <AlertDialogContent>
