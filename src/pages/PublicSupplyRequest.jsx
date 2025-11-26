@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Trash2, Search, Check, CheckCircle, AlertCircle, HeartPulse } from "lucide-react";
+import { Plus, Trash2, Search, Check, CheckCircle, AlertCircle, HeartPulse, X } from "lucide-react";
 
 export default function PublicSupplyRequest() {
   const [formData, setFormData] = useState({
@@ -22,6 +22,8 @@ export default function PublicSupplyRequest() {
   });
   const [itemSelectOpen, setItemSelectOpen] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const [isNewName, setIsNewName] = useState(false);
+  const [isNewEmail, setIsNewEmail] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
   const [submitStatus, setSubmitStatus] = useState(''); // 'success' or 'error'
 
@@ -130,25 +132,105 @@ export default function PublicSupplyRequest() {
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="requester_name">Your Name *</Label>
-                  <Input
-                    id="requester_name"
-                    value={formData.requester_name}
-                    onChange={(e) => setFormData({ ...formData, requester_name: e.target.value })}
-                    placeholder="Enter your full name"
-                    required
-                  />
+                  {isNewName ? (
+                    <div className="flex gap-2">
+                      <Input
+                        id="requester_name"
+                        value={formData.requester_name}
+                        onChange={(e) => setFormData({ ...formData, requester_name: e.target.value })}
+                        placeholder="Enter your full name"
+                        required
+                        autoFocus
+                      />
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => { 
+                          setIsNewName(false); 
+                          setFormData(prev => ({ ...prev, requester_name: '' })); 
+                        }}
+                        title="Cancel custom name"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Select 
+                      value={formData.requester_name} 
+                      onValueChange={(value) => {
+                        if (value === 'new') {
+                          setIsNewName(true);
+                          setFormData(prev => ({ ...prev, requester_name: '' }));
+                        } else {
+                          setFormData(prev => ({ ...prev, requester_name: value }));
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your name" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Jalisa Henry">Jalisa Henry</SelectItem>
+                        <SelectItem value="new" className="text-blue-600 font-medium">
+                          <Plus className="w-3 h-3 inline mr-2" />
+                          Add New Name...
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="requester_email">Your Email *</Label>
-                  <Input
-                    id="requester_email"
-                    type="email"
-                    value={formData.requester_email}
-                    onChange={(e) => setFormData({ ...formData, requester_email: e.target.value })}
-                    placeholder="your.email@example.com"
-                    required
-                  />
+                  {isNewEmail ? (
+                    <div className="flex gap-2">
+                      <Input
+                        id="requester_email"
+                        type="email"
+                        value={formData.requester_email}
+                        onChange={(e) => setFormData({ ...formData, requester_email: e.target.value })}
+                        placeholder="your.email@example.com"
+                        required
+                        autoFocus
+                      />
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => { 
+                          setIsNewEmail(false); 
+                          setFormData(prev => ({ ...prev, requester_email: '' })); 
+                        }}
+                        title="Cancel custom email"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Select 
+                      value={formData.requester_email} 
+                      onValueChange={(value) => {
+                        if (value === 'new') {
+                          setIsNewEmail(true);
+                          setFormData(prev => ({ ...prev, requester_email: '' }));
+                        } else {
+                          setFormData(prev => ({ ...prev, requester_email: value }));
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your email" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="JHenry@enticmd.com">JHenry@enticmd.com</SelectItem>
+                        <SelectItem value="new" className="text-blue-600 font-medium">
+                          <Plus className="w-3 h-3 inline mr-2" />
+                          Add New Email...
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
 
                 <div className="space-y-2">
