@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, AlertTriangle, Award, FileText, GraduationCap, DollarSign, CheckCircle2, Clock, Building2, RefreshCw, Wallet, Download, Package, CloudUpload } from "lucide-react";
+import { Users, AlertCircle, Award, FileText, GraduationCap, DollarSign, CheckCircle2, Clock, Building2, RefreshCw, Wallet, Download, Package, CloudUpload } from "lucide-react";
 import { differenceInDays, parseISO, format } from "date-fns";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -182,7 +182,7 @@ export default function Dashboard() {
       <div className="p-6 md:p-8 bg-slate-50 min-h-screen flex items-center justify-center">
         <Card className="max-w-md">
           <CardContent className="p-6 text-center">
-            <AlertTriangle className="w-12 h-12 text-orange-600 mx-auto mb-4" />
+            <AlertCircle className="w-12 h-12 text-orange-600 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-slate-900 mb-2">Unable to Load Dashboard</h3>
             <p className="text-slate-600 mb-6">There was an issue loading your dashboard data. This might be a temporary connectivity problem.</p>
             <div className="space-y-2">
@@ -632,9 +632,9 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card className={`bg-gradient-to-br from-red-100 to-red-50 transition-all duration-300 ${supplyOrders.length > 0 ? 'border-[5px] border-red-600 animate-alert-glow' : 'border-3 border-red-300 shadow-xl shadow-red-300/60 hover:scale-105'}`}>
             <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-red-400">
-              <AlertTriangle className="w-6 h-6 text-red-700 animate-slow-pulse" />
+              <AlertCircle className="w-6 h-6 text-red-700 animate-slow-pulse" />
               <CardTitle className="text-sm font-bold text-slate-900">Supply Order Requests</CardTitle>
-              <AlertTriangle className="w-6 h-6 text-red-700 animate-slow-pulse" />
+              <AlertCircle className="w-6 h-6 text-red-700 animate-slow-pulse" />
             </CardHeader>
             <CardContent className="pt-3">
               <div className="text-4xl font-bold text-red-700 mb-1">{supplyOrders.length}</div>
@@ -659,9 +659,9 @@ export default function Dashboard() {
 
           <Card className={`bg-gradient-to-br from-red-100 to-red-50 transition-all duration-300 ${licensesExpiring14Days.length > 0 ? 'border-[5px] border-red-600 animate-alert-glow' : 'border-3 border-red-300 shadow-xl shadow-red-200/50 hover:scale-105'}`}>
             <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-red-300">
-              <AlertTriangle className="w-6 h-6 text-red-700 animate-slow-pulse" />
+              <AlertCircle className="w-6 h-6 text-red-700 animate-slow-pulse" />
               <CardTitle className="text-sm font-bold text-slate-900">Licenses Expiring (14d)</CardTitle>
-              <AlertTriangle className="w-6 h-6 text-red-700 animate-slow-pulse" />
+              <AlertCircle className="w-6 h-6 text-red-700 animate-slow-pulse" />
             </CardHeader>
             <CardContent className="pt-3">
               <div className="text-4xl font-bold text-red-700 mb-1">{licensesExpiring14Days.length}</div>
@@ -1071,7 +1071,7 @@ function LicenseExpirationCard({ title, licenses, providers, severity }) {
     <Card className={`border-2 ${severityColors[severity]} transition-all duration-300 hover:scale-105`}>
       <CardHeader className="border-b-2 border-slate-200 bg-white/80 backdrop-blur-sm py-3">
         <div className="flex items-center gap-2">
-          <AlertTriangle className={iconClasses[severity]} />
+          <AlertCircle className={iconClasses[severity]} />
           <CardTitle className="text-xs font-bold text-slate-900">{title}</CardTitle>
         </div>
         <div className="text-xl font-bold text-slate-900 mt-1">{licenses.length}</div>
