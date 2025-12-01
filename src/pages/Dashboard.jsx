@@ -128,6 +128,23 @@ export default function Dashboard() {
     staleTime: 30000
   });
 
+  // Calculate up-to-date invoice amounts based on payments
+  const processedInvoices = React.useMemo(() => {
+    const invoiceAllocations = {};
+    payments.forEach(payment => {
+      payment.allocations?.forEach(allocation => {
+        if (allocation.invoice_id) {
+          invoiceAllocations[allocation.invoice_id] = (invoiceAllocations[allocation.invoice_id] || 0) + (allocation.amount || 0);
+        }
+      });
+    });
+
+    return invoices.map(inv => ({
+      ...inv,
+      amount_received: invoiceAllocations[inv.id] || 0
+    }));
+  }, [invoices, payments]);
+
   const handleSyncPaymentsAndInvoices = async () => {
     setSyncing(true);
     setSyncMessage('');
@@ -194,8 +211,8 @@ export default function Dashboard() {
     let title = '';
 
     if (type === 'paidToENTIC') {
-      filteredInvoices = invoices.filter(inv => 
-        inv.status === 'paid_to_entic' || inv.status === 'provider_paid'
+      filteredInvoices = processedInvoices.filter(inv => 
+        inv.amount_received > 0
       );
       if (programGroup) {
         filteredInvoices = filteredInvoices.filter(inv => inv.program_group === programGroup);
@@ -204,7 +221,7 @@ export default function Dashboard() {
         title = 'Total Paid to ENTIC';
       }
     } else if (type === 'owedToProviders') {
-      filteredInvoices = invoices.filter(inv => 
+      filteredInvoices = processedInvoices.filter(inv => 
         (inv.amount_received > 0) && !inv.provider_paid
       );
       if (programGroup) {
@@ -214,7 +231,7 @@ export default function Dashboard() {
         title = 'Total Owed to Providers';
       }
     } else if (type === 'outstanding') {
-      filteredInvoices = invoices.filter(inv => 
+      filteredInvoices = processedInvoices.filter(inv => 
         inv.status !== 'paid_to_entic' && inv.status !== 'provider_paid' && (inv.amount_expected > (inv.amount_received || 0))
       );
       if (programGroup) {
@@ -319,28 +336,14 @@ export default function Dashboard() {
     return days > 0 && days <= 30;
   });
 
-  // Financial metrics - Total
-  const totalAllocatedToInvoices = payments.reduce((sum, payment) => {
-    const allocatedAmount = payment.allocations?.reduce((allocSum, allocation) => {
-      if (allocation.invoice_id) {
-        return allocSum + (allocation.amount || 0);
-      }
-      return allocSum;
-    }, 0) || 0;
-    return sum + allocatedAmount;
-  }, 0);
+  // Financial metrics - Total using processedInvoices for consistency
+  const totalPaidToENTIC = processedInvoices.reduce((sum, inv) => sum + (inv.amount_received || 0), 0);
 
-  // totalPaidToENTIC should reflect actual amount received against invoices
-  // For simplicity and matching current logic, using amount_received from invoices directly, or a more precise calculation.
-  // The current `totalAllocatedToInvoices` sums up allocated payment amounts. Let's align `totalPaidToENTIC` to reflect this.
-  // Or, if we want to reflect total amount received for invoices regardless of allocation:
-  const totalPaidToENTIC = invoices.reduce((sum, inv) => sum + (inv.amount_received || 0), 0);
-
-  const totalOwedToProviders = invoices
+  const totalOwedToProviders = processedInvoices
     .filter(inv => (inv.amount_received > 0) && !inv.provider_paid)
     .reduce((sum, inv) => sum + (inv.amount_received || 0), 0);
 
-  const outstandingToENTIC = invoices
+  const outstandingToENTIC = processedInvoices
     .filter(inv => inv.status !== 'paid_to_entic' && inv.status !== 'provider_paid')
     .reduce((sum, inv) => {
       const outstanding = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
@@ -351,7 +354,7 @@ export default function Dashboard() {
 
   // Financial metrics by Program/Location
   const financialsByProgram = {};
-  invoices.forEach(inv => {
+  processedInvoices.forEach(inv => {
     const program = inv.program_group || 'Unassigned';
     
     if (!financialsByProgram[program]) {
@@ -844,7 +847,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-orange-700">{formatCurrency(outstandingToENTIC)}</div>
-                <p className="text-xs text-slate-500 mt-1">Awaiting payment from clients</p>
+                <p className="text-xs text-slate-500 mt-1">Expected - Received (calculated)</p>
                 <p className="text-xs text-blue-600 mt-2 hover:underline">Click to view details →</p>
               </CardContent>
             </Card>
