@@ -768,9 +768,14 @@ export default function Dashboard() {
                 'Paid To ENTIC': { invoices: invoices.filter(inv => inv.status === 'paid_to_entic'), color: 'emerald' },
                 'Provider Paid': { invoices: invoices.filter(inv => inv.status === 'provider_paid'), color: 'purple' },
               }).map(([status, { invoices: statusInvoices, color }]) => {
-                const filteredStatusInvoices = invoiceLocationFilter === 'all' 
+                const filteredStatusInvoices = (invoiceLocationFilter === 'all' 
                   ? statusInvoices 
-                  : statusInvoices.filter(inv => inv.program_group === invoiceLocationFilter);
+                  : statusInvoices.filter(inv => inv.program_group === invoiceLocationFilter)
+                ).sort((a, b) => {
+                  const dateA = a.invoice_date ? new Date(a.invoice_date) : new Date(0);
+                  const dateB = b.invoice_date ? new Date(b.invoice_date) : new Date(0);
+                  return dateB - dateA;
+                });
 
                 return (
                   <Card key={status} className={`border-${color}-200 bg-${color}-50/30 shadow-sm`}>
