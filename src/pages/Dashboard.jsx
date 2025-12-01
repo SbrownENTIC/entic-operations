@@ -341,6 +341,7 @@ export default function Dashboard() {
     .reduce((sum, inv) => sum + (inv.amount_received || 0), 0);
 
   const outstandingToENTIC = invoices
+    .filter(inv => inv.status !== 'paid_to_entic' && inv.status !== 'provider_paid')
     .reduce((sum, inv) => {
       const outstanding = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
       return sum + (outstanding > 0 ? outstanding : 0);
@@ -878,7 +879,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Link to={createPageUrl("Payments")} className="block">
+            <Link to={createPageUrl("Payments") + "?showUnallocated=true"} className="block">
               <Card className="border-slate-200 shadow-sm bg-gradient-to-br from-purple-50 to-white cursor-pointer hover:shadow-lg transition-shadow h-full">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-sm font-medium text-slate-600">Unallocated Payments</CardTitle>

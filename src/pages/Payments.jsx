@@ -476,7 +476,7 @@ export default function Payments() {
     const matchesSearch = payment.payer?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       payment.reference_number?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesUnallocatedFilter = !filterUnallocated || (payment.unallocated_amount > 0);
+    const matchesUnallocatedFilter = !filterUnallocated || (payment.unallocated_amount !== 0);
 
     return matchesSearch && matchesUnallocatedFilter;
   });
