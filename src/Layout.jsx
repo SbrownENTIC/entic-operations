@@ -111,6 +111,7 @@ const moreMenuItems = [
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const [previousCount, setPreviousCount] = React.useState(0);
+  const isFirstRender = React.useRef(true);
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   const { data: pendingOrders = [] } = useQuery({
@@ -125,7 +126,14 @@ export default function Layout({ children, currentPageName }) {
 
   // Play notification sound when new orders arrive
   React.useEffect(() => {
-    if (pendingOrders.length > previousCount && previousCount > 0) {
+    // Skip initial render to prevent sound on page load
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      setPreviousCount(pendingOrders.length);
+      return;
+    }
+
+    if (pendingOrders.length > previousCount) {
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
       
       const playDoorbell = () => {
