@@ -293,10 +293,23 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
 
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
 
-      setFormData(prev => ({
-        ...prev,
-        [type === 'draft' ? 'draft_invoice_url' : 'approved_invoice_url']: file_url
-      }));
+      setFormData(prev => {
+        const updates = {
+          [type === 'draft' ? 'draft_invoice_url' : 'approved_invoice_url']: file_url
+        };
+
+        // Auto-update status to sent_to_vendor when approved invoice is uploaded
+        if (type === 'approved' && prev.status !== 'paid_to_entic' && prev.status !== 'provider_paid') {
+          updates.status = 'sent_to_vendor';
+          updates.invoice_sent_to_vendor = true;
+          manualEditFlags.current.status = true;
+        }
+
+        return {
+          ...prev,
+          ...updates
+        };
+      });
     } catch (error) {
       console.error('Upload failed:', error);
     } finally {
