@@ -382,12 +382,12 @@ export default function Dashboard() {
   const programsSorted = Object.keys(financialsByProgram).sort();
 
   // Invoice tracking
-  // The previous calculation for pendingInvoices only included a subset.
-  // The new detailed invoice summary by status will make this specific pending calculation less critical for display,
-  // but keeping it for the summary card.
-  const pendingInvoices = invoices.filter(inv => 
-    inv.status === 'draft' ||
+  const sentForApprovalInvoices = invoices.filter(inv => 
     inv.status === 'sent_for_approval'
+  ).length;
+
+  const draftInvoices = invoices.filter(inv => 
+    inv.status === 'draft'
   ).length;
 
   const overdueInvoices = invoices.filter(inv => {
@@ -491,7 +491,8 @@ export default function Dashboard() {
     const rows = [
       ['Invoice Summary', '', ''],
       ['Category', 'Count', ''],
-      ['Pending Invoices (Overall)', pendingInvoices, ''], // Refers to the broader "pending" definition
+      ['Sent for Approval Invoices', sentForApprovalInvoices, ''],
+      ['Draft Invoices', draftInvoices, ''],
       ['Overdue Invoices (30+ days)', overdueInvoices, ''],
       ['Paid Invoices', invoices.filter(inv => inv.status === 'paid_to_entic' || inv.status === 'provider_paid').length, ''],
       ['', '', ''],
@@ -641,15 +642,28 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className={`bg-gradient-to-br from-yellow-100 to-yellow-50 transition-all duration-300 ${pendingInvoices > 0 ? 'border-[5px] border-yellow-600 animate-yellow-glow' : 'border-3 border-yellow-300 shadow-xl shadow-yellow-200/50 hover:scale-105'}`}>
+          <Card className={`bg-gradient-to-br from-yellow-100 to-yellow-50 transition-all duration-300 ${sentForApprovalInvoices > 0 ? 'border-[5px] border-yellow-600 animate-yellow-glow' : 'border-3 border-yellow-300 shadow-xl shadow-yellow-200/50 hover:scale-105'}`}>
             <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-yellow-300">
-              <CardTitle className="text-sm font-bold text-slate-900">Invoices Sent for Approval & Drafts</CardTitle>
+              <CardTitle className="text-sm font-bold text-slate-900">Invoices Sent for Approval</CardTitle>
               <FileText className="w-5 h-5 text-yellow-700 animate-slow-pulse" />
             </CardHeader>
             <CardContent className="pt-3">
-              <div className="text-4xl font-bold text-yellow-700 mb-1">{pendingInvoices}</div>
+              <div className="text-4xl font-bold text-yellow-700 mb-1">{sentForApprovalInvoices}</div>
               <Link to={createPageUrl("Invoices")} className="text-xs text-yellow-700 hover:text-yellow-900 font-semibold hover:underline">
                 View invoices →
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card className={`bg-gradient-to-br from-slate-100 to-slate-50 transition-all duration-300 ${draftInvoices > 0 ? 'border-[5px] border-slate-400' : 'border-3 border-slate-300 shadow-xl shadow-slate-200/50 hover:scale-105'}`}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-slate-300">
+              <CardTitle className="text-sm font-bold text-slate-900">Draft Invoices</CardTitle>
+              <FileText className="w-5 h-5 text-slate-700" />
+            </CardHeader>
+            <CardContent className="pt-3">
+              <div className="text-4xl font-bold text-slate-700 mb-1">{draftInvoices}</div>
+              <Link to={createPageUrl("Invoices")} className="text-xs text-slate-700 hover:text-slate-900 font-semibold hover:underline">
+                View drafts →
               </Link>
             </CardContent>
           </Card>
