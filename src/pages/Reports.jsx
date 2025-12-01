@@ -522,6 +522,41 @@ export default function Reports() {
     exportToCSV(rows, 'supply_orders_report');
   };
 
+  // REPORT 6: Unlinked Invoices Report
+  const generateUnlinkedInvoicesReport = () => {
+    // Filter for invoices with 0 amount received (no payments linked)
+    // Optionally filter out 'not_started' or 'draft' if user only wants finalized ones, 
+    // but assuming they want to see all for now or filtering by date.
+    const unlinkedInvoices = invoices.filter(inv => (inv.amount_received || 0) === 0);
+    const filteredUnlinked = filterByDateRange(unlinkedInvoices, 'invoice_date');
+
+    const rows = [
+      ['Unlinked Invoices Report (No Payments Applied)', '', '', '', '', '', ''],
+      ['', '', '', '', '', '', ''],
+      ['Invoice Number', 'Program Group', 'Provider', 'Invoice Date', 'Total Amount', 'Status', 'Days Outstanding']
+    ];
+
+    filteredUnlinked.forEach(inv => {
+      const provider = providers.find(p => p.id === inv.staff_member_id);
+      const daysOutstanding = inv.invoice_date ? differenceInDays(new Date(), parseISO(inv.invoice_date)) : 0;
+      
+      rows.push([
+        inv.invoice_number || '',
+        inv.program_group || '',
+        provider?.full_name || '',
+        inv.invoice_date ? format(parseISO(inv.invoice_date), 'yyyy-MM-dd') : '',
+        inv.total || 0,
+        inv.status || '',
+        daysOutstanding
+      ]);
+    });
+
+    rows.push(['', '', '', '', '', '', '']);
+    rows.push(['TOTAL OUTSTANDING', '', '', '', filteredUnlinked.reduce((sum, inv) => sum + (inv.total || 0), 0), '', '']);
+
+    exportToCSV(rows, 'unlinked_invoices_report');
+  };
+
   if (isLoading) {
     return (
       <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
@@ -596,30 +631,34 @@ export default function Reports() {
         </Card>
 
         <Tabs defaultValue="payment-tracking" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6 h-auto">
-            <TabsTrigger value="payment-tracking" className="gap-2 py-3">
+          <TabsList className="flex flex-wrap w-full h-auto gap-1">
+            <TabsTrigger value="payment-tracking" className="gap-2 py-3 flex-1 min-w-[150px]">
               <FileText className="w-4 h-4" />
               Payment Tracking
             </TabsTrigger>
-            <TabsTrigger value="allocation" className="gap-2 py-3">
+            <TabsTrigger value="allocation" className="gap-2 py-3 flex-1 min-w-[150px]">
               <DollarSign className="w-4 h-4" />
               Payment Allocations
             </TabsTrigger>
-            <TabsTrigger value="aging" className="gap-2 py-3">
+            <TabsTrigger value="aging" className="gap-2 py-3 flex-1 min-w-[150px]">
               <Clock className="w-4 h-4" />
               Invoice Aging
             </TabsTrigger>
-            <TabsTrigger value="income" className="gap-2 py-3">
+            <TabsTrigger value="income" className="gap-2 py-3 flex-1 min-w-[150px]">
               <FileText className="w-4 h-4" />
               Outside Income
             </TabsTrigger>
-            <TabsTrigger value="provider" className="gap-2 py-3">
+            <TabsTrigger value="provider" className="gap-2 py-3 flex-1 min-w-[150px]">
               <Users className="w-4 h-4" />
               Invoice by Provider
             </TabsTrigger>
-            <TabsTrigger value="supplies" className="gap-2 py-3">
+            <TabsTrigger value="supplies" className="gap-2 py-3 flex-1 min-w-[150px]">
               <Package className="w-4 h-4" />
               Supply Orders
+            </TabsTrigger>
+            <TabsTrigger value="unlinked" className="gap-2 py-3 flex-1 min-w-[150px]">
+              <AlertTriangle className="w-4 h-4" />
+              Unlinked Invoices
             </TabsTrigger>
           </TabsList>
 
@@ -1125,6 +1164,107 @@ export default function Reports() {
                   <p className="text-sm text-slate-600">
                     Click on any value to see detailed order breakdown. Average values help identify spending trends and budget planning.
                   </p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="unlinked">
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader className="border-b border-slate-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Unlinked Invoices Report</CardTitle>
+                    <p className="text-sm text-slate-500 mt-1">
+                      Invoices with no payments applied (Amount Received = $0)
+                    </p>
+                  </div>
+                  <Button onClick={generateUnlinkedInvoicesReport} className="gap-2 bg-red-600 hover:bg-red-700">
+                    <Download className="w-4 h-4" />
+                    Export to CSV
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-6">
+                  {(() => {
+                    const unlinkedInvoices = invoices.filter(inv => (inv.amount_received || 0) === 0);
+                    const filtered = filterByDateRange(unlinkedInvoices, 'invoice_date');
+                    const totalAmount = filtered.reduce((sum, inv) => sum + (inv.total || 0), 0);
+                    
+                    return (
+                      <>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="bg-red-50 p-4 rounded-lg border border-red-100">
+                            <p className="text-sm text-slate-600">Unlinked Invoices</p>
+                            <p className="text-2xl font-bold text-red-700">{filtered.length}</p>
+                          </div>
+                          <div className="bg-red-50 p-4 rounded-lg border border-red-100">
+                            <p className="text-sm text-slate-600">Total Unlinked Amount</p>
+                            <p className="text-2xl font-bold text-red-700">{formatCurrency(totalAmount)}</p>
+                          </div>
+                          <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                            <p className="text-sm text-slate-600">Date Range</p>
+                            <p className="text-lg font-semibold text-slate-700">
+                              {dateRange.start || dateRange.end ? 
+                                `${dateRange.start || 'Start'} to ${dateRange.end || 'End'}` : 
+                                'All Time'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div>
+                          <h3 className="text-md font-semibold text-slate-900 mb-3">Recent Unlinked Invoices</h3>
+                          <div className="overflow-auto max-h-96 border rounded-lg">
+                            <table className="w-full text-sm">
+                              <thead className="bg-slate-100 border-b border-slate-200 sticky top-0">
+                                <tr>
+                                  <th className="text-left p-3 font-semibold text-slate-700">Invoice #</th>
+                                  <th className="text-left p-3 font-semibold text-slate-700">Date</th>
+                                  <th className="text-left p-3 font-semibold text-slate-700">Provider</th>
+                                  <th className="text-left p-3 font-semibold text-slate-700">Location</th>
+                                  <th className="text-right p-3 font-semibold text-slate-700">Total</th>
+                                  <th className="text-left p-3 font-semibold text-slate-700">Status</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {filtered.length > 0 ? filtered.slice(0, 50).map(inv => {
+                                  const provider = providers.find(p => p.id === inv.staff_member_id);
+                                  return (
+                                    <tr key={inv.id} className="border-b border-slate-100 hover:bg-slate-50">
+                                      <td className="p-3 font-medium">
+                                        <Link to={`${createPageUrl("Invoices")}?edit=${inv.id}`} className="text-blue-600 hover:underline">
+                                          {inv.invoice_number || '(No Number)'}
+                                        </Link>
+                                      </td>
+                                      <td className="p-3 text-slate-600">
+                                        {inv.invoice_date ? format(parseISO(inv.invoice_date), 'yyyy-MM-dd') : '-'}
+                                      </td>
+                                      <td className="p-3 text-slate-900">{provider?.full_name || '-'}</td>
+                                      <td className="p-3 text-slate-600">{inv.program_group || '-'}</td>
+                                      <td className="p-3 text-right font-medium text-red-600">{formatCurrency(inv.total || 0)}</td>
+                                      <td className="p-3">
+                                        <Badge variant="outline" className="bg-white">
+                                          {inv.status}
+                                        </Badge>
+                                      </td>
+                                    </tr>
+                                  );
+                                }) : (
+                                  <tr>
+                                    <td colspan="6" className="p-8 text-center text-slate-500">No unlinked invoices found in this period.</td>
+                                  </tr>
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                          {filtered.length > 50 && (
+                            <p className="text-xs text-slate-500 mt-2 text-center">Showing first 50 records. Export to CSV to view all {filtered.length} records.</p>
+                          )}
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               </CardContent>
             </Card>
