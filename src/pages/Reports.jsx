@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, FileText, DollarSign, Clock, Users, Package, X } from "lucide-react";
+import { Download, FileText, DollarSign, Clock, Users, Package, X, AlertCircle } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -657,7 +657,7 @@ export default function Reports() {
               Supply Orders
             </TabsTrigger>
             <TabsTrigger value="unlinked" className="gap-2 py-3 flex-1 min-w-[150px]">
-              <AlertTriangle className="w-4 h-4" />
+              <AlertCircle className="w-4 h-4" />
               Unlinked Invoices
             </TabsTrigger>
           </TabsList>
