@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Trash2, Search, Check, CheckCircle, AlertCircle, HeartPulse, X } from "lucide-react";
+import { Plus, Trash2, Search, Check, CheckCircle, AlertCircle, HeartPulse, X, Image as ImageIcon } from "lucide-react";
 
 export default function PublicSupplyRequest() {
   const [formData, setFormData] = useState({
@@ -29,8 +29,17 @@ export default function PublicSupplyRequest() {
 
   const { data: supplies = [] } = useQuery({
     queryKey: ['supplies'],
-    queryFn: () => base44.entities.Supply.list('product_name')
+    queryFn: () => base44.entities.Supply.list()
   });
+
+  // Ensure defaults are set (fixes issues with hot reload or state persistence)
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      requester_name: prev.requester_name || 'Jalisa Henry',
+      requester_email: prev.requester_email || 'JHenry@enticmd.com'
+    }));
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -309,15 +318,17 @@ export default function PublicSupplyRequest() {
                                       alreadyAdded ? "opacity-100" : "opacity-0"
                                     }`}
                                   />
-                                  {supply.image_url && (
-                                    <div className="h-10 w-10 rounded-md bg-white border border-slate-200 overflow-hidden flex-shrink-0">
+                                  <div className="h-10 w-10 rounded-md bg-white border border-slate-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                                    {supply.image_url ? (
                                       <img 
                                         src={supply.image_url} 
                                         alt="" 
                                         className="h-full w-full object-contain p-0.5"
                                       />
-                                    </div>
-                                  )}
+                                    ) : (
+                                      <ImageIcon className="h-5 w-5 text-slate-300" />
+                                    )}
+                                  </div>
                                   <div className="flex flex-col flex-1 min-w-0">
                                     <span className="break-words font-medium text-sm leading-snug">{supply.product_name}</span>
                                     <span className="text-xs text-slate-500">
