@@ -386,10 +386,7 @@ export default function Dashboard() {
   // The new detailed invoice summary by status will make this specific pending calculation less critical for display,
   // but keeping it for the summary card.
   const pendingInvoices = invoices.filter(inv => 
-    inv.status === 'not_started' ||
     inv.status === 'draft' ||
-    inv.status === 'pending_providers_approval' || 
-    inv.status === 'pending_providers_time' ||
     inv.status === 'sent_for_approval'
   ).length;
 
@@ -646,7 +643,7 @@ export default function Dashboard() {
 
           <Card className={`bg-gradient-to-br from-yellow-100 to-yellow-50 transition-all duration-300 ${pendingInvoices > 0 ? 'border-[5px] border-yellow-600 animate-yellow-glow' : 'border-3 border-yellow-300 shadow-xl shadow-yellow-200/50 hover:scale-105'}`}>
             <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-yellow-300">
-              <CardTitle className="text-sm font-bold text-slate-900">Invoices Sent for Approval</CardTitle>
+              <CardTitle className="text-sm font-bold text-slate-900">Invoices Sent for Approval & Drafts</CardTitle>
               <FileText className="w-5 h-5 text-yellow-700 animate-slow-pulse" />
             </CardHeader>
             <CardContent className="pt-3">
