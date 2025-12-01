@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -17,6 +17,9 @@ export default function Licenses() {
   const [sortDirection, setSortDirection] = useState('asc');
   const queryClient = useQueryClient();
 
+  const urlParams = new URLSearchParams(window.location.search);
+  const editId = urlParams.get('edit');
+
   const { data: licenses = [] } = useQuery({
     queryKey: ['licenses'],
     queryFn: () => base44.entities.License.list('-expiration_date')
@@ -26,6 +29,18 @@ export default function Licenses() {
     queryKey: ['providers'],
     queryFn: () => base44.entities.Provider.list()
   });
+
+  useEffect(() => {
+    if (editId && licenses.length > 0) {
+      const licenseToEdit = licenses.find(l => l.id === editId);
+      if (licenseToEdit) {
+        setEditingLicense(licenseToEdit);
+        setShowForm(true);
+        // Clear the URL parameter so we don't reopen on refresh/re-render
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+  }, [editId, licenses]);
 
   const createMutation = useMutation({
     mutationFn: async (data) => {

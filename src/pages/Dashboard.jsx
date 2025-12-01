@@ -1079,22 +1079,28 @@ function LicenseExpirationCard({ title, licenses, providers, severity }) {
               const provider = providers.find(p => p.id === license.provider_id);
               const daysUntil = differenceInDays(parseISO(license.expiration_date), new Date());
               return (
-                <div key={license.id} className={`flex items-center justify-between p-2 rounded-lg border-2 transition-all duration-200 ${itemColors[severity]}`}>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-slate-900 text-xs truncate">{provider?.full_name}</p>
-                    <p className="text-[10px] text-slate-700 font-medium">
-                      {license.license_type}
-                    </p>
+                <Link 
+                  key={license.id} 
+                  to={`${createPageUrl("Licenses")}?edit=${license.id}`}
+                  className="block"
+                >
+                  <div className={`flex items-center justify-between p-2 rounded-lg border-2 transition-all duration-200 ${itemColors[severity]} hover:scale-[1.02] cursor-pointer`}>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-slate-900 text-xs truncate">{provider?.full_name}</p>
+                      <p className="text-[10px] text-slate-700 font-medium">
+                        {license.license_type}
+                      </p>
+                    </div>
+                    <Badge className={`text-[10px] ml-2 font-bold ${
+                      daysUntil <= 7 ? 'bg-red-600 text-white border-0' : 
+                      daysUntil <= 14 ? 'bg-orange-600 text-white border-0' : 
+                      daysUntil <= 30 ? 'bg-yellow-600 text-white border-0' :
+                      'bg-blue-600 text-white border-0'
+                    }`}>
+                      {daysUntil}d
+                    </Badge>
                   </div>
-                  <Badge className={`text-[10px] ml-2 font-bold ${
-                    daysUntil <= 7 ? 'bg-red-600 text-white border-0' : 
-                    daysUntil <= 14 ? 'bg-orange-600 text-white border-0' : 
-                    daysUntil <= 30 ? 'bg-yellow-600 text-white border-0' :
-                    'bg-blue-600 text-white border-0'
-                  }`}>
-                    {daysUntil}d
-                  </Badge>
-                </div>
+                </Link>
               );
             })}
             {licenses.length > 3 && (
