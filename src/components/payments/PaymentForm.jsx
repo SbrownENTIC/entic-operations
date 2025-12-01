@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { X, Plus, Trash2, Search } from "lucide-react";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import InvoiceForm from "../invoices/InvoiceForm";
@@ -30,6 +31,11 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
   const [openComboboxes, setOpenComboboxes] = useState({});
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
   const [currentAllocationIndex, setCurrentAllocationIndex] = useState(null);
+  
+  // Bulk selection state
+  const [showBulkSelect, setShowBulkSelect] = useState(false);
+  const [bulkSearchTerm, setBulkSearchTerm] = useState("");
+  const [selectedBulkInvoices, setSelectedBulkInvoices] = useState(new Set());
   
   const queryClient = useQueryClient();
 
@@ -187,6 +193,65 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
     createInvoiceMutation.mutate(data);
   };
 
+  // Bulk selection handlers
+  const handleBulkSelectOpen = () => {
+    setSelectedBulkInvoices(new Set());
+    setBulkSearchTerm("");
+    setShowBulkSelect(true);
+  };
+
+  const toggleBulkInvoice = (invoiceId) => {
+    const newSelected = new Set(selectedBulkInvoices);
+    if (newSelected.has(invoiceId)) {
+      newSelected.delete(invoiceId);
+    } else {
+      newSelected.add(invoiceId);
+    }
+    setSelectedBulkInvoices(newSelected);
+  };
+
+  const handleBulkAdd = () => {
+    const newAllocations = [...formData.allocations];
+    
+    // Remove empty initial allocation if it exists and we are adding bulk items
+    if (newAllocations.length === 1 && !newAllocations[0].invoice_id && selectedBulkInvoices.size > 0) {
+      newAllocations.pop();
+    }
+
+    selectedBulkInvoices.forEach(invoiceId => {
+      // Check if already added to avoid duplicates
+      if (newAllocations.some(a => a.invoice_id === invoiceId)) return;
+
+      const invoice = invoices.find(inv => inv.id === invoiceId);
+      if (invoice) {
+        const invoiceBalance = (invoice.amount_expected || invoice.total || 0) - (invoice.amount_received || 0);
+        
+        newAllocations.push({
+          invoice_id: invoiceId,
+          provider_id: invoice.staff_member_id || '',
+          amount: parseFloat(invoiceBalance) || 0,
+          notes: ''
+        });
+
+        // Add notes logic similar to updateAllocation
+        if (invoice.notes && invoice.notes.trim()) {
+          const invoiceIdentifier = invoice.invoice_number || `Invoice`;
+          const noteToAdd = `${invoiceIdentifier}: ${invoice.notes}`;
+          const currentNotes = formData.notes || '';
+          if (!currentNotes.includes(noteToAdd)) {
+            setFormData(prev => ({ 
+              ...prev, 
+              notes: currentNotes ? `${currentNotes}\n${noteToAdd}` : noteToAdd 
+            }));
+          }
+        }
+      }
+    });
+
+    setFormData(prev => ({ ...prev, allocations: newAllocations }));
+    setShowBulkSelect(false);
+  };
+
   const totalAllocated = formData.allocations.reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
   const unallocated = (formData.total_amount || 0) - totalAllocated;
 
@@ -324,10 +389,16 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                     </span>
                   </p>
                 </div>
-                <Button type="button" variant="outline" size="sm" onClick={addAllocation}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Allocation
-                </Button>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={handleBulkSelectOpen} className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 hover:text-blue-700">
+                    <Search className="w-4 h-4 mr-2" />
+                    Bulk Add
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" onClick={addAllocation}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Allocation
+                  </Button>
+                </div>
               </div>
               
               <div className="space-y-3">
@@ -512,6 +583,110 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
             }}
             isLoading={createInvoiceMutation.isPending}
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Selection Modal */}
+      <Dialog open={showBulkSelect} onOpenChange={setShowBulkSelect}>
+        <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Select Invoices to Allocate</DialogTitle>
+          </DialogHeader>
+          
+          <div className="p-1">
+            <div className="flex items-center gap-2 mb-4">
+              <Search className="w-4 h-4 text-slate-500" />
+              <Input 
+                placeholder="Search by invoice #, provider, program..." 
+                value={bulkSearchTerm}
+                onChange={(e) => setBulkSearchTerm(e.target.value)}
+                className="flex-1"
+              />
+            </div>
+
+            <div className="border rounded-md overflow-hidden flex-1 max-h-[50vh] overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 border-b sticky top-0">
+                  <tr>
+                    <th className="p-3 w-10">
+                      {/* Select All could be implemented here if needed */}
+                    </th>
+                    <th className="p-3 text-left font-medium text-slate-700">Invoice #</th>
+                    <th className="p-3 text-left font-medium text-slate-700">Program</th>
+                    <th className="p-3 text-left font-medium text-slate-700">Provider</th>
+                    <th className="p-3 text-left font-medium text-slate-700">Date</th>
+                    <th className="p-3 text-right font-medium text-slate-700">Balance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoices
+                    .filter(inv => {
+                      // Filter out already allocated (unless we want to allow selecting again, but usually not)
+                      // Actually, user might want to select multiple, filtering out those already in formData.allocations is good UX
+                      if (formData.allocations.some(a => a.invoice_id === inv.id)) return false;
+
+                      // Filter by balance > 0 (optional, but makes sense for new allocations)
+                      const balance = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
+                      if (balance <= 0.01) return false;
+
+                      // Search filter
+                      if (!bulkSearchTerm) return true;
+                      const term = bulkSearchTerm.toLowerCase();
+                      const provider = providers.find(p => p.id === inv.staff_member_id);
+                      const providerName = provider?.full_name || '';
+                      
+                      return (
+                        (inv.invoice_number || '').toLowerCase().includes(term) ||
+                        (inv.program_group || '').toLowerCase().includes(term) ||
+                        providerName.toLowerCase().includes(term) ||
+                        (inv.month || '').toLowerCase().includes(term)
+                      );
+                    })
+                    .map(invoice => {
+                      const provider = providers.find(p => p.id === invoice.staff_member_id);
+                      const balance = (invoice.amount_expected || invoice.total || 0) - (invoice.amount_received || 0);
+                      
+                      return (
+                        <tr 
+                          key={invoice.id} 
+                          className={`border-b hover:bg-slate-50 cursor-pointer ${selectedBulkInvoices.has(invoice.id) ? 'bg-blue-50' : ''}`}
+                          onClick={() => toggleBulkInvoice(invoice.id)}
+                        >
+                          <td className="p-3">
+                            <Checkbox 
+                              checked={selectedBulkInvoices.has(invoice.id)}
+                              onCheckedChange={() => toggleBulkInvoice(invoice.id)}
+                            />
+                          </td>
+                          <td className="p-3 font-medium">{invoice.invoice_number || '-'}</td>
+                          <td className="p-3 text-slate-600">{invoice.program_group}</td>
+                          <td className="p-3 text-slate-600">{provider?.full_name || '-'}</td>
+                          <td className="p-3 text-slate-600">{invoice.invoice_date ? format(new Date(invoice.invoice_date), 'MM/dd/yyyy') : '-'}</td>
+                          <td className="p-3 text-right font-medium text-green-600">${balance.toFixed(2)}</td>
+                        </tr>
+                      );
+                    })}
+                  {invoices.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="p-8 text-center text-slate-500">No invoices found</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <DialogFooter className="flex justify-between items-center mt-4">
+            <div className="text-sm text-slate-500">
+              {selectedBulkInvoices.size} invoices selected
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowBulkSelect(false)}>Cancel</Button>
+              <Button onClick={handleBulkAdd} className="bg-blue-600 hover:bg-blue-700" disabled={selectedBulkInvoices.size === 0}>
+                Add Selected Invoices
+              </Button>
+            </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
