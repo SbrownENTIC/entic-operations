@@ -14,8 +14,8 @@ import { Plus, Trash2, Search, Check, CheckCircle, AlertCircle, HeartPulse, X } 
 export default function PublicSupplyRequest() {
   const [formData, setFormData] = useState({
     location: '', // No default location - user must select
-    requester_name: '',
-    requester_email: '',
+    requester_name: 'Jalisa Henry',
+    requester_email: 'JHenry@enticmd.com',
     requested_date: new Date().toISOString().split('T')[0],
     items: [],
     notes: ''
@@ -275,7 +275,7 @@ export default function PublicSupplyRequest() {
                           <Search className="h-4 w-4 opacity-50" />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-80 p-0" align="start">
+                      <PopoverContent className="w-[400px] p-0" align="start">
                         <Command>
                           <CommandInput placeholder="Search supplies..." />
                           <CommandEmpty>No supply found.</CommandEmpty>
@@ -301,16 +301,25 @@ export default function PublicSupplyRequest() {
                                     }
                                     // Don't close the popover - keep it open for multiple selections
                                   }}
-                                  className="flex items-start"
+                                  className="flex items-start gap-2 py-3"
                                   disabled={alreadyAdded}
                                 >
                                   <Check
-                                    className={`mr-2 h-4 w-4 flex-shrink-0 mt-0.5 ${
+                                    className={`h-4 w-4 flex-shrink-0 mt-1 ${
                                       alreadyAdded ? "opacity-100" : "opacity-0"
                                     }`}
                                   />
+                                  {supply.image_url && (
+                                    <div className="h-10 w-10 rounded-md bg-white border border-slate-200 overflow-hidden flex-shrink-0">
+                                      <img 
+                                        src={supply.image_url} 
+                                        alt="" 
+                                        className="h-full w-full object-contain p-0.5"
+                                      />
+                                    </div>
+                                  )}
                                   <div className="flex flex-col flex-1 min-w-0">
-                                    <span className="break-words">{supply.product_name}</span>
+                                    <span className="break-words font-medium text-sm leading-snug">{supply.product_name}</span>
                                     <span className="text-xs text-slate-500">
                                       {supply.item_number && `Item# ${supply.item_number}`}
                                       {supply.vendor && ` • ${supply.vendor}`}
