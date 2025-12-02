@@ -242,6 +242,13 @@ export default function Dashboard() {
       }
     }
 
+    // Sort by date descending (newest first)
+    filteredInvoices.sort((a, b) => {
+      const dateA = a.invoice_date ? new Date(a.invoice_date) : new Date(0);
+      const dateB = b.invoice_date ? new Date(b.invoice_date) : new Date(0);
+      return dateB - dateA;
+    });
+
     setModalState({
       isOpen: true,
       title,
