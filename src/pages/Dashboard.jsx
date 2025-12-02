@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Users, AlertCircle, Award, FileText, GraduationCap, DollarSign, CheckCircle2, Clock, Building2, RefreshCw, Wallet, Download, Package, CloudUpload } from "lucide-react";
-import { differenceInDays, parseISO, format } from "date-fns";
+import { differenceInDays, parseISO, format, subMonths } from "date-fns";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import FinancialDetailModal from "../components/dashboard/FinancialDetailModal";
@@ -416,6 +416,35 @@ export default function Dashboard() {
   const doctorsCompliant = doctors.filter(doc => (cmeByProvider[doc.id] || 0) >= 3).length;
   const doctorsNonCompliant = doctors.filter(doc => (cmeByProvider[doc.id] || 0) < 3);
 
+  // Missing Prior Month Invoices Tracking
+  const targetProviderNames = [
+    "belachew tessema",
+    "benjamin wycherly",
+    "erin alday",
+    "hailun wang",
+    "jerlon chi",
+    "kimberly rutherford",
+    "ryan drake",
+    "seth brown",
+    "stephen wolfe"
+  ];
+
+  const previousMonthDate = subMonths(new Date(), 1);
+  const previousMonthStr = format(previousMonthDate, 'MMMM yyyy');
+
+  const targetProviders = providers.filter(p => 
+    p.status === 'active' && 
+    targetProviderNames.some(name => p.full_name.toLowerCase().includes(name))
+  );
+
+  const providersMissingPriorInvoice = targetProviders.filter(provider => {
+    const hasInvoice = invoices.some(inv => 
+      inv.staff_member_id === provider.id && 
+      inv.month === previousMonthStr
+    );
+    return !hasInvoice;
+  });
+
   // Format currency with commas
   const formatCurrency = (amount) => {
     return '$' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -755,11 +784,45 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Missing Prior Month Invoices */}
+        {providersMissingPriorInvoice.length > 0 && (
+        <Card className="border-orange-200 shadow-sm bg-orange-50/30">
+          <CardHeader className="border-b border-orange-100 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2 text-orange-800">
+                  <AlertCircle className="w-5 h-5 text-orange-600" />
+                  Missing Invoices - {previousMonthStr}
+                </CardTitle>
+                <p className="text-sm text-orange-700 mt-1">
+                  The following providers have no invoices recorded for last month
+                </p>
+              </div>
+              <Badge className="bg-orange-200 text-orange-800 hover:bg-orange-300 border-orange-300">
+                {providersMissingPriorInvoice.length} Providers
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {providersMissingPriorInvoice.map(provider => (
+                <div key={provider.id} className="flex items-center p-3 bg-white rounded-lg border border-orange-200 shadow-sm">
+                  <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center mr-3 text-orange-700 font-bold text-xs">
+                    {provider.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                  </div>
+                  <span className="font-medium text-slate-900 text-sm">{provider.full_name}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+        )}
+
         {/* Invoice Summary */}
         <Card className="border-slate-200 shadow-sm">
-          <CardHeader className="border-b border-slate-100 py-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Invoice Summary by Status ({invoices.length})</CardTitle>
+        <CardHeader className="border-b border-slate-100 py-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">Invoice Summary by Status ({invoices.length})</CardTitle>
               <div className="flex items-center gap-3">
                 <Select value={invoiceLocationFilter} onValueChange={setInvoiceLocationFilter}>
                   <SelectTrigger className="w-48">
