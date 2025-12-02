@@ -628,72 +628,82 @@ export default function Dashboard() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className={`bg-gradient-to-br from-red-100 to-red-50 transition-all duration-300 ${supplyOrders.length > 0 ? 'border-[5px] border-red-600 animate-alert-glow' : 'border-3 border-red-300 shadow-xl shadow-red-300/60 hover:scale-105'}`}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-red-400">
-              <AlertCircle className="w-6 h-6 text-red-700 animate-slow-pulse" />
-              <CardTitle className="text-sm font-bold text-slate-900">Supply Order Requests</CardTitle>
-              <AlertCircle className="w-6 h-6 text-red-700 animate-slow-pulse" />
-            </CardHeader>
-            <CardContent className="pt-3">
-              <div className="text-4xl font-bold text-red-700 mb-1">{supplyOrders.length}</div>
-              <Link to={createPageUrl("SupplyOrders") + "?filter=pending"} className="text-xs text-red-700 hover:text-red-900 font-semibold hover:underline">
-                View requests →
-              </Link>
-            </CardContent>
-          </Card>
+          {supplyOrders.length > 0 && (
+            <Card className={`bg-gradient-to-br from-red-100 to-red-50 transition-all duration-300 ${supplyOrders.length > 0 ? 'border-[5px] border-red-600 animate-alert-glow' : 'border-3 border-red-300 shadow-xl shadow-red-300/60 hover:scale-105'}`}>
+              <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-red-400">
+                <AlertCircle className="w-6 h-6 text-red-700 animate-slow-pulse" />
+                <CardTitle className="text-sm font-bold text-slate-900">Supply Order Requests</CardTitle>
+                <AlertCircle className="w-6 h-6 text-red-700 animate-slow-pulse" />
+              </CardHeader>
+              <CardContent className="pt-3">
+                <div className="text-4xl font-bold text-red-700 mb-1">{supplyOrders.length}</div>
+                <Link to={createPageUrl("SupplyOrders") + "?filter=pending"} className="text-xs text-red-700 hover:text-red-900 font-semibold hover:underline">
+                  View requests →
+                </Link>
+              </CardContent>
+            </Card>
+          )}
 
-          <Card className={`bg-gradient-to-br from-yellow-100 to-yellow-50 transition-all duration-300 ${sentForApprovalInvoices > 0 ? 'border-[5px] border-yellow-600 animate-yellow-glow' : 'border-3 border-yellow-300 shadow-xl shadow-yellow-200/50 hover:scale-105'}`}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-yellow-300">
-              <CardTitle className="text-sm font-bold text-slate-900">Invoices Sent for Approval</CardTitle>
-              <FileText className="w-5 h-5 text-yellow-700 animate-slow-pulse" />
-            </CardHeader>
-            <CardContent className="pt-3">
-              <div className="text-4xl font-bold text-yellow-700 mb-1">{sentForApprovalInvoices}</div>
-              <Link to={createPageUrl("Invoices")} className="text-xs text-yellow-700 hover:text-yellow-900 font-semibold hover:underline">
-                View invoices →
-              </Link>
-            </CardContent>
-          </Card>
+          {sentForApprovalInvoices > 0 && (
+            <Card className={`bg-gradient-to-br from-yellow-100 to-yellow-50 transition-all duration-300 ${sentForApprovalInvoices > 0 ? 'border-[5px] border-yellow-600 animate-yellow-glow' : 'border-3 border-yellow-300 shadow-xl shadow-yellow-200/50 hover:scale-105'}`}>
+              <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-yellow-300">
+                <CardTitle className="text-sm font-bold text-slate-900">Invoices Sent for Approval</CardTitle>
+                <FileText className="w-5 h-5 text-yellow-700 animate-slow-pulse" />
+              </CardHeader>
+              <CardContent className="pt-3">
+                <div className="text-4xl font-bold text-yellow-700 mb-1">{sentForApprovalInvoices}</div>
+                <Link to={createPageUrl("Invoices")} className="text-xs text-yellow-700 hover:text-yellow-900 font-semibold hover:underline">
+                  View invoices →
+                </Link>
+              </CardContent>
+            </Card>
+          )}
 
-          <Card className={`bg-gradient-to-br from-slate-100 to-slate-50 transition-all duration-300 ${draftInvoices > 0 ? 'border-[5px] border-slate-400' : 'border-3 border-slate-300 shadow-xl shadow-slate-200/50 hover:scale-105'}`}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-slate-300">
-              <CardTitle className="text-sm font-bold text-slate-900">Draft Invoices</CardTitle>
-              <FileText className="w-5 h-5 text-slate-700" />
-            </CardHeader>
-            <CardContent className="pt-3">
-              <div className="text-4xl font-bold text-slate-700 mb-1">{draftInvoices}</div>
-              <Link to={createPageUrl("Invoices")} className="text-xs text-slate-700 hover:text-slate-900 font-semibold hover:underline">
-                View drafts →
-              </Link>
-            </CardContent>
-          </Card>
+          {draftInvoices > 0 && (
+            <Card className={`bg-gradient-to-br from-slate-100 to-slate-50 transition-all duration-300 ${draftInvoices > 0 ? 'border-[5px] border-slate-400' : 'border-3 border-slate-300 shadow-xl shadow-slate-200/50 hover:scale-105'}`}>
+              <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-slate-300">
+                <CardTitle className="text-sm font-bold text-slate-900">Draft Invoices</CardTitle>
+                <FileText className="w-5 h-5 text-slate-700" />
+              </CardHeader>
+              <CardContent className="pt-3">
+                <div className="text-4xl font-bold text-slate-700 mb-1">{draftInvoices}</div>
+                <Link to={createPageUrl("Invoices")} className="text-xs text-slate-700 hover:text-slate-900 font-semibold hover:underline">
+                  View drafts →
+                </Link>
+              </CardContent>
+            </Card>
+          )}
 
-          <Card className={`bg-gradient-to-br from-red-100 to-red-50 transition-all duration-300 ${licensesExpiring14Days.length > 0 ? 'border-[5px] border-red-600 animate-alert-glow' : 'border-3 border-red-300 shadow-xl shadow-red-200/50 hover:scale-105'}`}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-red-300">
-              <AlertCircle className="w-6 h-6 text-red-700 animate-slow-pulse" />
-              <CardTitle className="text-sm font-bold text-slate-900">Licenses Expiring (14d)</CardTitle>
-              <AlertCircle className="w-6 h-6 text-red-700 animate-slow-pulse" />
-            </CardHeader>
-            <CardContent className="pt-3">
-              <div className="text-4xl font-bold text-red-700 mb-1">{licensesExpiring14Days.length}</div>
-              <Link to={createPageUrl("Licenses")} className="text-xs text-red-700 hover:text-red-900 font-semibold hover:underline">
-                View licenses →
-              </Link>
-            </CardContent>
-          </Card>
+          {licensesExpiring14Days.length > 0 && (
+            <Card className={`bg-gradient-to-br from-red-100 to-red-50 transition-all duration-300 ${licensesExpiring14Days.length > 0 ? 'border-[5px] border-red-600 animate-alert-glow' : 'border-3 border-red-300 shadow-xl shadow-red-200/50 hover:scale-105'}`}>
+              <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-red-300">
+                <AlertCircle className="w-6 h-6 text-red-700 animate-slow-pulse" />
+                <CardTitle className="text-sm font-bold text-slate-900">Licenses Expiring (14d)</CardTitle>
+                <AlertCircle className="w-6 h-6 text-red-700 animate-slow-pulse" />
+              </CardHeader>
+              <CardContent className="pt-3">
+                <div className="text-4xl font-bold text-red-700 mb-1">{licensesExpiring14Days.length}</div>
+                <Link to={createPageUrl("Licenses")} className="text-xs text-red-700 hover:text-red-900 font-semibold hover:underline">
+                  View licenses →
+                </Link>
+              </CardContent>
+            </Card>
+          )}
 
-          <Card className="border-3 border-purple-500 bg-gradient-to-br from-purple-100 to-purple-50 shadow-xl shadow-purple-200/50 hover:scale-105 transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-purple-300">
-              <CardTitle className="text-sm font-bold text-slate-900">Privileges Expiring (30d)</CardTitle>
-              <Award className="w-5 h-5 text-purple-700 animate-pulse" />
-            </CardHeader>
-            <CardContent className="pt-3">
-              <div className="text-4xl font-bold text-purple-700 mb-1">{privilegesExpiring30Days.length}</div>
-              <Link to={createPageUrl("ClinicalPrivileges")} className="text-xs text-purple-700 hover:text-purple-900 font-semibold hover:underline">
-                View privileges →
-              </Link>
-            </CardContent>
-          </Card>
+          {privilegesExpiring30Days.length > 0 && (
+            <Card className="border-3 border-purple-500 bg-gradient-to-br from-purple-100 to-purple-50 shadow-xl shadow-purple-200/50 hover:scale-105 transition-all duration-300">
+              <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-purple-300">
+                <CardTitle className="text-sm font-bold text-slate-900">Privileges Expiring (30d)</CardTitle>
+                <Award className="w-5 h-5 text-purple-700 animate-pulse" />
+              </CardHeader>
+              <CardContent className="pt-3">
+                <div className="text-4xl font-bold text-purple-700 mb-1">{privilegesExpiring30Days.length}</div>
+                <Link to={createPageUrl("ClinicalPrivileges")} className="text-xs text-purple-700 hover:text-purple-900 font-semibold hover:underline">
+                  View privileges →
+                </Link>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* License Expirations Detail */}
