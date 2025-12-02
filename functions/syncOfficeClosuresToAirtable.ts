@@ -8,9 +8,9 @@ const ON_CALL_PERIOD_TABLE_ID = 'tbl3o3gNR7ca4rcTW';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
+    const isAuthenticated = await base44.auth.isAuthenticated();
     
-    if (!user) {
+    if (!isAuthenticated) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -43,6 +43,12 @@ Deno.serve(async (req) => {
         }
       }
     );
+
+    if (!onCallPeriodsResponse.ok) {
+      const error = await onCallPeriodsResponse.text();
+      return Response.json({ error: `Airtable Error (On-Call): ${onCallPeriodsResponse.status} ${error}` }, { status: 500 });
+    }
+
     const onCallPeriodsData = await onCallPeriodsResponse.json();
     const onCallPeriods = onCallPeriodsData.records || [];
 
@@ -59,6 +65,12 @@ Deno.serve(async (req) => {
         }
       }
     );
+
+    if (!existingClosuresResponse.ok) {
+      const error = await existingClosuresResponse.text();
+      return Response.json({ error: `Airtable Error (Closures): ${existingClosuresResponse.status} ${error}` }, { status: 500 });
+    }
+
     const existingClosuresData = await existingClosuresResponse.json();
     const existingClosureMap = new Map();
     if (existingClosuresData.records) {
@@ -79,6 +91,12 @@ Deno.serve(async (req) => {
         }
       }
     );
+
+    if (!existingRemindersResponse.ok) {
+      const error = await existingRemindersResponse.text();
+      return Response.json({ error: `Airtable Error (Reminders): ${existingRemindersResponse.status} ${error}` }, { status: 500 });
+    }
+
     const existingRemindersData = await existingRemindersResponse.json();
     const existingReminderMap = new Map();
     if (existingRemindersData.records) {
