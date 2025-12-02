@@ -56,6 +56,25 @@ export default function FinancialDetailModal({ isOpen, onClose, title, invoices,
       } else if (sortField === 'invoice_date') {
         aValue = new Date(a.invoice_date || 0);
         bValue = new Date(b.invoice_date || 0);
+      } else if (sortField === 'month') {
+        const getMonthValue = (str) => {
+          if (!str) return 0;
+          // Try parsing as date first (handles "January 2025")
+          const date = new Date(str);
+          if (!isNaN(date.getTime())) return date.getTime();
+          
+          // Fallback for just month names
+          const months = {
+            'january': 1, 'jan': 1, 'february': 2, 'feb': 2, 'march': 3, 'mar': 3, 
+            'april': 4, 'apr': 4, 'may': 5, 'june': 6, 'jun': 6, 'july': 7, 'jul': 7, 
+            'august': 8, 'aug': 8, 'september': 9, 'sep': 9, 'october': 10, 'oct': 10, 
+            'november': 11, 'nov': 11, 'december': 12, 'dec': 12
+          };
+          const val = months[str.toString().toLowerCase().split(' ')[0]] || 0;
+          return val;
+        };
+        aValue = getMonthValue(a.month);
+        bValue = getMonthValue(b.month);
       } else if (sortField === 'outstanding') {
         aValue = (a.amount_expected || a.total || 0) - (a.amount_received || 0);
         bValue = (b.amount_expected || b.total || 0) - (b.amount_received || 0);
