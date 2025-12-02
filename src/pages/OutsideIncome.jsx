@@ -284,7 +284,7 @@ export default function OutsideIncome() {
       const months = new Set();
       income.work_dates.forEach(dateStr => {
         const date = parseISO(dateStr);
-        months.add(format(date, 'MMM yyyy'));
+        months.add(format(date, 'MMMM yyyy'));
       });
 
       const monthArray = Array.from(months);

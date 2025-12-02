@@ -171,8 +171,8 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
       days_worked: totalDays
     };
 
-    // Auto-fill month for UConn invoices based on linked income dates
-    if (formData.program_group === 'UConn' && !formData.month && selectedIncomes.length > 0) {
+    // Auto-fill month based on linked income dates if month is missing
+    if (!formData.month && selectedIncomes.length > 0) {
       const allDates = selectedIncomes.reduce((acc, inc) => {
         return inc.work_dates ? [...acc, ...inc.work_dates] : acc;
       }, []).sort();

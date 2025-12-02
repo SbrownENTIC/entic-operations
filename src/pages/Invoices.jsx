@@ -36,6 +36,7 @@ export default function Invoices() {
   const [bulkStatusUpdate, setBulkStatusUpdate] = useState('');
   const [filterNoIncome, setFilterNoIncome] = useState(false);
   const [fixingHartford, setFixingHartford] = useState(false);
+  const [syncingMonths, setSyncingMonths] = useState(false);
   const [fixMessage, setFixMessage] = useState('');
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -323,6 +324,21 @@ export default function Invoices() {
     }
   };
 
+  const handleSyncMonths = async () => {
+    setSyncingMonths(true);
+    setFixMessage('');
+    try {
+      const response = await base44.functions.invoke('syncInvoiceMonths', {});
+      setFixMessage(response.data.message);
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['outside-income'] });
+    } catch (error) {
+      setFixMessage('Error syncing months: ' + error.message);
+    } finally {
+      setSyncingMonths(false);
+    }
+  };
+
   const handleInvoiceNumberClick = (invoice) => {
     setEditingInvoice(invoice);
     setPreselectedIncomes([]);
@@ -434,6 +450,14 @@ export default function Invoices() {
             <p className="text-slate-600 text-sm">Manage invoices for outside income</p>
           </div>
           <div className="flex gap-3 flex-wrap">
+            <Button
+              onClick={handleSyncMonths}
+              variant="outline"
+              disabled={syncingMonths}
+              className="gap-2"
+            >
+              {syncingMonths ? 'Syncing...' : 'Sync Months'}
+            </Button>
             <Button
               onClick={handleFixHartfordInvoices}
               variant="outline"
