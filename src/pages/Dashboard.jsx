@@ -798,6 +798,8 @@ export default function Dashboard() {
                   return dateB - dateA;
                 });
 
+                if (filteredStatusInvoices.length === 0) return null;
+
                 return (
                   <Card key={status} className={`border-${color}-200 bg-${color}-50/30 shadow-sm`}>
                     <CardHeader className="pb-2 border-b border-slate-200 bg-white">
