@@ -97,10 +97,10 @@ const moreMenuItems = [
     icon: GraduationCap,
   },
   {
-    title: "Supply Catalog",
-    url: createPageUrl("Supplies"),
+    title: "Office Catalog",
+    url: createPageUrl("OfficeSupplyCatalog"),
     icon: Boxes,
-    },
+  },
     {
     title: "Clinical Catalog",
     url: createPageUrl("ClinicalSupplyCatalog"),

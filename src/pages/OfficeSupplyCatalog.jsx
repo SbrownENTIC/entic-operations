@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
+import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown, Upload, Image as ImageIcon, Download, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,23 +17,34 @@ import {
 } from "@/components/ui/alert-dialog";
 import SupplyForm from "../components/supplies/SupplyForm";
 
-export default function ClinicalSupplyCatalog() {
+export default function OfficeSupplyCatalog() {
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingSupply, setEditingSupply] = useState(null);
   const [sortField, setSortField] = useState('item_number');
   const [sortDirection, setSortDirection] = useState('asc');
+  const [importing, setImporting] = useState(false);
+  const [importMessage, setImportMessage] = useState('');
   const [deletingSupply, setDeletingSupply] = useState(null);
+
+  // Check URL parameters for search term
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const search = params.get('search');
+    if (search) {
+      setSearchTerm(search);
+    }
+  }, []);
 
   const queryClient = useQueryClient();
 
   const { data: supplies = [], isLoading } = useQuery({
-    queryKey: ['supplies', 'clinical'],
-    queryFn: () => base44.entities.Supply.filter({ category: 'clinical' })
+    queryKey: ['supplies', 'office'],
+    queryFn: () => base44.entities.Supply.filter({ category: 'office' })
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Supply.create({ ...data, category: 'clinical' }),
+    mutationFn: (data) => base44.entities.Supply.create({ ...data, category: 'office' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['supplies'] });
       setShowForm(false);
@@ -66,6 +77,68 @@ export default function ClinicalSupplyCatalog() {
     }
   };
 
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    setImporting(true);
+    setImportMessage('');
+
+    try {
+      // Upload the file
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+
+      // Import the supplies
+      const response = await base44.functions.invoke('importSuppliesWithImages', { file_url, category: 'office' });
+
+      setImportMessage(response.data.message);
+      queryClient.invalidateQueries({ queryKey: ['supplies'] });
+    } catch (error) {
+      const errorDetails = error.response?.data?.details || error.response?.data?.error || error.message;
+      setImportMessage('Error importing file: ' + errorDetails);
+    } finally {
+      setImporting(false);
+      event.target.value = '';
+    }
+  };
+
+  const handleExport = () => {
+    const rows = [
+      ['Item Number', 'Product Name', 'Vendor', 'Unit Price', 'Units', 'Image URL']
+    ];
+
+    supplies.forEach(supply => {
+      rows.push([
+        supply.item_number || '',
+        supply.product_name || '',
+        supply.vendor || '',
+        supply.unit_price || '',
+        supply.units || '',
+        supply.image_url || ''
+      ]);
+    });
+
+    const csvContent = rows.map(row => 
+      row.map(cell => {
+        const cellStr = String(cell);
+        if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+          return '"' + cellStr.replace(/"/g, '""') + '"';
+        }
+        return cellStr;
+      }).join(',')
+    ).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `office_supply_catalog_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleSort = (field) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -78,7 +151,8 @@ export default function ClinicalSupplyCatalog() {
   const filteredSupplies = supplies.filter(supply =>
     supply.product_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     supply.item_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    supply.codes?.toLowerCase().includes(searchTerm.toLowerCase())
+    supply.vendor?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    supply.units?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const sortedSupplies = [...filteredSupplies].sort((a, b) => {
@@ -89,6 +163,14 @@ export default function ClinicalSupplyCatalog() {
       aValue = parseFloat(aValue) || 0;
       bValue = parseFloat(bValue) || 0;
       return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    }
+    
+    if (sortField === 'item_number') {
+      const aNum = parseFloat(aValue);
+      const bNum = parseFloat(bValue);
+      if (!isNaN(aNum) && !isNaN(bNum)) {
+        return sortDirection === 'asc' ? aNum - bNum : bNum - aNum;
+      }
     }
     
     const comparison = aValue.toString().toLowerCase().localeCompare(bValue.toString().toLowerCase());
@@ -123,10 +205,37 @@ export default function ClinicalSupplyCatalog() {
         <div className="max-w-7xl mx-auto space-y-2">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Clinical Supply Catalog</h1>
-            <p className="text-slate-600 text-sm">View item codes, descriptions, and prices</p>
+            <h1 className="text-2xl font-bold text-slate-900">Office Supply Catalog</h1>
+            <p className="text-slate-600 text-sm">Manage your office supply inventory</p>
           </div>
           <div className="flex gap-2">
+            <Button
+              onClick={handleExport}
+              variant="outline"
+              className="border-green-600 text-green-600 hover:bg-green-50"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Export CSV
+            </Button>
+            <label>
+              <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                onChange={handleFileUpload}
+                className="hidden"
+                disabled={importing}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={importing}
+                onClick={(e) => e.currentTarget.previousElementSibling.click()}
+                className="border-blue-600 text-blue-600 hover:bg-blue-50"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                {importing ? 'Importing...' : 'Import Excel'}
+              </Button>
+            </label>
             <Button
               onClick={() => {
                 setEditingSupply(null);
@@ -139,6 +248,14 @@ export default function ClinicalSupplyCatalog() {
             </Button>
           </div>
         </div>
+
+        {importMessage && (
+          <Card className="border-blue-200 bg-blue-50">
+            <CardContent className="p-4">
+              <p className="text-sm text-blue-900">{importMessage}</p>
+            </CardContent>
+          </Card>
+        )}
 
         {showForm && (
           <SupplyForm
@@ -162,7 +279,7 @@ export default function ClinicalSupplyCatalog() {
             <div className="flex items-center gap-4">
               <Search className="w-5 h-5 text-slate-400" />
               <Input
-                placeholder="Search by item code, description, or codes..."
+                placeholder="Search supplies..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="max-w-md border-slate-200"
@@ -174,23 +291,26 @@ export default function ClinicalSupplyCatalog() {
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                   <tr>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700 w-20">
+                      Image
+                    </th>
                     <th 
                       className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                       onClick={() => handleSort('item_number')}
                     >
-                      Item Code <SortIcon field="item_number" />
+                      Item Number <SortIcon field="item_number" />
                     </th>
                     <th 
                       className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                       onClick={() => handleSort('product_name')}
                     >
-                      Descriptions <SortIcon field="product_name" />
+                      Product Name <SortIcon field="product_name" />
                     </th>
                     <th 
                       className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                      onClick={() => handleSort('codes')}
+                      onClick={() => handleSort('vendor')}
                     >
-                      Codes <SortIcon field="codes" />
+                      Vendor <SortIcon field="vendor" />
                     </th>
                     <th 
                       className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
@@ -198,18 +318,38 @@ export default function ClinicalSupplyCatalog() {
                     >
                       Unit Price <SortIcon field="unit_price" />
                     </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('units')}
+                    >
+                      Units <SortIcon field="units" />
+                    </th>
                     <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sortedSupplies.map((supply) => (
                     <tr key={supply.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                      <td className="p-4">
+                        {supply.image_url ? (
+                          <img 
+                            src={supply.image_url} 
+                            alt={supply.product_name}
+                            className="w-16 h-16 object-contain rounded border border-slate-200"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 bg-slate-100 rounded border border-slate-200 flex items-center justify-center">
+                            <ImageIcon className="w-6 h-6 text-slate-400" />
+                          </div>
+                        )}
+                      </td>
                       <td className="p-4 text-slate-600">{supply.item_number || '-'}</td>
                       <td className="p-4 font-medium text-slate-900">{supply.product_name}</td>
-                      <td className="p-4 text-slate-600">{supply.codes || '-'}</td>
+                      <td className="p-4 text-slate-600">{supply.vendor || '-'}</td>
                       <td className="p-4 text-slate-900 font-medium">
                         {formatCurrency(supply.unit_price || 0)}
                       </td>
+                      <td className="p-4 text-slate-600">{supply.units || '-'}</td>
                       <td className="p-4 text-right">
                         <div className="flex justify-end gap-1">
                           <Button 

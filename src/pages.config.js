@@ -9,7 +9,6 @@ import OnCallSchedule from './pages/OnCallSchedule';
 import OutsideIncome from './pages/OutsideIncome';
 import Invoices from './pages/Invoices';
 import Payments from './pages/Payments';
-import Supplies from './pages/Supplies';
 import ProgramLocations from './pages/ProgramLocations';
 import ProviderTimeOff from './pages/ProviderTimeOff';
 import Reminders from './pages/Reminders';
@@ -19,6 +18,7 @@ import SupplyRequest from './pages/SupplyRequest';
 import PublicSupplyRequest from './pages/PublicSupplyRequest';
 import SupplyOrderDetail from './pages/SupplyOrderDetail';
 import ClinicalSupplyCatalog from './pages/ClinicalSupplyCatalog';
+import OfficeSupplyCatalog from './pages/OfficeSupplyCatalog';
 import __Layout from './Layout.jsx';
 
 
@@ -34,7 +34,6 @@ export const PAGES = {
     "OutsideIncome": OutsideIncome,
     "Invoices": Invoices,
     "Payments": Payments,
-    "Supplies": Supplies,
     "ProgramLocations": ProgramLocations,
     "ProviderTimeOff": ProviderTimeOff,
     "Reminders": Reminders,
@@ -44,6 +43,7 @@ export const PAGES = {
     "PublicSupplyRequest": PublicSupplyRequest,
     "SupplyOrderDetail": SupplyOrderDetail,
     "ClinicalSupplyCatalog": ClinicalSupplyCatalog,
+    "OfficeSupplyCatalog": OfficeSupplyCatalog,
 }
 
 export const pagesConfig = {
