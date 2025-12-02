@@ -24,6 +24,8 @@ export default function ClinicalSupplyCatalog() {
   const [sortField, setSortField] = useState('item_number');
   const [sortDirection, setSortDirection] = useState('asc');
   const [deletingSupply, setDeletingSupply] = useState(null);
+  const [initializing, setInitializing] = useState(false);
+  const [initMessage, setInitMessage] = useState('');
 
   const queryClient = useQueryClient();
 
@@ -63,6 +65,20 @@ export default function ClinicalSupplyCatalog() {
       updateMutation.mutate({ id: editingSupply.id, data });
     } else {
       createMutation.mutate(data);
+    }
+  };
+
+  const handleInitialize = async () => {
+    setInitializing(true);
+    setInitMessage('');
+    try {
+      const response = await base44.functions.invoke('setupClinicalCatalog', {});
+      setInitMessage(response.data.message);
+      queryClient.invalidateQueries({ queryKey: ['supplies'] });
+    } catch (error) {
+      setInitMessage('Error initializing catalog: ' + (error.response?.data?.error || error.message));
+    } finally {
+      setInitializing(false);
     }
   };
 
@@ -127,6 +143,16 @@ export default function ClinicalSupplyCatalog() {
             <p className="text-slate-600 text-sm">View item codes, descriptions, and prices</p>
           </div>
           <div className="flex gap-2">
+            {supplies.length === 0 && (
+              <Button
+                onClick={handleInitialize}
+                disabled={initializing}
+                variant="outline"
+                className="border-green-600 text-green-600 hover:bg-green-50"
+              >
+                {initializing ? 'Importing...' : 'Import Default Items'}
+              </Button>
+            )}
             <Button
               onClick={() => {
                 setEditingSupply(null);
@@ -139,6 +165,14 @@ export default function ClinicalSupplyCatalog() {
             </Button>
           </div>
         </div>
+
+        {initMessage && (
+          <Card className="border-blue-200 bg-blue-50">
+            <CardContent className="p-4">
+              <p className="text-sm text-blue-900">{initMessage}</p>
+            </CardContent>
+          </Card>
+        )}
 
         {showForm && (
           <SupplyForm
