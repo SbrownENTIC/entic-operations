@@ -95,16 +95,7 @@ export default function Invoices() {
           });
         }
       }
-
-      // Auto-generate PDF for UConn invoices
-      if (data.program_group === 'UConn') {
-        try {
-          await base44.functions.invoke('generateUConnInvoicePDF', { invoice_id: invoice.id });
-        } catch (error) {
-          console.error('Failed to auto-generate UConn PDF:', error);
-        }
-      }
-
+      
       // Auto-create Hartford Hospital Directorship invoice if this is an RVU invoice
       if (data.program_group === 'Hartford Hospital' && data.invoice_number && !data.invoice_number.includes('Directorship')) {
         // Fetch fresh list of incomes to ensure we have the latest data
@@ -206,19 +197,10 @@ export default function Invoices() {
           invoice_month: data.month || ''
         });
       }
-
-      // Auto-generate PDF for UConn invoices
-      if (data.program_group === 'UConn' || (originalInvoice?.program_group === 'UConn')) {
-        try {
-          await base44.functions.invoke('generateUConnInvoicePDF', { invoice_id: invoice.id });
-        } catch (error) {
-          console.error('Failed to auto-generate UConn PDF:', error);
-        }
-      }
-
+      
       return invoice;
-      },
-      onSuccess: () => {
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['outside-income'] });
       setShowForm(false);
