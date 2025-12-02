@@ -205,9 +205,12 @@ Deno.serve(async (req) => {
       const fields = {};
       if (reminderName) fields['Reminder Name'] = reminderName;
       if (sendDate) fields['Send Date'] = sendDate;
-      // Removing Email Subject and Body as they seem to be missing from Airtable schema
-      // if (reminder.email_subject) fields['Email Subject'] = reminder.email_subject;
-      // if (reminder.email_body) fields['Email Body'] = reminder.email_body;
+      
+      if (reminder.email_subject) fields['Email Subject'] = reminder.email_subject;
+      if (reminder.email_body) fields['Message'] = reminder.email_body;
+      if (reminder.recipients && reminder.recipients.length > 0) {
+        fields['Recipients Email'] = reminder.recipients.join(', ');
+      }
       
       // Map frequency to valid Airtable multi-select options: Annually, 90 Days, 60 Days, 30 Days, Monthly
       if (reminder.frequency) {
