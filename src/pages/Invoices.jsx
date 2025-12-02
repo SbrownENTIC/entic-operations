@@ -30,6 +30,7 @@ export default function Invoices() {
   const [preselectedIncomes, setPreselectedIncomes] = useState([]);
   const [sortField, setSortField] = useState('invoice_date');
   const [sortDirection, setSortDirection] = useState('desc');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [selectedInvoices, setSelectedInvoices] = useState([]);
   const [bulkDateProviderPaid, setBulkDateProviderPaid] = useState('');
   const [bulkProviderPaid, setBulkProviderPaid] = useState(false);
@@ -61,7 +62,12 @@ export default function Invoices() {
     const create = urlParams.get('create');
     const incomeIds = urlParams.get('incomes');
     const editId = urlParams.get('edit');
+    const statusParam = urlParams.get('status');
     
+    if (statusParam) {
+      setStatusFilter(statusParam);
+    }
+
     if (create === 'true' && incomeIds) {
       setPreselectedIncomes(incomeIds.split(','));
       setShowForm(true);
@@ -361,8 +367,9 @@ export default function Invoices() {
       invoice.month?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesNoIncomeFilter = !filterNoIncome || !invoice.hasOutsideIncome;
+    const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter;
     
-    return matchesSearch && matchesNoIncomeFilter;
+    return matchesSearch && matchesNoIncomeFilter && matchesStatus;
   });
 
   const sortedInvoices = [...filteredInvoices].sort((a, b) => {
@@ -508,6 +515,23 @@ export default function Invoices() {
                     className="max-w-md border-slate-200"
                   />
                 </div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-[180px] bg-white">
+                    <SelectValue placeholder="Filter by Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="not_started">Not Started</SelectItem>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="pending_providers_approval">Pending Approval</SelectItem>
+                    <SelectItem value="pending_providers_time">Pending Time</SelectItem>
+                    <SelectItem value="sent_for_approval">Sent for Approval</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="sent_to_vendor">Sent to Vendor</SelectItem>
+                    <SelectItem value="paid_to_entic">Paid to ENTIC</SelectItem>
+                    <SelectItem value="provider_paid">Provider Paid</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Button
                   variant={filterNoIncome ? "default" : "outline"}
                   onClick={() => setFilterNoIncome(!filterNoIncome)}
