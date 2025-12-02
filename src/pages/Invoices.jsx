@@ -324,20 +324,7 @@ export default function Invoices() {
     }
   };
 
-  const handleSyncMonths = async () => {
-    setSyncingMonths(true);
-    setFixMessage('');
-    try {
-      const response = await base44.functions.invoke('syncInvoiceMonths', {});
-      setFixMessage(response.data.message);
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      queryClient.invalidateQueries({ queryKey: ['outside-income'] });
-    } catch (error) {
-      setFixMessage('Error syncing months: ' + error.message);
-    } finally {
-      setSyncingMonths(false);
-    }
-  };
+
 
   const handleInvoiceNumberClick = (invoice) => {
     setEditingInvoice(invoice);
@@ -451,20 +438,12 @@ export default function Invoices() {
           </div>
           <div className="flex gap-3 flex-wrap">
             <Button
-              onClick={handleSyncMonths}
-              variant="outline"
-              disabled={syncingMonths}
-              className="gap-2"
-            >
-              {syncingMonths ? 'Syncing...' : 'Sync Months'}
-            </Button>
-            <Button
               onClick={handleFixHartfordInvoices}
               variant="outline"
               disabled={fixingHartford}
               className="gap-2"
             >
-              {fixingHartford ? 'Fixing...' : 'Fix Hartford Data'}
+              {fixingHartford ? 'Fixing...' : 'Fix & Sync Data'}
             </Button>
             <Button
               onClick={handlePrint}

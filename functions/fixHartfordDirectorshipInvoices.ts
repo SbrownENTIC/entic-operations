@@ -15,6 +15,75 @@ Deno.serve(async (req) => {
     const allIncomes = await base44.asServiceRole.entities.OutsideIncome.list();
     const allPayments = await base44.asServiceRole.entities.Payment.list();
 
+    // ==========================================
+    // 1. SYNC MONTHS Logic (Work Month = Invoice Month)
+    // ==========================================
+    let invoicesSynced = 0;
+    let incomesSynced = 0;
+
+    // 1a. Update Invoices missing month
+    for (const invoice of allInvoices) {
+      // If month is missing, try to fill it from linked incomes
+      if (!invoice.month && invoice.outside_income_ids && invoice.outside_income_ids.length > 0) {
+        const linkedIncomes = allIncomes.filter(inc => invoice.outside_income_ids.includes(inc.id));
+        
+        const allDates = linkedIncomes.reduce((acc, inc) => {
+          return inc.work_dates ? [...acc, ...inc.work_dates] : acc;
+        }, []).sort();
+
+        if (allDates.length > 0) {
+          try {
+            const date = parseISO(allDates[0]);
+            const fullMonth = format(date, 'MMMM yyyy');
+            
+            // Update Invoice
+            await base44.asServiceRole.entities.Invoice.update(invoice.id, { month: fullMonth });
+            invoicesSynced++;
+            
+            // Update linked OutsideIncomes
+            for (const income of linkedIncomes) {
+                if (income.invoice_month !== fullMonth) {
+                    await base44.asServiceRole.entities.OutsideIncome.update(income.id, { invoice_month: fullMonth });
+                    incomesSynced++;
+                }
+            }
+          } catch (e) {
+            console.error(`Error updating invoice ${invoice.invoice_number}:`, e);
+          }
+        }
+      }
+    }
+
+    // 1b. Update OutsideIncome records so invoice_month equals Work Month (derived from work_dates)
+    for (const income of allIncomes) {
+        if (income.work_dates && income.work_dates.length > 0) {
+            try {
+                // Get unique months from work dates
+                const uniqueMonths = new Set();
+                income.work_dates.forEach(dateStr => {
+                    const date = parseISO(dateStr);
+                    uniqueMonths.add(format(date, 'MMMM yyyy'));
+                });
+                
+                // If only one month is present in work_dates, enforce it as invoice_month
+                // This applies even if not linked to an invoice yet, as per "Work Month Should equal invoice month"
+                if (uniqueMonths.size === 1) {
+                    const derivedMonth = Array.from(uniqueMonths)[0];
+                    if (income.invoice_month !== derivedMonth) {
+                        await base44.asServiceRole.entities.OutsideIncome.update(income.id, { invoice_month: derivedMonth });
+                        incomesSynced++;
+                    }
+                }
+            } catch (e) {
+                console.error(`Error syncing income ${income.id}:`, e);
+            }
+        }
+    }
+
+
+    // ==========================================
+    // 2. FIX HARTFORD DATA Logic
+    // ==========================================
     // Get Hartford Hospital RVU/On-Call invoices (excluding Directorship)
     const hhInvoices = allInvoices.filter(inv => 
       inv.program_group === 'Hartford Hospital' && 
@@ -142,8 +211,10 @@ Deno.serve(async (req) => {
 
     return Response.json({
       success: true,
-      message: `Fixed Hartford Hospital data: ${created} invoices created, ${linked} outside income linked, ${skipped} skipped, ${paymentsReallocated} payments reallocated`,
+      message: `Data Sync & Fix Completed: ${invoicesSynced} invoices synced, ${incomesSynced} incomes synced. Hartford fix: ${created} created, ${linked} linked, ${paymentsReallocated} payments reallocated.`,
       details: {
+        invoicesSynced,
+        incomesSynced,
         created,
         linked,
         skipped,
