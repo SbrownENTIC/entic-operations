@@ -4,9 +4,12 @@ import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 export default function FinancialDetailModal({ isOpen, onClose, title, invoices, providers, type, programGroup }) {
+  const [sortField, setSortField] = React.useState(null);
+  const [sortDirection, setSortDirection] = React.useState('desc');
+
   const formatCurrency = (amount) => {
     return '$' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
@@ -29,6 +32,52 @@ export default function FinancialDetailModal({ isOpen, onClose, title, invoices,
     paid_to_entic: "bg-green-100 text-green-800",
     provider_paid: "bg-green-100 text-green-800",
     partial: "bg-blue-100 text-blue-800"
+  };
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortedInvoices = React.useMemo(() => {
+    if (!sortField) return invoices;
+    
+    return [...invoices].sort((a, b) => {
+      let aValue = a[sortField];
+      let bValue = b[sortField];
+      
+      if (sortField === 'provider') {
+        aValue = providers.find(p => p.id === a.staff_member_id)?.full_name || '';
+        bValue = providers.find(p => p.id === b.staff_member_id)?.full_name || '';
+      } else if (sortField === 'invoice_date') {
+        aValue = new Date(a.invoice_date || 0);
+        bValue = new Date(b.invoice_date || 0);
+      } else if (sortField === 'outstanding') {
+        aValue = (a.amount_expected || a.total || 0) - (a.amount_received || 0);
+        bValue = (b.amount_expected || b.total || 0) - (b.amount_received || 0);
+      } else if (['total', 'amount_received'].includes(sortField)) {
+        aValue = parseFloat(aValue || 0);
+        bValue = parseFloat(bValue || 0);
+      } else {
+        aValue = String(aValue || '').toLowerCase();
+        bValue = String(bValue || '').toLowerCase();
+      }
+
+      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [invoices, sortField, sortDirection, providers]);
+
+  const SortIcon = ({ field }) => {
+    if (sortField !== field) return <ArrowUpDown className="w-3 h-3 ml-1 inline opacity-30" />;
+    return sortDirection === 'asc' ? 
+      <ArrowUp className="w-3 h-3 ml-1 inline" /> : 
+      <ArrowDown className="w-3 h-3 ml-1 inline" />;
   };
 
   // Calculate total for this view
@@ -58,7 +107,7 @@ export default function FinancialDetailModal({ isOpen, onClose, title, invoices,
         </DialogHeader>
         
         <div className="space-y-3 mt-4">
-          {invoices.length === 0 ? (
+          {sortedInvoices.length === 0 ? (
             <div className="text-center py-12 text-slate-500">
               No invoices found for this category
             </div>
@@ -67,26 +116,71 @@ export default function FinancialDetailModal({ isOpen, onClose, title, invoices,
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
-                    <th className="text-left p-3 text-xs font-semibold text-slate-700">Invoice #</th>
-                    <th className="text-left p-3 text-xs font-semibold text-slate-700">Program</th>
-                    <th className="text-left p-3 text-xs font-semibold text-slate-700">Provider</th>
-                    <th className="text-left p-3 text-xs font-semibold text-slate-700">Month</th>
-                    <th className="text-left p-3 text-xs font-semibold text-slate-700">Date</th>
-                    <th className="text-right p-3 text-xs font-semibold text-slate-700">Total</th>
+                    <th 
+                      className="text-left p-3 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 select-none"
+                      onClick={() => handleSort('invoice_number')}
+                    >
+                      Invoice # <SortIcon field="invoice_number" />
+                    </th>
+                    <th 
+                      className="text-left p-3 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 select-none"
+                      onClick={() => handleSort('program_group')}
+                    >
+                      Program <SortIcon field="program_group" />
+                    </th>
+                    <th 
+                      className="text-left p-3 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 select-none"
+                      onClick={() => handleSort('provider')}
+                    >
+                      Provider <SortIcon field="provider" />
+                    </th>
+                    <th 
+                      className="text-left p-3 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 select-none"
+                      onClick={() => handleSort('month')}
+                    >
+                      Month <SortIcon field="month" />
+                    </th>
+                    <th 
+                      className="text-left p-3 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 select-none"
+                      onClick={() => handleSort('invoice_date')}
+                    >
+                      Date <SortIcon field="invoice_date" />
+                    </th>
+                    <th 
+                      className="text-right p-3 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 select-none"
+                      onClick={() => handleSort('total')}
+                    >
+                      Total <SortIcon field="total" />
+                    </th>
                     {type === 'paidToENTIC' || type === 'owedToProviders' ? (
-                      <th className="text-right p-3 text-xs font-semibold text-slate-700">Received</th>
+                      <th 
+                        className="text-right p-3 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 select-none"
+                        onClick={() => handleSort('amount_received')}
+                      >
+                        Received <SortIcon field="amount_received" />
+                      </th>
                     ) : (
-                      <th className="text-right p-3 text-xs font-semibold text-slate-700">Outstanding</th>
+                      <th 
+                        className="text-right p-3 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 select-none"
+                        onClick={() => handleSort('outstanding')}
+                      >
+                        Outstanding <SortIcon field="outstanding" />
+                      </th>
                     )}
-                    <th className="text-left p-3 text-xs font-semibold text-slate-700">Status</th>
+                    <th 
+                      className="text-left p-3 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 select-none"
+                      onClick={() => handleSort('status')}
+                    >
+                      Status <SortIcon field="status" />
+                    </th>
                     <th className="text-center p-3 text-xs font-semibold text-slate-700">View</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {invoices.map((invoice) => {
+                  {sortedInvoices.map((invoice) => {
                     const provider = providers.find(p => p.id === invoice.staff_member_id);
                     const outstanding = (invoice.amount_expected || invoice.total || 0) - (invoice.amount_received || 0);
-                    
+
                     return (
                       <tr key={invoice.id} className="border-b border-slate-100 hover:bg-slate-50">
                         <td className="p-3 text-sm font-medium text-slate-900">
