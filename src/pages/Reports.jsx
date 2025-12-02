@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, FileText, DollarSign, Clock, Users, Package, X, AlertCircle } from "lucide-react";
+import { Download, FileText, DollarSign, Clock, Users, Package, X, AlertCircle, Calendar } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import PaymentTrackingReport from "../components/reports/PaymentTrackingReport";
+import MonthlyFinancialsReport from "../components/reports/MonthlyFinancialsReport";
 
 export default function Reports() {
   const [dateRange, setDateRange] = useState({
@@ -660,6 +661,10 @@ export default function Reports() {
               <AlertCircle className="w-4 h-4" />
               Unlinked Invoices
             </TabsTrigger>
+            <TabsTrigger value="monthly-financials" className="gap-2 py-3 flex-1 min-w-[150px]">
+              <Calendar className="w-4 h-4" />
+              Monthly Financials
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="payment-tracking">
@@ -1268,6 +1273,13 @@ export default function Reports() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="monthly-financials">
+            <MonthlyFinancialsReport 
+              payments={payments}
+              formatCurrency={formatCurrency}
+            />
           </TabsContent>
         </Tabs>
 
