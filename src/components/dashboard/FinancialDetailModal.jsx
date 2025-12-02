@@ -230,7 +230,7 @@ export default function FinancialDetailModal({ isOpen, onClose, title, invoices,
                         </td>
                         <td className="p-3 text-center">
                           <Link 
-                            to={createPageUrl("Invoices")}
+                            to={`${createPageUrl("Invoices")}?edit=${invoice.id}`}
                             className="text-blue-600 hover:text-blue-800 inline-flex items-center gap-1"
                           >
                             <ExternalLink className="w-3 h-3" />
