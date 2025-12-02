@@ -34,8 +34,9 @@ Deno.serve(async (req) => {
     const otherReminders = allReminders.filter(r => !isClosure(r));
     
     // Fetch On-Call Periods from Airtable to find matching records for linking
+    // Fetching all fields to avoid 422 errors if "Start Date" doesn't exist
     const onCallPeriodsResponse = await fetch(
-      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${ON_CALL_PERIOD_TABLE_ID}?fields%5B%5D=Start%20Date&fields%5B%5D=End%20Date`,
+      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${ON_CALL_PERIOD_TABLE_ID}`,
       {
         headers: {
           'Authorization': `Bearer ${airtableApiKey}`,
@@ -143,11 +144,16 @@ Deno.serve(async (req) => {
         const closureDateObj = new Date(closureDate + 'T00:00:00');
         const matchingOnCallIds = onCallPeriods
           .filter(period => {
-            // Exclude if period ends on the closure date (morning handoff at 8am)
-            if (period.fields['End Date'] === closureDate) return false;
+            // Try common field names for dates
+            const startField = period.fields['Start Date'] || period.fields['Start'] || period.fields['Date'] || period.fields['From'];
+            const endField = period.fields['End Date'] || period.fields['End'] || period.fields['To'];
 
-            const startDate = period.fields['Start Date'] ? new Date(period.fields['Start Date'] + 'T00:00:00') : null;
-            const endDate = period.fields['End Date'] ? new Date(period.fields['End Date'] + 'T00:00:00') : null;
+            // Exclude if period ends on the closure date (morning handoff at 8am)
+            if (endField === closureDate) return false;
+
+            const startDate = startField ? new Date(startField + 'T00:00:00') : null;
+            const endDate = endField ? new Date(endField + 'T00:00:00') : null;
+            
             if (!startDate || !endDate) return false;
             
             // Check if closure date falls within the period
