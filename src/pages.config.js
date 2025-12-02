@@ -18,6 +18,7 @@ import Reports from './pages/Reports';
 import SupplyRequest from './pages/SupplyRequest';
 import PublicSupplyRequest from './pages/PublicSupplyRequest';
 import SupplyOrderDetail from './pages/SupplyOrderDetail';
+import ClinicalSupplyCatalog from './pages/ClinicalSupplyCatalog';
 import __Layout from './Layout.jsx';
 
 
@@ -42,6 +43,7 @@ export const PAGES = {
     "SupplyRequest": SupplyRequest,
     "PublicSupplyRequest": PublicSupplyRequest,
     "SupplyOrderDetail": SupplyOrderDetail,
+    "ClinicalSupplyCatalog": ClinicalSupplyCatalog,
 }
 
 export const pagesConfig = {

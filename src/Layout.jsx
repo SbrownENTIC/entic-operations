@@ -100,8 +100,13 @@ const moreMenuItems = [
     title: "Supply Catalog",
     url: createPageUrl("Supplies"),
     icon: Boxes,
-  },
-  {
+    },
+    {
+    title: "Clinical Catalog",
+    url: createPageUrl("ClinicalSupplyCatalog"),
+    icon: FileText,
+    },
+    {
     title: "Reports",
     url: createPageUrl("Reports"),
     icon: BarChart3,

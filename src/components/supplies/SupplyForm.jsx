@@ -8,6 +8,7 @@ export default function SupplyForm({ supply, supplies, onSubmit, onCancel, isLoa
   const [formData, setFormData] = useState({
     item_number: '',
     product_name: '',
+    codes: '',
     vendor: '',
     unit_price: '',
     units: '',
@@ -19,6 +20,7 @@ export default function SupplyForm({ supply, supplies, onSubmit, onCancel, isLoa
       setFormData({
         item_number: supply.item_number || '',
         product_name: supply.product_name || '',
+        codes: supply.codes || '',
         vendor: supply.vendor || '',
         unit_price: supply.unit_price || '',
         units: supply.units || '',
@@ -69,6 +71,16 @@ export default function SupplyForm({ supply, supplies, onSubmit, onCancel, isLoa
                 onChange={(e) => setFormData({ ...formData, product_name: e.target.value })}
                 placeholder="e.g., Copy Paper"
                 required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="codes">Codes</Label>
+              <Input
+                id="codes"
+                value={formData.codes}
+                onChange={(e) => setFormData({ ...formData, codes: e.target.value })}
+                placeholder="e.g., CPT/HCPCS codes"
               />
             </div>
 
