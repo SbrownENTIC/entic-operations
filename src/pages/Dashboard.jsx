@@ -734,7 +734,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent className="pt-3">
                 <div className="text-4xl font-bold text-purple-700 mb-1">{privilegesExpiring30Days.length}</div>
-                <Link to={createPageUrl("ClinicalPrivileges")} className="text-xs text-purple-700 hover:text-purple-900 font-semibold hover:underline">
+                <Link to={`${createPageUrl("ClinicalPrivileges")}?filter=expiring_30`} className="text-xs text-purple-700 hover:text-purple-900 font-semibold hover:underline">
                   View privileges →
                 </Link>
               </CardContent>

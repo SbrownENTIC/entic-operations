@@ -26,7 +26,15 @@ export default function ClinicalPrivileges() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [sortField, setSortField] = useState('expiration_date');
   const [sortDirection, setSortDirection] = useState('asc');
+  const [filterExpiring, setFilterExpiring] = useState(false);
   const queryClient = useQueryClient();
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('filter') === 'expiring_30') {
+      setFilterExpiring(true);
+    }
+  }, []);
 
   const { data: privileges = [] } = useQuery({
     queryKey: ['privileges'],
@@ -88,10 +96,14 @@ export default function ClinicalPrivileges() {
     providerName: providers.find(p => p.id === priv.provider_id)?.full_name || ''
   }));
 
-  const filteredPrivileges = privilegesWithProviders.filter(priv =>
-    priv.provider?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    priv.facility_name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredPrivileges = privilegesWithProviders.filter(priv => {
+    const matchesSearch = priv.provider?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      priv.facility_name?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesExpiring = !filterExpiring || (priv.daysUntilExpiration > 0 && priv.daysUntilExpiration <= 30);
+
+    return matchesSearch && matchesExpiring;
+  });
 
   const sortedPrivileges = [...filteredPrivileges].sort((a, b) => {
     let aValue, bValue;
@@ -171,6 +183,18 @@ export default function ClinicalPrivileges() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="max-w-md border-slate-200"
               />
+              {filterExpiring && (
+                <Button 
+                  variant="secondary" 
+                  onClick={() => {
+                    setFilterExpiring(false);
+                    window.history.replaceState({}, '', window.location.pathname);
+                  }}
+                  className="bg-orange-100 text-orange-800 hover:bg-orange-200"
+                >
+                  expiring soon x
+                </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent className="p-0 flex-1 overflow-hidden">
