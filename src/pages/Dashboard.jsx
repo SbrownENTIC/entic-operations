@@ -168,7 +168,8 @@ export default function Dashboard() {
       const response = await base44.functions.invoke(functionName, {});
       setAirtableMessage(response.data.message);
     } catch (error) {
-      setAirtableMessage('Error syncing to Airtable: ' + error.message);
+      const errorMessage = error.response?.data?.error || error.message;
+      setAirtableMessage('Error syncing to Airtable: ' + errorMessage);
     } finally {
       setAirtableSyncing(false);
     }
