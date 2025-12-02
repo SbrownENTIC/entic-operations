@@ -171,6 +171,23 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
       days_worked: totalDays
     };
 
+    // Auto-fill month for UConn invoices based on linked income dates
+    if (formData.program_group === 'UConn' && !formData.month && selectedIncomes.length > 0) {
+      const allDates = selectedIncomes.reduce((acc, inc) => {
+        return inc.work_dates ? [...acc, ...inc.work_dates] : acc;
+      }, []).sort();
+
+      if (allDates.length > 0) {
+        try {
+          // Use the month of the first date
+          const date = parseISO(allDates[0]);
+          updates.month = format(date, 'MMMM yyyy');
+        } catch (e) {
+          console.error('Error parsing date for UConn month autofill:', e);
+        }
+      }
+    }
+
     // Only update these fields if they haven't been manually edited
     if (!manualEditFlags.current.subtotal) {
       updates.subtotal = totalAmount;
@@ -186,7 +203,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
       ...prev,
       ...updates
     }));
-  }, [formData.outside_income_ids, incomes]);
+  }, [formData.outside_income_ids, incomes, formData.program_group, formData.month]);
 
   useEffect(() => {
     const extractedMonth = extractMonthFromInvoiceNumber(formData.invoice_number);
