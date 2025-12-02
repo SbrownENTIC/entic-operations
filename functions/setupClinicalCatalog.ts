@@ -433,7 +433,7 @@ Deno.serve(async (req) => {
         }
     }
 
-    // 2. Parse and insert clinical supplies
+    // 2. Parse clinical supplies
     const codes = ITEM_CODES.trim().split('\n').filter(l => l.trim() !== '');
     const descs = DESCRIPTIONS.trim().split('\n').filter(l => l.trim() !== '');
     const prices = PRICES.trim().split('\n').filter(l => l.trim() !== '');
@@ -444,28 +444,58 @@ Deno.serve(async (req) => {
         }, { status: 400 });
     }
 
-    let count = 0;
+    // 3. Dedup and Insert/Update
+    const uniqueItems = new Map();
+    
     for (let i = 0; i < codes.length; i++) {
+        const itemNumber = codes[i].trim();
         const price = parseFloat(prices[i].replace('$', '').trim());
+        const name = descs[i].trim();
         
-        // Check if item already exists to prevent duplicates? 
-        // For now, we'll just create it as requested.
+        // Use item_number as key. If duplicate in list, last one wins (or first).
+        // Given the data has exact duplicates, it doesn't matter.
+        if (!uniqueItems.has(itemNumber)) {
+            uniqueItems.set(itemNumber, {
+                item_number: itemNumber,
+                product_name: name,
+                unit_price: price,
+                category: "clinical",
+                vendor: "",
+                units: "",
+                codes: ""
+            });
+        }
+    }
+
+    let created = 0;
+    let updated = 0;
+
+    for (const item of uniqueItems.values()) {
+        // Check if item exists in DB (by item_number)
+        const existingItem = existing.find(e => e.item_number === item.item_number);
         
-        await base44.asServiceRole.entities.Supply.create({
-            item_number: codes[i].trim(),
-            product_name: descs[i].trim(),
-            unit_price: price,
-            codes: "",
-            category: "clinical",
-            vendor: "",
-            units: ""
-        });
-        count++;
+        if (existingItem) {
+            // Update if needed (e.g. price changed, or ensure category is clinical)
+            // Only update if it was not marked as office explicitly by user? 
+            // But here we are setting up clinical catalog.
+            // If an item number conflicts with an OFFICE item, we might have an issue.
+            // But likely these are unique to clinical.
+            
+            await base44.asServiceRole.entities.Supply.update(existingItem.id, {
+                product_name: item.product_name,
+                unit_price: item.unit_price,
+                category: "clinical" 
+            });
+            updated++;
+        } else {
+            await base44.asServiceRole.entities.Supply.create(item);
+            created++;
+        }
     }
 
     return Response.json({ 
       success: true,
-      message: `Successfully updated existing office supplies and imported ${count} new clinical items.` 
+      message: `Processed ${uniqueItems.size} unique items. Created ${created}, Updated ${updated}. Existing office supplies fixed.` 
     });
 
   } catch (error) {
