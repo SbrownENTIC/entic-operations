@@ -4,7 +4,6 @@ import ProviderDetail from './pages/ProviderDetail';
 import Licenses from './pages/Licenses';
 import ClinicalPrivileges from './pages/ClinicalPrivileges';
 import CMETracking from './pages/CMETracking';
-import SupplyOrders from './pages/SupplyOrders';
 import OnCallSchedule from './pages/OnCallSchedule';
 import OutsideIncome from './pages/OutsideIncome';
 import Invoices from './pages/Invoices';
@@ -19,6 +18,8 @@ import PublicSupplyRequest from './pages/PublicSupplyRequest';
 import SupplyOrderDetail from './pages/SupplyOrderDetail';
 import ClinicalSupplyCatalog from './pages/ClinicalSupplyCatalog';
 import OfficeSupplyCatalog from './pages/OfficeSupplyCatalog';
+import OfficeSupplyOrders from './pages/OfficeSupplyOrders';
+import ClinicalSupplyOrders from './pages/ClinicalSupplyOrders';
 import __Layout from './Layout.jsx';
 
 
@@ -29,7 +30,6 @@ export const PAGES = {
     "Licenses": Licenses,
     "ClinicalPrivileges": ClinicalPrivileges,
     "CMETracking": CMETracking,
-    "SupplyOrders": SupplyOrders,
     "OnCallSchedule": OnCallSchedule,
     "OutsideIncome": OutsideIncome,
     "Invoices": Invoices,
@@ -44,6 +44,8 @@ export const PAGES = {
     "SupplyOrderDetail": SupplyOrderDetail,
     "ClinicalSupplyCatalog": ClinicalSupplyCatalog,
     "OfficeSupplyCatalog": OfficeSupplyCatalog,
+    "OfficeSupplyOrders": OfficeSupplyOrders,
+    "ClinicalSupplyOrders": ClinicalSupplyOrders,
 }
 
 export const pagesConfig = {

@@ -11,7 +11,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { X, Plus, Trash2, Search, Check, CheckSquare } from "lucide-react";
 
-export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }) {
+export default function SupplyOrderForm({ order, category, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = useState({
     order_number: '',
     vendor: 'Staples',
@@ -27,8 +27,10 @@ export default function SupplyOrderForm({ order, onSubmit, onCancel, isLoading }
   const [itemSelectOpen, setItemSelectOpen] = useState({});
 
   const { data: supplies = [] } = useQuery({
-    queryKey: ['supplies'],
-    queryFn: () => base44.entities.Supply.list('product_name')
+    queryKey: ['supplies', category],
+    queryFn: () => category 
+      ? base44.entities.Supply.filter({ category }) 
+      : base44.entities.Supply.list('product_name')
   });
 
   useEffect(() => {

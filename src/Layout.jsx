@@ -59,8 +59,13 @@ const navigationItems = [
     icon: CreditCard,
   },
   {
-    title: "Supply Orders",
-    url: createPageUrl("SupplyOrders"),
+    title: "Office Orders",
+    url: createPageUrl("OfficeSupplyOrders"),
+    icon: Package,
+  },
+  {
+    title: "Clinical Orders",
+    url: createPageUrl("ClinicalSupplyOrders"),
     icon: Package,
   },
   {
@@ -217,7 +222,7 @@ export default function Layout({ children, currentPageName }) {
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center gap-2 flex-1 justify-center px-2 pb-1">
               <Link 
-                to={createPageUrl("SupplyOrders") + "?filter=pending"}
+                to={createPageUrl("OfficeSupplyOrders") + "?filter=pending"}
                 className="relative p-2 hover:bg-blue-50 rounded-lg transition-all border border-transparent hover:border-blue-200"
               >
                 <Bell className={`w-5 h-5 text-slate-600 ${pendingOrders.length > 0 ? 'animate-ring' : ''}`} />
@@ -270,7 +275,7 @@ export default function Layout({ children, currentPageName }) {
             {/* Right side - Mobile Menu */}
             <div className="flex items-center gap-2 pb-1">
               <Link 
-                to={createPageUrl("SupplyOrders") + "?filter=pending"}
+                to={createPageUrl("OfficeSupplyOrders") + "?filter=pending"}
                 className="relative p-2 hover:bg-slate-100 rounded-lg transition-colors lg:hidden"
               >
                 <Bell className={`w-5 h-5 text-slate-600 ${pendingOrders.length > 0 ? 'animate-ring' : ''}`} />
