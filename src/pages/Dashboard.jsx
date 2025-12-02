@@ -656,8 +656,8 @@ export default function Dashboard() {
                 className="border-purple-300 text-purple-700 hover:bg-purple-50 gap-2"
               >
                 {airtableSyncing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CloudUpload className="w-4 h-4" />}
-                Sync Office Closures to Airtable
-              </Button>
+                Sync Closures & Reminders
+                </Button>
             </div>
           </CardContent>
         </Card>

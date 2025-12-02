@@ -8,9 +8,9 @@ const ON_CALL_PERIOD_TABLE_ID = 'tbl3o3gNR7ca4rcTW';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const isAuthenticated = await base44.auth.isAuthenticated();
+    const user = await base44.auth.me();
     
-    if (!isAuthenticated) {
+    if (!user) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
