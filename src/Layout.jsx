@@ -73,19 +73,19 @@ const navigationItems = [
     url: createPageUrl("ProviderTimeOff"),
     icon: Calendar,
   },
-  {
-    title: "Reminders",
-    url: createPageUrl("Reminders"),
-    icon: Bell,
-  },
+];
+
+const moreMenuItems = [
   {
     title: "Providers",
     url: createPageUrl("Providers"),
     icon: Users,
   },
-];
-
-const moreMenuItems = [
+  {
+    title: "Reminders",
+    url: createPageUrl("Reminders"),
+    icon: Bell,
+  },
   {
     title: "Clinical Privileges",
     url: createPageUrl("ClinicalPrivileges"),
