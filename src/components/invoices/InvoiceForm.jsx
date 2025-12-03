@@ -702,6 +702,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
+            {formData.program_group !== 'St. Francis' && (
             <div className="space-y-2">
               <Label>Draft Invoice</Label>
               <div className="flex gap-2">
@@ -720,8 +721,8 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                   </Button>
                 )}
               </div>
-
             </div>
+            )}
 
             <div className="space-y-2">
               <Label>Approved Invoice</Label>
