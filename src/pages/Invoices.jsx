@@ -328,11 +328,38 @@ export default function Invoices() {
     } finally {
       setFixingHartford(false);
     }
-  };
+    };
 
+    const handleGenerateUConnPdf = async (invoice) => {
+    try {
+      // Show loading state or toast if you had one, but for now just run it
+      const { data: response } = await base44.functions.invoke('generateUConnInvoicePdf', { 
+        invoiceId: invoice.id 
+      });
 
+      if (response.file_uri) {
+        // Get signed URL
+        const { data: signedData } = await base44.integrations.Core.CreateFileSignedUrl({
+          file_uri: response.file_uri
+        });
 
-  const handleInvoiceNumberClick = (invoice) => {
+        if (signedData.signed_url) {
+          // Trigger download
+          const link = document.createElement('a');
+          link.href = signedData.signed_url;
+          link.download = `UConn_Invoice_${invoice.invoice_number}.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to generate PDF:", error);
+      alert("Failed to generate UConn PDF automatically. Please try again.");
+    }
+    };
+
+    const handleInvoiceNumberClick = (invoice) => {
     setEditingInvoice(invoice);
     setPreselectedIncomes([]);
     setShowForm(true);
