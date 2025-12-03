@@ -98,10 +98,14 @@ export default function Invoices() {
 
       // Auto-generate PDF for UConn invoices
       if (data.program_group?.includes('UConn')) {
-          await base44.functions.invoke('generateUConnPDF', { 
+          const response = await base44.functions.invoke('generateUConnPDF', { 
               invoice_id: invoice.id, 
               save_to_record: true 
           });
+
+          if (response.data && response.data.url) {
+            window.open(response.data.url, '_blank');
+          }
       }
       
       // Auto-create Hartford Hospital Directorship invoice if this is an RVU invoice
