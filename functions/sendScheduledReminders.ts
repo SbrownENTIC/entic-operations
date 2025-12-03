@@ -70,20 +70,16 @@ The Operations Team`;
           try {
             console.log(`Attempting to send email to: ${recipient}`);
             
-            // Use the Mailgun function instead of Core.SendEmail
-            const emailResponse = await base44.asServiceRole.functions.invoke('sendEmailViaMailgun', {
+            // Use Core.SendEmail integration
+            await base44.asServiceRole.integrations.Core.SendEmail({
               to: recipient,
               subject: reminder.email_subject,
               body: emailBody + '\n\n\n',
               from_name: 'ENTIC Operations Team'
             });
             
-            if (emailResponse.data.success) {
-              emailsSent++;
-              console.log(`Email sent successfully to: ${recipient}`);
-            } else {
-              throw new Error(emailResponse.data.error || 'Unknown error');
-            }
+            emailsSent++;
+            console.log(`Email sent successfully to: ${recipient}`);
           } catch (emailError) {
             console.error(`Failed to send email to ${recipient}:`, emailError.message);
             emailErrors.push({

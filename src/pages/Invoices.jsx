@@ -114,28 +114,15 @@ export default function Invoices() {
             if (response.data && response.data.url) {
               window.open(response.data.url, '_blank');
 
-              // Automatically email UConn invoices
+              // Sync UConn invoices to Airtable for emailing
               if (isUConn) {
                 try {
-                  const providers = await base44.entities.Provider.list();
-                  const uconnProviders = ['Seth Brown', 'Belachew Tessema', 'Hailun Wang'];
-                  const invoiceProvider = providers.find(p => p.id === data.staff_member_id);
-                  
-                  // Check if invoice provider matches one of the target UConn providers
-                  const isTargetProvider = invoiceProvider && uconnProviders.some(name => 
-                    invoiceProvider.full_name.includes(name)
-                  );
-
-                  if (isTargetProvider) {
-                    await base44.functions.invoke('sendUConnInvoiceEmail', {
-                      invoiceId: invoice.id,
-                      pdfUrl: response.data.url
-                    });
-                    console.log("UConn invoice email sent successfully");
-                  }
-                } catch (emailError) {
-                  console.error("Error sending UConn invoice email:", emailError);
-                  // Don't block the flow, just log error
+                  await base44.functions.invoke('syncUConnInvoiceToAirtable', {
+                    invoice_id: invoice.id,
+                    pdf_url: response.data.url
+                  });
+                } catch (syncError) {
+                  console.error("Error syncing UConn invoice to Airtable:", syncError);
                 }
               }
             }

@@ -82,16 +82,16 @@ The Operations Team`;
       
       const results = [];
       
-      // Send emails to all recipients using Mailgun
+      // Send emails to all recipients using Core Integration
       for (const recipient of reminder.recipients) {
         try {
-          const response = await base44.functions.invoke('sendEmailViaMailgun', {
+          const result = await base44.integrations.Core.SendEmail({
             to: recipient,
             subject: reminder.email_subject,
             body: emailBody + '\n\n\n',
             from_name: 'ENTIC Operations Team'
           });
-          results.push({ recipient, success: true, response: response.data });
+          results.push({ recipient, success: true, response: result });
         } catch (error) {
           results.push({ recipient, success: false, error: error.message });
         }
