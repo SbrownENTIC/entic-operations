@@ -121,10 +121,21 @@ Deno.serve(async (req) => {
 
         const pdfBase64 = await pdfDoc.saveAsBase64();
 
+        // Fetch provider for filename
+        let filenameProvider = 'Provider';
+        if (invoice.staff_member_id) {
+            try {
+                const provider = await base44.entities.Provider.get(invoice.staff_member_id);
+                if (provider) filenameProvider = provider.full_name;
+            } catch (e) {
+                // ignore error
+            }
+        }
+
         // 5. Return JSON with Base64
         return Response.json({ 
             pdf_base64: pdfBase64,
-            filename: `Invoice_${invoice.invoice_number || 'draft'}.pdf`
+            filename: `${filenameProvider}- UConn- ${invoice.month || 'Draft'}.pdf`
         });
 
     } catch (error) {
