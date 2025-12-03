@@ -1,5 +1,22 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 import { PDFDocument } from 'npm:pdf-lib@1.17.1';
+import { format, parseISO } from 'npm:date-fns@2.30.0';
+
+const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+    }).format(amount);
+};
+
+const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+        return format(parseISO(dateStr), 'MM-dd-yyyy');
+    } catch (e) {
+        return dateStr;
+    }
+};
 
 Deno.serve(async (req) => {
     try {
@@ -19,42 +36,42 @@ Deno.serve(async (req) => {
 
         // Get linked income records to build line items
         let lineItems = [];
+        let grandTotal = 0;
+
         if (invoice.outside_income_ids && invoice.outside_income_ids.length > 0) {
-            const allIncomes = await base44.entities.OutsideIncome.list(); // In a real app, ideally filter by IDs, but list() is fine for small datasets
+            const allIncomes = await base44.entities.OutsideIncome.list();
             const linkedIncomes = allIncomes.filter(inc => invoice.outside_income_ids.includes(inc.id));
-            
             const providers = await base44.entities.Provider.list();
 
             for (const income of linkedIncomes) {
                 const provider = providers.find(p => p.id === income.provider_id);
                 const providerName = provider ? provider.full_name : "Unknown Provider";
+                const rate = income.rate || 1340; // Default to 1340 if rate is missing
                 
-                // "Description should be providers name and first day worked"
-                // "if more than one day next line would be providers name and the second day worked"
                 if (income.work_dates && income.work_dates.length > 0) {
                     for (const date of income.work_dates) {
-                        // Format date to something readable if needed, e.g. YYYY-MM-DD
+                        const quantity = 1;
+                        const lineTotal = rate * quantity;
+                        grandTotal += lineTotal;
+
                         lineItems.push({
-                            description: `${providerName} ${date}`,
-                            quantity: "1",
-                            unitPrice: "1340"
+                            description: `${providerName} ${formatDate(date)}`,
+                            quantity: quantity.toString(),
+                            unitPrice: formatCurrency(rate),
+                            lineTotal: formatCurrency(lineTotal)
                         });
                     }
                 }
             }
         }
 
-        // 3. Load Template
-        // Template URI from previous step
-        const templateUri = "private/691521cbabed77e5043c7037/8416bf28c_MasterUConnServiceInvoice.pdf";
+        // 3. Load Template from Public URL
+        const templateUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/691521cbabed77e5043c7037/3692ccc86_MasterUConnServiceInvoice.pdf";
         
-        // Get a signed URL to download the private file
-        const signedUrlRes = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({
-            file_uri: templateUri,
-            expires_in: 60
-        });
-        
-        const templateResponse = await fetch(signedUrlRes.signed_url);
+        const templateResponse = await fetch(templateUrl);
+        if (!templateResponse.ok) {
+             throw new Error(`Failed to fetch template: ${templateResponse.statusText}`);
+        }
         const templateBuffer = await templateResponse.arrayBuffer();
 
         // 4. Fill PDF
@@ -66,37 +83,40 @@ Deno.serve(async (req) => {
         if (invoiceNumField) invoiceNumField.setText(invoice.invoice_number || '');
 
         const invoiceDateField = form.getTextField('InvoiceDate');
-        if (invoiceDateField) invoiceDateField.setText(invoice.invoice_date || '');
+        if (invoiceDateField) invoiceDateField.setText(formatDate(invoice.invoice_date));
 
-        // Fill Rows (Up to 7 as per instructions)
-        for (let i = 0; i < Math.min(lineItems.length, 7); i++) {
+        // Fill Rows (Up to 12 as per typical invoice size, but loop safely)
+        // Note: Assuming fields QtyX, DescX, UnitPriceX, LineTotalX where X starts at 1
+        for (let i = 0; i < lineItems.length; i++) {
             const item = lineItems[i];
             const rowNum = i + 1;
             
             try {
-                // Qty field: Qty1, Qty2...
                 const qtyField = form.getTextField(`Qty${rowNum}`);
                 if (qtyField) qtyField.setText(item.quantity);
 
-                // Description field: Desc1, Desc2...
                 const descField = form.getTextField(`Desc${rowNum}`);
                 if (descField) descField.setText(item.description);
 
-                // Unit Price field: UnitPrice1, UnitPrice2...
                 const priceField = form.getTextField(`UnitPrice${rowNum}`);
                 if (priceField) priceField.setText(item.unitPrice);
                 
-                // Total for line? Usually Qty * UnitPrice. 
-                // If there is a Total field per line, we might need to fill it too.
-                // Assuming there might be a 'Amount1', 'Amount2' field or similar?
-                // User didn't specify, so skipping line total for now.
+                const totalField = form.getTextField(`LineTotal${rowNum}`);
+                if (totalField) totalField.setText(item.lineTotal);
                 
             } catch (err) {
-                console.log(`Error filling row ${rowNum}:`, err.message);
+                // Swallow error if field doesn't exist (e.g. ran out of rows in template)
             }
         }
 
-        // Flatten form to prevent further editing (optional, makes it look like a regular doc)
+        // Fill Totals
+        const subtotalField = form.getTextField('Subtotal');
+        if (subtotalField) subtotalField.setText(formatCurrency(grandTotal));
+
+        const totalField = form.getTextField('Total');
+        if (totalField) totalField.setText(formatCurrency(grandTotal));
+
+        // Flatten form to prevent further editing
         form.flatten();
 
         const pdfBase64 = await pdfDoc.saveAsBase64();
