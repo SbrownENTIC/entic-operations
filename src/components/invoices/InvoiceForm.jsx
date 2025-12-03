@@ -141,6 +141,31 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
         }
       }
 
+      // Auto-generate invoice number for non-UConn (e.g. "November 2025- O'Brien")
+      let generatedInvoiceNumber = '';
+      if (programGroup !== 'UConn' && selectedIncomes.length > 0) {
+          let dateObj = new Date();
+          const allDates = selectedIncomes.reduce((acc, inc) => {
+              return inc.work_dates ? [...acc, ...inc.work_dates] : acc;
+          }, []).sort();
+
+          if (allDates.length > 0) {
+              dateObj = parseISO(allDates[0]);
+          }
+
+          const monthYear = format(dateObj, 'MMMM yyyy');
+          const provider = providers.find(p => p.id === staffMemberId);
+          let lastName = '';
+          if (provider) {
+             const nameParts = provider.full_name.trim().split(' ');
+             lastName = nameParts[nameParts.length - 1];
+          }
+
+          if (lastName) {
+              generatedInvoiceNumber = `${monthYear}- ${lastName}`;
+          }
+      }
+
       setFormData(prev => ({
         ...prev,
         outside_income_ids: preselectedIncomes,
@@ -149,7 +174,8 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
         days_worked: totalDays,
         subtotal: totalAmount,
         total: totalAmount,
-        amount_expected: totalAmount
+        amount_expected: totalAmount,
+        invoice_number: generatedInvoiceNumber || prev.invoice_number
       }));
       // These values are auto-filled, so they are not manually edited yet.
       manualEditFlags.current = {
@@ -159,7 +185,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
         status: false
       };
     }
-  }, [invoice, preselectedIncomes, incomes, programLocations]);
+  }, [invoice, preselectedIncomes, incomes, programLocations, providers]);
 
   // Recalculate totals whenever outside_income_ids changes - BUT only if not manually edited
   useEffect(() => {
