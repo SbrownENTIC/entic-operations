@@ -121,6 +121,7 @@ export default function Invoices() {
                     invoice_id: invoice.id,
                     pdf_url: response.data.url
                   });
+                  console.log("UConn invoice synced to Airtable successfully");
                 } catch (syncError) {
                   console.error("Error syncing UConn invoice to Airtable:", syncError);
                 }

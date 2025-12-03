@@ -82,14 +82,17 @@ The Operations Team`;
       
       const results = [];
       
-      // Send emails to all recipients using Core Integration
+      // Sync reminder to Airtable for each recipient
       for (const recipient of reminder.recipients) {
         try {
-          const result = await base44.integrations.Core.SendEmail({
-            to: recipient,
-            subject: reminder.email_subject,
-            body: emailBody + '\n\n\n',
-            from_name: 'ENTIC Operations Team'
+          const result = await base44.functions.invoke('syncReminderToAirtable', {
+              recipient: recipient,
+              subject: reminder.email_subject,
+              body: emailBody,
+              from_name: 'ENTIC Operations Team',
+              reminder_name: reminder.reminder_name,
+              reminder_type: reminder.reminder_type,
+              send_date: reminder.send_date
           });
           results.push({ recipient, success: true, response: result });
         } catch (error) {

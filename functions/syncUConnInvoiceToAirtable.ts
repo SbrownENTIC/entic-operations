@@ -1,15 +1,15 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
-const AIRTABLE_BASE_ID = 'app6seexOdkDrMl2U';
-const UCONN_INVOICES_TABLE = 'UConn Invoices'; // Assumed table name
+const AIRTABLE_BASE_ID = 'app6seexOdkDrMl2U'; // Base ID for ENTIC
+const UCONN_INVOICES_TABLE = 'UConn Invoices';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     
-    // Allow both authenticated users and service role calls
-    const isAuthenticated = await base44.auth.isAuthenticated();
-    if (!isAuthenticated) {
+    // Ensure authenticated context
+    const user = await base44.auth.me();
+    if (!user) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -46,34 +46,23 @@ Deno.serve(async (req) => {
 
     // Construct Email Content
     const emailSubject = `UConn ${invoiceMonth} Invoices`;
-    const recipients = "amoffo@uchc.edu";
+    const toRecipient = "amoffo@uchc.edu";
     const ccRecipients = "steve.brown@enticmd.com, Heldridge@enticmd.com";
     
-    const emailBody = `Hi Allyson,
-
-Hope your week is off to a fantastic start.
-
-The ${invoiceMonth} clinic session details for you to process and enter for:
-
-${providerList}
-
-You can view the invoice here: ${pdf_url}
-
-Thank you so much,
-Steve Brown
-Operations Manager`;
+    const emailBody = `Hi Allyson,\n\nHope your week is off to a fantastic start.\n\nThe ${invoiceMonth} clinic session details for you to process and enter for:\n\n${providerList}\n\nYou can view the invoice here: ${pdf_url}\n\nThank you so much,\nSteve Brown\nOperations Manager`;
 
     // Prepare Airtable Record Fields
     const fields = {
-        "Invoice Number": invoice.invoice_number,
+        "Invoice Number": invoice.invoice_number || 'N/A',
         "Month": invoiceMonth,
         "Providers": providers.map(p => p.full_name).join(', '),
         "PDF URL": pdf_url,
-        "Status": "Ready to Email",
+        "Status": "Ready for Email",
         "Email Subject": emailSubject,
         "Email Body": emailBody,
-        "To": recipients,
-        "CC": ccRecipients
+        "To": toRecipient,
+        "CC": ccRecipients,
+        "Invoice ID": invoice_id
     };
 
     // Create record in Airtable
@@ -94,7 +83,7 @@ Operations Manager`;
         throw new Error(`Airtable Error: ${JSON.stringify(errorData)}`);
     }
 
-    return Response.json({ success: true, message: "Synced to Airtable successfully" });
+    return Response.json({ success: true, message: "UConn invoice synced to Airtable successfully" });
 
   } catch (error) {
     console.error('Error syncing UConn invoice to Airtable:', error);

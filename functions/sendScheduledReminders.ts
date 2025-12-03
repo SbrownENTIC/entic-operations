@@ -65,26 +65,28 @@ Steve Brown
 The Operations Team`;
         }
         
-        // Send email to each recipient using Mailgun
+        // Sync reminder to Airtable for each recipient
         for (const recipient of reminder.recipients) {
           try {
-            console.log(`Attempting to send email to: ${recipient}`);
+            console.log(`Attempting to sync reminder to Airtable for: ${recipient}`);
             
-            // Use Core.SendEmail integration
-            await base44.asServiceRole.integrations.Core.SendEmail({
-              to: recipient,
-              subject: reminder.email_subject,
-              body: emailBody + '\n\n\n',
-              from_name: 'ENTIC Operations Team'
+            await base44.asServiceRole.functions.invoke('syncReminderToAirtable', {
+                recipient: recipient,
+                subject: reminder.email_subject,
+                body: emailBody,
+                from_name: 'ENTIC Operations Team',
+                reminder_name: reminder.reminder_name,
+                reminder_type: reminder.reminder_type,
+                send_date: reminder.send_date
             });
             
             emailsSent++;
-            console.log(`Email sent successfully to: ${recipient}`);
-          } catch (emailError) {
-            console.error(`Failed to send email to ${recipient}:`, emailError.message);
+            console.log(`Reminder synced successfully to Airtable for: ${recipient}`);
+          } catch (syncError) {
+            console.error(`Failed to sync reminder to Airtable for ${recipient}:`, syncError.message);
             emailErrors.push({
               recipient: recipient,
-              error: emailError.message
+              error: syncError.message
             });
           }
         }
