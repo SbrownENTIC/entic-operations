@@ -112,10 +112,15 @@ const moreMenuItems = [
     icon: FileText,
     },
     {
-    title: "Reports",
-    url: createPageUrl("Reports"),
-    icon: BarChart3,
-  },
+      title: "Reports",
+      url: createPageUrl("Reports"),
+      icon: BarChart3,
+    },
+    {
+      title: "Documentation",
+      url: createPageUrl("Documentation"),
+      icon: HelpCircle,
+    },
 ];
 
 export default function Layout({ children, currentPageName }) {
