@@ -109,8 +109,28 @@ export default function Payments() {
         potentialStatus = 'paid_to_entic';
       } else if (amountReceived > 0 && balance > 0.01) {
         potentialStatus = 'partial';
-      } else if (amountReceived === 0 && invoice.status !== 'pending' && invoice.status !== 'unpaid') {
-        potentialStatus = 'pending';
+      } else if (amountReceived === 0) {
+        // If it was previously marked as paid/partial, but now has 0 received, revert to appropriate status
+        if (['paid_to_entic', 'provider_paid', 'partial'].includes(invoice.status)) {
+            if (invoice.invoice_sent_to_vendor) {
+                potentialStatus = 'sent_to_vendor';
+            } else if (invoice.invoice_sent_for_approval) {
+                potentialStatus = 'sent_for_approval';
+            } else {
+                potentialStatus = 'draft'; 
+            }
+        }
+      }
+
+      // SELF-HEALING: Fix invalid 'pending' status caused by previous bug
+      if (potentialStatus === 'pending') {
+         if (invoice.invoice_sent_to_vendor) {
+             potentialStatus = 'sent_to_vendor';
+         } else if (invoice.invoice_sent_for_approval) {
+             potentialStatus = 'sent_for_approval';
+         } else {
+             potentialStatus = 'pending_providers_approval'; // Restore to a valid default
+         }
       }
 
       // Update logic: 
