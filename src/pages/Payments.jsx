@@ -133,6 +133,15 @@ export default function Payments() {
          }
       }
 
+      // Enforce status based on flags if no payment has been received yet
+      if (amountReceived === 0 && !invoice.provider_paid) {
+          if (invoice.invoice_sent_to_vendor && potentialStatus !== 'sent_to_vendor') {
+              potentialStatus = 'sent_to_vendor';
+          } else if (invoice.invoice_sent_for_approval && potentialStatus !== 'sent_for_approval' && !invoice.invoice_sent_to_vendor) {
+              potentialStatus = 'sent_for_approval';
+          }
+      }
+
       // Update logic: 
       // 1. If not manually overridden, apply potential status
       // 2. If manually overridden, ONLY apply if it is 'paid_to_entic' (force update when fully paid)

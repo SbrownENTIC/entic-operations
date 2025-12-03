@@ -691,7 +691,15 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
               <Checkbox
                 id="invoice_sent_for_approval"
                 checked={formData.invoice_sent_for_approval}
-                onCheckedChange={(checked) => setFormData({ ...formData, invoice_sent_for_approval: checked })}
+                onCheckedChange={(checked) => {
+                  const updates = { invoice_sent_for_approval: checked };
+                  // If checked, auto-update status unless already further along
+                  if (checked && formData.status !== 'paid_to_entic' && formData.status !== 'provider_paid' && formData.status !== 'sent_to_vendor') {
+                    updates.status = 'sent_for_approval';
+                    manualEditFlags.current.status = true;
+                  }
+                  setFormData({ ...formData, ...updates });
+                }}
               />
               <label htmlFor="invoice_sent_for_approval" className="text-sm font-medium cursor-pointer">
                 Invoice Sent for Approval
