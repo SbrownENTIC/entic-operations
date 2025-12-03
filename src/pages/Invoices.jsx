@@ -97,14 +97,20 @@ export default function Invoices() {
       }
 
       // Auto-generate PDF for UConn invoices
-      if (data.program_group?.includes('UConn')) {
-          const response = await base44.functions.invoke('generateUConnPDF', { 
-              invoice_id: invoice.id, 
-              save_to_record: true 
-          });
+      // Check case-insensitive for UConn in program group
+      if (data.program_group?.toLowerCase().includes('uconn')) {
+          try {
+            const response = await base44.functions.invoke('generateUConnPDF', { 
+                invoice_id: invoice.id, 
+                save_to_record: true 
+            });
 
-          if (response.data && response.data.url) {
-            window.open(response.data.url, '_blank');
+            if (response.data && response.data.url) {
+              window.open(response.data.url, '_blank');
+            }
+          } catch (error) {
+            console.error("Error auto-generating PDF:", error);
+            // Don't fail the whole mutation if PDF gen fails, but log it
           }
       }
       

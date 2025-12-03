@@ -119,8 +119,6 @@ Deno.serve(async (req) => {
         // Flatten form to prevent further editing
         form.flatten();
 
-        const pdfBase64 = await pdfDoc.saveAsBase64();
-
         // Fetch provider for filename
         let filenameProvider = 'Provider';
         if (invoice.staff_member_id) {
