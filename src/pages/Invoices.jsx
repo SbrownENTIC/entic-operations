@@ -352,46 +352,46 @@ export default function Invoices() {
   };
 
   const handleBulkSyncToAirtable = async () => {
-    if (!window.confirm(`Sync ${selectedInvoices.length} selected invoices to Airtable as ONE email?`)) return;
+  if (!window.confirm(`Sync ${selectedInvoices.length} selected invoices to Airtable as ONE email?`)) return;
 
-    setSyncingAirtable(true);
-    const readyInvoices = [];
-    const missingApproved = [];
+  setSyncingAirtable(true);
+  const readyInvoices = [];
+  const missingApproved = [];
 
-    try {
-      // 1. Check for approved PDFs
-      for (const id of selectedInvoices) {
-        const invoice = invoices.find(i => i.id === id);
-        if (!invoice) continue;
+  try {
+  // 1. Check for approved PDFs
+  for (const id of selectedInvoices) {
+  const invoice = invoices.find(i => i.id === id);
+  if (!invoice) continue;
 
-        if (!invoice.approved_invoice_url) {
-          missingApproved.push(invoice.invoice_number || 'Unknown Invoice');
-        } else {
-          readyInvoices.push({ id: invoice.id, pdf_url: invoice.approved_invoice_url });
-        }
-      }
+  if (!invoice.approved_invoice_url) {
+    missingApproved.push(invoice.invoice_number || 'Unknown Invoice');
+  } else {
+    readyInvoices.push({ id: invoice.id, pdf_url: invoice.approved_invoice_url });
+  }
+  }
 
-      if (missingApproved.length > 0) {
-          alert(`Cannot sync! The following invoices do not have an APPROVED PDF:\n\n${missingApproved.join('\n')}\n\nPlease ensure all selected invoices have an approved PDF before syncing.`);
-          setSyncingAirtable(false);
-          return;
-      }
+  if (missingApproved.length > 0) {
+    alert(`Cannot sync! The following invoices do not have an APPROVED PDF:\n\n${missingApproved.join('\n')}\n\nPlease ensure all selected invoices have an approved PDF before syncing.`);
+    setSyncingAirtable(false);
+    return;
+  }
 
-      // 2. Send as a single batch
-      if (readyInvoices.length > 0) {
-          await base44.functions.invoke('syncUConnInvoiceToAirtable', {
-              invoices: readyInvoices
-          });
-          alert(`Successfully synced ${readyInvoices.length} invoices as one email!`);
-          setSelectedInvoices([]);
-      }
+  // 2. Send as a single batch
+  if (readyInvoices.length > 0) {
+    await base44.functions.invoke('syncUConnInvoiceToAirtable', {
+        invoices: readyInvoices
+    });
+    alert(`Successfully synced ${readyInvoices.length} invoices as one email!`);
+    setSelectedInvoices([]);
+  }
 
-    } catch (error) {
-      console.error("Bulk sync error", error);
-      alert('Error syncing: ' + error.message);
-    } finally {
-      setSyncingAirtable(false);
-    }
+  } catch (error) {
+  console.error("Bulk sync error", error);
+  alert('Error syncing: ' + error.message);
+  } finally {
+  setSyncingAirtable(false);
+  }
   };
 
   const handlePrint = () => {
