@@ -2,6 +2,18 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 import { PDFDocument } from 'npm:pdf-lib@1.17.1';
 import { format, parseISO, getDate, getMonth, getYear } from 'npm:date-fns@2.30.0';
 
+const safeSetField = (form, fieldName, value) => {
+    try {
+        const field = form.getTextField(fieldName);
+        if (field) {
+            field.setText(value ? String(value) : '');
+        }
+    } catch (e) {
+        // Field probably doesn't exist or is not a text field
+        // console.log(`Field ${fieldName} skipped: ${e.message}`);
+    }
+};
+
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
@@ -28,14 +40,12 @@ Deno.serve(async (req) => {
         const providers = await base44.entities.Provider.list();
 
         // 3. Determine Month and Year
-        // Try to get from invoice month first, otherwise find earliest work date
         let targetDate = new Date();
         if (invoice.invoice_date) {
             targetDate = parseISO(invoice.invoice_date);
         }
         
         if (linkedIncomes.length > 0) {
-            // Find the earliest work date to determine the month
             const allDates = linkedIncomes.reduce((acc, inc) => {
                 return inc.work_dates ? [...acc, ...inc.work_dates] : acc;
             }, []).sort();
@@ -63,25 +73,14 @@ Deno.serve(async (req) => {
         const pdfDoc = await PDFDocument.load(templateBuffer);
         const form = pdfDoc.getForm();
 
-        // Fill Header Fields
-        const groupField = form.getTextField('Group');
-        if (groupField) groupField.setText('ENTIC');
-
-        const rateField = form.getTextField('Payment Rate');
-        if (rateField) rateField.setText('1000'); // Hardcoded as requested
-
-        // "Coverage Services Provided The Month should be the month..."
-        const coverageField = form.getTextField('MD Coverage Services Provided');
-        if (coverageField) coverageField.setText(monthName);
-
-        const monthField = form.getTextField('Month');
-        if (monthField) monthField.setText(monthName);
-
-        const yearField = form.getTextField('Year');
-        if (yearField) yearField.setText(yearStr);
+        // Fill Header Fields using safe setter
+        safeSetField(form, 'Group', 'ENTIC');
+        safeSetField(form, 'Payment Rate', '1000');
+        safeSetField(form, 'MD Coverage Services Provided', monthName);
+        safeSetField(form, 'Month', monthName);
+        safeSetField(form, 'Year', yearStr);
 
         // Fill Calendar Days
-        // Iterate through all linked incomes and their dates
         for (const income of linkedIncomes) {
             const provider = providers.find(p => p.id === income.provider_id);
             const providerName = provider ? provider.full_name : "Unknown";
@@ -93,38 +92,39 @@ Deno.serve(async (req) => {
                     // Only map dates that match the target invoice month/year
                     if (getMonth(date) === targetMonthIdx && getYear(date) === targetYear) {
                         const dayOfMonth = getDate(date);
-                        const fieldName = dayOfMonth.toString(); // '1', '2', etc.
+                        const fieldName = dayOfMonth.toString();
                         
                         try {
                             const dayField = form.getTextField(fieldName);
                             if (dayField) {
-                                // Handle cases where multiple providers work the same day (append)
                                 const existingText = dayField.getText();
                                 if (existingText && existingText.length > 0 && !existingText.includes(providerName)) {
                                     dayField.setText(`${existingText}\n${providerName}`);
-                                    // Adjust font size if needed for multiple lines? 
-                                    // pdf-lib text fields usually auto-size or clip. 
-                                    // Let's assume mostly single provider per day or just append.
-                                    dayField.setFontSize(8); // Reduce size to fit multiple
+                                    dayField.setFontSize(8);
                                 } else if (!existingText || existingText.length === 0) {
                                     dayField.setText(providerName);
                                 }
                             }
                         } catch (e) {
-                            console.log(`Field ${fieldName} not found or error setting text`);
+                            // Ignore missing day fields
                         }
                     }
                 }
             }
         }
 
-        // Flatten form to prevent further editing
-        form.flatten();
+        // Flatten form
+        try {
+            form.flatten();
+        } catch (e) {
+            console.error("Error flattening form:", e);
+        }
+
+        const filename = `Manchester Invoice - ${monthName} ${yearStr}.pdf`;
 
         // Check if we should save to record
         if (save_to_record) {
              const pdfBytes = await pdfDoc.save();
-             const filename = `Manchester Invoice - ${monthName} ${yearStr}.pdf`;
              const file = new File([pdfBytes], filename, { type: 'application/pdf' });
              
              // Upload file
@@ -150,7 +150,7 @@ Deno.serve(async (req) => {
         // 5. Return JSON with Base64
         return Response.json({ 
             pdf_base64: pdfBase64,
-            filename: `Manchester Invoice - ${monthName} ${yearStr}.pdf`
+            filename: filename
         });
 
     } catch (error) {
