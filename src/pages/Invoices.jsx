@@ -151,12 +151,16 @@ export default function Invoices() {
       
       return invoice;
     },
-    onSuccess: () => {
+    onSuccess: (invoice) => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['outside-income'] });
       setShowForm(false);
       setEditingInvoice(null);
       setPreselectedIncomes([]);
+
+      if (invoice && (invoice.program_group === 'UConn' || invoice.program_group === 'UConn Health')) {
+        handleGenerateUConnPdf(invoice);
+      }
     }
   });
 
@@ -200,11 +204,15 @@ export default function Invoices() {
       
       return invoice;
     },
-    onSuccess: () => {
+    onSuccess: (invoice) => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['outside-income'] });
       setShowForm(false);
       setEditingInvoice(null);
+
+      if (invoice && (invoice.program_group === 'UConn' || invoice.program_group === 'UConn Health')) {
+        handleGenerateUConnPdf(invoice);
+      }
     }
   });
 
