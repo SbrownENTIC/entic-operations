@@ -13,10 +13,18 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { invoice_id, pdf_url } = await req.json();
+    const payload = await req.json();
+    // Support both single (legacy) and array (new) formats
+    let itemsToProcess = [];
+    
+    if (payload.invoices && Array.isArray(payload.invoices)) {
+        itemsToProcess = payload.invoices;
+    } else if (payload.invoice_id && payload.pdf_url) {
+        itemsToProcess = [{ id: payload.invoice_id, pdf_url: payload.pdf_url }];
+    }
 
-    if (!invoice_id || !pdf_url) {
-      return Response.json({ error: 'Missing invoice_id or pdf_url' }, { status: 400 });
+    if (itemsToProcess.length === 0) {
+      return Response.json({ error: 'No invoices provided' }, { status: 400 });
     }
 
     const airtableApiKey = Deno.env.get('AIRTABLE_API_KEY');
@@ -24,34 +32,52 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'AIRTABLE_API_KEY not configured' }, { status: 500 });
     }
 
-    // Fetch invoice details
-    const invoice = await base44.asServiceRole.entities.Invoice.get(invoice_id);
-    if (!invoice) {
-      return Response.json({ error: 'Invoice not found' }, { status: 404 });
+    // Collect all invoice IDs
+    const invoiceIds = itemsToProcess.map(i => i.id);
+    const attachments = itemsToProcess.map(i => ({ "url": i.pdf_url }));
+
+    // Fetch all invoice details
+    const invoiceDetails = await Promise.all(
+        invoiceIds.map(id => base44.asServiceRole.entities.Invoice.get(id))
+    );
+
+    // Filter out any nulls if invoices weren't found
+    const validInvoices = invoiceDetails.filter(i => i);
+    
+    if (validInvoices.length === 0) {
+        return Response.json({ error: 'No valid invoices found' }, { status: 404 });
     }
 
-    // Fetch linked outside income to identify providers
-    const outsideIncomes = await base44.asServiceRole.entities.OutsideIncome.filter({
-        invoice_id: invoice.id
-    });
+    // Fetch linked outside income for ALL invoices to identify providers
+    // We do this concurrently
+    const allOutsideIncomes = await Promise.all(
+        validInvoices.map(inv => base44.asServiceRole.entities.OutsideIncome.filter({
+            invoice_id: inv.id
+        }))
+    );
+
+    // Flatten the array of arrays
+    const flatIncomes = allOutsideIncomes.flat();
 
     // Get unique provider IDs
-    const providerIds = [...new Set(outsideIncomes.map(inc => inc.provider_id))];
+    const providerIds = [...new Set(flatIncomes.map(inc => inc.provider_id))];
     const providers = await Promise.all(
         providerIds.map(id => base44.asServiceRole.entities.Provider.get(id))
     );
 
     const providerList = providers.map(p => `- ${p.full_name}`).join('\n');
-    const invoiceMonth = invoice.month || 'the invoice period';
+    
+    // Use the month from the first invoice (assuming batch is for same month)
+    const invoiceMonth = validInvoices[0].month || 'the invoice period';
+    const invoiceNumbers = validInvoices.map(i => i.invoice_number).join(', ');
 
     // Construct Email Content
-    const emailSubject = `UConn ${invoiceMonth} Invoices`;
-    
     // TEST MODE: Recipients updated as requested
+    const emailSubject = `UConn ${invoiceMonth} Invoices`;
     const toRecipient = "Steve.brown@enticmd.com";
     const ccRecipients = "brownsteven89@gmail.com, brownsteven89@icloud.com";
     
-    const emailBody = `Hi Allyson,\n\nHope your week is off to a fantastic start.\n\nThe ${invoiceMonth} clinic session details for you to process and enter for:\n\n${providerList}\n\nPlease see the attached invoice.\n\nThank you so much,\nSteve Brown\nOperations Manager`;
+    const emailBody = `Hi Allyson,\n\nHope your week is off to a fantastic start.\n\nThe ${invoiceMonth} clinic session details for you to process and enter for:\n\n${providerList}\n\nPlease see the attached invoices.\n\nThank you so much,\nSteve Brown\nOperations Manager`;
 
     // Prepare Airtable Record Fields - Mapping to the generic Notifications table
     const fields = {
@@ -59,12 +85,12 @@ Deno.serve(async (req) => {
         "Subject": emailSubject,
         "Body": emailBody,
         "From Name": 'ENTIC Operations Team',
-        "Reminder Name": `UConn Invoice: ${invoice.invoice_number || 'N/A'}`,
+        "Reminder Name": `UConn Invoices: ${invoiceNumbers}`,
         "Reminder Type": "Invoice Email",
         "Send Date": new Date().toISOString().split('T')[0],
         "Status": "Pending Email Send",
         "CC": ccRecipients,
-        "Attachments": [{ "url": pdf_url }]
+        "Attachments": attachments
     };
 
     // Create record in Airtable
@@ -85,10 +111,10 @@ Deno.serve(async (req) => {
         throw new Error(`Airtable Error: ${JSON.stringify(errorData)}`);
     }
 
-    return Response.json({ success: true, message: "UConn invoice email synced to Airtable successfully" });
+    return Response.json({ success: true, message: `Synced ${itemsToProcess.length} invoices to Airtable successfully` });
 
   } catch (error) {
-    console.error('Error syncing UConn invoice to Airtable:', error);
+    console.error('Error syncing UConn invoices to Airtable:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });

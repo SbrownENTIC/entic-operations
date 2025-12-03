@@ -352,13 +352,14 @@ export default function Invoices() {
   };
 
   const handleBulkSyncToAirtable = async () => {
-    if (!window.confirm(`Sync ${selectedInvoices.length} selected invoices to Airtable for emailing?`)) return;
+    if (!window.confirm(`Sync ${selectedInvoices.length} selected invoices to Airtable as ONE email?`)) return;
 
     setSyncingAirtable(true);
-    let success = 0;
-    let failed = 0;
+    const readyInvoices = [];
+    let failedCount = 0;
 
     try {
+      // 1. Prepare all PDFs
       for (const id of selectedInvoices) {
         const invoice = invoices.find(i => i.id === id);
         if (!invoice) continue;
@@ -377,7 +378,7 @@ export default function Invoices() {
               )) {
                 functionName = 'generateManchesterPDF';
               }
-              
+
               const res = await base44.functions.invoke(functionName, { 
                 invoice_id: invoice.id,
                 save_to_record: true 
@@ -391,23 +392,25 @@ export default function Invoices() {
         }
 
         if (pdfUrl) {
-          try {
-            await base44.functions.invoke('syncUConnInvoiceToAirtable', {
-              invoice_id: invoice.id,
-              pdf_url: pdfUrl
-            });
-            success++;
-          } catch (err) {
-            console.error("Sync failed for " + invoice.invoice_number, err);
-            failed++;
-          }
+          readyInvoices.push({ id: invoice.id, pdf_url: pdfUrl });
         } else {
-          failed++;
+          failedCount++;
         }
       }
-      alert(`Synced ${success} invoices to Airtable.${failed > 0 ? ` (${failed} failed)` : ''}`);
-      setSelectedInvoices([]);
+
+      // 2. Send as a single batch if we have valid invoices
+      if (readyInvoices.length > 0) {
+          await base44.functions.invoke('syncUConnInvoiceToAirtable', {
+              invoices: readyInvoices
+          });
+          alert(`Successfully synced ${readyInvoices.length} invoices as one email!${failedCount > 0 ? ` (${failedCount} failed to generate PDF)` : ''}`);
+          setSelectedInvoices([]);
+      } else {
+          alert('No valid PDFs could be prepared. Please check the invoices.');
+      }
+
     } catch (error) {
+      console.error("Bulk sync error", error);
       alert('Error syncing: ' + error.message);
     } finally {
       setSyncingAirtable(false);
