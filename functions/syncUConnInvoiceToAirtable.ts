@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
     const toRecipient = "amoffo@uchc.edu, jserrano@uchc.edu";
     const ccRecipients = "steve.brown@enticmd.com, heldridge@enticmd.com";
     
-    const emailBody = `Hi Allyson,\n\nHope your week is off to a fantastic start.\n\nThe ${invoiceMonth} clinic session details for you to process and enter for:\n\n${providerList}\n\nPlease see the attached invoices.\n\nThank you so much,\nSteve Brown\nOperations Manager`;
+    const emailBody = `Hey Team,\n\nHope your week is off to a fantastic start.\n\nThe ${invoiceMonth} clinic session details for you to process and enter for:\n\n${providerList}\n\nPlease see the attached invoices.\n\nThank you so much,\nSteve Brown\nOperations Manager`;
 
     // Prepare Airtable Record Fields - Mapping to the generic Notifications table
     const fields = {
