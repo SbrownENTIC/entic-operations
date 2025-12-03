@@ -356,57 +356,34 @@ export default function Invoices() {
 
     setSyncingAirtable(true);
     const readyInvoices = [];
-    let failedCount = 0;
+    const missingApproved = [];
 
     try {
-      // 1. Prepare all PDFs
+      // 1. Check for approved PDFs
       for (const id of selectedInvoices) {
         const invoice = invoices.find(i => i.id === id);
         if (!invoice) continue;
 
-        // Prefer approved invoice, fallback to draft
-        let pdfUrl = invoice.approved_invoice_url || invoice.draft_invoice_url;
-
-        // If no PDF exists, try to generate it
-        if (!pdfUrl) {
-           try {
-              // Determine which generation function to use
-              let functionName = 'generateUConnPDF';
-              if (invoice.program_group && (
-                  invoice.program_group.toLowerCase().includes('manchester') || 
-                  invoice.program_group.toLowerCase().includes('echn')
-              )) {
-                functionName = 'generateManchesterPDF';
-              }
-
-              const res = await base44.functions.invoke(functionName, { 
-                invoice_id: invoice.id,
-                save_to_record: true 
-              });
-              if (res.data && res.data.url) {
-                  pdfUrl = res.data.url;
-              }
-           } catch (e) {
-               console.error("Failed to generate PDF for " + invoice.invoice_number, e);
-           }
-        }
-
-        if (pdfUrl) {
-          readyInvoices.push({ id: invoice.id, pdf_url: pdfUrl });
+        if (!invoice.approved_invoice_url) {
+          missingApproved.push(invoice.invoice_number || 'Unknown Invoice');
         } else {
-          failedCount++;
+          readyInvoices.push({ id: invoice.id, pdf_url: invoice.approved_invoice_url });
         }
       }
 
-      // 2. Send as a single batch if we have valid invoices
+      if (missingApproved.length > 0) {
+          alert(`Cannot sync! The following invoices do not have an APPROVED PDF:\n\n${missingApproved.join('\n')}\n\nPlease ensure all selected invoices have an approved PDF before syncing.`);
+          setSyncingAirtable(false);
+          return;
+      }
+
+      // 2. Send as a single batch
       if (readyInvoices.length > 0) {
           await base44.functions.invoke('syncUConnInvoiceToAirtable', {
               invoices: readyInvoices
           });
-          alert(`Successfully synced ${readyInvoices.length} invoices as one email!${failedCount > 0 ? ` (${failedCount} failed to generate PDF)` : ''}`);
+          alert(`Successfully synced ${readyInvoices.length} invoices as one email!`);
           setSelectedInvoices([]);
-      } else {
-          alert('No valid PDFs could be prepared. Please check the invoices.');
       }
 
     } catch (error) {
