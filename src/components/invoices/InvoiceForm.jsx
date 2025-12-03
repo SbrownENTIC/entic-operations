@@ -249,13 +249,30 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
   }, [formData.amount_expected, formData.amount_received]);
 
   useEffect(() => {
-    if (formData.staff_member_id) {
-      const provider = providers.find(p => p.id === formData.staff_member_id);
-      if (provider) {
-        setFormData(prev => ({ ...prev, work_email: provider.email }));
-      }
+    // Get all unique provider IDs from linked incomes
+    const selectedIncomes = incomes.filter(inc => formData.outside_income_ids.includes(inc.id));
+    const linkedProviderIds = [...new Set(selectedIncomes.map(inc => inc.provider_id).filter(Boolean))];
+
+    // If no linked providers, fallback to staff_member_id
+    if (linkedProviderIds.length === 0 && formData.staff_member_id) {
+      linkedProviderIds.push(formData.staff_member_id);
+    } else if (formData.staff_member_id && !linkedProviderIds.includes(formData.staff_member_id)) {
+       // Ensure primary staff member is included
+       linkedProviderIds.push(formData.staff_member_id);
     }
-  }, [formData.staff_member_id, providers]);
+
+    const emails = linkedProviderIds.map(pid => {
+      const p = providers.find(prov => prov.id === pid);
+      return p?.email;
+    }).filter(Boolean);
+
+    // Join unique emails
+    const uniqueEmails = [...new Set(emails)].join(', ');
+
+    if (uniqueEmails) {
+      setFormData(prev => ({ ...prev, work_email: uniqueEmails }));
+    }
+  }, [formData.staff_member_id, formData.outside_income_ids, providers, incomes]);
 
   useEffect(() => {
     if (!manualEditFlags.current.status && formData.provider_paid) {

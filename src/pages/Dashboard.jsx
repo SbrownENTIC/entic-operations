@@ -128,6 +128,19 @@ export default function Dashboard() {
     staleTime: 30000
   });
 
+  const { data: outsideIncomes = [] } = useQuery({
+    queryKey: ['outside-income'],
+    queryFn: async () => {
+      try {
+        return await base44.entities.OutsideIncome.list();
+      } catch (error) {
+        return handleQueryError(error);
+      }
+    },
+    retry: false,
+    staleTime: 30000
+  });
+
   // Calculate up-to-date invoice amounts based on payments
   const processedInvoices = React.useMemo(() => {
     const invoiceAllocations = {};
@@ -439,11 +452,20 @@ export default function Dashboard() {
   );
 
   const providersMissingPriorInvoice = targetProviders.filter(provider => {
-    const hasInvoice = invoices.some(inv => 
+    // Check if provider is the primary staff member on an invoice for the month
+    const isPrimaryOnInvoice = invoices.some(inv => 
       inv.staff_member_id === provider.id && 
       inv.month === previousMonthStr
     );
-    return !hasInvoice;
+
+    // Check if provider has any linked outside income for the month that is attached to an invoice
+    const hasLinkedIncomeInvoiced = outsideIncomes.some(inc => 
+      inc.provider_id === provider.id && 
+      (inc.invoice_month === previousMonthStr || inc.workMonth === previousMonthStr) &&
+      inc.invoice_id
+    );
+
+    return !isPrimaryOnInvoice && !hasLinkedIncomeInvoiced;
   });
 
   // Format currency with commas
