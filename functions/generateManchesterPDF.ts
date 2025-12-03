@@ -121,7 +121,10 @@ Deno.serve(async (req) => {
             console.error("Error flattening form:", e);
         }
 
-        const filename = `Manchester Invoice - ${monthName} ${yearStr}.pdf`;
+        const invoiceProvider = providers.find(p => p.id === invoice.staff_member_id);
+        const invoiceProviderName = invoiceProvider ? invoiceProvider.full_name : "Provider";
+        const safeProgramGroup = (invoice.program_group || "Manchester").replace(/\//g, "-");
+        const filename = `${monthName} ${yearStr} - ${safeProgramGroup} On Call Invoice - ${invoiceProviderName}-Approved.pdf`;
 
         // Check if we should save to record
         if (save_to_record) {
