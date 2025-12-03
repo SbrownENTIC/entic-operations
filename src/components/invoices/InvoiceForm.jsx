@@ -363,10 +363,10 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
           [type === 'draft' ? 'draft_invoice_url' : 'approved_invoice_url']: file_url
         };
 
-        // Auto-update status to sent_to_vendor when approved invoice is uploaded
-        if (type === 'approved' && prev.status !== 'paid_to_entic' && prev.status !== 'provider_paid') {
-          updates.status = 'sent_to_vendor';
-          updates.invoice_sent_to_vendor = true;
+        // Auto-update status to approved when approved invoice is uploaded (Ready to Send)
+        if (type === 'approved' && prev.status !== 'paid_to_entic' && prev.status !== 'provider_paid' && prev.status !== 'sent_to_vendor') {
+          updates.status = 'approved';
+          updates.invoice_sent_to_vendor = false; // Not sent yet, just ready
           manualEditFlags.current.status = true;
         }
 

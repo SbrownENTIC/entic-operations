@@ -116,17 +116,20 @@ export default function Invoices() {
               window.open(response.data.url, '_blank');
 
               // Sync UConn invoices to Airtable for emailing
-              if (isUConn) {
-                try {
-                  await base44.functions.invoke('syncUConnInvoiceToAirtable', {
-                    invoice_id: invoice.id,
-                    pdf_url: response.data.url
-                  });
-                  console.log("UConn invoice synced to Airtable successfully");
-                } catch (syncError) {
-                  console.error("Error syncing UConn invoice to Airtable:", syncError);
+              // REMOVED: Auto-sync disabled to allow for batched sending via dashboard
+              /*
+                if (isUConn) {
+                  try {
+                    await base44.functions.invoke('syncUConnInvoiceToAirtable', {
+                      invoice_id: invoice.id,
+                      pdf_url: response.data.url
+                    });
+                    console.log("UConn invoice synced to Airtable successfully");
+                  } catch (syncError) {
+                    console.error("Error syncing UConn invoice to Airtable:", syncError);
+                  }
                 }
-              }
+              */
             }
           } catch (error) {
             console.error("Error auto-generating PDF:", error);
@@ -382,7 +385,20 @@ export default function Invoices() {
     await base44.functions.invoke('syncUConnInvoiceToAirtable', {
         invoices: readyInvoices
     });
-    alert(`Successfully synced ${readyInvoices.length} invoices as one email!`);
+
+    // Update status to 'sent_to_vendor' for all synced invoices
+    const timestamp = new Date().toISOString();
+    await Promise.all(readyInvoices.map(inv => 
+      base44.entities.Invoice.update(inv.id, {
+        status: 'sent_to_vendor',
+        invoice_sent_to_vendor: true,
+        sent_to_vendor_at: timestamp,
+        manual_status_override: true
+      })
+    ));
+
+    queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    alert(`Successfully synced ${readyInvoices.length} invoices as one email and updated statuses!`);
     setSelectedInvoices([]);
   }
 
