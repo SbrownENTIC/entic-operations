@@ -141,7 +141,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
         }
       }
 
-      // Auto-generate invoice number for non-UConn (e.g. "November 2025- O'Brien")
+      // Auto-generate invoice number for non-UConn (e.g. "November 2025- O'Brien, Alday")
       let generatedInvoiceNumber = '';
       if (programGroup !== 'UConn' && selectedIncomes.length > 0) {
           let dateObj = new Date();
@@ -154,15 +154,20 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
           }
 
           const monthYear = format(dateObj, 'MMMM yyyy');
-          const provider = providers.find(p => p.id === staffMemberId);
-          let lastName = '';
-          if (provider) {
-             const nameParts = provider.full_name.trim().split(' ');
-             lastName = nameParts[nameParts.length - 1];
-          }
 
-          if (lastName) {
-              generatedInvoiceNumber = `${monthYear}- ${lastName}`;
+          // Find all unique providers in selected incomes
+          const uniqueProviderIds = [...new Set(selectedIncomes.map(inc => inc.provider_id).filter(Boolean))];
+          const lastNames = uniqueProviderIds.map(pid => {
+              const p = providers.find(prov => prov.id === pid);
+              if (p) {
+                  const nameParts = p.full_name.trim().split(' ');
+                  return nameParts[nameParts.length - 1];
+              }
+              return '';
+          }).filter(Boolean).join(', ');
+
+          if (lastNames) {
+              generatedInvoiceNumber = `${monthYear}- ${lastNames}`;
           }
       }
 

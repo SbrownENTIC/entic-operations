@@ -121,10 +121,34 @@ Deno.serve(async (req) => {
             console.error("Error flattening form:", e);
         }
 
-        const invoiceProvider = providers.find(p => p.id === invoice.staff_member_id);
-        const invoiceProviderName = invoiceProvider ? invoiceProvider.full_name : "Provider";
+        // Get all unique provider names from linked incomes for the filename
+        let providerNamesStr = "Provider";
+        if (linkedIncomes.length > 0) {
+            const uniqueProviderIds = [...new Set(linkedIncomes.map(inc => inc.provider_id).filter(Boolean))];
+            const lastNames = uniqueProviderIds.map(pid => {
+                const p = providers.find(prov => prov.id === pid);
+                if (p) {
+                    const nameParts = p.full_name.trim().split(' ');
+                    return nameParts[nameParts.length - 1];
+                }
+                return '';
+            }).filter(Boolean);
+            
+            if (lastNames.length > 0) {
+                providerNamesStr = lastNames.join(', ');
+            }
+        } else {
+             // Fallback to invoice staff member if no incomes linked
+             const invoiceProvider = providers.find(p => p.id === invoice.staff_member_id);
+             if (invoiceProvider) {
+                const nameParts = invoiceProvider.full_name.trim().split(' ');
+                providerNamesStr = nameParts[nameParts.length - 1];
+             }
+        }
+
         const safeProgramGroup = (invoice.program_group || "Manchester").replace(/\//g, "-");
-        const filename = `${monthName} ${yearStr} - ${safeProgramGroup} On Call Invoice - ${invoiceProviderName}-Approved.pdf`;
+        // Format: November 2025- Manchester-ECHN On Call Invoice- Obrien, Alday Approved
+        const filename = `${monthName} ${yearStr}- ${safeProgramGroup} On Call Invoice- ${providerNamesStr} Approved.pdf`;
 
         // Check if we should save to record
         if (save_to_record) {
