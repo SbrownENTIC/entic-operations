@@ -7,9 +7,23 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Plus, Trash2 } from "lucide-react";
+import { X, Plus, Trash2, Check, ChevronsUpDown } from "lucide-react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 export default function OutsideIncomeForm({ income, providers, onSubmit, onCancel, isLoading }) {
+  const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     provider_id: '',
     program_location_id: '',
@@ -161,18 +175,48 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="provider_id">Provider *</Label>
-              <Select value={formData.provider_id} onValueChange={(value) => setFormData({ ...formData, provider_id: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select provider" />
-                </SelectTrigger>
-                <SelectContent>
-                  {providers.map(provider => (
-                    <SelectItem key={provider.id} value={provider.id}>
-                      {provider.full_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={open}
+                    className="w-full justify-between"
+                  >
+                    {formData.provider_id
+                      ? providers.find((provider) => provider.id === formData.provider_id)?.full_name
+                      : "Select provider..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                  <Command>
+                    <CommandInput placeholder="Search provider..." />
+                    <CommandList>
+                      <CommandEmpty>No provider found.</CommandEmpty>
+                      <CommandGroup>
+                        {providers.map((provider) => (
+                          <CommandItem
+                            key={provider.id}
+                            value={provider.full_name}
+                            onSelect={() => {
+                              setFormData({ ...formData, provider_id: provider.id });
+                              setOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={`mr-2 h-4 w-4 ${
+                                formData.provider_id === provider.id ? "opacity-100" : "opacity-0"
+                              }`}
+                            />
+                            {provider.full_name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="space-y-2">
