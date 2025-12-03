@@ -206,7 +206,7 @@ export default function Layout({ children, currentPageName }) {
       {/* Top Navigation */}
       <nav className="bg-white/90 backdrop-blur-sm border-b border-slate-200/60 shadow-sm sticky top-0 z-50">
         <div className="px-4 lg:px-6">
-          <div className="flex items-end justify-between h-20 pb-2">
+          <div className="flex items-end justify-between min-h-[6rem] py-2">
             {/* Logo and Brand */}
             <div className="flex flex-col gap-1 pb-1 shrink-0">
               <img 
