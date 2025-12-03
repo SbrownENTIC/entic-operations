@@ -39,6 +39,7 @@ export default function Invoices() {
   const [fixingHartford, setFixingHartford] = useState(false);
   const [syncingMonths, setSyncingMonths] = useState(false);
   const [fixMessage, setFixMessage] = useState('');
+  const [syncingAirtable, setSyncingAirtable] = useState(false);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -347,6 +348,69 @@ export default function Invoices() {
       if (Object.keys(updateData).length > 0) {
         bulkUpdateMutation.mutate({ ids: selectedInvoices, updateData });
       }
+    }
+  };
+
+  const handleBulkSyncToAirtable = async () => {
+    if (!window.confirm(`Sync ${selectedInvoices.length} selected invoices to Airtable for emailing?`)) return;
+
+    setSyncingAirtable(true);
+    let success = 0;
+    let failed = 0;
+
+    try {
+      for (const id of selectedInvoices) {
+        const invoice = invoices.find(i => i.id === id);
+        if (!invoice) continue;
+
+        // Prefer approved invoice, fallback to draft
+        let pdfUrl = invoice.approved_invoice_url || invoice.draft_invoice_url;
+
+        // If no PDF exists, try to generate it
+        if (!pdfUrl) {
+           try {
+              // Determine which generation function to use
+              let functionName = 'generateUConnPDF';
+              if (invoice.program_group && (
+                  invoice.program_group.toLowerCase().includes('manchester') || 
+                  invoice.program_group.toLowerCase().includes('echn')
+              )) {
+                functionName = 'generateManchesterPDF';
+              }
+              
+              const res = await base44.functions.invoke(functionName, { 
+                invoice_id: invoice.id,
+                save_to_record: true 
+              });
+              if (res.data && res.data.url) {
+                  pdfUrl = res.data.url;
+              }
+           } catch (e) {
+               console.error("Failed to generate PDF for " + invoice.invoice_number, e);
+           }
+        }
+
+        if (pdfUrl) {
+          try {
+            await base44.functions.invoke('syncUConnInvoiceToAirtable', {
+              invoice_id: invoice.id,
+              pdf_url: pdfUrl
+            });
+            success++;
+          } catch (err) {
+            console.error("Sync failed for " + invoice.invoice_number, err);
+            failed++;
+          }
+        } else {
+          failed++;
+        }
+      }
+      alert(`Synced ${success} invoices to Airtable.${failed > 0 ? ` (${failed} failed)` : ''}`);
+      setSelectedInvoices([]);
+    } catch (error) {
+      alert('Error syncing: ' + error.message);
+    } finally {
+      setSyncingAirtable(false);
     }
   };
 
@@ -690,6 +754,14 @@ export default function Invoices() {
                       className="bg-blue-600 hover:bg-blue-700"
                     >
                       {bulkUpdateMutation.isPending ? 'Updating...' : 'Update Selected'}
+                    </Button>
+                    <div className="w-px h-8 bg-blue-200 mx-2"></div>
+                    <Button 
+                      onClick={handleBulkSyncToAirtable}
+                      disabled={syncingAirtable}
+                      className="bg-indigo-600 hover:bg-indigo-700"
+                    >
+                      {syncingAirtable ? 'Syncing...' : 'Sync to Airtable'}
                     </Button>
                   </div>
                 </div>
