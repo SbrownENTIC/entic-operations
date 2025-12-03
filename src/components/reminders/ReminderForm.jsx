@@ -235,11 +235,14 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
         !formData.email_body) {  // Only auto-apply if email body is empty
       
       const closureText = formData.closure_name && formData.closure_name !== 'Office Closure' ? ` for ${formData.closure_name}` : '';
+      const closureTimeStr = formData.closure_time ? ` at ${formData.closure_time}` : '';
+      const reopenTimeStr = formData.reopen_time || '8am';
+
       const template = `Good Morning All,
  
-This email is to notify you that our office will be closed on ${format(parseISO(formData.closure_date), 'MMMM d, yyyy')}${closureText}.
+This email is to notify you that our office will be closed on ${format(parseISO(formData.closure_date), 'MMMM d, yyyy')}${closureTimeStr}${closureText}.
 
-The offices will re-open at 8am on ${format(parseISO(formData.reopen_date), 'MMMM d, yyyy')}.
+The offices will re-open at ${reopenTimeStr} on ${format(parseISO(formData.reopen_date), 'MMMM d, yyyy')}.
 
 ${formData.oncall_provider_list} ${formData.oncall_provider_list.includes(',') ? 'are' : 'is'} the on-call provider${formData.oncall_provider_list.includes(',') ? 's' : ''} and can be reached at ${formData.oncall_phone_list}.
  
@@ -252,7 +255,7 @@ The Operations Team
 
       setFormData(prev => ({ ...prev, email_body: template }));
     }
-  }, [formData.reminder_type, formData.closure_date, formData.reopen_date, formData.closure_name, formData.oncall_provider_list, formData.oncall_phone_list, formData.email_body]);
+  }, [formData.reminder_type, formData.closure_date, formData.reopen_date, formData.closure_name, formData.oncall_provider_list, formData.oncall_phone_list, formData.email_body, formData.closure_time, formData.reopen_time]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -288,11 +291,14 @@ The Operations Team
 
   const useHolidayTemplate = () => {
     const closureText = formData.closure_name && formData.closure_name !== 'Office Closure' ? ` for ${formData.closure_name}` : '';
+    const closureTimeStr = formData.closure_time ? ` at ${formData.closure_time}` : '';
+    const reopenTimeStr = formData.reopen_time || '8am';
+
     const template = `Good Morning All,
  
-This email is to notify you that our office will be closed on ${formData.closure_date ? format(parseISO(formData.closure_date), 'MMMM d, yyyy') : '(date of Closed)'}${closureText}.
+This email is to notify you that our office will be closed on ${formData.closure_date ? format(parseISO(formData.closure_date), 'MMMM d, yyyy') : '(date of Closed)'}${closureTimeStr}${closureText}.
 
-The offices will re-open at 8am on ${formData.reopen_date ? format(parseISO(formData.reopen_date), 'MMMM d, yyyy') : '(Re-Open Date)'}.
+The offices will re-open at ${reopenTimeStr} on ${formData.reopen_date ? format(parseISO(formData.reopen_date), 'MMMM d, yyyy') : '(Re-Open Date)'}.
 
 ${formData.oncall_provider_list ? formData.oncall_provider_list : '(On-Call Provider List)'} ${formData.oncall_provider_list && formData.oncall_provider_list.includes(',') ? 'are' : 'is'} the on-call provider${formData.oncall_provider_list && formData.oncall_provider_list.includes(',') ? 's' : ''} and can be reached at ${formData.oncall_phone_list || '(On-call Phone List)'}.
  
@@ -514,6 +520,16 @@ The Operations Team
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="closure_time">Closure Time (Optional)</Label>
+                  <Input
+                    id="closure_time"
+                    placeholder="e.g., 12:00 PM"
+                    value={formData.closure_time || ''}
+                    onChange={(e) => setFormData({ ...formData, closure_time: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="reopen_date">
                     Re-open Date
                     {manuallyEdited.reopen_date && formData.reminder_type === 'Holiday' && (
@@ -536,6 +552,16 @@ The Operations Team
                         : '✨ Auto-populated based on closure name'}
                     </p>
                   )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="reopen_time">Reopen Time (Optional)</Label>
+                  <Input
+                    id="reopen_time"
+                    placeholder="e.g., 8:00 AM"
+                    value={formData.reopen_time || ''}
+                    onChange={(e) => setFormData({ ...formData, reopen_time: e.target.value })}
+                  />
                 </div>
 
                 <div className="space-y-2">
