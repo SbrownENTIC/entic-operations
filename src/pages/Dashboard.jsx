@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -139,6 +139,26 @@ export default function Dashboard() {
     },
     retry: false,
     staleTime: 30000
+  });
+
+  const { data: invoiceWaivers = [] } = useQuery({
+    queryKey: ['invoice-waivers'],
+    queryFn: async () => {
+      try {
+        return await base44.entities.InvoiceWaiver.list();
+      } catch (error) {
+        return handleQueryError(error);
+      }
+    },
+    retry: false,
+    staleTime: 30000
+  });
+
+  const createWaiverMutation = useMutation({
+    mutationFn: (data) => base44.entities.InvoiceWaiver.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoice-waivers'] });
+    }
   });
 
   // Calculate up-to-date invoice amounts based on payments
@@ -465,7 +485,13 @@ export default function Dashboard() {
       inc.invoice_id
     );
 
-    return !isPrimaryOnInvoice && !hasLinkedIncomeInvoiced;
+    // Check if invoice is waived
+    const isWaived = invoiceWaivers.some(w => 
+      w.provider_id === provider.id && 
+      w.month === previousMonthStr
+    );
+
+    return !isPrimaryOnInvoice && !hasLinkedIncomeInvoiced && !isWaived;
   });
 
   // Format currency with commas
@@ -829,11 +855,26 @@ export default function Dashboard() {
           <CardContent className="p-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {providersMissingPriorInvoice.map(provider => (
-                <div key={provider.id} className="flex items-center p-3 bg-white rounded-lg border border-orange-200 shadow-sm">
-                  <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center mr-3 text-orange-700 font-bold text-xs">
-                    {provider.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                <div key={provider.id} className="flex items-center justify-between p-3 bg-white rounded-lg border border-orange-200 shadow-sm">
+                  <div className="flex items-center">
+                    <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center mr-3 text-orange-700 font-bold text-xs">
+                      {provider.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                    </div>
+                    <span className="font-medium text-slate-900 text-sm">{provider.full_name}</span>
                   </div>
-                  <span className="font-medium text-slate-900 text-sm">{provider.full_name}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => createWaiverMutation.mutate({
+                      provider_id: provider.id,
+                      month: previousMonthStr,
+                      reason: "No On Call Time to Record"
+                    })}
+                    className="text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-50 h-7"
+                    title="Mark as Not Required (No On Call Time)"
+                  >
+                    Not Required
+                  </Button>
                 </div>
               ))}
             </div>
