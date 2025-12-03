@@ -75,10 +75,11 @@ Deno.serve(async (req) => {
 
         // Fill Header Fields using safe setter
         safeSetField(form, 'Group', 'ENTIC');
-        safeSetField(form, 'Payment Rate', '1000');
+        safeSetField(form, 'Payment Rate', '1,000');
         safeSetField(form, 'MD Coverage Services Provided', monthName);
-        safeSetField(form, 'Month', monthName);
-        safeSetField(form, 'Year', yearStr);
+        // PDF field names appear to be swapped relative to visual labels
+        safeSetField(form, 'Month', yearStr);
+        safeSetField(form, 'Year', monthName);
 
         // Fill Calendar Days
         for (const income of linkedIncomes) {
