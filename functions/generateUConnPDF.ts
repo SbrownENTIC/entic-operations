@@ -141,7 +141,11 @@ Deno.serve(async (req) => {
              
              // Update invoice record
              await base44.entities.Invoice.update(invoice.id, {
-                 draft_invoice_url: file_url
+                 draft_invoice_url: file_url,
+                 approved_invoice_url: file_url,
+                 status: 'sent_to_vendor',
+                 invoice_sent_to_vendor: true,
+                 sent_to_vendor_at: new Date().toISOString()
              });
              
              return Response.json({ 

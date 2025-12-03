@@ -107,15 +107,6 @@ export default function Invoices() {
 
             if (response.data && response.data.url) {
               window.open(response.data.url, '_blank');
-              // Explicitly update the cache with the new URL to ensure UI updates immediately
-              queryClient.setQueryData(['invoices'], (oldData) => {
-                if (!oldData) return oldData;
-                return oldData.map(inv => 
-                  inv.id === invoice.id 
-                    ? { ...inv, draft_invoice_url: response.data.url } 
-                    : inv
-                );
-              });
             }
           } catch (error) {
             console.error("Error auto-generating PDF:", error);
