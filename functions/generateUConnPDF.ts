@@ -99,14 +99,12 @@ Deno.serve(async (req) => {
         // Flatten form to prevent further editing (optional, makes it look like a regular doc)
         form.flatten();
 
-        const pdfBytes = await pdfDoc.save();
+        const pdfBase64 = await pdfDoc.saveAsBase64();
 
-        // 5. Return PDF
-        return new Response(pdfBytes, {
-            headers: {
-                "Content-Type": "application/pdf",
-                "Content-Disposition": `attachment; filename="Invoice_${invoice.invoice_number || 'draft'}.pdf"`
-            }
+        // 5. Return JSON with Base64
+        return Response.json({ 
+            pdf_base64: pdfBase64,
+            filename: `Invoice_${invoice.invoice_number || 'draft'}.pdf`
         });
 
     } catch (error) {

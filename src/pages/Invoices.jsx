@@ -320,23 +320,29 @@ export default function Invoices() {
   const handleGeneratePDF = async (invoice) => {
     try {
       const response = await base44.functions.invoke('generateUConnPDF', { invoice_id: invoice.id });
-      // The response data is the PDF blob directly if using simple fetch/axios, 
-      // but base44 sdk might return it in data property. 
-      // Given the function returns 'new Response(pdfBytes)', the SDK client usually handles this.
-      // However, standard SDK invoke usually expects JSON. 
-      // If the backend returns a raw stream/blob, we might need to handle it carefully.
-      // Let's assume standard blob handling:
       
-      // If the SDK returns the raw response object or data:
-      const blob = new Blob([response.data], { type: 'application/pdf' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Invoice_${invoice.invoice_number || 'draft'}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      a.remove();
+      if (response.data && response.data.pdf_base64) {
+        // Convert Base64 to Blob
+        const byteCharacters = atob(response.data.pdf_base64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'application/pdf' });
+
+        // Trigger Download
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = response.data.filename || `Invoice_${invoice.invoice_number || 'draft'}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+      } else {
+        throw new Error("Invalid response format");
+      }
     } catch (error) {
       console.error("Error generating PDF:", error);
       alert("Failed to generate PDF. Please try again.");
