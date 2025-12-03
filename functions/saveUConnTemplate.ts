@@ -4,24 +4,17 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         
-        // The URL provided
         const templateUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/691521cbabed77e5043c7037/5b1f5b2f6_MasterUConnServiceInvoice.pdf";
         
-        // Fetch the PDF
         const response = await fetch(templateUrl);
-        const arrayBuffer = await response.arrayBuffer();
+        const blob = await response.blob();
         
-        // Convert to base64 for upload
-        let binary = '';
-        const bytes = new Uint8Array(arrayBuffer);
-        for (let i = 0; i < bytes.byteLength; i++) {
-            binary += String.fromCharCode(bytes[i]);
-        }
-        const base64File = btoa(binary);
+        // Create a File object directly from the blob
+        const file = new File([blob], "MasterUConnServiceInvoice.pdf", { type: "application/pdf" });
 
-        // Upload to Private Storage
+        // Upload to Private Storage using the File object
         const uploadRes = await base44.asServiceRole.integrations.Core.UploadPrivateFile({
-            file: base64File
+            file: file
         });
 
         return Response.json({ 
@@ -30,6 +23,6 @@ Deno.serve(async (req) => {
         });
 
     } catch (error) {
-        return Response.json({ error: error.message }, { status: 500 });
+        return Response.json({ error: error.message, stack: error.stack }, { status: 500 });
     }
 });
