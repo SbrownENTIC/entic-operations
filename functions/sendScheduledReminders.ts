@@ -51,12 +51,15 @@ Deno.serve(async (req) => {
               day: 'numeric' 
             });
           };
+
+          const closureTimeStr = reminder.closure_time ? ` at ${reminder.closure_time}` : '';
+          const reopenTimeStr = reminder.reopen_time || '8am';
           
           emailBody = `Good Morning All,
  
-This email is to notify you that our office will be closed on ${formatDate(closureDate)} for the ${reminder.holiday_name || 'Holiday'} Holiday.
+This email is to notify you that our office will be closed on ${formatDate(closureDate)}${closureTimeStr} for the ${reminder.holiday_name || 'Holiday'} Holiday.
 
-The offices will re-open at 8am on ${reopenDate ? formatDate(reopenDate) : 'the next business day'}.
+The offices will re-open at ${reopenTimeStr} on ${reopenDate ? formatDate(reopenDate) : 'the next business day'}.
 
 ${reminder.oncall_provider_list || '(On-Call Provider)'} on call during office closure is the on-call provider and can be reached at ${reminder.oncall_phone_list || '(phone number)'}.
  

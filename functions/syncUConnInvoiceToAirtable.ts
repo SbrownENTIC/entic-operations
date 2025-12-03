@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 const AIRTABLE_BASE_ID = 'app6seexOdkDrMl2U'; // Base ID for ENTIC
-const UCONN_INVOICES_TABLE = 'UConn Invoices';
+const NOTIFICATIONS_TABLE = 'Notifications'; // Using the generic notifications table
 
 Deno.serve(async (req) => {
   try {
@@ -51,23 +51,22 @@ Deno.serve(async (req) => {
     
     const emailBody = `Hi Allyson,\n\nHope your week is off to a fantastic start.\n\nThe ${invoiceMonth} clinic session details for you to process and enter for:\n\n${providerList}\n\nYou can view the invoice here: ${pdf_url}\n\nThank you so much,\nSteve Brown\nOperations Manager`;
 
-    // Prepare Airtable Record Fields
+    // Prepare Airtable Record Fields - Mapping to the generic Notifications table
     const fields = {
-        "Invoice Number": invoice.invoice_number || 'N/A',
-        "Month": invoiceMonth,
-        "Providers": providers.map(p => p.full_name).join(', '),
-        "PDF URL": pdf_url,
-        "Status": "Ready for Email",
-        "Email Subject": emailSubject,
-        "Email Body": emailBody,
-        "To": toRecipient,
-        "CC": ccRecipients,
-        "Invoice ID": invoice_id
+        "Recipient": toRecipient,
+        "Subject": emailSubject,
+        "Body": emailBody,
+        "From Name": 'ENTIC Operations Team',
+        "Reminder Name": `UConn Invoice: ${invoice.invoice_number || 'N/A'}`,
+        "Reminder Type": "Invoice Email",
+        "Send Date": new Date().toISOString().split('T')[0],
+        "Status": "Pending Email Send",
+        "CC": ccRecipients
     };
 
     // Create record in Airtable
     const response = await fetch(
-        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(UCONN_INVOICES_TABLE)}`,
+        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(NOTIFICATIONS_TABLE)}`,
         {
             method: 'POST',
             headers: {
@@ -83,7 +82,7 @@ Deno.serve(async (req) => {
         throw new Error(`Airtable Error: ${JSON.stringify(errorData)}`);
     }
 
-    return Response.json({ success: true, message: "UConn invoice synced to Airtable successfully" });
+    return Response.json({ success: true, message: "UConn invoice email synced to Airtable successfully" });
 
   } catch (error) {
     console.error('Error syncing UConn invoice to Airtable:', error);
