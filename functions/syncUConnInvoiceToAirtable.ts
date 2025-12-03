@@ -46,10 +46,12 @@ Deno.serve(async (req) => {
 
     // Construct Email Content
     const emailSubject = `UConn ${invoiceMonth} Invoices`;
-    const toRecipient = "amoffo@uchc.edu";
-    const ccRecipients = "steve.brown@enticmd.com, Heldridge@enticmd.com";
     
-    const emailBody = `Hi Allyson,\n\nHope your week is off to a fantastic start.\n\nThe ${invoiceMonth} clinic session details for you to process and enter for:\n\n${providerList}\n\nYou can view the invoice here: ${pdf_url}\n\nThank you so much,\nSteve Brown\nOperations Manager`;
+    // TEST MODE: Recipients updated as requested
+    const toRecipient = "Steve.brown@enticmd.com";
+    const ccRecipients = "brownsteven89@gmail.com, brownsteven89@icloud.com";
+    
+    const emailBody = `Hi Allyson,\n\nHope your week is off to a fantastic start.\n\nThe ${invoiceMonth} clinic session details for you to process and enter for:\n\n${providerList}\n\nPlease see the attached invoice.\n\nThank you so much,\nSteve Brown\nOperations Manager`;
 
     // Prepare Airtable Record Fields - Mapping to the generic Notifications table
     const fields = {
@@ -61,7 +63,8 @@ Deno.serve(async (req) => {
         "Reminder Type": "Invoice Email",
         "Send Date": new Date().toISOString().split('T')[0],
         "Status": "Pending Email Send",
-        "CC": ccRecipients
+        "CC": ccRecipients,
+        "Attachments": [{ "url": pdf_url }]
     };
 
     // Create record in Airtable
