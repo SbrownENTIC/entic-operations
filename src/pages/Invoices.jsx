@@ -96,11 +96,17 @@ export default function Invoices() {
         }
       }
 
-      // Auto-generate PDF for UConn invoices
-      // Check case-insensitive for UConn in program group
-      if (data.program_group?.toLowerCase().includes('uconn')) {
+      // Auto-generate PDF based on program group
+      const isUConn = data.program_group?.toLowerCase().includes('uconn');
+      const isManchester = data.program_group && (
+        data.program_group.toLowerCase().includes('manchester') || 
+        data.program_group.toLowerCase().includes('echn')
+      );
+
+      if (isUConn || isManchester) {
           try {
-            const response = await base44.functions.invoke('generateUConnPDF', { 
+            const functionName = isManchester ? 'generateManchesterPDF' : 'generateUConnPDF';
+            const response = await base44.functions.invoke(functionName, { 
                 invoice_id: invoice.id, 
                 save_to_record: true 
             });
