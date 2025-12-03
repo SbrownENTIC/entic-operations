@@ -107,6 +107,15 @@ export default function Invoices() {
 
             if (response.data && response.data.url) {
               window.open(response.data.url, '_blank');
+              // Explicitly update the cache with the new URL to ensure UI updates immediately
+              queryClient.setQueryData(['invoices'], (oldData) => {
+                if (!oldData) return oldData;
+                return oldData.map(inv => 
+                  inv.id === invoice.id 
+                    ? { ...inv, draft_invoice_url: response.data.url } 
+                    : inv
+                );
+              });
             }
           } catch (error) {
             console.error("Error auto-generating PDF:", error);
@@ -797,6 +806,17 @@ export default function Invoices() {
                         </td>
                         <td className="p-4 text-right no-print">
                           <div className="flex gap-2 justify-end">
+                            {invoice.draft_invoice_url && (
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => window.open(invoice.draft_invoice_url, '_blank')}
+                                title="View Attached PDF"
+                                className="text-purple-600 hover:text-purple-700"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                            )}
                             <Button 
                               variant="ghost" 
                               size="sm"
