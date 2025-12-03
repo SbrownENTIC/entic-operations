@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Printer, AlertCircle } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Printer, AlertCircle, FileDown } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, parseISO } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -315,6 +315,32 @@ export default function Invoices() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleGeneratePDF = async (invoice) => {
+    try {
+      const response = await base44.functions.invoke('generateUConnPDF', { invoice_id: invoice.id });
+      // The response data is the PDF blob directly if using simple fetch/axios, 
+      // but base44 sdk might return it in data property. 
+      // Given the function returns 'new Response(pdfBytes)', the SDK client usually handles this.
+      // However, standard SDK invoke usually expects JSON. 
+      // If the backend returns a raw stream/blob, we might need to handle it carefully.
+      // Let's assume standard blob handling:
+      
+      // If the SDK returns the raw response object or data:
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Invoice_${invoice.invoice_number || 'draft'}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      alert("Failed to generate PDF. Please try again.");
+    }
   };
 
   const handleFixHartfordInvoices = async () => {
@@ -747,6 +773,15 @@ export default function Invoices() {
                         </td>
                         <td className="p-4 text-right no-print">
                           <div className="flex gap-2 justify-end">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleGeneratePDF(invoice)}
+                              title="Generate PDF"
+                              className="text-blue-600 hover:text-blue-700"
+                            >
+                              <FileDown className="w-4 h-4" />
+                            </Button>
                             <Button 
                               variant="ghost" 
                               size="sm"
