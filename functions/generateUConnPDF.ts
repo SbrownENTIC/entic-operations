@@ -85,27 +85,27 @@ Deno.serve(async (req) => {
         const invoiceDateField = form.getTextField('InvoiceDate');
         if (invoiceDateField) invoiceDateField.setText(formatDate(invoice.invoice_date));
 
-        // Fill Rows (Up to 12 as per typical invoice size, but loop safely)
-        // Note: Assuming fields QtyX, DescX, UnitPriceX, LineTotalX where X starts at 1
-        for (let i = 0; i < lineItems.length; i++) {
-            const item = lineItems[i];
+        // Fill Rows (Iterate through potential rows to clear defaults if empty)
+        // We iterate up to 20 to ensure we cover all rows in the template and clear any default values (like $0.00)
+        for (let i = 0; i < 20; i++) {
+            const item = lineItems[i]; // undefined if we ran out of items
             const rowNum = i + 1;
             
             try {
                 const qtyField = form.getTextField(`Qty${rowNum}`);
-                if (qtyField) qtyField.setText(item.quantity);
+                if (qtyField) qtyField.setText(item ? item.quantity : '');
 
                 const descField = form.getTextField(`Desc${rowNum}`);
-                if (descField) descField.setText(item.description);
+                if (descField) descField.setText(item ? item.description : '');
 
                 const priceField = form.getTextField(`UnitPrice${rowNum}`);
-                if (priceField) priceField.setText(item.unitPrice);
+                if (priceField) priceField.setText(item ? item.unitPrice : '');
                 
                 const totalField = form.getTextField(`LineTotal${rowNum}`);
-                if (totalField) totalField.setText(item.lineTotal);
+                if (totalField) totalField.setText(item ? item.lineTotal : '');
                 
             } catch (err) {
-                // Swallow error if field doesn't exist (e.g. ran out of rows in template)
+                // Swallow error if field doesn't exist (e.g. reached end of template rows)
             }
         }
 
