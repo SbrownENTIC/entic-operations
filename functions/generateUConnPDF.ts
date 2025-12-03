@@ -132,6 +132,31 @@ Deno.serve(async (req) => {
             }
         }
 
+        // Check if we should save to record
+        const { save_to_record } = await req.json().catch(() => ({}));
+        
+        if (save_to_record) {
+             const pdfBytes = await pdfDoc.save();
+             const filename = `${filenameProvider}- UConn- ${invoice.month || 'Draft'}.pdf`;
+             const file = new File([pdfBytes], filename, { type: 'application/pdf' });
+             
+             // Upload file
+             const { file_url } = await base44.integrations.Core.UploadFile({ file });
+             
+             // Update invoice record
+             await base44.entities.Invoice.update(invoice.id, {
+                 draft_invoice_url: file_url
+             });
+             
+             return Response.json({ 
+                 success: true, 
+                 url: file_url,
+                 filename: filename
+             });
+        }
+
+        const pdfBase64 = await pdfDoc.saveAsBase64();
+
         // 5. Return JSON with Base64
         return Response.json({ 
             pdf_base64: pdfBase64,

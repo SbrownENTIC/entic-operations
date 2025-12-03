@@ -95,6 +95,14 @@ export default function Invoices() {
           });
         }
       }
+
+      // Auto-generate PDF for UConn invoices
+      if (data.program_group === 'UConn') {
+          await base44.functions.invoke('generateUConnPDF', { 
+              invoice_id: invoice.id, 
+              save_to_record: true 
+          });
+      }
       
       // Auto-create Hartford Hospital Directorship invoice if this is an RVU invoice
       if (data.program_group === 'Hartford Hospital' && data.invoice_number && !data.invoice_number.includes('Directorship')) {
