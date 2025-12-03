@@ -337,7 +337,17 @@ export default function Invoices() {
 
   const handleGeneratePDF = async (invoice) => {
     try {
-      const response = await base44.functions.invoke('generateUConnPDF', { invoice_id: invoice.id });
+      let functionName = 'generateUConnPDF';
+      
+      // Check if it's a Manchester/ECHN invoice
+      if (invoice.program_group && (
+          invoice.program_group.toLowerCase().includes('manchester') || 
+          invoice.program_group.toLowerCase().includes('echn')
+      )) {
+        functionName = 'generateManchesterPDF';
+      }
+
+      const response = await base44.functions.invoke(functionName, { invoice_id: invoice.id });
       
       if (response.data && response.data.pdf_base64) {
         // Convert Base64 to Blob
