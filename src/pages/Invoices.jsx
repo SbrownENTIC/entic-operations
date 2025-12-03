@@ -97,7 +97,7 @@ export default function Invoices() {
       }
 
       // Auto-generate PDF for UConn invoices
-      if (data.program_group === 'UConn') {
+      if (data.program_group?.includes('UConn')) {
           await base44.functions.invoke('generateUConnPDF', { 
               invoice_id: invoice.id, 
               save_to_record: true 

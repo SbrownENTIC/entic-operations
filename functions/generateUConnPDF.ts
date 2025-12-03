@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
         const base44 = createClientFromRequest(req);
         
         // 1. Parse request
-        const { invoice_id } = await req.json();
+        const { invoice_id, save_to_record } = await req.json();
         if (!invoice_id) {
             return Response.json({ error: "invoice_id is required" }, { status: 400 });
         }
@@ -133,8 +133,6 @@ Deno.serve(async (req) => {
         }
 
         // Check if we should save to record
-        const { save_to_record } = await req.json().catch(() => ({}));
-        
         if (save_to_record) {
              const pdfBytes = await pdfDoc.save();
              const filename = `${filenameProvider}- UConn- ${invoice.month || 'Draft'}.pdf`;
