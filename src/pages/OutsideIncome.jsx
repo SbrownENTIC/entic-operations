@@ -568,87 +568,87 @@ export default function OutsideIncome() {
                 <table className="w-full">
                     <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                       <tr>
-                        <th className="text-left p-4 text-sm font-semibold text-slate-700 w-12 no-print">
+                        <th className="text-left px-3 py-2 text-xs font-semibold text-slate-700 w-10 no-print">
                           <Checkbox
                             checked={selectedIncomes.length === sortedIncomes.length && sortedIncomes.length > 0}
                             onCheckedChange={toggleAllSelection}
                           />
                         </th>
                         <th
-                          className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
+                          className="text-left px-3 py-2 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
                           onClick={() => handleSort('providerName')}
                         >
                           Provider <SortIcon field="providerName" />
                         </th>
                         <th
-                          className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
+                          className="text-left px-3 py-2 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
                           onClick={() => handleSort('facility_name')}
                         >
                           Facility <SortIcon field="facility_name" />
                         </th>
                         <th
-                          className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
+                          className="text-left px-3 py-2 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
                           onClick={() => handleSort('workMonth')}
                         >
                           Work Month <SortIcon field="workMonth" />
                         </th>
                         <th
-                          className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
+                          className="text-left px-3 py-2 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
                           onClick={() => handleSort('temp_oncall_start_date')}
                         >
                           On-Call Start <SortIcon field="temp_oncall_start_date" />
                         </th>
                         <th
-                          className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
+                          className="text-left px-3 py-2 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
                           onClick={() => handleSort('days_worked')}
                         >
                           Days/RVUs <SortIcon field="days_worked" />
                         </th>
                         <th
-                          className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
+                          className="text-left px-3 py-2 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
                           onClick={() => handleSort('rate')}
                         >
                           Rate <SortIcon field="rate" />
                         </th>
                         <th
-                          className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
+                          className="text-left px-3 py-2 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
                           onClick={() => handleSort('total_amount')}
                         >
                           Total <SortIcon field="total_amount" />
                         </th>
                         <th
-                          className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
+                          className="text-left px-3 py-2 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
                           onClick={() => handleSort('invoice_month')}
                         >
                           Invoice Month <SortIcon field="invoice_month" />
                         </th>
                         <th
-                          className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
+                          className="text-left px-3 py-2 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
                           onClick={() => handleSort('status')}
                         >
                           Status <SortIcon field="status" />
                         </th>
-                        <th className="text-right p-4 text-sm font-semibold text-slate-700 no-print">Actions</th>
+                        <th className="text-right px-3 py-2 text-xs font-semibold text-slate-700 no-print">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {sortedIncomes.map((income) => (
                         <tr key={income.id} className={`border-b border-slate-100 hover:bg-slate-50 transition-colors print:hover:bg-white ${selectedIncomes.includes(income.id) ? 'bg-blue-50' : ''}`}>
-                          <td className="p-4 no-print">
+                          <td className="px-3 py-2 no-print">
                             <Checkbox
                               checked={selectedIncomes.includes(income.id)}
                               onCheckedChange={() => toggleSelection(income.id)}
                             />
                           </td>
-                          <td className="p-4 font-medium text-slate-900">
+                          <td className="px-3 py-2 text-sm font-medium text-slate-900">
                             {income.provider?.full_name || '-'}
                           </td>
-                          <td className="p-4 text-slate-600">{income.facility_name || '-'}</td>
-                          <td className="p-4 text-slate-600 font-medium">{income.workMonth}</td>
-                          <td className="p-4 text-slate-600">
+                          <td className="px-3 py-2 text-sm text-slate-600">{income.facility_name || '-'}</td>
+                          <td className="px-3 py-2 text-sm text-slate-600 font-medium">{income.workMonth}</td>
+                          <td className="px-3 py-2 text-sm text-slate-600">
                             {income.onCallStart ? format(parseISO(income.onCallStart), 'MM-dd-yyyy') : '-'}
                           </td>
-                          <td className="p-4 text-slate-600 font-medium">
+                          <td className="px-3 py-2 text-sm text-slate-600 font-medium">
                             {income.isHartfordRVU ? (
                               <span className="text-blue-600">{formatNumber(income.total_rvus)} RVUs</span>
                             ) : income.isDirectorship ? (
@@ -657,7 +657,7 @@ export default function OutsideIncome() {
                               <span>{income.days_worked || 0} days</span>
                             )}
                           </td>
-                          <td className="p-4 text-slate-600">
+                          <td className="px-3 py-2 text-sm text-slate-600">
                             ${formatCurrency(income.rate || 0)}
                             {income.isHartfordRVU ? (
                               <span className="text-xs text-slate-500">/RVU</span>
@@ -665,16 +665,16 @@ export default function OutsideIncome() {
                               <span className="text-xs text-slate-500">/month</span>
                             ) : null}
                           </td>
-                          <td className="p-4 font-medium text-green-600">
+                          <td className="px-3 py-2 text-sm font-medium text-green-600">
                             ${formatCurrency(income.total_amount || 0)}
                           </td>
-                          <td className="p-4 text-slate-600">{income.invoice_month || '-'}</td>
-                          <td className="p-4">
-                            <Badge className={statusColors[income.status]}>
+                          <td className="px-3 py-2 text-sm text-slate-600">{income.invoice_month || '-'}</td>
+                          <td className="px-3 py-2">
+                            <Badge className={`${statusColors[income.status]} text-[10px]`}>
                               {income.status?.charAt(0).toUpperCase() + income.status?.slice(1)}
                             </Badge>
                           </td>
-                          <td className="p-4 text-right no-print">
+                          <td className="px-3 py-2 text-right no-print">
                             <div className="flex gap-2 justify-end">
                               <Button
                                 variant="ghost"

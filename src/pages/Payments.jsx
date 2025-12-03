@@ -669,62 +669,62 @@ export default function Payments() {
                 <table className="w-full">
                   <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                     <tr>
-                      <th className="text-left p-4 text-sm font-semibold text-slate-700 w-16">
+                      <th className="text-left px-3 py-2 text-xs font-semibold text-slate-700 w-12">
                         #
                       </th>
                       <th
-                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 no-print"
+                        className="text-left px-3 py-2 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 no-print"
                         onClick={() => handleSort('payment_date')}
                       >
                         Payment Date <SortIcon field="payment_date" />
                       </th>
                       <th
-                        className="text-left p-4 text-sm font-semibold text-slate-700 print:block hidden"
+                        className="text-left px-3 py-2 text-xs font-semibold text-slate-700 print:block hidden"
                       >
                         Payment Date
                       </th>
                       <th
-                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                        className="text-left px-3 py-2 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                         onClick={() => handleSort('payment_month')}
                       >
                         Month <SortIcon field="payment_month" />
                       </th>
                       <th
-                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                        className="text-left px-3 py-2 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                         onClick={() => handleSort('payer')}
                       >
                         Payer <SortIcon field="payer" />
                       </th>
                       <th
-                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                        className="text-left px-3 py-2 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                         onClick={() => handleSort('payment_method')}
                       >
                         Method <SortIcon field="payment_method" />
                       </th>
                       <th
-                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                        className="text-left px-3 py-2 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                         onClick={() => handleSort('reference_number')}
                       >
                         Reference <SortIcon field="reference_number" />
                       </th>
                       <th
-                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                        className="text-left px-3 py-2 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                         onClick={() => handleSort('total_amount')}
                       >
                         Amount <SortIcon field="total_amount" />
                       </th>
-                      <th className="text-left p-4 text-sm font-semibold text-slate-700">
+                      <th className="text-left px-3 py-2 text-xs font-semibold text-slate-700">
                         Unallocated
                       </th>
                       <th
-                        className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                        className="text-left px-3 py-2 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                         onClick={() => handleSort('status')}
                       >
                         Status <SortIcon field="status" />
                       </th>
-                      <th className="text-left p-4 text-sm font-semibold text-slate-700">Linked Invoices</th>
-                      <th className="text-left p-4 text-sm font-semibold text-slate-700">Allocations</th>
-                      <th className="text-right p-4 text-sm font-semibold text-slate-700 no-print">Actions</th>
+                      <th className="text-left px-3 py-2 text-xs font-semibold text-slate-700">Linked Invoices</th>
+                      <th className="text-left px-3 py-2 text-xs font-semibold text-slate-700">Allocations</th>
+                      <th className="text-right px-3 py-2 text-xs font-semibold text-slate-700 no-print">Actions</th>
                       </tr>
                       </thead>
                       <tbody>
@@ -732,24 +732,24 @@ export default function Payments() {
                       <tr key={payment.id} className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${
                         payment.unallocated_amount > 0 ? 'bg-orange-50/30' : ''
                       }`}>
-                        <td className="p-4 text-slate-500 font-medium">
+                        <td className="px-3 py-2 text-xs text-slate-500 font-medium">
                           {index + 1}
                         </td>
-                        <td className="p-4 text-slate-600">
+                        <td className="px-3 py-2 text-xs text-slate-600">
                           {format(parseISO(payment.payment_date), 'MMM d, yyyy')}
                         </td>
-                        <td className="p-4 text-slate-600">
+                        <td className="px-3 py-2 text-xs text-slate-600">
                           {payment.payment_month || '-'}
                         </td>
-                        <td className="p-4 font-medium text-slate-900">{payment.payer}</td>
-                        <td className="p-4 text-slate-600">{payment.payment_method?.replace(/_/g, ' ')}</td>
-                        <td className="p-4 text-slate-600 font-mono text-sm">
+                        <td className="px-3 py-2 text-xs font-medium text-slate-900">{payment.payer}</td>
+                        <td className="px-3 py-2 text-xs text-slate-600">{payment.payment_method?.replace(/_/g, ' ')}</td>
+                        <td className="px-3 py-2 text-xs text-slate-600 font-mono">
                           {payment.reference_number || '-'}
                         </td>
-                        <td className="p-4 font-medium text-green-600">
+                        <td className="px-3 py-2 text-xs font-medium text-green-600">
                           ${formatCurrency(payment.total_amount || 0)}
                         </td>
-                        <td className="p-4">
+                        <td className="px-3 py-2 text-xs">
                           {payment.unallocated_amount > 0 ? (
                             <span className="font-bold text-orange-600">
                               ${formatCurrency(payment.unallocated_amount)}
@@ -758,18 +758,18 @@ export default function Payments() {
                             <span className="text-slate-400">-</span>
                           )}
                         </td>
-                        <td className="p-4">
-                          <Badge className={`${statusColors[payment.status]} badge`}>
+                        <td className="px-3 py-2">
+                          <Badge className={`${statusColors[payment.status]} badge text-[10px]`}>
                             {payment.status === 'entic_paid' ? 'ENTIC Paid' : capitalize(payment.status)}
                           </Badge>
                         </td>
-                        <td className="p-4">
+                        <td className="px-3 py-2">
                           {payment.allocations && payment.allocations.length > 0 ? (
                             <div className="space-y-1">
                               {payment.allocations.map((allocation, idx) => {
                                 const invoice = invoices.find(inv => inv.id === allocation.invoice_id);
                                 return (
-                                  <div key={idx} className="text-xs">
+                                  <div key={idx} className="text-[10px]">
                                     <span className="font-medium text-slate-900">
                                       {invoice?.invoice_number || 'N/A'}
                                     </span>
@@ -783,13 +783,13 @@ export default function Payments() {
                               })}
                             </div>
                           ) : (
-                            <span className="text-slate-400 text-sm">-</span>
+                            <span className="text-slate-400 text-[10px]">-</span>
                           )}
                         </td>
-                        <td className="p-4 text-slate-600">
+                        <td className="px-3 py-2 text-xs text-slate-600">
                           {payment.allocations?.length || 0} {payment.allocations?.length === 1 ? 'Allocation' : 'Allocations'}
                         </td>
-                        <td className="p-4 text-right no-print">
+                        <td className="px-3 py-2 text-right no-print">
                           <div className="flex gap-2 justify-end">
                             <Button
                               variant="ghost"
