@@ -8,11 +8,6 @@ const ON_CALL_PERIOD_TABLE_ID = 'tbl3o3gNR7ca4rcTW';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    
-    if (!user) {
-      return Response.json({ error: 'Base44 Session Invalid. Please refresh the page.' }, { status: 401 });
-    }
 
     const airtableApiKey = Deno.env.get('AIRTABLE_API_KEY');
     if (!airtableApiKey) {
