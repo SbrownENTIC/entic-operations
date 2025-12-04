@@ -222,7 +222,7 @@ export default function Layout({ children, currentPageName }) {
       `}</style>
       
       {/* Top Navigation */}
-      <nav className="bg-white/90 backdrop-blur-sm border-b border-slate-200/60 shadow-sm sticky top-0 z-50">
+      <nav className="bg-white/90 backdrop-blur-sm border-b border-slate-200/60 shadow-sm fixed top-0 left-0 right-0 z-50">
         <div className="px-4 lg:px-6">
           <div className="flex items-end justify-between min-h-[6rem] py-2">
             {/* Logo and Brand */}
@@ -357,7 +357,7 @@ export default function Layout({ children, currentPageName }) {
       </nav>
 
       {/* Main Content */}
-      <main className="flex-1 relative">
+      <main className="flex-1 relative pt-[8rem]">
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}

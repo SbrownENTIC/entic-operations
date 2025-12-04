@@ -90,6 +90,13 @@ export default function Invoices() {
     }
   }, [invoices]);
 
+  // Scroll to top when form is opened
+  useEffect(() => {
+    if (showForm) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [showForm]);
+
   const createMutation = useMutation({
     mutationFn: async (data) => {
       const invoice = await base44.entities.Invoice.create(data);
