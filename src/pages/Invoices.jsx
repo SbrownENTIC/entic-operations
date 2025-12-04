@@ -556,9 +556,7 @@ export default function Invoices() {
     return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
-  if (invoicesLoading || providersLoading) {
-    return <ListPageSkeleton />;
-  }
+
 
   const invoicesWithProviders = invoices.map(invoice => {
     // Find all providers associated with this invoice (primary + linked via income)
@@ -656,6 +654,10 @@ export default function Invoices() {
     if (invoice.status === 'partial') return 'Partial';
     return invoice.status?.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
+
+  if (invoicesLoading || providersLoading) {
+    return <ListPageSkeleton />;
+  }
 
   return (
     <>
