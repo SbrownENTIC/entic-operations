@@ -76,7 +76,9 @@ export default function DashboardCustomizer({ currentConfig, onConfigChange }) {
     setError(null);
     try {
       const configString = JSON.stringify(widgets);
-      await base44.auth.updateMe({ dashboard_config: configString });
+      // Use backend function to update user config to avoid potential auth wrapper issues
+      await base44.functions.invoke('updateDashboardConfig', { dashboard_config: configString });
+      
       onConfigChange(configString);
       setOpen(false);
     } catch (error) {
