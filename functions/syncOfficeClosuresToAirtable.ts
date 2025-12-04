@@ -145,13 +145,8 @@ Deno.serve(async (req) => {
         // We do not sync 'Is Multi-Day?' to Airtable as it is a computed field.
       }
 
-      // Try syncing to "Email Subject" if "Email Subject (Smart)" is computed
-      // This allows overriding the formula if the field exists and is editable, 
-      // or falls back to ignoring it if it doesn't exist.
-      if (reminder.email_subject) {
-          // Note: If this fails, we might need to remove it, but user asked to fix subject formatting
-          fields['Email Subject'] = reminder.email_subject; 
-      }
+      // 'Email Subject (Smart)' is a computed field in Airtable, so we cannot sync to it.
+      // We rely on Airtable's formula to generate the subject from Closure Name, Date Closed, etc.
 
       if (reminder.email_body) fields['Email Body'] = reminder.email_body;
       fields['Enabled'] = reminder.status === 'active';
