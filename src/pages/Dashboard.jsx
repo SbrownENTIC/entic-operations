@@ -430,10 +430,6 @@ export default function Dashboard() {
     inv.status === 'pending_providers_time'
   ).length;
 
-  const sentToVendorCount = invoices.filter(inv => 
-    inv.status === 'sent_to_vendor'
-  ).length;
-
   const draftInvoices = invoices.filter(inv => 
     inv.status === 'draft'
   ).length;
@@ -730,7 +726,6 @@ export default function Dashboard() {
             sentForApprovalInvoices={sentForApprovalInvoices}
             pendingProviderApprovalCount={pendingProviderApprovalCount}
             pendingProviderTimeCount={pendingProviderTimeCount}
-            sentToVendorCount={sentToVendorCount}
             privilegesExpiring30Days={privilegesExpiring30Days}
           />
         );
