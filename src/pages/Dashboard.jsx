@@ -146,6 +146,21 @@ export default function Dashboard() {
     staleTime: 30000
   });
 
+  const { data: pendingVendorInvoices = [], isLoading: vendorInvoicesLoading } = useQuery({
+    queryKey: ['pending-vendor-invoices'],
+    queryFn: async () => {
+      try {
+        // Fetch invoices that are pending review
+        const results = await base44.entities.VendorInvoice.filter({ status: 'pending_review' });
+        return results;
+      } catch (error) {
+        return handleQueryError(error);
+      }
+    },
+    retry: false,
+    staleTime: 30000
+  });
+
   const { data: outsideIncomes = [] } = useQuery({
     queryKey: ['outside-income'],
     queryFn: async () => {
@@ -627,7 +642,7 @@ export default function Dashboard() {
   });
 
   const isLoading = providersLoading || licensesLoading || privilegesLoading || 
-                    invoicesLoading || cmeLoading || paymentsLoading || supplyOrdersLoading;
+                    invoicesLoading || cmeLoading || paymentsLoading || supplyOrdersLoading || vendorInvoicesLoading;
 
   if (hasErrors) {
     return (
@@ -695,6 +710,7 @@ export default function Dashboard() {
             supplyOrders={supplyOrders}
             draftInvoices={draftInvoices}
             licensesExpiring14Days={licensesExpiring14Days}
+            pendingVendorInvoices={pendingVendorInvoices}
           />
         );
       case 'pending_invoices':

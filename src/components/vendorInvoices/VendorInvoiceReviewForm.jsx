@@ -75,21 +75,34 @@ export default function VendorInvoiceReviewForm({ invoice, supplies = [], onSave
   };
 
   const handleSave = () => {
-    // Auto-populate notes for missing items before saving
+    const newFlags = [];
+    
+    // Auto-populate notes for missing items before saving AND generate flags
     const updatedLineItems = (formData.extracted_data?.line_items || []).map(item => {
       const { found } = checkCatalogStatus(item.item_code);
-      // If item is not in catalog and has no notes, add the ordering note
-      if (!found && item.item_code && !item.notes) {
-        return {
-          ...item,
-          notes: `Item ${item.item_code} needs to be ordered (${item.quantity} units)`
-        };
+      
+      // Check for "Not in Catalog" flag
+      if (!found && item.item_code) {
+        newFlags.push({
+            item_name: item.description || item.item_code,
+            flag_type: 'not_in_catalog',
+            reason: `Item ${item.item_code} not found in catalog`
+        });
+
+        // If item is not in catalog and has no notes, add the ordering note
+        if (!item.notes) {
+          return {
+            ...item,
+            notes: `Item ${item.item_code} needs to be ordered (${item.quantity} units)`
+          };
+        }
       }
       return item;
     });
 
     const updatedFormData = {
       ...formData,
+      review_flags: newFlags,
       extracted_data: {
         ...formData.extracted_data,
         line_items: updatedLineItems

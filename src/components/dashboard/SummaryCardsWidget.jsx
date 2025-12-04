@@ -7,10 +7,27 @@ import { createPageUrl } from "@/utils";
 export default function SummaryCardsWidget({ 
   supplyOrders, 
   draftInvoices, 
-  licensesExpiring14Days 
+  licensesExpiring14Days,
+  pendingVendorInvoices = []
 }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {pendingVendorInvoices.length > 0 && (
+        <Card className={`bg-gradient-to-br from-orange-100 to-orange-50 transition-all duration-300 ${pendingVendorInvoices.length > 0 ? 'border-[5px] border-orange-600 animate-alert-glow' : 'border-3 border-orange-300 shadow-xl shadow-orange-300/60 hover:scale-105'}`}>
+          <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-orange-400">
+            <AlertCircle className="w-6 h-6 text-orange-700 animate-slow-pulse" />
+            <CardTitle className="text-sm font-bold text-slate-900">Vendor Invoices</CardTitle>
+            <AlertCircle className="w-6 h-6 text-orange-700 animate-slow-pulse" />
+          </CardHeader>
+          <CardContent className="pt-3">
+            <div className="text-4xl font-bold text-orange-700 mb-1">{pendingVendorInvoices.length}</div>
+            <Link to={createPageUrl("VendorInvoices")} className="text-xs text-orange-700 hover:text-orange-900 font-semibold hover:underline">
+              Review invoices →
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+
       {supplyOrders.length > 0 && (
         <Card className={`bg-gradient-to-br from-red-100 to-red-50 transition-all duration-300 ${supplyOrders.length > 0 ? 'border-[5px] border-red-600 animate-alert-glow' : 'border-3 border-red-300 shadow-xl shadow-red-300/60 hover:scale-105'}`}>
           <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-red-400">
