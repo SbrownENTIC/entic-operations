@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, ChevronLeft, ChevronRight, RefreshCw, Calendar as CalendarIcon, Search, Pencil, Trash2, List, ArrowUpDown, ArrowUp, ArrowDown, Check, UserCheck, Download, Filter, AlertTriangle } from "lucide-react";
-import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, addMonths, subMonths, isSameDay, startOfWeek, endOfWeek, startOfDay, addDays, differenceInDays, addMilliseconds } from "date-fns";
+import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, addMonths, subMonths, isSameDay, startOfWeek, endOfWeek, startOfDay, endOfDay, addDays, differenceInDays, addMilliseconds, areIntervalsOverlapping } from "date-fns";
 import OnCallForm from "../components/oncall/OnCallForm";
 import EmptyState from "@/components/ui/EmptyState";
 import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
@@ -409,18 +409,22 @@ export default function OnCallSchedule() {
   const selectedProviderForBulk = providers.find(p => p.id === bulkProvider);
 
   const checkConflict = (providerId, startDate, endDate, ignoreScheduleId = null) => {
-    const start = parseISO(startDate);
-    const end = parseISO(endDate);
+    // Convert inputs to full day intervals to ensure any overlap is caught
+    const newInterval = {
+      start: startOfDay(parseISO(startDate)),
+      end: endOfDay(parseISO(endDate))
+    };
 
     const conflicts = schedulesWithProviders.filter(s => {
-      if (s.id === ignoreScheduleId) return false; // Ignore self
-      if (s.provider_id !== providerId) return false; // Only check same provider
+      if (s.id === ignoreScheduleId) return false;
+      if (s.provider_id !== providerId) return false;
 
-      const sStart = parseISO(s.start_date);
-      const sEnd = parseISO(s.end_date);
+      const existingInterval = {
+        start: startOfDay(parseISO(s.start_date)),
+        end: endOfDay(parseISO(s.end_date))
+      };
 
-      // Check for overlap
-      return (start <= sEnd && end >= sStart);
+      return areIntervalsOverlapping(newInterval, existingInterval, { inclusive: true });
     });
 
     return conflicts;
