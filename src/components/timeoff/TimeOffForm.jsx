@@ -7,10 +7,16 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X } from "lucide-react";
+import { X, Calendar as CalendarIcon } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
+import { Calendar } from "@/components/ui/calendar";
+import { format, addDays, isSameDay, parseISO } from "date-fns";
+import { cn } from "@/lib/utils";
 
 export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) {
+  const [entryMode, setEntryMode] = useState('range'); // 'range' or 'multiple'
+  const [selectedDates, setSelectedDates] = useState([]);
+  
   const [formData, setFormData] = useState({
     provider_id: '',
     start_date: '',
