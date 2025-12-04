@@ -42,12 +42,15 @@ export default function Dashboard() {
     return [];
   };
 
-  const { data: userPreferences = [], isLoading: prefsLoading } = useQuery({
-    queryKey: ['user-preferences'],
-    queryFn: () => base44.entities.UserPreference.list()
+  // Initialize config from sessionStorage
+  const [dashboardConfig, setDashboardConfig] = useState(() => {
+    return sessionStorage.getItem('dashboard_config');
   });
-  
-  const dashboardConfig = userPreferences.length > 0 ? userPreferences[0].dashboard_config : null;
+
+  const handleConfigChange = (newConfig) => {
+    sessionStorage.setItem('dashboard_config', newConfig);
+    setDashboardConfig(newConfig);
+  };
 
   const { data: providers = [], isLoading: providersLoading, isError: providersError } = useQuery({
     queryKey: ['providers'],
@@ -594,7 +597,7 @@ export default function Dashboard() {
   });
 
   const isLoading = providersLoading || licensesLoading || privilegesLoading || 
-                    invoicesLoading || cmeLoading || paymentsLoading || supplyOrdersLoading || prefsLoading;
+                    invoicesLoading || cmeLoading || paymentsLoading || supplyOrdersLoading;
 
   if (hasErrors) {
     return (
@@ -788,7 +791,7 @@ export default function Dashboard() {
           </div>
           <DashboardCustomizer 
             currentConfig={dashboardConfig}
-            onConfigChange={() => queryClient.invalidateQueries(['user-preferences'])}
+            onConfigChange={handleConfigChange}
           />
         </div>
 
