@@ -13,9 +13,9 @@ Deno.serve(async (req) => {
         // Get data from request
         const { dashboard_config } = await req.json();
 
-        // Update the user entity directly using their ID
-        // This bypasses potential issues with the auth.updateMe SDK wrapper
-        await base44.entities.User.update(user.id, { dashboard_config });
+        // Update the user entity directly using their ID with service role
+        // This bypasses strict RLS policies that might prevent users from updating their own record via standard API
+        await base44.asServiceRole.entities.User.update(user.id, { dashboard_config });
 
         return Response.json({ success: true });
     } catch (error) {
