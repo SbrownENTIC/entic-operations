@@ -261,13 +261,19 @@ export default function Invoices() {
   const deleteMutation = useMutation({
     mutationFn: async (invoice) => {
       if (invoice.outside_income_ids && invoice.outside_income_ids.length > 0) {
-        for (const incomeId of invoice.outside_income_ids) {
-          await base44.entities.OutsideIncome.update(incomeId, {
-            invoice_id: null,
-            invoice_month: null,
-            status: 'pending'
-          });
-        }
+        // Use Promise.all to handle updates in parallel and continue even if one fails
+        await Promise.all(invoice.outside_income_ids.map(async (incomeId) => {
+          try {
+            await base44.entities.OutsideIncome.update(incomeId, {
+              invoice_id: null,
+              invoice_month: null,
+              status: 'pending'
+            });
+          } catch (err) {
+            console.warn(`Failed to unlink income ${incomeId}:`, err);
+            // Continue with deletion even if unlinking fails (e.g. income record deleted)
+          }
+        }));
       }
       
       await base44.entities.Invoice.delete(invoice.id);
@@ -276,6 +282,10 @@ export default function Invoices() {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['outside-income'] });
       setDeleteConfirm(null);
+    },
+    onError: (error) => {
+      console.error("Delete failed", error);
+      alert(`Failed to delete invoice: ${error.message}`);
     }
   });
 
