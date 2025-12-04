@@ -64,9 +64,14 @@ export default function Invoices() {
     const incomeIds = urlParams.get('incomes');
     const editId = urlParams.get('edit');
     const statusParam = urlParams.get('status');
+    const searchParam = urlParams.get('search');
     
     if (statusParam) {
       setStatusFilter(statusParam);
+    }
+
+    if (searchParam) {
+      setSearchTerm(searchParam);
     }
 
     if (create === 'true' && incomeIds) {
