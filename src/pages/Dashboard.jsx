@@ -833,47 +833,53 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* License Expirations Detail */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-slate-900">License Expirations</h2>
-            <Button
-              onClick={exportLicenseExpirations}
-              variant="outline"
-              size="sm"
-              className="gap-2"
-            >
-              <Download className="w-4 h-4" />
-              Export
-            </Button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-            <LicenseExpirationCard
-              title="Expiring in 7 Days"
-              licenses={licensesExpiring7Days}
-              providers={providers}
-              severity="high"
-            />
-            <LicenseExpirationCard
-              title="Expiring in 14 Days"
-              licenses={licensesExpiring14Days}
-              providers={providers}
-              severity="medium"
-            />
-            <LicenseExpirationCard
-              title="Expiring in 30 Days"
-              licenses={licensesExpiring30Days}
-              providers={providers}
-              severity="low"
-            />
-            <LicenseExpirationCard
-              title="Expiring in 60 Days"
-              licenses={licensesExpiring60Days}
-              providers={providers}
-              severity="info"
-            />
-          </div>
-        </div>
+        {/* Providers with Pending Invoices */}
+        {providersWithPendingInvoices.length > 0 && (
+        <Card className="border-indigo-200 shadow-sm bg-indigo-50/30">
+          <CardHeader className="border-b border-indigo-100 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2 text-indigo-800">
+                  <Clock className="w-5 h-5 text-indigo-600" />
+                  Invoices Pending Approval
+                </CardTitle>
+                <p className="text-sm text-indigo-700 mt-1">
+                  Providers with invoices waiting for approval or time entry
+                </p>
+              </div>
+              <Badge className="bg-indigo-200 text-indigo-800 hover:bg-indigo-300 border-indigo-300">
+                {providersWithPendingInvoices.length} Providers
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {providersWithPendingInvoices.map(provider => (
+                <Link 
+                  key={provider.id}
+                  to={`${createPageUrl("Invoices")}?status=pending_providers_approval,sent_for_approval&search=${encodeURIComponent(provider.full_name)}`}
+                  className="block group"
+                >
+                  <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-indigo-200 shadow-sm group-hover:border-indigo-400 group-hover:shadow-md transition-all">
+                    <div className="flex items-center">
+                      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center mr-3 text-indigo-700 font-bold text-xs">
+                        {provider.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                      </div>
+                      <div>
+                        <span className="font-medium text-slate-900 text-sm block group-hover:text-indigo-700 transition-colors">{provider.full_name}</span>
+                        <span className="text-xs text-slate-500">{provider.pendingCount} Invoice{provider.pendingCount !== 1 ? 's' : ''}</span>
+                      </div>
+                    </div>
+                    <div className="w-6 h-6 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                      →
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+        )}
 
         {/* Missing Prior Month Invoices */}
         {providersMissingPriorInvoice.length > 0 && (
@@ -924,53 +930,49 @@ export default function Dashboard() {
         </Card>
         )}
 
-        {/* Providers with Pending Invoices */}
-        {providersWithPendingInvoices.length > 0 && (
-        <Card className="border-indigo-200 shadow-sm bg-indigo-50/30">
-          <CardHeader className="border-b border-indigo-100 py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-lg flex items-center gap-2 text-indigo-800">
-                  <Clock className="w-5 h-5 text-indigo-600" />
-                  Invoices Pending Approval
-                </CardTitle>
-                <p className="text-sm text-indigo-700 mt-1">
-                  Providers with invoices waiting for approval or time entry
-                </p>
-              </div>
-              <Badge className="bg-indigo-200 text-indigo-800 hover:bg-indigo-300 border-indigo-300">
-                {providersWithPendingInvoices.length} Providers
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {providersWithPendingInvoices.map(provider => (
-                <Link 
-                  key={provider.id}
-                  to={`${createPageUrl("Invoices")}?status=pending_providers_approval,sent_for_approval&search=${encodeURIComponent(provider.full_name)}`}
-                  className="block group"
-                >
-                  <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-indigo-200 shadow-sm group-hover:border-indigo-400 group-hover:shadow-md transition-all">
-                    <div className="flex items-center">
-                      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center mr-3 text-indigo-700 font-bold text-xs">
-                        {provider.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}
-                      </div>
-                      <div>
-                        <span className="font-medium text-slate-900 text-sm block group-hover:text-indigo-700 transition-colors">{provider.full_name}</span>
-                        <span className="text-xs text-slate-500">{provider.pendingCount} Invoice{provider.pendingCount !== 1 ? 's' : ''}</span>
-                      </div>
-                    </div>
-                    <div className="w-6 h-6 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                      →
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-        )}
+        {/* License Expirations Detail */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold text-slate-900">License Expirations</h2>
+            <Button
+              onClick={exportLicenseExpirations}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Export
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            <LicenseExpirationCard
+              title="Expiring in 7 Days"
+              licenses={licensesExpiring7Days}
+              providers={providers}
+              severity="high"
+            />
+            <LicenseExpirationCard
+              title="Expiring in 14 Days"
+              licenses={licensesExpiring14Days}
+              providers={providers}
+              severity="medium"
+            />
+            <LicenseExpirationCard
+              title="Expiring in 30 Days"
+              licenses={licensesExpiring30Days}
+              providers={providers}
+              severity="low"
+            />
+            <LicenseExpirationCard
+              title="Expiring in 60 Days"
+              licenses={licensesExpiring60Days}
+              providers={providers}
+              severity="info"
+            />
+          </div>
+        </div>
+
+
 
         {/* Invoice Summary */}
         <Card className="border-slate-200 shadow-sm">
