@@ -22,6 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function Providers() {
   const [showForm, setShowForm] = useState(false);
@@ -33,6 +34,7 @@ export default function Providers() {
   const [checkingTerminations, setCheckingTerminations] = useState(false);
   const [terminationMessage, setTerminationMessage] = useState('');
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: providers = [], isLoading } = useQuery({
     queryKey: ['providers'],
@@ -78,6 +80,10 @@ export default function Providers() {
     onSuccess: (newProvider) => {
       queryClient.invalidateQueries({ queryKey: ['providers'] });
       setShowForm(false);
+      toast({
+        title: "Success",
+        description: "Provider added successfully.",
+      });
       return newProvider;
     }
   });
@@ -88,6 +94,10 @@ export default function Providers() {
       queryClient.invalidateQueries({ queryKey: ['providers'] });
       setShowForm(false);
       setEditingProvider(null);
+      toast({
+        title: "Success",
+        description: "Provider updated successfully.",
+      });
     }
   });
 
@@ -96,6 +106,10 @@ export default function Providers() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['providers'] });
       setDeleteConfirm(null);
+      toast({
+        title: "Success",
+        description: "Provider deleted successfully.",
+      });
     }
   });
 

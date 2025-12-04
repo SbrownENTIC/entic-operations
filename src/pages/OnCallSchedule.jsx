@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useToast } from "@/components/ui/use-toast";
 
 const PROVIDER_COLORS = [
   "bg-green-500",
@@ -55,6 +56,7 @@ export default function OnCallSchedule() {
   const [filterProviderId, setFilterProviderId] = useState('all');
   const [conflictAlert, setConflictAlert] = useState(null);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: schedules = [], isLoading: schedulesLoading } = useQuery({
     queryKey: ['oncall-schedules'],
@@ -87,6 +89,10 @@ export default function OnCallSchedule() {
       queryClient.invalidateQueries({ queryKey: ['outside-income'] });
       setShowForm(false);
       setEditingSchedule(null);
+      toast({
+        title: "Success",
+        description: "Schedule created successfully.",
+      });
     }
   });
 
@@ -96,6 +102,10 @@ export default function OnCallSchedule() {
       queryClient.invalidateQueries({ queryKey: ['oncall-schedules'] });
       setShowForm(false);
       setEditingSchedule(null);
+      toast({
+        title: "Success",
+        description: "Schedule updated successfully.",
+      });
     }
   });
 
@@ -104,6 +114,10 @@ export default function OnCallSchedule() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['oncall-schedules'] });
       setDeleteConfirm(null);
+      toast({
+        title: "Success",
+        description: "Schedule deleted successfully.",
+      });
     }
   });
 
