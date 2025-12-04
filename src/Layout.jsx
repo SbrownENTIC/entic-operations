@@ -64,12 +64,12 @@ const navigationItems = [
     icon: CreditCard,
   },
   {
-    title: "Office Orders",
+    title: "Office Supply Orders",
     url: createPageUrl("OfficeSupplyOrders"),
     icon: Package,
   },
   {
-    title: "Clinical Orders",
+    title: "Clinical Supplies Orders",
     url: createPageUrl("ClinicalSupplyOrders"),
     icon: Package,
   },
@@ -241,7 +241,7 @@ export default function Layout({ children, currentPageName }) {
                 <Link
                   key={item.title}
                   to={item.url}
-                  className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium transition-all duration-200 border h-14 w-28 justify-center text-center leading-tight whitespace-normal ${
+                  className={`flex items-center gap-1 px-1 py-1 rounded-lg text-[10px] font-medium transition-all duration-200 border h-16 w-24 justify-center text-center leading-3 whitespace-normal ${
                     location.pathname === item.url
                       ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md border-blue-600'
                       : 'bg-white text-slate-700 hover:bg-blue-50 border-slate-200 hover:border-blue-300 shadow-sm hover:shadow'
