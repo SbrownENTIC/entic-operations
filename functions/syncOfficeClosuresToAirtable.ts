@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
       // The Airtable formula should calculate it based on Date Closed.
       if (reminder.reopen_date) fields['Date Re-Open'] = reminder.reopen_date;
       
-      if (reminder.email_subject) fields['Email Subject (Smart)'] = reminder.email_subject;
+      // Email Subject (Smart) is a computed field in Airtable
       if (reminder.email_body) fields['Email Body'] = reminder.email_body;
       fields['Enabled'] = reminder.status === 'active';
       
