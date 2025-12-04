@@ -69,7 +69,7 @@ const navigationItems = [
     icon: Package,
   },
   {
-    title: "Clinical Supplies Orders",
+    title: "Clinical Supply Orders",
     url: createPageUrl("ClinicalSupplyOrders"),
     icon: Package,
   },
