@@ -135,21 +135,37 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="start_date">Start Date *</Label>
-              <DatePicker
-                value={formData.start_date}
-                onChange={(date) => setFormData({ ...formData, start_date: date })}
-              />
-            </div>
+            {timeOff ? (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="start_date">Start Date *</Label>
+                  <DatePicker
+                    value={formData.start_date}
+                    onChange={(date) => setFormData({ ...formData, start_date: date })}
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="end_date">End Date *</Label>
-              <DatePicker
-                value={formData.end_date}
-                onChange={(date) => setFormData({ ...formData, end_date: date })}
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="end_date">End Date *</Label>
+                  <DatePicker
+                    value={formData.end_date}
+                    onChange={(date) => setFormData({ ...formData, end_date: date })}
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="space-y-2 md:col-span-2">
+                <Label>Select Dates *</Label>
+                <MultiDatePicker
+                  value={selectedDates}
+                  onChange={setSelectedDates}
+                  placeholder="Pick multiple days (consecutive days will be grouped)"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Consecutive days will be grouped into a single entry. Non-consecutive days will create separate entries.
+                </p>
+              </div>
+            )}
 
             {formData.type === 'partial_day' && (
               <div className="space-y-2 md:col-span-2">
