@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HardHat, X } from 'lucide-react';
+import { HardHat, X, Construction, Cone } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function UnderConstruction({ pageName }) {
@@ -10,35 +10,92 @@ export default function UnderConstruction({ pageName }) {
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        className="bg-yellow-400 text-slate-900 px-4 py-3 shadow-md relative overflow-hidden mb-4 rounded-lg border-2 border-yellow-600 mx-4 mt-4 md:mx-6 md:mt-6 max-w-7xl lg:mx-auto"
+        initial={{ opacity: 0, y: -20, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -20, scale: 0.95 }}
+        className="relative mx-auto max-w-7xl mt-6 mb-6 px-4 md:px-6"
       >
-        <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none" 
-             style={{ 
-               backgroundImage: 'linear-gradient(45deg, #000 25%, transparent 25%, transparent 50%, #000 50%, #000 75%, transparent 75%, transparent)', 
-               backgroundSize: '20px 20px' 
-             }} 
-        />
-        
-        <div className="flex items-center gap-3 relative z-10">
-          <div className="bg-white p-2 rounded-full border-2 border-slate-900 shadow-sm shrink-0">
-            <HardHat className="w-6 h-6 text-orange-600" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-bold text-lg leading-tight">Pardon our dust! 🚧</h3>
-            <p className="text-sm font-medium text-slate-800/90">
-              The {pageName} page is currently under construction. We're hammering out the details and polishing the pixels. Watch your step!
-            </p>
-          </div>
-          <button 
-            onClick={() => setIsVisible(false)}
-            className="p-1 hover:bg-black/10 rounded-full transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+        {/* Construction Tape Top */}
+        <div className="h-3 w-full bg-yellow-400 border-y border-yellow-600 overflow-hidden relative">
+          <div className="absolute inset-0 w-[200%] animate-slide-slow" 
+               style={{ 
+                 backgroundImage: 'linear-gradient(45deg, #1a1a1a 25%, #facc15 25%, #facc15 50%, #1a1a1a 50%, #1a1a1a 75%, #facc15 75%, #facc15)', 
+                 backgroundSize: '40px 40px' 
+               }} 
+          />
         </div>
+
+        <div className="bg-white border-x border-slate-200 shadow-lg relative overflow-hidden">
+          <div className="flex flex-col md:flex-row items-center p-4 gap-4 md:gap-6">
+            
+            {/* Icon Box */}
+            <div className="shrink-0 relative">
+              <div className="w-16 h-16 bg-slate-100 rounded-lg flex items-center justify-center border-2 border-slate-200 shadow-inner">
+                <Construction className="w-10 h-10 text-orange-500" />
+              </div>
+              <div className="absolute -bottom-2 -right-2 bg-yellow-400 text-slate-900 rounded-full p-1.5 border-2 border-white shadow-sm">
+                <HardHat className="w-4 h-4" />
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 text-center md:text-left space-y-1">
+              <div className="flex items-center justify-center md:justify-start gap-2">
+                <h3 className="font-bold text-xl text-slate-900 tracking-tight">
+                  WORK IN PROGRESS
+                </h3>
+                <span className="bg-yellow-100 text-yellow-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-yellow-200 uppercase tracking-wider">
+                  Beta
+                </span>
+              </div>
+              <p className="text-slate-600 font-medium">
+                The <span className="font-semibold text-slate-900 underline decoration-yellow-400 decoration-2 underline-offset-2">{pageName}</span> module is currently being built.
+              </p>
+              <p className="text-xs text-slate-500 max-w-prose">
+                We're laying the foundation for better features. Functionality may be limited while our crew works on updates.
+              </p>
+            </div>
+
+            {/* Action / Close */}
+            <div className="shrink-0 flex items-center gap-3">
+              <button 
+                onClick={() => setIsVisible(false)}
+                className="group flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 transition-all"
+                aria-label="Dismiss"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Construction Tape Bottom */}
+        <div className="h-3 w-full bg-yellow-400 border-y border-yellow-600 overflow-hidden relative">
+          <div className="absolute inset-0 w-[200%] animate-slide-slow-reverse" 
+               style={{ 
+                 backgroundImage: 'linear-gradient(45deg, #1a1a1a 25%, #facc15 25%, #facc15 50%, #1a1a1a 50%, #1a1a1a 75%, #facc15 75%, #facc15)', 
+                 backgroundSize: '40px 40px' 
+               }} 
+          />
+        </div>
+
+        {/* CSS Animations */}
+        <style>{`
+          @keyframes slide-slow {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-40px); }
+          }
+          @keyframes slide-slow-reverse {
+            0% { transform: translateX(-40px); }
+            100% { transform: translateX(0); }
+          }
+          .animate-slide-slow {
+            animation: slide-slow 2s linear infinite;
+          }
+          .animate-slide-slow-reverse {
+            animation: slide-slow-reverse 2s linear infinite;
+          }
+        `}</style>
       </motion.div>
     </AnimatePresence>
   );
