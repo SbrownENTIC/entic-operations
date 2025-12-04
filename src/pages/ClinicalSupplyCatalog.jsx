@@ -16,6 +16,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import SupplyForm from "../components/supplies/SupplyForm";
+import UnderConstruction from "@/components/ui/UnderConstruction";
 
 export default function ClinicalSupplyCatalog() {
   const [showForm, setShowForm] = useState(false);
@@ -134,6 +135,7 @@ export default function ClinicalSupplyCatalog() {
 
   return (
     <>
+    <UnderConstruction pageName="Clinical Supply Catalog" />
     <div className="h-screen overflow-hidden flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <div className="flex-shrink-0 p-2 md:p-3">
         <div className="max-w-7xl mx-auto space-y-2">

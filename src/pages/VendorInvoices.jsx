@@ -8,6 +8,7 @@ import { Search, Plus, FileText, UploadCloud } from "lucide-react";
 import VendorInvoiceList from "../components/vendorInvoices/VendorInvoiceList";
 import VendorInvoiceUpload from "../components/vendorInvoices/VendorInvoiceUpload";
 import { useToast } from "@/components/ui/use-toast";
+import UnderConstruction from "@/components/ui/UnderConstruction";
 
 export default function VendorInvoices() {
   const [showUpload, setShowUpload] = useState(false);
@@ -36,6 +37,7 @@ export default function VendorInvoices() {
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
+      <UnderConstruction pageName="Vendor Invoices" />
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>

@@ -21,6 +21,7 @@ import { format, parseISO } from "date-fns";
 import SupplyOrderForm from "../components/supplies/SupplyOrderForm";
 import EmptyState from "@/components/ui/EmptyState";
 import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
+import UnderConstruction from "@/components/ui/UnderConstruction";
 
 export default function ClinicalSupplyOrders() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -174,6 +175,7 @@ export default function ClinicalSupplyOrders() {
 
   return (
     <>
+    <UnderConstruction pageName="Clinical Supply Orders" />
     <div className="min-h-screen bg-slate-50 pb-8">
       <div className="p-2 md:p-3">
         <div className="max-w-7xl mx-auto space-y-2">
