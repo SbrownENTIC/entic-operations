@@ -76,8 +76,15 @@ export default function DashboardCustomizer({ currentConfig, onConfigChange }) {
     setError(null);
     try {
       const configString = JSON.stringify(widgets);
-      // Use backend function to update user config to avoid potential auth wrapper issues
-      await base44.functions.invoke('updateDashboardConfig', { dashboard_config: configString });
+      
+      // Fetch existing preferences to determine if we need to create or update
+      const existingPrefs = await base44.entities.UserPreference.list();
+      
+      if (existingPrefs.length > 0) {
+        await base44.entities.UserPreference.update(existingPrefs[0].id, { dashboard_config: configString });
+      } else {
+        await base44.entities.UserPreference.create({ dashboard_config: configString });
+      }
       
       onConfigChange(configString);
       setOpen(false);

@@ -42,10 +42,12 @@ export default function Dashboard() {
     return [];
   };
 
-  const { data: user, isLoading: userLoading } = useQuery({
-    queryKey: ['me'],
-    queryFn: () => base44.auth.me()
+  const { data: userPreferences = [], isLoading: prefsLoading } = useQuery({
+    queryKey: ['user-preferences'],
+    queryFn: () => base44.entities.UserPreference.list()
   });
+  
+  const dashboardConfig = userPreferences.length > 0 ? userPreferences[0].dashboard_config : null;
 
   const { data: providers = [], isLoading: providersLoading, isError: providersError } = useQuery({
     queryKey: ['providers'],
@@ -592,7 +594,7 @@ export default function Dashboard() {
   });
 
   const isLoading = providersLoading || licensesLoading || privilegesLoading || 
-                    invoicesLoading || cmeLoading || paymentsLoading || supplyOrdersLoading || userLoading;
+                    invoicesLoading || cmeLoading || paymentsLoading || supplyOrdersLoading || prefsLoading;
 
   if (hasErrors) {
     return (
@@ -629,9 +631,9 @@ export default function Dashboard() {
 
   // Determine widget order and visibility
   let widgetsToRender = DEFAULT_WIDGETS;
-  if (user?.dashboard_config) {
+  if (dashboardConfig) {
     try {
-      const config = JSON.parse(user.dashboard_config);
+      const config = JSON.parse(dashboardConfig);
       // Merge with defaults to handle potential new widgets
       const merged = config.map(w => ({
         ...DEFAULT_WIDGETS.find(dw => dw.id === w.id) || w,
@@ -785,8 +787,8 @@ export default function Dashboard() {
             <p className="text-slate-600 mt-1">Overview of your medical practice</p>
           </div>
           <DashboardCustomizer 
-            currentConfig={user?.dashboard_config}
-            onConfigChange={() => queryClient.invalidateQueries(['me'])}
+            currentConfig={dashboardConfig}
+            onConfigChange={() => queryClient.invalidateQueries(['user-preferences'])}
           />
         </div>
 
