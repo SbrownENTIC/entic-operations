@@ -905,20 +905,29 @@ export default function OnCallSchedule() {
 
                                       return (
                                         <Draggable key={schedule.id} draggableId={schedule.id} index={schedIndex}>
-                                          {(dragProvided, dragSnapshot) => (
+                                          {(dragProvided, dragSnapshot) => {
+                                            const style = { ...dragProvided.draggableProps.style };
+                                            
+                                            if (dragSnapshot.isDragging) {
+                                              // Fixed size when dragging to look like a single day cell
+                                              style.width = '140px';
+                                              style.height = '60px'; 
+                                            } else {
+                                              // Position absolutely within grid when not dragging
+                                              style.width = `calc(${span * 100}% + ${(span - 1) * 1}px - 4px)`;
+                                              style.top = '2px';
+                                              style.bottom = '2px';
+                                              style.left = '2px';
+                                            }
+
+                                            return (
                                             <div
                                               ref={dragProvided.innerRef}
                                               {...dragProvided.draggableProps}
                                               {...dragProvided.dragHandleProps}
                                               onClick={() => handleEditSchedule(schedule)}
-                                              className={`absolute ${schedule.color} text-white text-xs px-1.5 py-1 rounded cursor-grab active:cursor-grabbing hover:opacity-90 transition-opacity shadow-sm z-10 flex flex-col justify-center ${dragSnapshot.isDragging ? 'opacity-70 ring-2 ring-blue-500 ring-offset-2 z-50' : ''}`}
-                                              style={{
-                                                width: dragSnapshot.isDragging ? 'calc(100% - 4px)' : `calc(${span * 100}% + ${(span - 1) * 1}px - 4px)`,
-                                                top: '2px',
-                                                bottom: '2px',
-                                                left: '2px',
-                                                ...dragProvided.draggableProps.style
-                                              }}
+                                              className={`absolute ${schedule.color} text-white text-xs px-1.5 py-1 rounded cursor-grab active:cursor-grabbing hover:opacity-90 transition-opacity shadow-sm z-10 flex flex-col justify-center ${dragSnapshot.isDragging ? 'opacity-90 ring-2 ring-blue-500 ring-offset-2 z-50' : ''}`}
+                                              style={style}
                                             >
                                               <div className="text-[9px] truncate leading-tight">
                                                 {schedule.start_time} - {schedule.end_time}
