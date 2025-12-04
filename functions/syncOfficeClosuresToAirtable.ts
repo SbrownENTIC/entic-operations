@@ -135,7 +135,8 @@ Deno.serve(async (req) => {
 
       // 'Email Subject (Smart)' is a computed field in Airtable, so we cannot sync to it.
       // We rely on Airtable's formula to generate the subject from Closure Name, Date Closed, etc.
-
+      // NOTE: If Airtable's formula isn't producing the expected subject, ensure 'Closure Name', 'Date Closed', 'Date Re-Open', and 'Closure Type' are correct.
+      
       if (reminder.email_body) fields['Email Body'] = reminder.email_body;
       fields['Enabled'] = reminder.status === 'active';
       
