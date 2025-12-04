@@ -9,7 +9,8 @@ export default function CMEComplianceWidget({
   cmeByProvider, 
   doctorsCompliant, 
   doctorsNonCompliant, 
-  exportCMECompliance 
+  exportCMECompliance,
+  createCMEWaiverMutation
 }) {
   return (
     <Card className="border-slate-200 shadow-sm">
@@ -50,9 +51,22 @@ export default function CMEComplianceWidget({
                     <p className="font-bold text-slate-900 text-sm">{doctor.full_name}</p>
                     <p className="text-xs text-slate-700 font-medium">{credits} / 3 CME credits</p>
                   </div>
-                  <Badge className="bg-red-600 text-white border-0 font-bold text-xs">
-                    Non-compliant
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => createCMEWaiverMutation.mutate({
+                        provider_id: doctor.id,
+                        year: new Date().getFullYear()
+                      })}
+                      className="h-7 text-xs border-red-200 text-red-700 hover:bg-red-100 hover:text-red-800 bg-white/50"
+                    >
+                      Not Required
+                    </Button>
+                    <Badge className="bg-red-600 text-white border-0 font-bold text-xs">
+                      Non-compliant
+                    </Badge>
+                  </div>
                 </div>
               );
             })}

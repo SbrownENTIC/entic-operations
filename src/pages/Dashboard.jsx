@@ -160,23 +160,43 @@ export default function Dashboard() {
   });
 
   const { data: invoiceWaivers = [] } = useQuery({
-    queryKey: ['invoice-waivers'],
-    queryFn: async () => {
-      try {
-        return await base44.entities.InvoiceWaiver.list();
-      } catch (error) {
-        return handleQueryError(error);
-      }
-    },
-    retry: false,
-    staleTime: 30000
+  queryKey: ['invoice-waivers'],
+  queryFn: async () => {
+  try {
+  return await base44.entities.InvoiceWaiver.list();
+  } catch (error) {
+  return handleQueryError(error);
+  }
+  },
+  retry: false,
+  staleTime: 30000
+  });
+
+  const { data: cmeWaivers = [] } = useQuery({
+  queryKey: ['cme-waivers'],
+  queryFn: async () => {
+  try {
+  return await base44.entities.CMEWaiver.list();
+  } catch (error) {
+  return handleQueryError(error);
+  }
+  },
+  retry: false,
+  staleTime: 30000
   });
 
   const createWaiverMutation = useMutation({
-    mutationFn: (data) => base44.entities.InvoiceWaiver.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['invoice-waivers'] });
-    }
+  mutationFn: (data) => base44.entities.InvoiceWaiver.create(data),
+  onSuccess: () => {
+  queryClient.invalidateQueries({ queryKey: ['invoice-waivers'] });
+  }
+  });
+
+  const createCMEWaiverMutation = useMutation({
+  mutationFn: (data) => base44.entities.CMEWaiver.create(data),
+  onSuccess: () => {
+  queryClient.invalidateQueries({ queryKey: ['cme-waivers'] });
+  }
   });
 
   // Calculate up-to-date invoice amounts based on payments
@@ -396,8 +416,18 @@ export default function Dashboard() {
     cmeByProvider[record.provider_id] += record.credits || 0;
   });
 
-  const doctorsCompliant = doctors.filter(doc => (cmeByProvider[doc.id] || 0) >= 3).length;
-  const doctorsNonCompliant = doctors.filter(doc => (cmeByProvider[doc.id] || 0) < 3);
+  const currentYear = new Date().getFullYear();
+  const doctorsCompliant = doctors.filter(doc => {
+    const hasCredits = (cmeByProvider[doc.id] || 0) >= 3;
+    const isWaived = cmeWaivers.some(w => w.provider_id === doc.id && w.year === currentYear);
+    return hasCredits || isWaived;
+  }).length;
+
+  const doctorsNonCompliant = doctors.filter(doc => {
+    const credits = cmeByProvider[doc.id] || 0;
+    const isWaived = cmeWaivers.some(w => w.provider_id === doc.id && w.year === currentYear);
+    return credits < 3 && !isWaived;
+  });
 
   const openFinancialDetail = (type, programGroup = null) => {
     let filteredInvoices = [];
@@ -735,6 +765,7 @@ export default function Dashboard() {
             doctorsCompliant={doctorsCompliant}
             doctorsNonCompliant={doctorsNonCompliant}
             exportCMECompliance={exportCMECompliance}
+            createCMEWaiverMutation={createCMEWaiverMutation}
           />
         );
       default:
