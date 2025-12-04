@@ -95,6 +95,11 @@ const navigationItems = [
     url: createPageUrl("Reports"),
     icon: BarChart3,
   },
+  {
+    title: "Vendor Invoices",
+    url: createPageUrl("VendorInvoices"),
+    icon: FileText,
+  },
 ];
 
 const moreMenuItems = [
