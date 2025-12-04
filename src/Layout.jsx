@@ -39,6 +39,11 @@ const navigationItems = [
     icon: LayoutDashboard,
   },
   {
+    title: "Providers",
+    url: createPageUrl("Providers"),
+    icon: Users,
+  },
+  {
     title: "On-Call Schedule",
     url: createPageUrl("OnCallSchedule"),
     icon: Calendar,
@@ -73,19 +78,14 @@ const navigationItems = [
     url: createPageUrl("ProviderTimeOff"),
     icon: Calendar,
   },
-];
-
-const moreMenuItems = [
   {
-    title: "Providers",
-    url: createPageUrl("Providers"),
-    icon: Users,
-  },
-  {
-    title: "Reminders",
+    title: "Notifications & Closures",
     url: createPageUrl("Reminders"),
     icon: Bell,
   },
+];
+
+const moreMenuItems = [
   {
     title: "Clinical Privileges",
     url: createPageUrl("ClinicalPrivileges"),
