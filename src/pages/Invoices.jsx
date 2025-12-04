@@ -659,7 +659,7 @@ export default function Invoices() {
       `}</style>
       <div className="p-2 md:p-3">
         <div className="max-w-7xl mx-auto space-y-2">
-        <div className="sticky top-24 z-30 bg-slate-50/95 backdrop-blur supports-[backdrop-filter]:bg-slate-50/60 py-3 -mx-2 px-2 border-b border-slate-200/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 no-print transition-all">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 no-print">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Invoices</h1>
             <p className="text-slate-600 text-sm">Manage invoices for outside income</p>

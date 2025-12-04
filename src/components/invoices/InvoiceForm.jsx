@@ -28,11 +28,6 @@ const INVOICE_STATUSES = [
 ];
 
 export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [], onSubmit, onCancel, isLoading }) {
-  // Scroll to top when form opens
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
-
   const [formData, setFormData] = useState({
     invoice_number: '',
     program_group: '',
