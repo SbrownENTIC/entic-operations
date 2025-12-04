@@ -173,11 +173,14 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
       
       let daysToSubtract;
       switch (weekday) {
-        case 1: // Monday - send on Friday before
-          daysToSubtract = -3;
+        case 1: // Monday - send on Thursday before (2 business days)
+          daysToSubtract = -4;
           break;
-        default: // Tuesday-Friday
-          daysToSubtract = -1; // One day before closure
+        case 2: // Tuesday - send on Friday before (2 business days)
+          daysToSubtract = -4;
+          break;
+        default: // Wednesday-Friday
+          daysToSubtract = -2; // Two days before closure
           break;
         }
       
