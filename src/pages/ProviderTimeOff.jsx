@@ -204,11 +204,11 @@ export default function ProviderTimeOff() {
     document.body.removeChild(link);
   };
 
-  const handleFixSethBrownDates = async () => {
-    if (!confirm('Update all of Dr. Seth Brown\'s time off records to year 2026?')) return;
+  const handleFixJamesOBrienDates = async () => {
+    if (!confirm('Update all of Dr. James O\'Brien\'s time off records to year 2026?')) return;
     
     try {
-      const response = await base44.functions.invoke('fixSethBrownTimeOff', {});
+      const response = await base44.functions.invoke('fixJamesOBrienTimeOff', {});
       alert(response.data.message || 'Update complete');
       queryClient.invalidateQueries({ queryKey: ['provider-timeoff'] });
     } catch (error) {
