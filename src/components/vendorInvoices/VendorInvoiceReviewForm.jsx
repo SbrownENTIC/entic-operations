@@ -75,7 +75,28 @@ export default function VendorInvoiceReviewForm({ invoice, supplies = [], onSave
   };
 
   const handleSave = () => {
-    onSave(formData);
+    // Auto-populate notes for missing items before saving
+    const updatedLineItems = (formData.extracted_data?.line_items || []).map(item => {
+      const { found } = checkCatalogStatus(item.item_code);
+      // If item is not in catalog and has no notes, add the ordering note
+      if (!found && item.item_code && !item.notes) {
+        return {
+          ...item,
+          notes: `Item ${item.item_code} needs to be ordered (${item.quantity} units)`
+        };
+      }
+      return item;
+    });
+
+    const updatedFormData = {
+      ...formData,
+      extracted_data: {
+        ...formData.extracted_data,
+        line_items: updatedLineItems
+      }
+    };
+
+    onSave(updatedFormData);
   };
 
   return (
@@ -201,6 +222,15 @@ export default function VendorInvoiceReviewForm({ invoice, supplies = [], onSave
                          Note: Item {item.item_code} needs to be ordered ({item.quantity} units)
                        </div>
                     )}
+                    <div className="pt-1">
+                         <Label className="text-[10px] text-slate-500">Item Notes</Label>
+                         <Input 
+                            className="h-7 text-xs" 
+                            placeholder="Add notes..."
+                            value={item.notes || ""} 
+                            onChange={(e) => handleLineItemChange(index, 'notes', e.target.value)} 
+                          />
+                    </div>
                   </div>
                   <div className="col-span-2 space-y-1">
                     <Label className="text-xs">Qty</Label>
