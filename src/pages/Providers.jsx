@@ -197,7 +197,7 @@ export default function Providers() {
     <div className="h-screen overflow-hidden flex flex-col bg-slate-50">
       <div className="flex-shrink-0 p-2 md:p-3">
         <div className="max-w-7xl mx-auto space-y-2">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+        <div className="sticky top-24 z-30 bg-slate-50/95 backdrop-blur supports-[backdrop-filter]:bg-slate-50/60 py-3 -mx-2 px-2 border-b border-slate-200/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 transition-all">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Providers</h1>
             <p className="text-slate-600 text-sm">Manage provider information and credentials</p>
