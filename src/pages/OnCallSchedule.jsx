@@ -452,6 +452,12 @@ export default function OnCallSchedule() {
 
     // Check conflicts
     const conflicts = checkConflict(schedule.provider_id, newStartDateFormatted, newEndDateFormatted, schedule.id);
+    console.log("Drag End Conflict Check:", { 
+        providerId: schedule.provider_id, 
+        newStart: newStartDateFormatted, 
+        newEnd: newEndDateFormatted, 
+        conflictsFound: conflicts.length 
+    });
 
     if (conflicts.length > 0) {
         setConflictAlert({
@@ -907,7 +913,7 @@ export default function OnCallSchedule() {
                                               onClick={() => handleEditSchedule(schedule)}
                                               className={`absolute ${schedule.color} text-white text-xs px-1.5 py-1 rounded cursor-grab active:cursor-grabbing hover:opacity-90 transition-opacity shadow-sm z-10 flex flex-col justify-center ${dragSnapshot.isDragging ? 'opacity-70 ring-2 ring-blue-500 ring-offset-2 z-50' : ''}`}
                                               style={{
-                                                width: `calc(${span * 100}% + ${(span - 1) * 1}px - 4px)`,
+                                                width: dragSnapshot.isDragging ? 'calc(100% - 4px)' : `calc(${span * 100}% + ${(span - 1) * 1}px - 4px)`,
                                                 top: '2px',
                                                 bottom: '2px',
                                                 left: '2px',
