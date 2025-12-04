@@ -557,7 +557,7 @@ export default function Invoices() {
       invoice.month?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesNoIncomeFilter = !filterNoIncome || !invoice.hasOutsideIncome;
-    const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter;
+    const matchesStatus = statusFilter === 'all' || statusFilter.split(',').includes(invoice.status);
     
     return matchesSearch && matchesNoIncomeFilter && matchesStatus;
   });
