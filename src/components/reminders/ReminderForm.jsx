@@ -199,8 +199,16 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
   useEffect(() => {
     if (formData.closure_date && formData.closure_name && (formData.reminder_type === 'Holiday' || formData.reminder_type === 'Office Closure') && !manuallyEdited.reopen_date) {
       const closureYear = new Date(formData.closure_date).getFullYear().toString();
-      const reopenDate = closureReopenDates[formData.closure_name]?.[closureYear];
+      let reopenDate = closureReopenDates[formData.closure_name]?.[closureYear];
       
+      // Validation: Ensure reopen date is after closure date
+      if (reopenDate && formData.closure_date && reopenDate <= formData.closure_date) {
+          // If predefined date is invalid (backwards), default to next day
+          const nextDay = new Date(formData.closure_date);
+          nextDay.setDate(nextDay.getDate() + 1);
+          reopenDate = format(nextDay, 'yyyy-MM-dd');
+      }
+
       if (reopenDate && reopenDate !== formData.reopen_date) {
         setFormData(prev => ({ ...prev, reopen_date: reopenDate, reopen_time: prev.reopen_time || '8:00 AM' }));
       }
