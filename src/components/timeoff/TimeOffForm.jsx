@@ -34,7 +34,7 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
     type: 'time_off',
     partial_day_end_time: '',
     reason: '',
-    status: 'pending',
+    status: 'approved',
     notes: ''
   });
 
