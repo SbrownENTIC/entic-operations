@@ -41,10 +41,6 @@ export default function ClinicalSupplyOrders() {
     queryFn: () => base44.entities.SupplyOrder.filter({ category: 'clinical' }, '-order_date')
   });
 
-  if (ordersLoading) {
-    return <ListPageSkeleton />;
-  }
-
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.SupplyOrder.create({ ...data, category: 'clinical' }),
     onSuccess: () => {
