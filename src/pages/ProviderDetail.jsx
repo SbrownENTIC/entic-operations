@@ -1,10 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Mail, Phone, Award, GraduationCap, ShieldCheck, CheckCircle2, XCircle, Syringe } from "lucide-react";
+import { ArrowLeft, Mail, Phone, Award, GraduationCap, ShieldCheck, CheckCircle2, XCircle, Syringe, Plus } from "lucide-react";
+import LicenseForm from "@/components/licenses/LicenseForm";
+import PrivilegeForm from "@/components/privileges/PrivilegeForm";
+import CMEForm from "@/components/cme/CMEForm";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { differenceInDays, format, parseISO } from "date-fns";
@@ -12,12 +15,38 @@ import { differenceInDays, format, parseISO } from "date-fns";
 export default function ProviderDetail() {
   const urlParams = new URLSearchParams(window.location.search);
   const providerId = urlParams.get('id');
+  const queryClient = useQueryClient();
+  const [activeAction, setActiveAction] = useState(null);
 
   const { data: provider, isLoading: providerLoading } = useQuery({
     queryKey: ['provider', providerId],
     queryFn: async () => {
       const providers = await base44.entities.Provider.list();
       return providers.find(p => p.id === providerId);
+    }
+  });
+
+  const createLicenseMutation = useMutation({
+    mutationFn: (data) => base44.entities.License.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['licenses', providerId] });
+      setActiveAction(null);
+    }
+  });
+
+  const createPrivilegeMutation = useMutation({
+    mutationFn: (data) => base44.entities.ClinicalPrivilege.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['privileges', providerId] });
+      setActiveAction(null);
+    }
+  });
+
+  const createCMEMutation = useMutation({
+    mutationFn: (data) => base44.entities.CME.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cme', providerId] });
+      setActiveAction(null);
     }
   });
 
@@ -93,6 +122,18 @@ export default function ProviderDetail() {
             <h1 className="text-3xl font-bold text-slate-900">{provider.full_name}</h1>
             <p className="text-slate-600 mt-1">{provider.role || 'Provider'}</p>
           </div>
+        </div>
+
+        <div className="flex gap-3 flex-wrap">
+          <Button onClick={() => setActiveAction('license')} className="bg-indigo-600 hover:bg-indigo-700">
+            <Plus className="w-4 h-4 mr-2" /> Add License
+          </Button>
+          <Button onClick={() => setActiveAction('privilege')} className="bg-indigo-600 hover:bg-indigo-700">
+            <Plus className="w-4 h-4 mr-2" /> Add Privilege
+          </Button>
+          <Button onClick={() => setActiveAction('cme')} className="bg-indigo-600 hover:bg-indigo-700">
+            <Plus className="w-4 h-4 mr-2" /> Add CME
+          </Button>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">
@@ -383,6 +424,62 @@ export default function ProviderDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {activeAction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-2xl bg-white rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+            {activeAction === 'license' && (
+              <LicenseForm 
+                providers={[provider]}
+                license={{ 
+                  provider_id: provider.id,
+                  license_type: '',
+                  issue_date: '',
+                  expiration_date: '',
+                  status: 'active',
+                  document_url: '',
+                  notes: ''
+                }}
+                onSubmit={(data) => createLicenseMutation.mutate(data)}
+                onCancel={() => setActiveAction(null)}
+                isLoading={createLicenseMutation.isPending}
+              />
+            )}
+            {activeAction === 'privilege' && (
+              <PrivilegeForm 
+                providers={[provider]}
+                privilege={{ 
+                  provider_id: provider.id,
+                  facility_name: '',
+                  granted_date: new Date().toISOString().split('T')[0],
+                  expiration_date: '',
+                  status: 'active',
+                  notes: ''
+                }}
+                onSubmit={(data) => createPrivilegeMutation.mutate(data)}
+                onCancel={() => setActiveAction(null)}
+                isLoading={createPrivilegeMutation.isPending}
+              />
+            )}
+            {activeAction === 'cme' && (
+              <CMEForm 
+                providers={[provider]}
+                cme={{ 
+                  provider_id: provider.id,
+                  course_name: '',
+                  credits: 0,
+                  completion_date: '',
+                  certificate_url: '',
+                  notes: ''
+                }}
+                onSubmit={(data) => createCMEMutation.mutate(data)}
+                onCancel={() => setActiveAction(null)}
+                isLoading={createCMEMutation.isPending}
+              />
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
