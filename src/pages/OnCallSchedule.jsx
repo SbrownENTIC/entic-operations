@@ -9,6 +9,7 @@ import { Plus, ChevronLeft, ChevronRight, RefreshCw, Calendar as CalendarIcon, S
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, addMonths, subMonths, isSameDay, startOfWeek, endOfWeek, startOfDay, addDays, differenceInDays } from "date-fns";
 import OnCallForm from "../components/oncall/OnCallForm";
 import EmptyState from "@/components/ui/EmptyState";
+import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
 import {
   AlertDialog,
   AlertDialogAction,

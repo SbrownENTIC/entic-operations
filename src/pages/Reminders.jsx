@@ -9,6 +9,7 @@ import { Plus, Search, Pencil, Trash2, Send, Clock, Mail, ArrowUpDown, ArrowUp, 
 import { format, parseISO } from "date-fns";
 import ReminderForm from "../components/reminders/ReminderForm";
 import EmptyState from "@/components/ui/EmptyState";
+import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -207,13 +208,7 @@ The Operations Team`;
   };
 
   if (isLoading) {
-    return (
-      <div className="p-6 md:p-8 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
-        <div className="max-w-7xl mx-auto space-y-6">
-          <div className="text-center py-12 text-slate-500">Loading...</div>
-        </div>
-      </div>
-    );
+    return <ListPageSkeleton />;
   }
 
   const filteredReminders = reminders.filter(reminder =>

@@ -9,6 +9,7 @@ import { Plus, Search, AlertTriangle, Pencil, ArrowUpDown, ArrowUp, ArrowDown, C
 import { differenceInDays, format, parseISO } from "date-fns";
 import LicenseForm from "../components/licenses/LicenseForm";
 import EmptyState from "@/components/ui/EmptyState";
+import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
 
 export default function Licenses() {
   const [showForm, setShowForm] = useState(false);
@@ -28,10 +29,14 @@ export default function Licenses() {
     queryFn: () => base44.entities.License.list('-expiration_date')
   });
 
-  const { data: providers = [] } = useQuery({
+  const { data: providers = [], isLoading: providersLoading } = useQuery({
     queryKey: ['providers'],
     queryFn: () => base44.entities.Provider.list()
   });
+
+  if (providersLoading) {
+    return <ListPageSkeleton />;
+  }
 
   useEffect(() => {
     if (editId && licenses.length > 0) {

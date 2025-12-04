@@ -9,6 +9,7 @@ import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-re
 import { format, parseISO } from "date-fns";
 import CMEForm from "../components/cme/CMEForm";
 import EmptyState from "@/components/ui/EmptyState";
+import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
 
 export default function CMETracking() {
   const [showForm, setShowForm] = useState(false);
@@ -23,10 +24,14 @@ export default function CMETracking() {
     queryFn: () => base44.entities.CME.list('-completion_date')
   });
 
-  const { data: providers = [] } = useQuery({
+  const { data: providers = [], isLoading: providersLoading } = useQuery({
     queryKey: ['providers'],
     queryFn: () => base44.entities.Provider.list()
   });
+
+  if (providersLoading) {
+    return <ListPageSkeleton />;
+  }
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.CME.create(data),

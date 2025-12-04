@@ -175,13 +175,7 @@ export default function Providers() {
   };
 
   if (isLoading) {
-    return (
-      <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center py-12 text-slate-500">Loading...</div>
-        </div>
-      </div>
-    );
+    return <ListPageSkeleton />;
   }
 
   return (

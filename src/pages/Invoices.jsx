@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import InvoiceForm from "../components/invoices/InvoiceForm";
 import EmptyState from "@/components/ui/EmptyState";
+import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -539,13 +540,7 @@ export default function Invoices() {
   };
 
   if (invoicesLoading || providersLoading) {
-    return (
-      <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center py-12 text-slate-500">Loading...</div>
-        </div>
-      </div>
-    );
+    return <ListPageSkeleton />;
   }
 
   const invoicesWithProviders = invoices.map(invoice => {

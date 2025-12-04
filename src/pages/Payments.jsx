@@ -10,6 +10,7 @@ import { format, parseISO } from "date-fns";
 import PaymentForm from "../components/payments/PaymentForm";
 import PaymentDetailModal from "../components/payments/PaymentDetailModal";
 import EmptyState from "@/components/ui/EmptyState";
+import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -493,13 +494,7 @@ export default function Payments() {
 
   // Only process data when all queries have loaded
   if (paymentsLoading || invoicesLoading || providersLoading) {
-    return (
-      <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center py-12 text-slate-500">Loading...</div>
-        </div>
-      </div>
-    );
+    return <ListPageSkeleton />;
   }
 
   const filteredPayments = payments.filter(payment => {

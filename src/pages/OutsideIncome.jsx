@@ -19,6 +19,7 @@ import { createPageUrl } from "@/utils";
 import { parseISO, format } from "date-fns";
 import OutsideIncomeForm from "../components/income/OutsideIncomeForm";
 import EmptyState from "@/components/ui/EmptyState";
+import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -335,7 +336,11 @@ export default function OutsideIncome() {
   // Wait for data to load before processing
   const isLoading = incomesLoading || providersLoading || locationsLoading;
 
-  const incomesWithProviders = isLoading ? [] : incomes.map(income => {
+  if (isLoading) {
+    return <ListPageSkeleton />;
+  }
+
+  const incomesWithProviders = incomes.map(income => {
     const location = programLocations.find(pl => pl.id === income.program_location_id);
     return {
       ...income,

@@ -20,6 +20,7 @@ import {
 import { format, parseISO } from "date-fns";
 import SupplyOrderForm from "../components/supplies/SupplyOrderForm";
 import EmptyState from "@/components/ui/EmptyState";
+import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
 
 export default function ClinicalSupplyOrders() {
   const urlParams = new URLSearchParams(window.location.search);

@@ -10,6 +10,7 @@ import { differenceInDays, parseISO, format, subMonths } from "date-fns";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import FinancialDetailModal from "../components/dashboard/FinancialDetailModal";
+import { DashboardSkeleton } from "@/components/ui/LoadingSkeletons";
 
 export default function Dashboard() {
   const [syncing, setSyncing] = useState(false);
@@ -400,14 +401,7 @@ export default function Dashboard() {
                     invoicesLoading || cmeLoading || paymentsLoading || supplyOrdersLoading;
 
   if (isLoading) {
-    return (
-      <div className="p-6 md:p-8 bg-slate-50 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading dashboard...</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   // Provider counts

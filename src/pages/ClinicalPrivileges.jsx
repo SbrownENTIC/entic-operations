@@ -9,6 +9,7 @@ import { Plus, Search, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "l
 import { differenceInDays, format, parseISO } from "date-fns";
 import PrivilegeForm from "../components/privileges/PrivilegeForm";
 import EmptyState from "@/components/ui/EmptyState";
+import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,10 +43,14 @@ export default function ClinicalPrivileges() {
     queryFn: () => base44.entities.ClinicalPrivilege.list('-expiration_date')
   });
 
-  const { data: providers = [] } = useQuery({
+  const { data: providers = [], isLoading: providersLoading } = useQuery({
     queryKey: ['providers'],
     queryFn: () => base44.entities.Provider.list()
   });
+
+  if (providersLoading) {
+    return <ListPageSkeleton />;
+  }
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.ClinicalPrivilege.create(data),
