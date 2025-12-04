@@ -125,6 +125,7 @@ Deno.serve(async (req) => {
       const fields = {};
       if (closureName) fields['Closure Name'] = closureName;
       if (closureDate) fields['Date Closed'] = closureDate;
+      if (reminder.send_date) fields['Notification Date'] = reminder.send_date;
       if (reminder.reopen_date) fields['Date Re-Open'] = reminder.reopen_date;
       // Removing Email Subject and Body as they seem to be missing from Airtable schema
       // if (reminder.email_subject) fields['Email Subject'] = reminder.email_subject;
