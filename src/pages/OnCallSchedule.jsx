@@ -164,10 +164,33 @@ export default function OnCallSchedule() {
   };
 
   const handleSubmit = (data) => {
-    if (editingSchedule) {
-      updateMutation.mutate({ id: editingSchedule.id, data });
+    // Check for conflicts
+    const conflicts = checkConflict(
+        data.provider_id, 
+        data.start_date, 
+        data.end_date, 
+        editingSchedule ? editingSchedule.id : null
+    );
+
+    const proceed = () => {
+        if (editingSchedule) {
+            updateMutation.mutate({ id: editingSchedule.id, data });
+        } else {
+            createMutation.mutate(data);
+        }
+    };
+
+    if (conflicts.length > 0) {
+        const provider = providers.find(p => p.id === data.provider_id);
+        setConflictAlert({
+            schedule: { ...data, provider }, // Mock schedule object for the alert
+            newStartDate: data.start_date,
+            newEndDate: data.end_date,
+            conflicts,
+            onConfirm: proceed
+        });
     } else {
-      createMutation.mutate(data);
+        proceed();
     }
   };
 
@@ -449,16 +472,21 @@ export default function OnCallSchedule() {
 
   const handleConfirmConflict = () => {
       if (!conflictAlert) return;
-      const { schedule, newStartDate, newEndDate } = conflictAlert;
       
-      updateMutation.mutate({
-        id: schedule.id,
-        data: {
-          ...schedule,
-          start_date: newStartDate,
-          end_date: newEndDate
-        }
-      });
+      if (conflictAlert.onConfirm) {
+          conflictAlert.onConfirm();
+      } else {
+          // Default DnD behavior if no custom onConfirm
+          const { schedule, newStartDate, newEndDate } = conflictAlert;
+          updateMutation.mutate({
+            id: schedule.id,
+            data: {
+              ...schedule,
+              start_date: newStartDate,
+              end_date: newEndDate
+            }
+          });
+      }
       setConflictAlert(null);
   };
 
