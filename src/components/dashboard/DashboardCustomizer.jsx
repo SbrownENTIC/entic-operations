@@ -10,7 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { Settings, GripVertical } from "lucide-react";
+import { Settings, GripVertical, AlertCircle } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { base44 } from "@/api/base44Client";
 
@@ -30,6 +30,7 @@ export default function DashboardCustomizer({ currentConfig, onConfigChange }) {
   const [open, setOpen] = useState(false);
   const [widgets, setWidgets] = useState(DEFAULT_WIDGETS);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (currentConfig) {
@@ -72,6 +73,7 @@ export default function DashboardCustomizer({ currentConfig, onConfigChange }) {
 
   const handleSave = async () => {
     setSaving(true);
+    setError(null);
     try {
       const configString = JSON.stringify(widgets);
       await base44.auth.updateMe({ dashboard_config: configString });
@@ -79,6 +81,12 @@ export default function DashboardCustomizer({ currentConfig, onConfigChange }) {
       setOpen(false);
     } catch (error) {
       console.error("Failed to save dashboard config", error);
+      let errorMessage = error.message || "An unexpected error occurred.";
+      // Try to extract more detailed error from response if available
+      if (error.response && error.response.data && error.response.data.error) {
+        errorMessage = error.response.data.error;
+      }
+      setError(`Failed to save changes: ${errorMessage}`);
     } finally {
       setSaving(false);
     }
@@ -101,6 +109,12 @@ export default function DashboardCustomizer({ currentConfig, onConfigChange }) {
         </DialogHeader>
         
         <div className="py-4">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-md mb-4 flex items-start gap-2 text-sm">
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
           <DragDropContext onDragEnd={handleDragEnd}>
             <Droppable droppableId="dashboard-widgets">
               {(provided) => (

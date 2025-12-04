@@ -42,7 +42,7 @@ export default function Dashboard() {
     return [];
   };
 
-  const { data: user } = useQuery({
+  const { data: user, isLoading: userLoading } = useQuery({
     queryKey: ['me'],
     queryFn: () => base44.auth.me()
   });
@@ -592,7 +592,7 @@ export default function Dashboard() {
   });
 
   const isLoading = providersLoading || licensesLoading || privilegesLoading || 
-                    invoicesLoading || cmeLoading || paymentsLoading || supplyOrdersLoading;
+                    invoicesLoading || cmeLoading || paymentsLoading || supplyOrdersLoading || userLoading;
 
   if (hasErrors) {
     return (
