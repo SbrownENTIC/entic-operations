@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileText, Eye, ExternalLink, CheckCircle, AlertCircle, Clock } from "lucide-react";
 import EmptyState from "@/components/ui/EmptyState";
+import { Link } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 
 export default function VendorInvoiceList({ invoices, isLoading }) {
   if (isLoading) {
@@ -70,9 +72,11 @@ export default function VendorInvoiceList({ invoices, isLoading }) {
                       </a>
                     </Button>
                   )}
-                  <Button variant="outline" size="sm">
-                    Review
-                  </Button>
+                  <Link to={`${createPageUrl("VendorInvoiceReview")}?id=${invoice.id}`}>
+                    <Button variant="outline" size="sm">
+                        Review
+                    </Button>
+                  </Link>
                 </div>
               </td>
             </tr>
