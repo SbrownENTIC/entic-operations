@@ -36,10 +36,14 @@ export default function ClinicalSupplyOrders() {
   const [summaryOrder, setSummaryOrder] = useState(null);
   const queryClient = useQueryClient();
 
-  const { data: orders = [] } = useQuery({
+  const { data: orders = [], isLoading: ordersLoading } = useQuery({
     queryKey: ['supply-orders', 'clinical'],
     queryFn: () => base44.entities.SupplyOrder.filter({ category: 'clinical' }, '-order_date')
   });
+
+  if (ordersLoading) {
+    return <ListPageSkeleton />;
+  }
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.SupplyOrder.create({ ...data, category: 'clinical' }),

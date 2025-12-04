@@ -36,10 +36,14 @@ export default function OfficeSupplyOrders() {
   const [summaryOrder, setSummaryOrder] = useState(null);
   const queryClient = useQueryClient();
 
-  const { data: orders = [] } = useQuery({
+  const { data: orders = [], isLoading: ordersLoading } = useQuery({
     queryKey: ['supply-orders', 'office'],
     queryFn: () => base44.entities.SupplyOrder.filter({ category: 'office' }, '-order_date')
   });
+
+  if (ordersLoading) {
+    return <ListPageSkeleton />;
+  }
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.SupplyOrder.create({ ...data, category: 'office' }),
