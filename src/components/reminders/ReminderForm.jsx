@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { X, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
+import { DatePicker } from "@/components/ui/date-picker";
+import { TimePicker } from "@/components/ui/time-picker";
 
 export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = useState({
@@ -197,7 +199,7 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
       const reopenDate = closureReopenDates[formData.closure_name]?.[closureYear];
       
       if (reopenDate && reopenDate !== formData.reopen_date) {
-        setFormData(prev => ({ ...prev, reopen_date: reopenDate }));
+        setFormData(prev => ({ ...prev, reopen_date: reopenDate, reopen_time: prev.reopen_time || '8:00 AM' }));
       }
     }
   }, [formData.closure_date, formData.closure_name, formData.reminder_type, manuallyEdited.reopen_date]);
@@ -404,15 +406,12 @@ The Operations Team
                   <span className="text-blue-600 text-xs ml-2">✏️ Manually edited</span>
                 )}
               </Label>
-              <Input
-                id="send_date"
-                type="date"
+              <DatePicker
                 value={formData.send_date}
-                onChange={(e) => {
-                  setFormData({ ...formData, send_date: e.target.value });
+                onChange={(date) => {
+                  setFormData({ ...formData, send_date: date });
                   setManuallyEdited(prev => ({ ...prev, send_date: true }));
                 }}
-                required
               />
               {(formData.reminder_type === 'Holiday' || formData.reminder_type === 'Office Closure') && formData.closure_date && (
                   <p className="text-xs text-slate-500">
@@ -526,21 +525,17 @@ The Operations Team
 
                 <div className="space-y-2">
                   <Label htmlFor="closure_date">Closure Date</Label>
-                  <Input
-                    id="closure_date"
-                    type="date"
+                  <DatePicker
                     value={formData.closure_date}
-                    onChange={(e) => setFormData({ ...formData, closure_date: e.target.value })}
+                    onChange={(date) => setFormData({ ...formData, closure_date: date })}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="closure_time">Closure Time (Optional)</Label>
-                  <Input
-                    id="closure_time"
-                    placeholder="e.g., 12:00 PM"
+                  <TimePicker
                     value={formData.closure_time || ''}
-                    onChange={(e) => setFormData({ ...formData, closure_time: e.target.value })}
+                    onChange={(value) => setFormData({ ...formData, closure_time: value })}
                   />
                 </div>
 
@@ -551,12 +546,10 @@ The Operations Team
                       <span className="text-blue-600 text-xs ml-2">✏️ Manually edited</span>
                     )}
                   </Label>
-                  <Input
-                    id="reopen_date"
-                    type="date"
+                  <DatePicker
                     value={formData.reopen_date}
-                    onChange={(e) => {
-                      setFormData({ ...formData, reopen_date: e.target.value });
+                    onChange={(date) => {
+                      setFormData({ ...formData, reopen_date: date });
                       setManuallyEdited(prev => ({ ...prev, reopen_date: true }));
                     }}
                   />
@@ -571,11 +564,9 @@ The Operations Team
 
                 <div className="space-y-2">
                   <Label htmlFor="reopen_time">Reopen Time (Optional)</Label>
-                  <Input
-                    id="reopen_time"
-                    placeholder="e.g., 8:00 AM"
+                  <TimePicker
                     value={formData.reopen_time || ''}
-                    onChange={(e) => setFormData({ ...formData, reopen_time: e.target.value })}
+                    onChange={(value) => setFormData({ ...formData, reopen_time: value })}
                   />
                 </div>
 

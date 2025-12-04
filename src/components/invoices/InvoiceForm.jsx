@@ -9,7 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { X, Upload, AlertCircle, ExternalLink, Edit, Search } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, subMonths } from "date-fns";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
@@ -544,12 +545,10 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
 
             <div className="space-y-2">
               <Label htmlFor="invoice_date">Invoice Date *</Label>
-              <Input
-                id="invoice_date"
-                type="date"
+              <DatePicker
                 value={formData.invoice_date}
-                onChange={(e) => setFormData({ ...formData, invoice_date: e.target.value })}
-                required
+                onChange={(date) => setFormData({ ...formData, invoice_date: date })}
+                defaultMonth={subMonths(new Date(), 1)}
               />
             </div>
 
@@ -655,11 +654,9 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
 
             <div className="space-y-2">
               <Label htmlFor="date_provider_paid">Date Provider Paid</Label>
-              <Input
-                id="date_provider_paid"
-                type="date"
+              <DatePicker
                 value={formData.date_provider_paid}
-                onChange={(e) => setFormData({ ...formData, date_provider_paid: e.target.value })}
+                onChange={(date) => setFormData({ ...formData, date_provider_paid: date })}
               />
             </div>
           </div>
