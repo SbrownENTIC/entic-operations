@@ -56,12 +56,7 @@ export default function ProviderTimeOff() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => {
-      if (Array.isArray(data)) {
-        return base44.entities.ProviderTimeOff.bulkCreate(data);
-      }
-      return base44.entities.ProviderTimeOff.create(data);
-    },
+    mutationFn: (data) => base44.entities.ProviderTimeOff.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['provider-timeoff'] });
       setShowForm(false);
