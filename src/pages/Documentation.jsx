@@ -323,7 +323,7 @@ export default function Documentation() {
                         <input type="checkbox" className="mt-1 w-4 h-4 cursor-pointer" />
                         <div>
                           <p className="font-bold text-slate-800">2. Dashboard "Red" Alerts</p>
-                          <p className="text-sm text-slate-600">Look at the top cards on <strong>Dashboard</strong>. If "Expiring Licenses" > 0, click it and email the provider immediately.</p>
+                          <p className="text-sm text-slate-600">Look at the top cards on <strong>Dashboard</strong>. If "Expiring Licenses" &gt; 0, click it and email the provider immediately.</p>
                         </div>
                       </div>
                     </div>
