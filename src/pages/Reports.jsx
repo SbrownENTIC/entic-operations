@@ -12,6 +12,7 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import PaymentTrackingReport from "../components/reports/PaymentTrackingReport";
 import MonthlyFinancialsReport from "../components/reports/MonthlyFinancialsReport";
+import { PaymentTrendChart, InvoiceAgingChart, IncomeDistributionChart, SupplySpendingChart } from "../components/reports/ReportCharts";
 
 export default function Reports() {
   const [dateRange, setDateRange] = useState({
@@ -721,11 +722,12 @@ export default function Reports() {
                     </div>
                   </div>
                   <p className="text-sm text-slate-600">
-                    This report shows each payment received, how it's been allocated across invoices, 
-                    and any unallocated amounts. Perfect for reconciliation and cash flow tracking.
+                  This report shows each payment received, how it's been allocated across invoices, 
+                  and any unallocated amounts. Perfect for reconciliation and cash flow tracking.
                   </p>
-                </div>
-              </CardContent>
+                  </div>
+                  <PaymentTrendChart payments={filterByDateRange(payments, 'payment_date')} />
+                  </CardContent>
             </Card>
           </TabsContent>
 
@@ -776,10 +778,38 @@ export default function Reports() {
                       </div>
                     ))}
                   </div>
-                  <p className="text-sm text-slate-600">
-                    This report categorizes outstanding invoices by age, helping you prioritize 
-                    collections and identify problematic accounts.
-                  </p>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
+                      <p className="text-sm text-slate-600 mb-4">
+                        This report categorizes outstanding invoices by age, helping you prioritize 
+                        collections and identify problematic accounts.
+                      </p>
+                    </div>
+                    <InvoiceAgingChart 
+                      agingData={{
+                        current: invoices.filter(inv => {
+                            const balance = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
+                            const days = differenceInDays(new Date(), parseISO(inv.invoice_date));
+                            return balance > 0 && days <= 30;
+                        }).reduce((sum, inv) => sum + ((inv.amount_expected || inv.total || 0) - (inv.amount_received || 0)), 0),
+                        '30days': invoices.filter(inv => {
+                            const balance = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
+                            const days = differenceInDays(new Date(), parseISO(inv.invoice_date));
+                            return balance > 0 && days > 30 && days <= 60;
+                        }).reduce((sum, inv) => sum + ((inv.amount_expected || inv.total || 0) - (inv.amount_received || 0)), 0),
+                        '60days': invoices.filter(inv => {
+                            const balance = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
+                            const days = differenceInDays(new Date(), parseISO(inv.invoice_date));
+                            return balance > 0 && days > 60 && days <= 90;
+                        }).reduce((sum, inv) => sum + ((inv.amount_expected || inv.total || 0) - (inv.amount_received || 0)), 0),
+                        '90plus': invoices.filter(inv => {
+                            const balance = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
+                            const days = differenceInDays(new Date(), parseISO(inv.invoice_date));
+                            return balance > 0 && days > 90;
+                        }).reduce((sum, inv) => sum + ((inv.amount_expected || inv.total || 0) - (inv.amount_received || 0)), 0)
+                      }} 
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -832,6 +862,7 @@ export default function Reports() {
                     program location (to see which programs generate the most revenue).
                   </p>
                 </div>
+                <IncomeDistributionChart incomes={incomes} providers={providers} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -1169,6 +1200,7 @@ export default function Reports() {
                   <p className="text-sm text-slate-600">
                     Click on any value to see detailed order breakdown. Average values help identify spending trends and budget planning.
                   </p>
+                  <SupplySpendingChart orders={filterByDateRange(supplyOrders, 'order_date')} />
                 </div>
               </CardContent>
             </Card>
