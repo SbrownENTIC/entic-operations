@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X } from "lucide-react";
+import { DatePicker } from "@/components/ui/date-picker";
 
 export default function CMEForm({ cme, providers, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = useState({

@@ -14,6 +14,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { DatePicker } from "@/components/ui/date-picker";
 
 export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = useState({
@@ -312,22 +313,18 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
 
             <div className="space-y-2">
               <Label htmlFor="termination_date">Termination Date / Last Day of Work</Label>
-              <Input
-                id="termination_date"
-                type="date"
+              <DatePicker
                 value={formData.termination_date}
-                onChange={(e) => setFormData({ ...formData, termination_date: e.target.value })}
+                onChange={(date) => setFormData({ ...formData, termination_date: date })}
               />
               <p className="text-xs text-slate-500">Provider will automatically become inactive on this date</p>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="flu_vaccine_date">Flu Vaccine Date</Label>
-              <Input
-                id="flu_vaccine_date"
-                type="date"
+              <DatePicker
                 value={formData.flu_vaccine_date}
-                onChange={(e) => handleFluVaccineDateChange(e.target.value)}
+                onChange={(date) => handleFluVaccineDateChange(date)}
               />
             </div>
 
@@ -428,11 +425,11 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
                     </div>
                     <div className="space-y-2">
                       <Label>Granted Date</Label>
-                      <Input type="date" value={privilege.granted_date} onChange={(e) => updatePrivilege(index, 'granted_date', e.target.value)} />
+                      <DatePicker value={privilege.granted_date} onChange={(date) => updatePrivilege(index, 'granted_date', date)} />
                     </div>
                     <div className="space-y-2">
                       <Label>Expiration Date</Label>
-                      <Input type="date" value={privilege.expiration_date} onChange={(e) => updatePrivilege(index, 'expiration_date', e.target.value)} />
+                      <DatePicker value={privilege.expiration_date} onChange={(date) => updatePrivilege(index, 'expiration_date', date)} />
                     </div>
                     <div className="space-y-2 md:col-span-2">
                       <Label>Notes</Label>
@@ -485,11 +482,11 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
                         </div>
                         <div className="space-y-2">
                           <Label>Issue Date</Label>
-                          <Input type="date" value={license.issue_date} onChange={(e) => updateLicense(index, 'issue_date', e.target.value)} />
+                          <DatePicker value={license.issue_date} onChange={(date) => updateLicense(index, 'issue_date', date)} />
                         </div>
                         <div className="space-y-2">
                           <Label>Expiration Date</Label>
-                          <Input type="date" value={license.expiration_date} onChange={(e) => updateLicense(index, 'expiration_date', e.target.value)} />
+                          <DatePicker value={license.expiration_date} onChange={(date) => updateLicense(index, 'expiration_date', date)} />
                         </div>
                       </div>
                     </div>
@@ -528,7 +525,7 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
                         </div>
                         <div className="space-y-2 md:col-span-2">
                           <Label>Completion Date</Label>
-                          <Input type="date" value={cme.completion_date} onChange={(e) => updateCME(index, 'completion_date', e.target.value)} />
+                          <DatePicker value={cme.completion_date} onChange={(date) => updateCME(index, 'completion_date', date)} />
                         </div>
                       </div>
                     </div>

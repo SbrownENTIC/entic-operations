@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X } from "lucide-react";
+import { DatePicker } from "@/components/ui/date-picker";
 import { differenceInDays, parseISO } from "date-fns";
 
 export default function LicenseForm({ license, providers, onSubmit, onCancel, isLoading }) {
@@ -104,22 +105,17 @@ export default function LicenseForm({ license, providers, onSubmit, onCancel, is
 
             <div className="space-y-2">
               <Label htmlFor="issue_date">Issue Date</Label>
-              <Input
-                id="issue_date"
-                type="date"
+              <DatePicker
                 value={formData.issue_date}
-                onChange={(e) => setFormData({ ...formData, issue_date: e.target.value })}
+                onChange={(date) => setFormData({ ...formData, issue_date: date })}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="expiration_date">Expiration Date *</Label>
-              <Input
-                id="expiration_date"
-                type="date"
+              <DatePicker
                 value={formData.expiration_date}
-                onChange={(e) => setFormData({ ...formData, expiration_date: e.target.value })}
-                required
+                onChange={(date) => setFormData({ ...formData, expiration_date: date })}
               />
             </div>
 
