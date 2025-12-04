@@ -661,7 +661,7 @@ export default function Invoices() {
 
   return (
     <>
-    <div className="h-screen flex flex-col overflow-hidden bg-slate-50">
+    <div className="h-[calc(100vh-9rem)] flex flex-col overflow-hidden bg-slate-50">
       <style>{`
         @media print {
           body * { visibility: hidden; }
@@ -741,7 +741,7 @@ export default function Invoices() {
           </div>
 
           <Card className="border-slate-200 shadow-sm h-full flex flex-col">
-            <CardHeader className="border-b border-slate-100 space-y-4 no-print flex-shrink-0">
+            <CardHeader className="border-b border-slate-100 space-y-2 no-print flex-shrink-0">
               <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
                 <div className="flex items-center gap-4 flex-1">
                   <Search className="w-5 h-5 text-slate-400" />
@@ -780,7 +780,7 @@ export default function Invoices() {
                 </Button>
               </div>
               {selectedInvoices.length > 0 && (
-                <div className="flex flex-col xl:flex-row items-center justify-between gap-3 p-2 bg-blue-50 rounded-lg border border-blue-200 shadow-sm">
+                <div className="flex flex-col xl:flex-row items-center justify-between gap-2 p-1.5 bg-blue-50 rounded-lg border border-blue-200 shadow-sm">
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="font-semibold text-slate-900 text-sm whitespace-nowrap">
                       {selectedInvoices.length} selected
