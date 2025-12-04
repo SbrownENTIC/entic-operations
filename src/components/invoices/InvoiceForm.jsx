@@ -721,6 +721,54 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                 Invoice Sent to Vendor
               </label>
             </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="pending_providers_time"
+                checked={formData.status === 'pending_providers_time'}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    setFormData({ ...formData, status: 'pending_providers_time' });
+                    manualEditFlags.current.status = true;
+                  }
+                }}
+              />
+              <label htmlFor="pending_providers_time" className="text-sm font-medium cursor-pointer">
+                Provider Needs to Enter Time
+              </label>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="pending_providers_approval"
+                checked={formData.status === 'pending_providers_approval'}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    setFormData({ ...formData, status: 'pending_providers_approval' });
+                    manualEditFlags.current.status = true;
+                  }
+                }}
+              />
+              <label htmlFor="pending_providers_approval" className="text-sm font-medium cursor-pointer">
+                Sent to Provider for Approval
+              </label>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="sent_for_approval"
+                checked={formData.status === 'sent_for_approval'}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    setFormData({ ...formData, status: 'sent_for_approval' });
+                    manualEditFlags.current.status = true;
+                  }
+                }}
+              />
+              <label htmlFor="sent_for_approval" className="text-sm font-medium cursor-pointer">
+                Sent to Vendor for Approval
+              </label>
+            </div>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
