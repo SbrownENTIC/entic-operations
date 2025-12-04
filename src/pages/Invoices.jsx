@@ -599,6 +599,13 @@ export default function Invoices() {
     return matchesSearch && matchesNoIncomeFilter && matchesStatus;
   });
 
+  // Calculate total of selected invoices
+  const selectedInvoicesTotal = React.useMemo(() => {
+    return invoices
+      .filter(inv => selectedInvoices.includes(inv.id))
+      .reduce((sum, inv) => sum + (inv.total || 0), 0);
+  }, [invoices, selectedInvoices]);
+
   const sortedInvoices = [...filteredInvoices].sort((a, b) => {
     let aValue, bValue;
     
@@ -1057,6 +1064,14 @@ export default function Invoices() {
                   </div>
                 )}
               </div>
+              {selectedInvoices.length > 0 && (
+                <div className="bg-slate-50 border-t border-slate-200 p-4 flex justify-end items-center gap-4 no-print">
+                  <span className="text-sm text-slate-600 font-medium">{selectedInvoices.length} invoices selected</span>
+                  <div className="text-lg font-bold text-slate-900">
+                    Total: <span className="text-blue-600">${formatCurrency(selectedInvoicesTotal)}</span>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

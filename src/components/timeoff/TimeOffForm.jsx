@@ -10,7 +10,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { X } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
 import { MultiDatePicker } from "@/components/ui/multi-date-picker";
+import { Combobox } from "@/components/ui/combobox";
 import { addDays, format, parseISO, differenceInDays } from "date-fns";
+
+const COMMON_REASONS = [
+  "Vacation",
+  "Sick Time", 
+  "CME",
+  "Personal Day",
+  "Holiday",
+  "Jury Duty",
+  "Bereavement",
+  "Family Leave",
+  "Conference"
+];
 
 export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) {
   const [selectedDates, setSelectedDates] = useState([]);
@@ -100,21 +113,14 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="provider_id">Provider *</Label>
-              <Select 
-                value={formData.provider_id} 
-                onValueChange={(value) => setFormData({ ...formData, provider_id: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select provider" />
-                </SelectTrigger>
-                <SelectContent>
-                  {providers.map(provider => (
-                    <SelectItem key={provider.id} value={provider.id}>
-                      {provider.full_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Combobox
+                options={providers.map(p => ({ value: p.id, label: p.full_name }))}
+                value={formData.provider_id}
+                onChange={(value) => setFormData({ ...formData, provider_id: value })}
+                placeholder="Select provider..."
+                searchPlaceholder="Search providers..."
+                emptyText="No provider found"
+              />
             </div>
 
             <div className="space-y-2">
@@ -182,11 +188,14 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
 
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="reason">Reason</Label>
-              <Input
-                id="reason"
+              <Combobox
+                options={[...new Set([...COMMON_REASONS, ...(formData.reason ? [formData.reason] : [])])].map(r => ({ value: r, label: r }))}
                 value={formData.reason}
-                onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                placeholder="e.g., Vacation, Conference, MLK Day"
+                onChange={(value) => setFormData({ ...formData, reason: value })}
+                placeholder="Select or type a reason..."
+                searchPlaceholder="Search reasons..."
+                creatable
+                onCreate={(value) => setFormData({ ...formData, reason: value })}
               />
             </div>
 
