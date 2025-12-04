@@ -628,6 +628,7 @@ export default function Invoices() {
     pending_providers_approval: "bg-yellow-100 text-yellow-800",
     pending_providers_time: "bg-yellow-100 text-yellow-800",
     sent_for_approval: "bg-blue-100 text-blue-800",
+    sent_to_coo_for_approval: "bg-indigo-100 text-indigo-800",
     approved: "bg-green-100 text-green-800",
     sent_to_vendor: "bg-blue-100 text-blue-800",
     paid_to_entic: "bg-green-100 text-green-800",
@@ -745,6 +746,7 @@ export default function Invoices() {
                     <SelectItem value="draft">Draft</SelectItem>
                     <SelectItem value="pending_providers_approval">Pending Approval</SelectItem>
                     <SelectItem value="pending_providers_time">Pending Time</SelectItem>
+                    <SelectItem value="sent_to_coo_for_approval">Sent to COO for Approval</SelectItem>
                     <SelectItem value="sent_for_approval">Sent for Approval</SelectItem>
                     <SelectItem value="approved">Approved</SelectItem>
                     <SelectItem value="sent_to_vendor">Sent to Vendor</SelectItem>
@@ -791,6 +793,7 @@ export default function Invoices() {
                           <SelectItem value="draft">Draft</SelectItem>
                           <SelectItem value="pending_providers_approval">Pending Providers Approval</SelectItem>
                           <SelectItem value="pending_providers_time">Pending Providers Time</SelectItem>
+                          <SelectItem value="sent_to_coo_for_approval">Sent to COO for Approval</SelectItem>
                           <SelectItem value="sent_for_approval">Sent for Approval</SelectItem>
                           <SelectItem value="approved">Approved</SelectItem>
                           <SelectItem value="sent_to_vendor">Sent to Vendor</SelectItem>

@@ -19,6 +19,7 @@ const INVOICE_STATUSES = [
   { value: "draft", label: "Draft" },
   { value: "pending_providers_approval", label: "Pending Providers Approval" },
   { value: "pending_providers_time", label: "Pending Providers Time" },
+  { value: "sent_to_coo_for_approval", label: "Sent to COO for Approval" },
   { value: "sent_for_approval", label: "Sent for Approval" },
   { value: "approved", label: "Approved" },
   { value: "sent_to_vendor", label: "Sent to Vendor" },
@@ -751,6 +752,22 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
               />
               <label htmlFor="pending_providers_approval" className="text-sm font-medium cursor-pointer">
                 Sent to Provider for Approval
+              </label>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="sent_to_coo_for_approval"
+                checked={formData.status === 'sent_to_coo_for_approval'}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    setFormData({ ...formData, status: 'sent_to_coo_for_approval' });
+                    manualEditFlags.current.status = true;
+                  }
+                }}
+              />
+              <label htmlFor="sent_to_coo_for_approval" className="text-sm font-medium cursor-pointer">
+                Sent to COO for Approval
               </label>
             </div>
 
