@@ -242,9 +242,93 @@ export default function Providers() {
               />
             </div>
           </CardHeader>
-          <CardContent className="p-0 flex-1 overflow-hidden">
+          <CardContent className="p-0 flex-1 overflow-hidden bg-slate-50/50">
             <div className="overflow-auto h-full">
-              <table className="w-full">
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-4 p-4">
+                {sortedProviders.map((provider) => {
+                  const hasFluVaccine = provider.flu_vaccine_year === currentFluSeason && provider.flu_vaccine_date;
+                  const capitalizedStatus = provider.status ? provider.status.charAt(0).toUpperCase() + provider.status.slice(1) : '';
+                  
+                  return (
+                    <div key={provider.id} className="bg-white rounded-lg border border-slate-200 shadow-sm p-4 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <Link 
+                            to={`${createPageUrl("ProviderDetail")}?id=${provider.id}`}
+                            className="font-medium text-blue-600 hover:text-blue-800 text-lg"
+                          >
+                            {provider.full_name}
+                          </Link>
+                          <div className="text-sm text-slate-500">{provider.role || '-'}</div>
+                        </div>
+                        <Badge variant={provider.status === 'active' ? 'default' : 'secondary'}>
+                          {capitalizedStatus}
+                        </Badge>
+                      </div>
+                      
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between py-1 border-b border-slate-100">
+                          <span className="text-slate-500">Email:</span>
+                          <span className="text-slate-900 truncate max-w-[200px]">{provider.email}</span>
+                        </div>
+                        <div className="flex justify-between py-1 border-b border-slate-100">
+                          <span className="text-slate-500">Termination:</span>
+                          <span className="text-slate-900">
+                            {provider.termination_date ? format(parseISO(provider.termination_date), 'MM-dd-yyyy') : '-'}
+                          </span>
+                        </div>
+                        {provider.role === 'ENT MD' && (
+                          <div className="flex justify-between py-1 items-center">
+                            <span className="text-slate-500">Flu Vaccine:</span>
+                            {hasFluVaccine ? (
+                              <div className="flex items-center text-green-600 gap-1">
+                                <CheckCircle className="w-4 h-4" />
+                                <span>{format(parseISO(provider.flu_vaccine_date), 'MM/dd')}</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center text-red-600 gap-1">
+                                <XCircle className="w-4 h-4" />
+                                <span>Missing</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex justify-end gap-2 pt-2">
+                        <Link to={`${createPageUrl("ProviderDetail")}?id=${provider.id}`}>
+                          <Button variant="outline" size="sm" className="h-8">
+                            <Eye className="w-4 h-4 mr-1" /> View
+                          </Button>
+                        </Link>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="h-8"
+                          onClick={() => {
+                            setEditingProvider(provider);
+                            setShowForm(true);
+                          }}
+                        >
+                          <Pencil className="w-4 h-4 mr-1" /> Edit
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="h-8 text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50"
+                          onClick={() => setDeleteConfirm(provider)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop Table View */}
+              <table className="w-full hidden md:table bg-white">
                 <thead className="sticky top-0 bg-slate-50 border-b border-slate-200 z-10">
                   <tr>
                     <th 

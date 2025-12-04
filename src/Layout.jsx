@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
+import { AnimatePresence, motion } from "framer-motion";
 import { 
         LayoutDashboard, 
         Users, 
@@ -187,14 +188,14 @@ export default function Layout({ children, currentPageName }) {
     <div className="min-h-screen w-full overflow-x-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <style>{`
         :root {
-          --primary: 217 91% 35%;
-          --primary-foreground: 0 0% 100%;
-          --background: 210 20% 98%;
+          --primary: 221 83% 53%;
+          --primary-foreground: 210 40% 98%;
+          --background: 210 40% 98%;
           --card: 0 0% 100%;
           --card-foreground: 222.2 47.4% 11.2%;
-          --muted: 214 32% 95%;
-          --muted-foreground: 215 16% 47%;
-          --accent: 210 40% 96%;
+          --muted: 210 40% 96.1%;
+          --muted-foreground: 215.4 16.3% 46.9%;
+          --accent: 210 40% 96.1%;
           --accent-foreground: 222.2 47.4% 11.2%;
         }
         @keyframes ring {
@@ -345,8 +346,19 @@ export default function Layout({ children, currentPageName }) {
       </nav>
 
       {/* Main Content */}
-      <main className="flex-1">
-        {children}
+      <main className="flex-1 relative">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="h-full"
+          >
+            {children}
+          </motion.div>
+        </AnimatePresence>
       </main>
       <Toaster />
     </div>
