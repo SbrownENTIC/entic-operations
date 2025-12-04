@@ -204,6 +204,19 @@ export default function ProviderTimeOff() {
     document.body.removeChild(link);
   };
 
+  const handleFixSethBrownDates = async () => {
+    if (!confirm('Update all of Dr. Seth Brown\'s time off records to year 2026?')) return;
+    
+    try {
+      const response = await base44.functions.invoke('fixSethBrownTimeOff', {});
+      alert(response.data.message || 'Update complete');
+      queryClient.invalidateQueries({ queryKey: ['provider-timeoff'] });
+    } catch (error) {
+      console.error('Error updating dates:', error);
+      alert('Failed to update dates: ' + error.message);
+    }
+  };
+
   if (timeOffLoading || providersLoading) {
     return (
       <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
@@ -308,6 +321,13 @@ export default function ProviderTimeOff() {
             <p className="text-slate-600 text-sm">Track provider absences, partial days, and CME events</p>
           </div>
           <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={handleFixSethBrownDates}
+              className="gap-2 text-orange-600 border-orange-200 hover:bg-orange-50"
+            >
+              Fix Seth Brown Dates
+            </Button>
             <Button
               variant="outline"
               onClick={() => setViewMode(viewMode === 'list' ? 'calendar' : 'list')}
