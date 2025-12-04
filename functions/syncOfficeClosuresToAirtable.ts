@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 const AIRTABLE_BASE_ID = 'app6seexOdkDrMl2U';
-const OFFICE_CLOSURES_TABLE_ID = 'tbl3AVk1s0t9277R3';
+const OFFICE_CLOSURES_TABLE_ID = 'Office Closures (New)';
 const REMINDERS_TABLE_ID = 'tblwtERPFOEwQZmg0';
 const ON_CALL_PERIOD_TABLE_ID = 'tbl3o3gNR7ca4rcTW';
 
@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
     const isAuthenticated = await base44.auth.isAuthenticated();
     
     if (!isAuthenticated) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      return Response.json({ error: 'Base44 Session Invalid. Please refresh the page.' }, { status: 401 });
     }
 
     const airtableApiKey = Deno.env.get('AIRTABLE_API_KEY');
