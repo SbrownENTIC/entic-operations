@@ -793,6 +793,10 @@ export default function Invoices() {
                     >
                       Clear
                     </Button>
+                    <div className="h-4 w-px bg-slate-300 mx-1" />
+                    <span className="font-bold text-slate-900 text-sm whitespace-nowrap">
+                      Total: <span className="text-blue-600">${formatCurrency(selectedInvoicesTotal)}</span>
+                    </span>
                   </div>
                   
                   <div className="flex flex-wrap items-center justify-end gap-3 w-full">
@@ -1065,14 +1069,7 @@ export default function Invoices() {
                   </div>
                 )}
               </div>
-              {selectedInvoices.length > 0 && (
-                <div className="bg-slate-50 border-t border-slate-200 p-4 flex justify-end items-center gap-4 no-print">
-                  <span className="text-sm text-slate-600 font-medium">{selectedInvoices.length} invoices selected</span>
-                  <div className="text-lg font-bold text-slate-900">
-                    Total: <span className="text-blue-600">${formatCurrency(selectedInvoicesTotal)}</span>
-                  </div>
-                </div>
-              )}
+
             </CardContent>
           </Card>
         </div>
