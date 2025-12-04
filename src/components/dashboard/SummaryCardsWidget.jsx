@@ -17,7 +17,7 @@ export default function SummaryCardsWidget({
         <Card className={`bg-gradient-to-br from-orange-100 to-orange-50 transition-all duration-300 ${pendingVendorInvoices.length > 0 ? 'border-[5px] border-orange-600 animate-alert-glow' : 'border-3 border-orange-300 shadow-xl shadow-orange-300/60 hover:scale-105'}`}>
           <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-orange-400">
             <AlertCircle className="w-6 h-6 text-orange-700 animate-slow-pulse" />
-            <CardTitle className="text-sm font-bold text-slate-900">Vendor Invoices</CardTitle>
+            <CardTitle className="text-sm font-bold text-slate-900">Clinical Invoices Need Review</CardTitle>
             <AlertCircle className="w-6 h-6 text-orange-700 animate-slow-pulse" />
           </CardHeader>
           <CardContent className="pt-3">
@@ -33,7 +33,7 @@ export default function SummaryCardsWidget({
         <Card className={`bg-gradient-to-br from-rose-100 to-rose-50 transition-all duration-300 ${rejectedVendorInvoices.length > 0 ? 'border-[5px] border-rose-600 animate-alert-glow' : 'border-3 border-rose-300 shadow-xl shadow-rose-300/60 hover:scale-105'}`}>
           <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-rose-400">
             <AlertCircle className="w-6 h-6 text-rose-700 animate-slow-pulse" />
-            <CardTitle className="text-sm font-bold text-slate-900">Rejected Invoices</CardTitle>
+            <CardTitle className="text-sm font-bold text-slate-900">Rejected Clinical Invoices</CardTitle>
             <AlertCircle className="w-6 h-6 text-rose-700 animate-slow-pulse" />
           </CardHeader>
           <CardContent className="pt-3">
