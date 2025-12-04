@@ -115,6 +115,10 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Error syncing UConn invoices to Airtable:', error);
-    return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ 
+      error: error.message,
+      stack: error.stack,
+      details: JSON.stringify(error, Object.getOwnPropertyNames(error))
+    }, { status: 500 });
   }
-});
+  });

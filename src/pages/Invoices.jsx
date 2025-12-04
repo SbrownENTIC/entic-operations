@@ -380,7 +380,23 @@ export default function Invoices() {
       alert('Successfully synced invoice to Airtable!');
     } catch (error) {
       console.error("Sync error", error);
-      const errorMessage = error.response?.data?.error || error.message;
+      let errorMessage = error.message;
+      
+      if (error.response) {
+        if (error.response.data) {
+           if (typeof error.response.data === 'object') {
+             errorMessage = error.response.data.error || JSON.stringify(error.response.data);
+             if (error.response.data.stack) {
+                console.error("Server Stack:", error.response.data.stack);
+             }
+           } else {
+             errorMessage = String(error.response.data);
+           }
+        } else {
+           errorMessage = `Status ${error.response.status}: ${error.response.statusText}`;
+        }
+      }
+      
       alert('Error syncing: ' + errorMessage);
     } finally {
       setSyncingAirtable(false);
