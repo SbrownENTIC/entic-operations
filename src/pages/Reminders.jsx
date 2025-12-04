@@ -249,8 +249,8 @@ The Operations Team`;
         <div className="max-w-7xl mx-auto space-y-2">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Reminders / Office Closures</h1>
-            <p className="text-slate-600 text-sm">Manage automated email reminders and notifications</p>
+            <h1 className="text-2xl font-bold text-slate-900">Notifications & Closures</h1>
+            <p className="text-slate-600 text-sm">Manage automated email reminders, notifications, and office closures</p>
           </div>
           <div className="flex gap-2">
             <Button
