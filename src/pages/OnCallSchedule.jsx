@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+// DragDropContext removed
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -432,55 +432,7 @@ export default function OnCallSchedule() {
     return conflicts;
   };
 
-  const handleDragEnd = (result) => {
-    if (!result.destination) return;
-
-    const { draggableId, destination } = result;
-    const scheduleId = draggableId;
-    const newStartDateStr = destination.droppableId; // We set droppableId to date string
-
-    const schedule = schedulesWithProviders.find(s => s.id === scheduleId);
-    if (!schedule) return;
-
-    const originalStartDate = parseISO(schedule.start_date);
-    const newStartDate = parseISO(newStartDateStr);
-    
-    // Calculate duration to keep same length
-    const durationDays = differenceInDays(parseISO(schedule.end_date), originalStartDate);
-    const newEndDate = addDays(newStartDate, durationDays);
-    
-    const newStartDateFormatted = format(newStartDate, 'yyyy-MM-dd');
-    const newEndDateFormatted = format(newEndDate, 'yyyy-MM-dd');
-
-    // Check conflicts
-    const conflicts = checkConflict(schedule.provider_id, newStartDateFormatted, newEndDateFormatted, schedule.id);
-    console.log("Drag End Conflict Check:", { 
-        providerId: schedule.provider_id, 
-        newStart: newStartDateFormatted, 
-        newEnd: newEndDateFormatted, 
-        conflictsFound: conflicts.length 
-    });
-
-    if (conflicts.length > 0) {
-        setConflictAlert({
-            schedule,
-            newStartDate: newStartDateFormatted,
-            newEndDate: newEndDateFormatted,
-            conflicts
-        });
-        return;
-    }
-
-    // Optimistic update or direct mutation
-    updateMutation.mutate({
-      id: schedule.id,
-      data: {
-        ...schedule,
-        start_date: newStartDateFormatted,
-        end_date: newEndDateFormatted
-      }
-    });
-  };
+  // Drag and drop handler removed
 
   const handleConfirmConflict = () => {
       if (!conflictAlert) return;
@@ -872,97 +824,71 @@ export default function OnCallSchedule() {
                 </div>
 
                 {/* Calendar Grid */}
-                <DragDropContext onDragEnd={handleDragEnd}>
-                  <div className="min-w-[900px]">
-                    {weeks.map((week, weekIndex) => (
-                      <div key={weekIndex} className="grid grid-cols-7" style={{ minHeight: '65px' }}>
-                        {week.map((day, dayIndex) => {
-                          const daySchedules = getSchedulesForDay(day);
-                          const isCurrentMonth = isSameMonth(day, currentMonth);
-                          const dateKey = format(day, 'yyyy-MM-dd');
+                <div className="min-w-[900px]">
+                  {weeks.map((week, weekIndex) => (
+                    <div key={weekIndex} className="grid grid-cols-7" style={{ minHeight: '65px' }}>
+                      {week.map((day, dayIndex) => {
+                        const daySchedules = getSchedulesForDay(day);
+                        const isCurrentMonth = isSameMonth(day, currentMonth);
+                        const dateKey = format(day, 'yyyy-MM-dd');
 
-                          return (
-                            <Droppable key={dateKey} droppableId={dateKey}>
-                              {(provided, snapshot) => (
-                                <div
-                                  ref={provided.innerRef}
-                                  {...provided.droppableProps}
-                                  className={`border-r-[3px] border-b-[3px] border-slate-400 last:border-r-0 relative transition-colors ${
-                                    snapshot.isDraggingOver ? 'bg-blue-50' : (!isCurrentMonth ? 'bg-slate-100' : 'bg-white')
-                                  }`}
-                                >
-                                  <div className={`absolute top-1 left-1 text-xs font-bold z-20 px-1.5 py-0.5 rounded ${
-                                    !isCurrentMonth ? 'text-slate-400 bg-slate-200' : 'text-slate-800 bg-slate-100'
-                                  }`}>
-                                    {format(day, 'd')}
+                        return (
+                          <div
+                            key={dateKey}
+                            className={`border-r-[3px] border-b-[3px] border-slate-400 last:border-r-0 relative transition-colors ${
+                              !isCurrentMonth ? 'bg-slate-100' : 'bg-white'
+                            }`}
+                          >
+                            <div className={`absolute top-1 left-1 text-xs font-bold z-20 px-1.5 py-0.5 rounded ${
+                              !isCurrentMonth ? 'text-slate-400 bg-slate-200' : 'text-slate-800 bg-slate-100'
+                            }`}>
+                              {format(day, 'd')}
+                            </div>
+
+                            <div className="space-y-0 w-full h-full relative">
+                              {daySchedules.map((schedule) => {
+                                const isFirstDay = isFirstDayOfSchedule(schedule, day, week);
+
+                                if (!isFirstDay) return null;
+
+                                const span = getScheduleSpan(schedule, day, week);
+                                const widthStyle = `calc(${span * 100}% + ${(span - 1) * 1}px - 4px)`;
+                                
+                                const style = {
+                                  width: widthStyle,
+                                  top: '2px',
+                                  bottom: '2px',
+                                  left: '2px'
+                                };
+
+                                return (
+                                  <div
+                                    key={schedule.id}
+                                    onClick={() => handleEditSchedule(schedule)}
+                                    className={`absolute ${schedule.color} text-white text-xs px-1.5 py-1 rounded cursor-pointer hover:opacity-90 transition-opacity shadow-sm z-10 flex flex-col justify-center`}
+                                    style={style}
+                                  >
+                                    <div className="text-[9px] truncate leading-tight">
+                                      {schedule.start_time} - {schedule.end_time}
+                                    </div>
+                                    <div className="font-semibold truncate text-[10px] leading-tight">
+                                      {schedule.provider?.full_name}
+                                    </div>
+                                    {schedule.provider?.phone && (
+                                      <div className="truncate text-[9px] opacity-90 leading-tight">
+                                        {schedule.provider.phone}
+                                      </div>
+                                    )}
                                   </div>
-
-                                  <div className="space-y-0 w-full h-full">
-                                    {daySchedules.map((schedule, schedIndex) => {
-                                      const isFirstDay = isFirstDayOfSchedule(schedule, day, week);
-
-                                      if (!isFirstDay) return null;
-
-                                      const span = getScheduleSpan(schedule, day, week);
-
-                                      return (
-                                        <Draggable key={schedule.id} draggableId={schedule.id} index={schedIndex}>
-                                          {(dragProvided, dragSnapshot) => {
-                                            const style = { ...dragProvided.draggableProps.style };
-                                            
-                                            // Calculate width based on span
-                                            const widthStyle = `calc(${span * 100}% + ${(span - 1) * 1}px - 4px)`;
-                                            
-                                            if (dragSnapshot.isDragging) {
-                                              // Keep original size when dragging to prevent jumping/misalignment
-                                              style.width = widthStyle;
-                                              style.height = '60px';
-                                              style.opacity = '0.9';
-                                              style.zIndex = 100;
-                                            } else {
-                                              // Position absolutely within grid when not dragging
-                                              style.width = widthStyle;
-                                              style.top = '2px';
-                                              style.bottom = '2px';
-                                              style.left = '2px';
-                                            }
-
-                                            return (
-                                            <div
-                                              ref={dragProvided.innerRef}
-                                              {...dragProvided.draggableProps}
-                                              {...dragProvided.dragHandleProps}
-                                              onClick={() => handleEditSchedule(schedule)}
-                                              className={`absolute ${schedule.color} text-white text-xs px-1.5 py-1 rounded cursor-grab active:cursor-grabbing hover:opacity-90 transition-opacity shadow-sm z-10 flex flex-col justify-center ${dragSnapshot.isDragging ? 'opacity-90 ring-2 ring-blue-500 ring-offset-2 z-50' : ''}`}
-                                              style={style}
-                                            >
-                                              <div className="text-[9px] truncate leading-tight">
-                                                {schedule.start_time} - {schedule.end_time}
-                                              </div>
-                                              <div className="font-semibold truncate text-[10px] leading-tight">
-                                                {schedule.provider?.full_name}
-                                              </div>
-                                              {schedule.provider?.phone && (
-                                                <div className="truncate text-[9px] opacity-90 leading-tight">
-                                                  {schedule.provider.phone}
-                                                </div>
-                                              )}
-                                            </div>
-                                          );}}
-                                        </Draggable>
-                                      );
-                                    })}
-                                    {provided.placeholder}
-                                  </div>
-                                </div>
-                              )}
-                            </Droppable>
-                          );
-                        })}
-                      </div>
-                    ))}
-                  </div>
-                </DragDropContext>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
               </div>
             </CardContent>
           </Card>
