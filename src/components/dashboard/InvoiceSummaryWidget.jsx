@@ -52,6 +52,7 @@ export default function InvoiceSummaryWidget({
             'Draft': { invoices: invoices.filter(inv => inv.status === 'draft'), color: 'slate' },
             'Pending Provider Approval': { invoices: invoices.filter(inv => inv.status === 'pending_providers_approval'), color: 'orange' },
             'Pending Provider Time': { invoices: invoices.filter(inv => inv.status === 'pending_providers_time'), color: 'amber' },
+            'Sent to COO for Approval': { invoices: invoices.filter(inv => inv.status === 'sent_to_coo_for_approval'), color: 'indigo' },
             'Sent for Approval': { invoices: invoices.filter(inv => inv.status === 'sent_for_approval'), color: 'yellow' },
             'Approved': { invoices: invoices.filter(inv => inv.status === 'approved'), color: 'lime' },
             'Sent To Vendor': { invoices: invoices.filter(inv => inv.status === 'sent_to_vendor'), color: 'blue' },

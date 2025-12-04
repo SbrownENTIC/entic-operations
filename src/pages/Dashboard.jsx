@@ -422,6 +422,10 @@ export default function Dashboard() {
     inv.status === 'sent_for_approval'
   ).length;
 
+  const sentToCOOInvoices = invoices.filter(inv => 
+    inv.status === 'sent_to_coo_for_approval'
+  ).length;
+
   const pendingProviderApprovalCount = invoices.filter(inv => 
     inv.status === 'pending_providers_approval'
   ).length;
@@ -724,6 +728,7 @@ export default function Dashboard() {
           <AlertsWidget
             uconnPendingVendorInvoices={uconnPendingVendorInvoices}
             sentForApprovalInvoices={sentForApprovalInvoices}
+            sentToCOOInvoices={sentToCOOInvoices}
             pendingProviderApprovalCount={pendingProviderApprovalCount}
             pendingProviderTimeCount={pendingProviderTimeCount}
             privilegesExpiring30Days={privilegesExpiring30Days}

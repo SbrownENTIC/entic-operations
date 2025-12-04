@@ -9,12 +9,14 @@ import { Clock, Send, UserCheck } from "lucide-react";
 export default function AlertsWidget({ 
   uconnPendingVendorInvoices, 
   sentForApprovalInvoices, 
+  sentToCOOInvoices,
   pendingProviderApprovalCount,
   pendingProviderTimeCount,
   privilegesExpiring30Days 
 }) {
   const hasAlerts = uconnPendingVendorInvoices > 0 || 
                     sentForApprovalInvoices > 0 || 
+                    sentToCOOInvoices > 0 ||
                     pendingProviderApprovalCount > 0 || 
                     pendingProviderTimeCount > 0 || 
                     privilegesExpiring30Days.length > 0;
@@ -49,6 +51,21 @@ export default function AlertsWidget({
             <CardContent className="pt-3">
               <div className="text-4xl font-bold text-yellow-700 mb-1">{sentForApprovalInvoices}</div>
               <Link to={`${createPageUrl("Invoices")}?status=sent_for_approval`} className="text-xs text-yellow-700 hover:text-yellow-900 font-semibold hover:underline">
+                View invoices →
+              </Link>
+            </CardContent>
+          </Card>
+        )}
+
+        {sentToCOOInvoices > 0 && (
+          <Card className={`bg-gradient-to-br from-fuchsia-100 to-fuchsia-50 transition-all duration-300 ${sentToCOOInvoices > 0 ? 'border-[5px] border-fuchsia-600 animate-alert-glow' : 'border-3 border-fuchsia-300 shadow-xl shadow-fuchsia-200/50 hover:scale-105'}`}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-fuchsia-300">
+              <CardTitle className="text-sm font-bold text-slate-900">Sent to COO for Approval</CardTitle>
+              <FileText className="w-5 h-5 text-fuchsia-700 animate-slow-pulse" />
+            </CardHeader>
+            <CardContent className="pt-3">
+              <div className="text-4xl font-bold text-fuchsia-700 mb-1">{sentToCOOInvoices}</div>
+              <Link to={`${createPageUrl("Invoices")}?status=sent_to_coo_for_approval`} className="text-xs text-fuchsia-700 hover:text-fuchsia-900 font-semibold hover:underline">
                 View invoices →
               </Link>
             </CardContent>
