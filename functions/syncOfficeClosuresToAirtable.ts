@@ -141,19 +141,8 @@ Deno.serve(async (req) => {
         // But Re-Open is usually the day AFTER closure. 
         // Let's assume Multi-Day means the closure spans more than 1 day.
         // i.e. Re-Open Date > Closure Date + 1 day
-        try {
-          const start = new Date(closureDate);
-          const end = new Date(reminder.reopen_date);
-          const diffTime = Math.abs(end - start);
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-          
-          // If diff is > 1, it means there's at least 2 days gap (e.g. Closed Monday, Reopen Wednesday = 2 days diff = Tuesday is closed too? No, Mon closed, Tue open means Reopen is Tue. Diff=1. So 1 day closure.)
-          // If Closed Monday, Reopen Tuesday. Diff = 1. Single Day.
-          // If Closed Monday, Reopen Wednesday. Diff = 2. Multi Day (Mon & Tue closed).
-          fields['Is Multi-Day?'] = diffDays > 1;
-        } catch (e) {
-          console.error("Error calculating multi-day", e);
-        }
+        // Multi-Day Detection logic (Calculated for internal logic if needed, but field is likely computed in Airtable)
+        // We do not sync 'Is Multi-Day?' to Airtable as it is a computed field.
       }
 
       // Try syncing to "Email Subject" if "Email Subject (Smart)" is computed
