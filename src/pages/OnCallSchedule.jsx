@@ -417,7 +417,9 @@ export default function OnCallSchedule() {
 
     const conflicts = schedulesWithProviders.filter(s => {
       if (s.id === ignoreScheduleId) return false;
-      if (s.provider_id !== providerId) return false;
+      
+      // Check for conflicts with ANY provider (global overlap check)
+      // if (s.provider_id !== providerId) return false;
 
       const existingInterval = {
         start: startOfDay(parseISO(s.start_date)),
@@ -993,14 +995,14 @@ export default function OnCallSchedule() {
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-3">
               <p>
-                <strong>{conflictAlert?.schedule?.provider?.full_name}</strong> is already scheduled during the selected time range ({conflictAlert?.newStartDate} to {conflictAlert?.newEndDate}).
+                The schedule for <strong>{conflictAlert?.schedule?.provider?.full_name}</strong> overlaps with other schedules during the selected time range ({conflictAlert?.newStartDate} to {conflictAlert?.newEndDate}).
               </p>
               <div className="bg-amber-50 p-3 rounded-md text-sm border border-amber-200">
                   <p className="font-semibold mb-1">Conflicting Schedules:</p>
                   <ul className="list-disc pl-4 space-y-1">
                       {conflictAlert?.conflicts.map(c => (
                           <li key={c.id}>
-                              {format(parseISO(c.start_date), 'MMM d')} - {format(parseISO(c.end_date), 'MMM d')} ({c.location})
+                              <span className="font-medium">{c.provider?.full_name}</span>: {format(parseISO(c.start_date), 'MMM d')} - {format(parseISO(c.end_date), 'MMM d')} ({c.location})
                           </li>
                       ))}
                   </ul>
