@@ -36,16 +36,53 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
     }
   }, [timeOff]);
 
-  // Auto-set end date to start date if not set
+  // Auto-set end date to start date if not set (only in single edit mode)
   useEffect(() => {
-    if (formData.start_date && !formData.end_date) {
+    if (timeOff && formData.start_date && !formData.end_date) {
       setFormData(prev => ({ ...prev, end_date: formData.start_date }));
     }
-  }, [formData.start_date, formData.end_date]);
+  }, [formData.start_date, formData.end_date, timeOff]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(formData);
+    
+    if (!timeOff && selectedDates.length > 0) {
+      // Process multiple dates into consecutive ranges
+      const sortedDates = [...selectedDates].sort();
+      const ranges = [];
+      
+      if (sortedDates.length > 0) {
+        let currentRange = { start: sortedDates[0], end: sortedDates[0] };
+        
+        for (let i = 1; i < sortedDates.length; i++) {
+          const current = parseISO(sortedDates[i]);
+          const prev = parseISO(sortedDates[i-1]);
+          const diff = differenceInDays(current, prev);
+          
+          if (diff === 1) {
+            // Consecutive day, extend current range
+            currentRange.end = sortedDates[i];
+          } else {
+            // Non-consecutive, push current range and start new one
+            ranges.push(currentRange);
+            currentRange = { start: sortedDates[i], end: sortedDates[i] };
+          }
+        }
+        ranges.push(currentRange);
+      }
+      
+      // Create an entry for each range
+      const entries = ranges.map(range => ({
+        ...formData,
+        start_date: range.start,
+        end_date: range.end,
+      }));
+      
+      onSubmit(entries);
+    } else {
+      // Single entry update or create (fallback)
+      onSubmit(formData);
+    }
   };
 
   return (
