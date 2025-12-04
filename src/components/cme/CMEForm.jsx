@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
+import { Combobox } from "@/components/ui/combobox";
 
 export default function CMEForm({ cme, providers, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = useState({
@@ -44,18 +45,14 @@ export default function CMEForm({ cme, providers, onSubmit, onCancel, isLoading 
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="provider_id">Provider *</Label>
-              <Select value={formData.provider_id} onValueChange={(value) => setFormData({ ...formData, provider_id: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select provider" />
-                </SelectTrigger>
-                <SelectContent>
-                  {providers.map(provider => (
-                    <SelectItem key={provider.id} value={provider.id}>
-                      {provider.full_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Combobox
+                options={providers.map(p => ({ value: p.id, label: p.full_name }))}
+                value={formData.provider_id}
+                onChange={(value) => setFormData({ ...formData, provider_id: value })}
+                placeholder="Select provider..."
+                searchPlaceholder="Search providers..."
+                emptyText="No provider found"
+              />
             </div>
 
             <div className="space-y-2">

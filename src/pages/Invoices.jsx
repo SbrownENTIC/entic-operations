@@ -852,8 +852,8 @@ export default function Invoices() {
                 </div>
               )}
             </CardHeader>
-            <CardContent className="p-0 flex-1 overflow-hidden">
-              <div className="overflow-auto h-full print:max-h-none print:overflow-visible">
+            <CardContent className="p-0 flex-1 overflow-hidden flex flex-col">
+              <div className="overflow-auto flex-1 print:max-h-none print:overflow-visible">
                 <table className="w-full">
                   <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                     <tr>
