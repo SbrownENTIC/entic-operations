@@ -326,11 +326,11 @@ export default function ProviderTimeOff() {
           <div className="flex gap-3">
             <Button
               variant="outline"
-              onClick={handleFixSethBrownDates}
+              onClick={handleFixJamesOBrienDates}
               disabled={timeOffLoading}
               className="gap-2 text-orange-600 border-orange-200 hover:bg-orange-50"
             >
-              {timeOffLoading ? 'Updating...' : 'Fix Seth Brown Dates'}
+              {timeOffLoading ? 'Updating...' : 'Fix James O\'Brien Dates'}
             </Button>
             <Button
               variant="outline"
