@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ChevronLeft, ChevronRight, RefreshCw, Calendar as CalendarIcon, Search, Pencil, Trash2, List, ArrowUpDown, ArrowUp, ArrowDown, Check, UserCheck, Download } from "lucide-react";
-import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, addMonths, subMonths, isSameDay, startOfWeek, endOfWeek, startOfDay, addDays, differenceInDays } from "date-fns";
+import { Plus, ChevronLeft, ChevronRight, RefreshCw, Calendar as CalendarIcon, Search, Pencil, Trash2, List, ArrowUpDown, ArrowUp, ArrowDown, Check, UserCheck, Download, Filter, AlertTriangle } from "lucide-react";
+import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, addMonths, subMonths, isSameDay, startOfWeek, endOfWeek, startOfDay, addDays, differenceInDays, addMilliseconds } from "date-fns";
 import OnCallForm from "../components/oncall/OnCallForm";
 import EmptyState from "@/components/ui/EmptyState";
 import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
@@ -51,6 +52,8 @@ export default function OnCallSchedule() {
   const [bulkProvider, setBulkProvider] = useState('');
   const [providerSelectOpen, setProviderSelectOpen] = useState(false);
   const [updatingProviders, setUpdatingProviders] = useState(false);
+  const [filterProviderId, setFilterProviderId] = useState('all');
+  const [conflictAlert, setConflictAlert] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: schedules = [], isLoading: schedulesLoading } = useQuery({
@@ -263,18 +266,23 @@ export default function OnCallSchedule() {
     weeks.push(calendarDays.slice(i, i + 7));
   }
 
-  const schedulesWithProviders = schedules.map(schedule => ({
+  const schedulesWithProviders = useMemo(() => schedules.map(schedule => ({
     ...schedule,
     provider: providers.find(p => p.id === schedule.provider_id),
     providerName: providers.find(p => p.id === schedule.provider_id)?.full_name || '',
     color: providerColorMap[schedule.provider_id] || PROVIDER_COLORS[0],
     days: differenceInDays(parseISO(schedule.end_date), parseISO(schedule.start_date)) + 1
-  }));
+  })), [schedules, providers, providerColorMap]);
+
+  const filteredCalendarSchedules = useMemo(() => {
+    if (filterProviderId === 'all') return schedulesWithProviders;
+    return schedulesWithProviders.filter(s => s.provider_id === filterProviderId);
+  }, [schedulesWithProviders, filterProviderId]);
 
   const getSchedulesForDay = (day) => {
     const dayStart = startOfDay(day);
 
-    return schedulesWithProviders.filter(schedule => {
+    return filteredCalendarSchedules.filter(schedule => {
       const start = startOfDay(parseISO(schedule.start_date));
       const endDate = startOfDay(parseISO(schedule.end_date));
 
@@ -341,10 +349,12 @@ export default function OnCallSchedule() {
   };
 
   // Filtering and sorting for list view
-  const filteredSchedules = schedulesWithProviders.filter(schedule =>
-    schedule.providerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    schedule.location?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredSchedules = schedulesWithProviders.filter(schedule => {
+    const matchesSearch = schedule.providerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      schedule.location?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesProvider = filterProviderId === 'all' || schedule.provider_id === filterProviderId;
+    return matchesSearch && matchesProvider;
+  });
 
   const sortedSchedules = [...filteredSchedules].sort((a, b) => {
     let aValue, bValue;
@@ -374,6 +384,83 @@ export default function OnCallSchedule() {
   };
 
   const selectedProviderForBulk = providers.find(p => p.id === bulkProvider);
+
+  const checkConflict = (providerId, startDate, endDate, ignoreScheduleId = null) => {
+    const start = parseISO(startDate);
+    const end = parseISO(endDate);
+
+    const conflicts = schedulesWithProviders.filter(s => {
+      if (s.id === ignoreScheduleId) return false; // Ignore self
+      if (s.provider_id !== providerId) return false; // Only check same provider
+
+      const sStart = parseISO(s.start_date);
+      const sEnd = parseISO(s.end_date);
+
+      // Check for overlap
+      return (start <= sEnd && end >= sStart);
+    });
+
+    return conflicts;
+  };
+
+  const handleDragEnd = (result) => {
+    if (!result.destination) return;
+
+    const { draggableId, destination } = result;
+    const scheduleId = draggableId;
+    const newStartDateStr = destination.droppableId; // We set droppableId to date string
+
+    const schedule = schedulesWithProviders.find(s => s.id === scheduleId);
+    if (!schedule) return;
+
+    const originalStartDate = parseISO(schedule.start_date);
+    const newStartDate = parseISO(newStartDateStr);
+    
+    // Calculate duration to keep same length
+    const durationDays = differenceInDays(parseISO(schedule.end_date), originalStartDate);
+    const newEndDate = addDays(newStartDate, durationDays);
+    
+    const newStartDateFormatted = format(newStartDate, 'yyyy-MM-dd');
+    const newEndDateFormatted = format(newEndDate, 'yyyy-MM-dd');
+
+    // Check conflicts
+    const conflicts = checkConflict(schedule.provider_id, newStartDateFormatted, newEndDateFormatted, schedule.id);
+
+    if (conflicts.length > 0) {
+        setConflictAlert({
+            schedule,
+            newStartDate: newStartDateFormatted,
+            newEndDate: newEndDateFormatted,
+            conflicts
+        });
+        return;
+    }
+
+    // Optimistic update or direct mutation
+    updateMutation.mutate({
+      id: schedule.id,
+      data: {
+        ...schedule,
+        start_date: newStartDateFormatted,
+        end_date: newEndDateFormatted
+      }
+    });
+  };
+
+  const handleConfirmConflict = () => {
+      if (!conflictAlert) return;
+      const { schedule, newStartDate, newEndDate } = conflictAlert;
+      
+      updateMutation.mutate({
+        id: schedule.id,
+        data: {
+          ...schedule,
+          start_date: newStartDate,
+          end_date: newEndDate
+        }
+      });
+      setConflictAlert(null);
+  };
 
   const exportToCSV = () => {
     const rows = [
@@ -430,7 +517,21 @@ export default function OnCallSchedule() {
             <h1 className="text-2xl font-bold text-slate-900">On-Call Schedule</h1>
             <p className="text-slate-600 text-sm">Manage provider on-call schedules</p>
           </div>
-          <div className="flex gap-3 flex-wrap">
+          <div className="flex gap-3 flex-wrap items-center">
+             {/* Provider Filter */}
+             <div className="w-full md:w-48">
+                <select 
+                  className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={filterProviderId}
+                  onChange={(e) => setFilterProviderId(e.target.value)}
+                >
+                  <option value="all">All Providers</option>
+                  {providers.map(p => (
+                      <option key={p.id} value={p.id}>{p.full_name}</option>
+                  ))}
+                </select>
+             </div>
+
             <Button
               variant="outline"
               onClick={exportToCSV}
@@ -731,67 +832,83 @@ export default function OnCallSchedule() {
                 </div>
 
                 {/* Calendar Grid */}
-                <div className="min-w-[900px]">
-                  {weeks.map((week, weekIndex) => (
-                    <div key={weekIndex} className="grid grid-cols-7" style={{ minHeight: '65px' }}>
-                      {week.map((day, dayIndex) => {
-                        const daySchedules = getSchedulesForDay(day);
-                        const isCurrentMonth = isSameMonth(day, currentMonth);
+                <DragDropContext onDragEnd={handleDragEnd}>
+                  <div className="min-w-[900px]">
+                    {weeks.map((week, weekIndex) => (
+                      <div key={weekIndex} className="grid grid-cols-7" style={{ minHeight: '65px' }}>
+                        {week.map((day, dayIndex) => {
+                          const daySchedules = getSchedulesForDay(day);
+                          const isCurrentMonth = isSameMonth(day, currentMonth);
+                          const dateKey = format(day, 'yyyy-MM-dd');
 
-                        return (
-                          <div
-                            key={dayIndex}
-                            className={`border-r-[3px] border-b-[3px] border-slate-400 last:border-r-0 relative ${
-                              !isCurrentMonth ? 'bg-slate-100' : 'bg-white'
-                            }`}
-                          >
-                            <div className={`absolute top-1 left-1 text-xs font-bold z-20 px-1.5 py-0.5 rounded ${
-                              !isCurrentMonth ? 'text-slate-400 bg-slate-200' : 'text-slate-800 bg-slate-100'
-                            }`}>
-                              {format(day, 'd')}
-                            </div>
-
-                            <div className="space-y-0">
-                              {daySchedules.map((schedule, schedIndex) => {
-                                const isFirstDay = isFirstDayOfSchedule(schedule, day, week);
-
-                                if (!isFirstDay) return null;
-
-                                const span = getScheduleSpan(schedule, day, week);
-
-                                return (
-                                  <div
-                                   key={schedule.id}
-                                   onClick={() => handleEditSchedule(schedule)}
-                                   className={`absolute ${schedule.color} text-white text-xs px-1.5 py-1 rounded cursor-pointer hover:opacity-90 transition-opacity shadow-sm z-10 flex flex-col justify-center`}
-                                   style={{
-                                     width: `calc(${span * 100}% + ${(span - 1) * 1}px - 4px)`,
-                                     top: '2px',
-                                     bottom: '2px',
-                                     left: '2px',
-                                   }}
-                                  >
-                                   <div className="text-[9px] truncate leading-tight">
-                                     {schedule.start_time} - {schedule.end_time}
-                                   </div>
-                                   <div className="font-semibold truncate text-[10px] leading-tight">
-                                     {schedule.provider?.full_name}
-                                   </div>
-                                   {schedule.provider?.phone && (
-                                     <div className="truncate text-[9px] opacity-90 leading-tight">
-                                       {schedule.provider.phone}
-                                     </div>
-                                   )}
+                          return (
+                            <Droppable key={dateKey} droppableId={dateKey}>
+                              {(provided, snapshot) => (
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.droppableProps}
+                                  className={`border-r-[3px] border-b-[3px] border-slate-400 last:border-r-0 relative transition-colors ${
+                                    snapshot.isDraggingOver ? 'bg-blue-50' : (!isCurrentMonth ? 'bg-slate-100' : 'bg-white')
+                                  }`}
+                                >
+                                  <div className={`absolute top-1 left-1 text-xs font-bold z-20 px-1.5 py-0.5 rounded ${
+                                    !isCurrentMonth ? 'text-slate-400 bg-slate-200' : 'text-slate-800 bg-slate-100'
+                                  }`}>
+                                    {format(day, 'd')}
                                   </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))}
-                </div>
+
+                                  <div className="space-y-0 w-full h-full">
+                                    {daySchedules.map((schedule, schedIndex) => {
+                                      const isFirstDay = isFirstDayOfSchedule(schedule, day, week);
+
+                                      if (!isFirstDay) return null;
+
+                                      const span = getScheduleSpan(schedule, day, week);
+
+                                      return (
+                                        <Draggable key={schedule.id} draggableId={schedule.id} index={schedIndex}>
+                                          {(dragProvided, dragSnapshot) => (
+                                            <div
+                                              ref={dragProvided.innerRef}
+                                              {...dragProvided.draggableProps}
+                                              {...dragProvided.dragHandleProps}
+                                              onClick={() => handleEditSchedule(schedule)}
+                                              className={`absolute ${schedule.color} text-white text-xs px-1.5 py-1 rounded cursor-grab active:cursor-grabbing hover:opacity-90 transition-opacity shadow-sm z-10 flex flex-col justify-center ${dragSnapshot.isDragging ? 'opacity-70 ring-2 ring-blue-500 ring-offset-2 z-50' : ''}`}
+                                              style={{
+                                                width: `calc(${span * 100}% + ${(span - 1) * 1}px - 4px)`,
+                                                top: '2px',
+                                                bottom: '2px',
+                                                left: '2px',
+                                                ...dragProvided.draggableProps.style
+                                              }}
+                                            >
+                                              <div className="text-[9px] truncate leading-tight">
+                                                {schedule.start_time} - {schedule.end_time}
+                                              </div>
+                                              <div className="font-semibold truncate text-[10px] leading-tight">
+                                                {schedule.provider?.full_name}
+                                              </div>
+                                              {schedule.provider?.phone && (
+                                                <div className="truncate text-[9px] opacity-90 leading-tight">
+                                                  {schedule.provider.phone}
+                                                </div>
+                                              )}
+                                            </div>
+                                          )}
+                                        </Draggable>
+                                      );
+                                    })}
+                                    {provided.placeholder}
+                                  </div>
+                                </div>
+                              )}
+                            </Droppable>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                </DragDropContext>
               </div>
             </CardContent>
           </Card>
@@ -815,6 +932,42 @@ export default function OnCallSchedule() {
               className="bg-red-600 hover:bg-red-700"
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!conflictAlert} onOpenChange={() => setConflictAlert(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-amber-600">
+                <AlertTriangle className="w-5 h-5" />
+                Schedule Conflict Detected
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                <strong>{conflictAlert?.schedule?.provider?.full_name}</strong> is already scheduled during the selected time range ({conflictAlert?.newStartDate} to {conflictAlert?.newEndDate}).
+              </p>
+              <div className="bg-amber-50 p-3 rounded-md text-sm border border-amber-200">
+                  <p className="font-semibold mb-1">Conflicting Schedules:</p>
+                  <ul className="list-disc pl-4 space-y-1">
+                      {conflictAlert?.conflicts.map(c => (
+                          <li key={c.id}>
+                              {format(parseISO(c.start_date), 'MMM d')} - {format(parseISO(c.end_date), 'MMM d')} ({c.location})
+                          </li>
+                      ))}
+                  </ul>
+              </div>
+              <p>Do you want to move this schedule anyway?</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmConflict}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              Move Anyway
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
