@@ -125,7 +125,8 @@ Deno.serve(async (req) => {
       const fields = {};
       if (closureName) fields['Closure Name'] = closureName;
       if (closureDate) fields['Date Closed'] = closureDate;
-      if (reminder.send_date) fields['Send On Date (Calc)'] = reminder.send_date;
+      // Send On Date (Calc) is a computed field in Airtable, so we don't sync it.
+      // The Airtable formula should calculate it based on Date Closed.
       if (reminder.reopen_date) fields['Date Re-Open'] = reminder.reopen_date;
       
       if (reminder.email_subject) fields['Email Subject (Smart)'] = reminder.email_subject;
