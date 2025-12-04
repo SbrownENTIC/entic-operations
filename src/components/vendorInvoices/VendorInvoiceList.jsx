@@ -2,12 +2,12 @@ import React from "react";
 import { format, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, Eye, ExternalLink, CheckCircle, AlertCircle, Clock } from "lucide-react";
+import { FileText, Eye, ExternalLink, CheckCircle, AlertCircle, Clock, Trash2 } from "lucide-react";
 import EmptyState from "@/components/ui/EmptyState";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
-export default function VendorInvoiceList({ invoices, isLoading }) {
+export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick }) {
   if (isLoading) {
     return <div className="p-8 text-center text-slate-500">Loading invoices...</div>;
   }
@@ -77,6 +77,15 @@ export default function VendorInvoiceList({ invoices, isLoading }) {
                         Review
                     </Button>
                   </Link>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => onDeleteClick(invoice)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    title="Delete Invoice"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               </td>
             </tr>

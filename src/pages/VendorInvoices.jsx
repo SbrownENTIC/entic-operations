@@ -9,16 +9,48 @@ import VendorInvoiceList from "../components/vendorInvoices/VendorInvoiceList";
 import VendorInvoiceUpload from "../components/vendorInvoices/VendorInvoiceUpload";
 import { useToast } from "@/components/ui/use-toast";
 import UnderConstruction from "@/components/ui/UnderConstruction";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function VendorInvoices() {
   const [showUpload, setShowUpload] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ['vendor-invoices'],
     queryFn: () => base44.entities.VendorInvoice.list('-created_date')
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id) => {
+      await base44.entities.VendorInvoice.delete(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vendor-invoices'] });
+      toast({
+        title: "Invoice deleted",
+        description: "The vendor invoice has been successfully deleted.",
+      });
+      setDeleteConfirm(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete invoice: " + error.message,
+        variant: "destructive",
+      });
+    }
   });
 
   const filteredInvoices = invoices.filter(inv => 
@@ -73,10 +105,34 @@ export default function VendorInvoices() {
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <VendorInvoiceList invoices={filteredInvoices} isLoading={isLoading} />
+            <VendorInvoiceList 
+              invoices={filteredInvoices} 
+              isLoading={isLoading} 
+              onDeleteClick={setDeleteConfirm}
+            />
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Vendor Invoice</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete invoice {deleteConfirm?.invoice_number} from {deleteConfirm?.vendor_name}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteMutation.mutate(deleteConfirm.id)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
