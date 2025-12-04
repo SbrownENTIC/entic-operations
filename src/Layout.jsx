@@ -132,6 +132,12 @@ const moreMenuItems = [
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
+
+  // Scroll to top on route change
+  React.useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+
   const [previousCount, setPreviousCount] = React.useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
