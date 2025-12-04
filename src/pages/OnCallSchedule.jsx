@@ -63,7 +63,7 @@ export default function OnCallSchedule() {
     queryFn: () => base44.entities.Provider.list()
   });
 
-  const { data: programLocations = [] } = useQuery({
+  const { data: programLocations = [], isLoading: locationsLoading } = useQuery({
     queryKey: ['program-locations'],
     queryFn: () => base44.entities.ProgramLocation.list()
   });
