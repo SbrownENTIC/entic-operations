@@ -380,7 +380,8 @@ export default function Invoices() {
       alert('Successfully synced invoice to Airtable!');
     } catch (error) {
       console.error("Sync error", error);
-      alert('Error syncing: ' + error.message);
+      const errorMessage = error.response?.data?.error || error.message;
+      alert('Error syncing: ' + errorMessage);
     } finally {
       setSyncingAirtable(false);
     }
