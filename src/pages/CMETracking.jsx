@@ -117,6 +117,10 @@ export default function CMETracking() {
       <ArrowDown className="w-4 h-4 ml-1 inline" />;
   };
 
+  if (providersLoading) {
+    return <ListPageSkeleton />;
+  }
+
   return (
     <div className="h-screen overflow-hidden flex flex-col bg-slate-50">
       <div className="flex-shrink-0 p-2 md:p-3">
