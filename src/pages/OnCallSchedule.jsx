@@ -910,13 +910,18 @@ export default function OnCallSchedule() {
                                           {(dragProvided, dragSnapshot) => {
                                             const style = { ...dragProvided.draggableProps.style };
                                             
+                                            // Calculate width based on span
+                                            const widthStyle = `calc(${span * 100}% + ${(span - 1) * 1}px - 4px)`;
+                                            
                                             if (dragSnapshot.isDragging) {
-                                              // Fixed size when dragging to look like a single day cell
-                                              style.width = '140px';
-                                              style.height = '60px'; 
+                                              // Keep original size when dragging to prevent jumping/misalignment
+                                              style.width = widthStyle;
+                                              style.height = '60px';
+                                              style.opacity = '0.9';
+                                              style.zIndex = 100;
                                             } else {
                                               // Position absolutely within grid when not dragging
-                                              style.width = `calc(${span * 100}% + ${(span - 1) * 1}px - 4px)`;
+                                              style.width = widthStyle;
                                               style.top = '2px';
                                               style.bottom = '2px';
                                               style.left = '2px';
