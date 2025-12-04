@@ -97,11 +97,24 @@ export default function ProviderTimeOff() {
     }
   });
 
-  const handleSubmit = (data) => {
+  const handleSubmit = async (data) => {
     if (editingTimeOff) {
       updateMutation.mutate({ id: editingTimeOff.id, data });
     } else {
-      createMutation.mutate(data);
+      if (Array.isArray(data)) {
+        // Handle multiple entries (bulk creation)
+        try {
+          await Promise.all(data.map(entry => base44.entities.ProviderTimeOff.create(entry)));
+          queryClient.invalidateQueries({ queryKey: ['provider-timeoff'] });
+          setShowForm(false);
+          setEditingTimeOff(null);
+        } catch (error) {
+          console.error("Error creating multiple time off entries:", error);
+          // Optionally show error toast
+        }
+      } else {
+        createMutation.mutate(data);
+      }
     }
   };
 

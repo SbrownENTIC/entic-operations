@@ -9,8 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
+import { MultiDatePicker } from "@/components/ui/multi-date-picker";
+import { addDays, format, parseISO, differenceInDays } from "date-fns";
 
 export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) {
+  const [selectedDates, setSelectedDates] = useState([]);
   const [formData, setFormData] = useState({
     provider_id: '',
     start_date: '',
