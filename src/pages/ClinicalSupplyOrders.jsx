@@ -172,6 +172,10 @@ export default function ClinicalSupplyOrders() {
     return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
 
+  if (ordersLoading) {
+    return <ListPageSkeleton />;
+  }
+
   return (
     <>
     <div className="min-h-screen bg-slate-50 pb-8">

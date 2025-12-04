@@ -53,12 +53,12 @@ export default function OnCallSchedule() {
   const [updatingProviders, setUpdatingProviders] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: schedules = [] } = useQuery({
+  const { data: schedules = [], isLoading: schedulesLoading } = useQuery({
     queryKey: ['oncall-schedules'],
     queryFn: () => base44.entities.OnCallSchedule.list('-start_date')
   });
 
-  const { data: providers = [] } = useQuery({
+  const { data: providers = [], isLoading: providersLoading } = useQuery({
     queryKey: ['providers'],
     queryFn: () => base44.entities.Provider.list()
   });
@@ -415,6 +415,10 @@ export default function OnCallSchedule() {
     link.click();
     document.body.removeChild(link);
   };
+
+  if (schedulesLoading || providersLoading || locationsLoading) {
+    return <ListPageSkeleton />;
+  }
 
   return (
     <>
