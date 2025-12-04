@@ -941,7 +941,7 @@ export default function OnCallSchedule() {
                                                 </div>
                                               )}
                                             </div>
-                                          )}
+                                          );}}
                                         </Draggable>
                                       );
                                     })}
