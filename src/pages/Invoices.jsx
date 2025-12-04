@@ -547,20 +547,39 @@ export default function Invoices() {
     );
   }
 
-  const invoicesWithProviders = invoices.map(invoice => ({
-    ...invoice,
-    provider: providers.find(p => p.id === invoice.staff_member_id),
-    providerName: providers.find(p => p.id === invoice.staff_member_id)?.full_name || '',
-    balance: (invoice.amount_expected || invoice.total || 0) - (invoice.amount_received || 0),
-    hasOutsideIncome: invoice.outside_income_ids && invoice.outside_income_ids.length > 0
-  }));
+  const invoicesWithProviders = invoices.map(invoice => {
+    // Find all providers associated with this invoice (primary + linked via income)
+    const linkedProviderIds = new Set();
+    if (invoice.staff_member_id) linkedProviderIds.add(invoice.staff_member_id);
+
+    if (invoice.outside_income_ids && invoice.outside_income_ids.length > 0) {
+      invoice.outside_income_ids.forEach(incId => {
+        const income = incomes.find(inc => inc.id === incId);
+        if (income && income.provider_id) linkedProviderIds.add(income.provider_id);
+      });
+    }
+
+    const linkedProviderNames = Array.from(linkedProviderIds).map(pid => 
+      providers.find(p => p.id === pid)?.full_name
+    ).filter(Boolean).join(' ');
+
+    return {
+      ...invoice,
+      provider: providers.find(p => p.id === invoice.staff_member_id),
+      providerName: providers.find(p => p.id === invoice.staff_member_id)?.full_name || '',
+      linkedProviderNames, // For search purposes
+      balance: (invoice.amount_expected || invoice.total || 0) - (invoice.amount_received || 0),
+      hasOutsideIncome: invoice.outside_income_ids && invoice.outside_income_ids.length > 0
+    };
+  });
 
   const filteredInvoices = invoicesWithProviders.filter(invoice => {
     const matchesSearch = invoice.program_group?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       invoice.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       invoice.provider?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      invoice.linkedProviderNames?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       invoice.month?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesNoIncomeFilter = !filterNoIncome || !invoice.hasOutsideIncome;
     const matchesStatus = statusFilter === 'all' || statusFilter.split(',').includes(invoice.status);
     

@@ -226,15 +226,36 @@ export default function Dashboard() {
     const relevantStatuses = ['pending_providers_approval', 'sent_for_approval'];
     const pendingInvoices = invoices.filter(inv => relevantStatuses.includes(inv.status));
     
-    const providerIds = [...new Set(pendingInvoices.map(inv => inv.staff_member_id))];
+    const providerCounts = {};
+
+    pendingInvoices.forEach(inv => {
+        const invoiceProviderIds = new Set();
+        
+        // Add primary staff member
+        if (inv.staff_member_id) invoiceProviderIds.add(inv.staff_member_id);
+
+        // Add providers from linked outside incomes (for joint invoices)
+        if (inv.outside_income_ids && inv.outside_income_ids.length > 0) {
+            inv.outside_income_ids.forEach(incId => {
+                const income = outsideIncomes.find(inc => inc.id === incId);
+                if (income && income.provider_id) {
+                    invoiceProviderIds.add(income.provider_id);
+                }
+            });
+        }
+
+        // Increment count for each unique provider on this invoice
+        invoiceProviderIds.forEach(pid => {
+            providerCounts[pid] = (providerCounts[pid] || 0) + 1;
+        });
+    });
     
-    return providerIds.map(id => {
+    return Object.entries(providerCounts).map(([id, count]) => {
         const provider = providers.find(p => p.id === id);
         if (!provider) return null;
-        const count = pendingInvoices.filter(inv => inv.staff_member_id === id).length;
         return { ...provider, pendingCount: count };
     }).filter(Boolean).sort((a, b) => b.pendingCount - a.pendingCount);
-  }, [invoices, providers]);
+  }, [invoices, providers, outsideIncomes]);
 
   // Format currency with commas
   const formatCurrency = (amount) => {
