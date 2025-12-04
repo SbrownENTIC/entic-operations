@@ -31,6 +31,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Toaster } from "@/components/ui/toaster";
 
 const navigationItems = [
   {
@@ -347,6 +348,7 @@ export default function Layout({ children, currentPageName }) {
       <main className="flex-1">
         {children}
       </main>
+      <Toaster />
     </div>
   );
 }
