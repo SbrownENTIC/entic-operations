@@ -48,10 +48,6 @@ export default function ClinicalPrivileges() {
     queryFn: () => base44.entities.Provider.list()
   });
 
-  if (providersLoading) {
-    return <ListPageSkeleton />;
-  }
-
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.ClinicalPrivilege.create(data),
     onSuccess: () => {

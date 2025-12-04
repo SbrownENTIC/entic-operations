@@ -29,10 +29,6 @@ export default function CMETracking() {
     queryFn: () => base44.entities.Provider.list()
   });
 
-  if (providersLoading) {
-    return <ListPageSkeleton />;
-  }
-
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.CME.create(data),
     onSuccess: () => {

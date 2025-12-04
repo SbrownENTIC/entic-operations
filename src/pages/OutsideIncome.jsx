@@ -336,11 +336,7 @@ export default function OutsideIncome() {
   // Wait for data to load before processing
   const isLoading = incomesLoading || providersLoading || locationsLoading;
 
-  if (isLoading) {
-    return <ListPageSkeleton />;
-  }
-
-  const incomesWithProviders = incomes.map(income => {
+  const incomesWithProviders = isLoading ? [] : incomes.map(income => {
     const location = programLocations.find(pl => pl.id === income.program_location_id);
     return {
       ...income,
@@ -404,6 +400,10 @@ export default function OutsideIncome() {
       <ArrowUp className="w-4 h-4 ml-1 inline" /> :
       <ArrowDown className="w-4 h-4 ml-1 inline" />;
   };
+
+  if (isLoading) {
+    return <ListPageSkeleton />;
+  }
 
   const statusColors = {
     pending: "bg-yellow-100 text-yellow-800",

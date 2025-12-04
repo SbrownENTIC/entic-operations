@@ -34,10 +34,6 @@ export default function Licenses() {
     queryFn: () => base44.entities.Provider.list()
   });
 
-  if (providersLoading) {
-    return <ListPageSkeleton />;
-  }
-
   useEffect(() => {
     if (editId && licenses.length > 0) {
       const licenseToEdit = licenses.find(l => l.id === editId);
@@ -151,6 +147,10 @@ export default function Licenses() {
       <ArrowUp className="w-4 h-4 ml-1 inline" /> : 
       <ArrowDown className="w-4 h-4 ml-1 inline" />;
   };
+
+  if (providersLoading) {
+    return <ListPageSkeleton />;
+  }
 
   return (
     <div className="h-screen overflow-hidden flex flex-col bg-slate-50">
