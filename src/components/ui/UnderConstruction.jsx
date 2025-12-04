@@ -2,6 +2,37 @@ import React, { useState } from 'react';
 import { HardHat, X, Construction, Cone } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const PixelRain = () => {
+  const [pixels] = useState(() => Array.from({ length: 40 }).map((_, i) => ({
+    id: i,
+    left: Math.random() * 100,
+    delay: Math.random() * 5,
+    duration: 1.5 + Math.random() * 2.5,
+    size: 2 + Math.random() * 4,
+    color: Math.random() > 0.6 ? '#eab308' : '#1e293b' // Yellow-500 or Slate-800
+  })));
+
+  return (
+    <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+      {pixels.map(p => (
+        <div
+          key={p.id}
+          className="absolute opacity-20 rounded-[1px]"
+          style={{
+            left: `${p.left}%`,
+            top: -20,
+            width: p.size,
+            height: p.size,
+            backgroundColor: p.color,
+            animation: `pixel-fall ${p.duration}s linear infinite`,
+            animationDelay: `-${p.delay}s`
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
 export default function UnderConstruction({ pageName }) {
   const [isVisible, setIsVisible] = useState(true);
 
@@ -15,6 +46,7 @@ export default function UnderConstruction({ pageName }) {
         exit={{ opacity: 0, y: -20, scale: 0.95 }}
         className="relative mx-auto max-w-7xl mt-6 mb-6 px-4 md:px-6"
       >
+        <PixelRain />
         {/* Construction Tape Top */}
         <div className="h-3 w-full bg-yellow-400 border-y border-yellow-600 overflow-hidden relative">
           <div className="absolute inset-0 w-[200%] animate-slide-slow" 
@@ -94,6 +126,12 @@ export default function UnderConstruction({ pageName }) {
           }
           .animate-slide-slow-reverse {
             animation: slide-slow-reverse 2s linear infinite;
+          }
+          @keyframes pixel-fall {
+            0% { transform: translateY(-20px) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.8; }
+            90% { opacity: 0.8; }
+            100% { transform: translateY(200px) rotate(90deg); opacity: 0; }
           }
         `}</style>
       </motion.div>
