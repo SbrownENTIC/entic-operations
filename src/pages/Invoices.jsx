@@ -652,7 +652,7 @@ export default function Invoices() {
 
   return (
     <>
-    <div className="min-h-screen bg-slate-50 pb-8">
+    <div className="h-screen flex flex-col overflow-hidden bg-slate-50">
       <style>{`
         @media print {
           body * { visibility: hidden; }
@@ -664,7 +664,7 @@ export default function Invoices() {
           .print-content th { background-color: #f5f5f5; }
         }
       `}</style>
-      <div className="p-2 md:p-3">
+      <div className="flex-shrink-0 p-2 md:p-3">
         <div className="max-w-7xl mx-auto space-y-2">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 no-print">
           <div>
@@ -723,16 +723,16 @@ export default function Invoices() {
         </div>
       </div>
 
-      <div className="px-4 md:px-6 pb-4">
-        <div className="max-w-7xl mx-auto">
-        <div className="print-content">
-          <div className="hidden print:block mb-4">
+      <div className="flex-1 overflow-hidden px-4 md:px-6 pb-4">
+        <div className="max-w-7xl mx-auto h-full">
+        <div className="print-content h-full flex flex-col">
+          <div className="hidden print:block mb-4 flex-shrink-0">
             <h1 className="text-2xl font-bold">Invoices Report</h1>
             <p className="text-sm text-gray-600">Generated on {format(new Date(), 'MMM d, yyyy')}</p>
           </div>
 
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="border-b border-slate-100 space-y-4 no-print">
+          <Card className="border-slate-200 shadow-sm h-full flex flex-col">
+            <CardHeader className="border-b border-slate-100 space-y-4 no-print flex-shrink-0">
               <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
                 <div className="flex items-center gap-4 flex-1">
                   <Search className="w-5 h-5 text-slate-400" />
@@ -845,8 +845,8 @@ export default function Invoices() {
                 </div>
               )}
             </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-auto max-h-[600px] print:max-h-none print:overflow-visible">
+            <CardContent className="p-0 flex-1 overflow-hidden">
+              <div className="overflow-auto h-full print:max-h-none print:overflow-visible">
                 <table className="w-full">
                   <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                     <tr>

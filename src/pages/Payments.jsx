@@ -545,7 +545,7 @@ export default function Payments() {
 
   return (
     <>
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-8">
+    <div className="h-screen flex flex-col overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <style>{`
         @media print {
           body * { visibility: hidden !important; }
@@ -561,7 +561,7 @@ export default function Payments() {
           .print-content .overflow-auto { overflow: visible !important; max-height: none !important; }
         }
       `}</style>
-      <div className="p-2 md:p-3">
+      <div className="flex-shrink-0 p-2 md:p-3">
         <div className="max-w-7xl mx-auto w-full space-y-2">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 no-print">
           <div>
@@ -607,37 +607,37 @@ export default function Payments() {
         )}
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 no-print">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 no-print">
           <Card className="border-slate-200 shadow-sm bg-gradient-to-br from-green-50 to-white">
-            <CardContent className="p-6">
+            <CardContent className="p-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Total Payments</p>
-                  <div className="text-4xl font-bold text-green-700 mt-2">
+                  <p className="text-xs font-medium text-slate-600">Total Payments</p>
+                  <div className="text-2xl font-bold text-green-700 mt-1">
                     ${formatCurrency(totalPayments)}
                   </div>
-                  <p className="text-sm text-slate-500 mt-1">
+                  <p className="text-xs text-slate-500 mt-0.5">
                     {sortedPayments.length} payment{sortedPayments.length !== 1 ? 's' : ''}
                   </p>
                 </div>
-                <DollarSign className="w-16 h-16 text-green-600 opacity-20" />
+                <DollarSign className="w-10 h-10 text-green-600 opacity-20" />
               </div>
             </CardContent>
           </Card>
 
           <Card className="border-slate-200 shadow-sm bg-gradient-to-br from-orange-50 to-white">
-            <CardContent className="p-6">
+            <CardContent className="p-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Unallocated Amount</p>
-                  <div className="text-4xl font-bold text-orange-700 mt-2">
+                  <p className="text-xs font-medium text-slate-600">Unallocated Amount</p>
+                  <div className="text-2xl font-bold text-orange-700 mt-1">
                     ${formatCurrency(totalUnallocated)}
                   </div>
-                  <p className="text-sm text-slate-500 mt-1">
-                    Requires allocation to invoices
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Requires allocation
                   </p>
                 </div>
-                <AlertCircle className="w-16 h-16 text-orange-600 opacity-20" />
+                <AlertCircle className="w-10 h-10 text-orange-600 opacity-20" />
               </div>
             </CardContent>
           </Card>
@@ -659,16 +659,16 @@ export default function Payments() {
         </div>
       </div>
 
-      <div className="px-4 md:px-6 pb-4">
-        <div className="max-w-7xl mx-auto w-full">
-        <div className="print-content">
-          <div className="hidden print:block mb-4">
+      <div className="flex-1 overflow-hidden px-4 md:px-6 pb-4">
+        <div className="max-w-7xl mx-auto w-full h-full">
+        <div className="print-content h-full flex flex-col">
+          <div className="hidden print:block mb-4 flex-shrink-0">
             <h1 className="text-2xl font-bold mb-1">Payments Report</h1>
             <p className="text-sm text-gray-600">Generated on {format(new Date(), 'MMM d, yyyy')}</p>
           </div>
 
-          <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm card">
-            <CardHeader className="border-b border-slate-100 space-y-4 no-print">
+          <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm card h-full flex flex-col">
+            <CardHeader className="border-b border-slate-100 space-y-4 no-print flex-shrink-0">
               <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
                 <div className="flex items-center gap-4 flex-1">
                   <Search className="w-5 h-5 text-slate-400" />
@@ -689,8 +689,8 @@ export default function Payments() {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="p-0 card-content">
-              <div className="overflow-auto max-h-[600px] print:max-h-none print:overflow-visible">
+            <CardContent className="p-0 card-content flex-1 overflow-hidden">
+              <div className="overflow-auto h-full print:max-h-none print:overflow-visible">
                 <table className="w-full">
                   <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                     <tr>

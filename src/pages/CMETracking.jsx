@@ -156,17 +156,19 @@ export default function CMETracking() {
         )}
 
         <Card className="border-slate-200 shadow-sm">
-          <CardHeader>
-            <h3 className="text-lg font-semibold text-slate-900">Credits by Provider</h3>
+          <CardHeader className="py-2">
+            <h3 className="text-sm font-semibold text-slate-900">Credits by Provider</h3>
           </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Object.values(creditsPerProvider).map(({ provider, totalCredits }) => (
-                <div key={provider?.id} className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-                  <p className="font-medium text-slate-900">{provider?.full_name}</p>
-                  <p className="text-2xl font-bold text-blue-600 mt-2">{totalCredits.toFixed(1)} credits</p>
-                </div>
-              ))}
+          <CardContent className="pb-3">
+            <div className="max-h-[120px] overflow-y-auto">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                {Object.values(creditsPerProvider).map(({ provider, totalCredits }) => (
+                  <div key={provider?.id} className="p-2 bg-slate-50 rounded border border-slate-200 flex justify-between items-center">
+                    <span className="text-xs font-medium text-slate-900 truncate mr-2">{provider?.full_name}</span>
+                    <span className="text-sm font-bold text-blue-600 flex-shrink-0">{totalCredits.toFixed(1)}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </CardContent>
         </Card>
