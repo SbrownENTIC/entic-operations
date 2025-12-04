@@ -1,16 +1,25 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, AlertCircle, Award, FileText, GraduationCap, DollarSign, CheckCircle2, Clock, Building2, RefreshCw, Wallet, Download, Package, CloudUpload } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { differenceInDays, parseISO, format, subMonths } from "date-fns";
-import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import FinancialDetailModal from "../components/dashboard/FinancialDetailModal";
 import { DashboardSkeleton } from "@/components/ui/LoadingSkeletons";
+
+// Widgets
+import AlertsWidget from "../components/dashboard/AlertsWidget";
+import SummaryCardsWidget from "../components/dashboard/SummaryCardsWidget";
+import PendingInvoicesWidget from "../components/dashboard/PendingInvoicesWidget";
+import MissingInvoicesWidget from "../components/dashboard/MissingInvoicesWidget";
+import LicenseExpirationsWidget from "../components/dashboard/LicenseExpirationsWidget";
+import InvoiceSummaryWidget from "../components/dashboard/InvoiceSummaryWidget";
+import FinancialOverviewWidget from "../components/dashboard/FinancialOverviewWidget";
+import FinancialByProgramWidget from "../components/dashboard/FinancialByProgramWidget";
+import CMEComplianceWidget from "../components/dashboard/CMEComplianceWidget";
+import DashboardCustomizer, { DEFAULT_WIDGETS } from "../components/dashboard/DashboardCustomizer";
 
 export default function Dashboard() {
   const [syncing, setSyncing] = useState(false);
@@ -23,7 +32,6 @@ export default function Dashboard() {
     type: '',
     programGroup: null
   });
-  // Airtable sync state removed (moved to individual pages)
 
   const queryClient = useQueryClient();
 
@@ -33,6 +41,11 @@ export default function Dashboard() {
     // Don't redirect or throw - just log and let the query return empty data
     return [];
   };
+
+  const { data: user } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => base44.auth.me()
+  });
 
   const { data: providers = [], isLoading: providersLoading, isError: providersError } = useQuery({
     queryKey: ['providers'],
@@ -263,147 +276,9 @@ export default function Dashboard() {
     return '$' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
-  const handleSyncPaymentsAndInvoices = async () => {
-    setSyncing(true);
-    setSyncMessage('');
-    try {
-      const response = await base44.functions.invoke('syncPaymentsAndInvoices', {});
-      setSyncMessage(response.data.message);
-      queryClient.invalidateQueries({ queryKey: ['payments'] });
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-    } catch (error) {
-      setSyncMessage('Error syncing: ' + error.message);
-    } finally {
-      setSyncing(false);
-    }
-  };
-
-  // Airtable sync handler removed (moved to individual pages)
-
   // Check if there were any errors loading critical data
   const hasErrors = providersError || licensesError || privilegesError || invoicesError || cmeError || paymentsError;
   
-  if (hasErrors) {
-    return (
-      <div className="p-6 md:p-8 bg-slate-50 min-h-screen flex items-center justify-center">
-        <Card className="max-w-md">
-          <CardContent className="p-6 text-center">
-            <AlertCircle className="w-12 h-12 text-orange-600 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">Unable to Load Dashboard</h3>
-            <p className="text-slate-600 mb-6">There was an issue loading your dashboard data. This might be a temporary connectivity problem.</p>
-            <div className="space-y-2">
-              <Button 
-                onClick={() => window.location.reload()} 
-                className="w-full bg-blue-600 hover:bg-blue-700"
-              >
-                Try Again
-              </Button>
-              <Button 
-                onClick={() => window.location.href = createPageUrl("Providers")}
-                variant="outline"
-                className="w-full"
-              >
-                Go to Providers Page
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const openFinancialDetail = (type, programGroup = null) => {
-    let filteredInvoices = [];
-    let title = '';
-
-    if (type === 'paidToENTIC') {
-      filteredInvoices = processedInvoices.filter(inv => 
-        inv.amount_received > 0
-      );
-      if (programGroup) {
-        filteredInvoices = filteredInvoices.filter(inv => inv.program_group === programGroup);
-        title = `Paid to ENTIC - ${programGroup}`;
-      } else {
-        title = 'Total Paid to ENTIC';
-      }
-    } else if (type === 'owedToProviders') {
-      filteredInvoices = processedInvoices.filter(inv => 
-        (inv.amount_received > 0) && !inv.provider_paid
-      );
-      if (programGroup) {
-        filteredInvoices = filteredInvoices.filter(inv => inv.program_group === programGroup);
-        title = `Owed to Providers - ${programGroup}`;
-      } else {
-        title = 'Total Owed to Providers';
-      }
-    } else if (type === 'outstanding') {
-      filteredInvoices = processedInvoices.filter(inv => 
-        inv.status !== 'paid_to_entic' && inv.status !== 'provider_paid' && (inv.amount_expected > (inv.amount_received || 0))
-      );
-      if (programGroup) {
-        filteredInvoices = filteredInvoices.filter(inv => inv.program_group === programGroup);
-        title = `Outstanding to ENTIC - ${programGroup}`;
-      } else {
-        title = 'Total Outstanding to ENTIC';
-      }
-    }
-
-    // Sort by date descending (newest first)
-    filteredInvoices.sort((a, b) => {
-      const dateA = a.invoice_date ? new Date(a.invoice_date) : new Date(0);
-      const dateB = b.invoice_date ? new Date(b.invoice_date) : new Date(0);
-      return dateB - dateA;
-    });
-
-    setModalState({
-      isOpen: true,
-      title,
-      invoices: filteredInvoices,
-      type,
-      programGroup
-    });
-  };
-
-  const closeModal = () => {
-    setModalState({
-      isOpen: false,
-      title: '',
-      invoices: [],
-      type: '',
-      programGroup: null
-    });
-  };
-
-  const exportToCSV = (data, filename) => {
-    const csvContent = data.map(row => 
-      row.map(cell => {
-        const cellStr = String(cell);
-        if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
-          return '"' + cellStr.replace(/"/g, '""') + '"';
-        }
-        return cellStr;
-      }).join(',')
-    ).join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `${filename}_${format(new Date(), 'yyyy-MM-dd')}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  // Show loading state
-  const isLoading = providersLoading || licensesLoading || privilegesLoading || 
-                    invoicesLoading || cmeLoading || paymentsLoading || supplyOrdersLoading;
-
-  if (isLoading) {
-    return <DashboardSkeleton />;
-  }
-
   // Provider counts
   const activeProviders = providers.filter(p => p.status === 'active').length;
 
@@ -519,6 +394,90 @@ export default function Dashboard() {
   const doctorsCompliant = doctors.filter(doc => (cmeByProvider[doc.id] || 0) >= 3).length;
   const doctorsNonCompliant = doctors.filter(doc => (cmeByProvider[doc.id] || 0) < 3);
 
+  const openFinancialDetail = (type, programGroup = null) => {
+    let filteredInvoices = [];
+    let title = '';
+
+    if (type === 'paidToENTIC') {
+      filteredInvoices = processedInvoices.filter(inv => 
+        inv.amount_received > 0
+      );
+      if (programGroup) {
+        filteredInvoices = filteredInvoices.filter(inv => inv.program_group === programGroup);
+        title = `Paid to ENTIC - ${programGroup}`;
+      } else {
+        title = 'Total Paid to ENTIC';
+      }
+    } else if (type === 'owedToProviders') {
+      filteredInvoices = processedInvoices.filter(inv => 
+        (inv.amount_received > 0) && !inv.provider_paid
+      );
+      if (programGroup) {
+        filteredInvoices = filteredInvoices.filter(inv => inv.program_group === programGroup);
+        title = `Owed to Providers - ${programGroup}`;
+      } else {
+        title = 'Total Owed to Providers';
+      }
+    } else if (type === 'outstanding') {
+      filteredInvoices = processedInvoices.filter(inv => 
+        inv.status !== 'paid_to_entic' && inv.status !== 'provider_paid' && (inv.amount_expected > (inv.amount_received || 0))
+      );
+      if (programGroup) {
+        filteredInvoices = filteredInvoices.filter(inv => inv.program_group === programGroup);
+        title = `Outstanding to ENTIC - ${programGroup}`;
+      } else {
+        title = 'Total Outstanding to ENTIC';
+      }
+    }
+
+    // Sort by date descending (newest first)
+    filteredInvoices.sort((a, b) => {
+      const dateA = a.invoice_date ? new Date(a.invoice_date) : new Date(0);
+      const dateB = b.invoice_date ? new Date(b.invoice_date) : new Date(0);
+      return dateB - dateA;
+    });
+
+    setModalState({
+      isOpen: true,
+      title,
+      invoices: filteredInvoices,
+      type,
+      programGroup
+    });
+  };
+
+  const closeModal = () => {
+    setModalState({
+      isOpen: false,
+      title: '',
+      invoices: [],
+      type: '',
+      programGroup: null
+    });
+  };
+
+  const exportToCSV = (data, filename) => {
+    const csvContent = data.map(row => 
+      row.map(cell => {
+        const cellStr = String(cell);
+        if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+          return '"' + cellStr.replace(/"/g, '""') + '"';
+        }
+        return cellStr;
+      }).join(',')
+    ).join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${filename}_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const exportFinancialOverview = () => {
     const rows = [
       ['Financial Overview Summary', '', '', ''],
@@ -632,6 +591,152 @@ export default function Dashboard() {
     return a.localeCompare(b);
   });
 
+  const isLoading = providersLoading || licensesLoading || privilegesLoading || 
+                    invoicesLoading || cmeLoading || paymentsLoading || supplyOrdersLoading;
+
+  if (hasErrors) {
+    return (
+      <div className="p-6 md:p-8 bg-slate-50 min-h-screen flex items-center justify-center">
+        <Card className="max-w-md">
+          <CardContent className="p-6 text-center">
+            <AlertCircle className="w-12 h-12 text-orange-600 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">Unable to Load Dashboard</h3>
+            <p className="text-slate-600 mb-6">There was an issue loading your dashboard data. This might be a temporary connectivity problem.</p>
+            <div className="space-y-2">
+              <Button 
+                onClick={() => window.location.reload()} 
+                className="w-full bg-blue-600 hover:bg-blue-700"
+              >
+                Try Again
+              </Button>
+              <Button 
+                onClick={() => window.location.href = createPageUrl("Providers")}
+                variant="outline"
+                className="w-full"
+              >
+                Go to Providers Page
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return <DashboardSkeleton />;
+  }
+
+  // Determine widget order and visibility
+  let widgetsToRender = DEFAULT_WIDGETS;
+  if (user?.dashboard_config) {
+    try {
+      const config = JSON.parse(user.dashboard_config);
+      // Merge with defaults to handle potential new widgets
+      const merged = config.map(w => ({
+        ...DEFAULT_WIDGETS.find(dw => dw.id === w.id) || w,
+        ...w
+      }));
+      const missing = DEFAULT_WIDGETS.filter(dw => !config.find(w => w.id === dw.id));
+      widgetsToRender = [...merged, ...missing];
+    } catch (e) {
+      console.error("Failed to parse user dashboard config", e);
+    }
+  }
+
+  const renderWidget = (widgetId) => {
+    switch (widgetId) {
+      case 'alerts':
+        return (
+          <AlertsWidget
+            uconnPendingVendorInvoices={uconnPendingVendorInvoices}
+            sentForApprovalInvoices={sentForApprovalInvoices}
+            privilegesExpiring30Days={privilegesExpiring30Days}
+          />
+        );
+      case 'summary_cards':
+        return (
+          <SummaryCardsWidget
+            supplyOrders={supplyOrders}
+            draftInvoices={draftInvoices}
+            licensesExpiring14Days={licensesExpiring14Days}
+          />
+        );
+      case 'pending_invoices':
+        return (
+          <PendingInvoicesWidget
+            providersWithPendingInvoices={providersWithPendingInvoices}
+          />
+        );
+      case 'missing_invoices':
+        return (
+          <MissingInvoicesWidget
+            providersMissingPriorInvoice={providersMissingPriorInvoice}
+            previousMonthStr={previousMonthStr}
+            createWaiverMutation={createWaiverMutation}
+          />
+        );
+      case 'license_expirations':
+        return (
+          <LicenseExpirationsWidget
+            licensesExpiring7Days={licensesExpiring7Days}
+            licensesExpiring14Days={licensesExpiring14Days}
+            licensesExpiring30Days={licensesExpiring30Days}
+            licensesExpiring60Days={licensesExpiring60Days}
+            providers={providers}
+            exportLicenseExpirations={exportLicenseExpirations}
+          />
+        );
+      case 'invoice_summary':
+        return (
+          <InvoiceSummaryWidget
+            invoices={invoices}
+            providers={providers}
+            invoiceLocationFilter={invoiceLocationFilter}
+            setInvoiceLocationFilter={setInvoiceLocationFilter}
+            availableLocations={availableLocations}
+            exportInvoiceSummary={exportInvoiceSummary}
+          />
+        );
+      case 'financial_overview':
+        return (
+          <FinancialOverviewWidget
+            outstandingToENTIC={outstandingToENTIC}
+            totalPaidToENTIC={totalPaidToENTIC}
+            totalOwedToProviders={totalOwedToProviders}
+            unallocatedPayments={unallocatedPayments}
+            formatCurrency={formatCurrency}
+            exportFinancialOverview={exportFinancialOverview}
+            openFinancialDetail={openFinancialDetail}
+          />
+        );
+      case 'financial_by_program':
+        return (
+          <FinancialByProgramWidget
+            programsSorted={programsSorted}
+            financialsByProgram={financialsByProgram}
+            outstandingToENTIC={outstandingToENTIC}
+            totalPaidToENTIC={totalPaidToENTIC}
+            totalOwedToProviders={totalOwedToProviders}
+            formatCurrency={formatCurrency}
+            openFinancialDetail={openFinancialDetail}
+          />
+        );
+      case 'cme_compliance':
+        return (
+          <CMEComplianceWidget
+            doctors={doctors}
+            cmeByProvider={cmeByProvider}
+            doctorsCompliant={doctorsCompliant}
+            doctorsNonCompliant={doctorsNonCompliant}
+            exportCMECompliance={exportCMECompliance}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
       <style>{`
@@ -674,9 +779,15 @@ export default function Dashboard() {
         }
       `}</style>
       <div className="max-w-7xl mx-auto space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
-          <p className="text-slate-600 mt-1">Overview of your medical practice</p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
+            <p className="text-slate-600 mt-1">Overview of your medical practice</p>
+          </div>
+          <DashboardCustomizer 
+            currentConfig={user?.dashboard_config}
+            onConfigChange={() => queryClient.invalidateQueries(['me'])}
+          />
         </div>
 
         {syncMessage && (
@@ -687,564 +798,13 @@ export default function Dashboard() {
           </Card>
         )}
 
-{/* Airtable Sync Section removed and moved to individual pages */}
-
-        {/* Alerts Section */}
-        {(uconnPendingVendorInvoices > 0 || sentForApprovalInvoices > 0 || privilegesExpiring30Days.length > 0) && (
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900 mb-3">Alerts</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {uconnPendingVendorInvoices > 0 && (
-                <Card className={`bg-gradient-to-br from-blue-100 to-blue-50 transition-all duration-300 ${uconnPendingVendorInvoices > 0 ? 'border-[5px] border-blue-600 animate-alert-glow' : 'border-3 border-blue-300 shadow-xl shadow-blue-200/50 hover:scale-105'}`}>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-blue-300">
-                    <CardTitle className="text-sm font-bold text-slate-900">UConn Pending Vendor</CardTitle>
-                    <AlertCircle className="w-5 h-5 text-blue-700 animate-slow-pulse" />
-                  </CardHeader>
-                  <CardContent className="pt-3">
-                    <div className="text-4xl font-bold text-blue-700 mb-1">{uconnPendingVendorInvoices}</div>
-                    <Link to={`${createPageUrl("Invoices")}?status=approved`} className="text-xs text-blue-700 hover:text-blue-900 font-semibold hover:underline">
-                      View invoices →
-                    </Link>
-                  </CardContent>
-                </Card>
-              )}
-
-              {sentForApprovalInvoices > 0 && (
-                <Card className={`bg-gradient-to-br from-yellow-100 to-yellow-50 transition-all duration-300 ${sentForApprovalInvoices > 0 ? 'border-[5px] border-yellow-600 animate-yellow-glow' : 'border-3 border-yellow-300 shadow-xl shadow-yellow-200/50 hover:scale-105'}`}>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-yellow-300">
-                    <CardTitle className="text-sm font-bold text-slate-900">Invoices Sent for Approval</CardTitle>
-                    <FileText className="w-5 h-5 text-yellow-700 animate-slow-pulse" />
-                  </CardHeader>
-                  <CardContent className="pt-3">
-                    <div className="text-4xl font-bold text-yellow-700 mb-1">{sentForApprovalInvoices}</div>
-                    <Link to={`${createPageUrl("Invoices")}?status=sent_for_approval`} className="text-xs text-yellow-700 hover:text-yellow-900 font-semibold hover:underline">
-                      View invoices →
-                    </Link>
-                  </CardContent>
-                </Card>
-              )}
-
-              {privilegesExpiring30Days.length > 0 && (
-                <Card className="border-3 border-purple-500 bg-gradient-to-br from-purple-100 to-purple-50 shadow-xl shadow-purple-200/50 hover:scale-105 transition-all duration-300">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-purple-300">
-                    <CardTitle className="text-sm font-bold text-slate-900">Privileges Expiring (30d)</CardTitle>
-                    <Award className="w-5 h-5 text-purple-700 animate-pulse" />
-                  </CardHeader>
-                  <CardContent className="pt-3">
-                    <div className="text-4xl font-bold text-purple-700 mb-1">{privilegesExpiring30Days.length}</div>
-                    <Link to={`${createPageUrl("ClinicalPrivileges")}?filter=expiring_30`} className="text-xs text-purple-700 hover:text-purple-900 font-semibold hover:underline">
-                      View privileges →
-                    </Link>
-                  </CardContent>
-                </Card>
-              )}
+        {widgetsToRender.map(widget => (
+          widget.visible && (
+            <div key={widget.id}>
+              {renderWidget(widget.id)}
             </div>
-          </div>
-        )}
-
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {supplyOrders.length > 0 && (
-            <Card className={`bg-gradient-to-br from-red-100 to-red-50 transition-all duration-300 ${supplyOrders.length > 0 ? 'border-[5px] border-red-600 animate-alert-glow' : 'border-3 border-red-300 shadow-xl shadow-red-300/60 hover:scale-105'}`}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-red-400">
-                <AlertCircle className="w-6 h-6 text-red-700 animate-slow-pulse" />
-                <CardTitle className="text-sm font-bold text-slate-900">Supply Order Requests</CardTitle>
-                <AlertCircle className="w-6 h-6 text-red-700 animate-slow-pulse" />
-              </CardHeader>
-              <CardContent className="pt-3">
-                <div className="text-4xl font-bold text-red-700 mb-1">{supplyOrders.length}</div>
-                <Link to={createPageUrl("SupplyOrders") + "?filter=pending"} className="text-xs text-red-700 hover:text-red-900 font-semibold hover:underline">
-                  View requests →
-                </Link>
-              </CardContent>
-            </Card>
-          )}
-
-          {draftInvoices > 0 && (
-            <Card className={`bg-gradient-to-br from-slate-100 to-slate-50 transition-all duration-300 ${draftInvoices > 0 ? 'border-[5px] border-slate-400' : 'border-3 border-slate-300 shadow-xl shadow-slate-200/50 hover:scale-105'}`}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-slate-300">
-                <CardTitle className="text-sm font-bold text-slate-900">Draft Invoices</CardTitle>
-                <FileText className="w-5 h-5 text-slate-700" />
-              </CardHeader>
-              <CardContent className="pt-3">
-                <div className="text-4xl font-bold text-slate-700 mb-1">{draftInvoices}</div>
-                <Link to={createPageUrl("Invoices")} className="text-xs text-slate-700 hover:text-slate-900 font-semibold hover:underline">
-                  View drafts →
-                </Link>
-              </CardContent>
-            </Card>
-          )}
-
-          {licensesExpiring14Days.length > 0 && (
-            <Card className={`bg-gradient-to-br from-red-100 to-red-50 transition-all duration-300 ${licensesExpiring14Days.length > 0 ? 'border-[5px] border-red-600 animate-alert-glow' : 'border-3 border-red-300 shadow-xl shadow-red-200/50 hover:scale-105'}`}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-red-300">
-                <AlertCircle className="w-6 h-6 text-red-700 animate-slow-pulse" />
-                <CardTitle className="text-sm font-bold text-slate-900">Licenses Expiring (14d)</CardTitle>
-                <AlertCircle className="w-6 h-6 text-red-700 animate-slow-pulse" />
-              </CardHeader>
-              <CardContent className="pt-3">
-                <div className="text-4xl font-bold text-red-700 mb-1">{licensesExpiring14Days.length}</div>
-                <Link to={createPageUrl("Licenses")} className="text-xs text-red-700 hover:text-red-900 font-semibold hover:underline">
-                  View licenses →
-                </Link>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        {/* Providers with Pending Invoices */}
-        {providersWithPendingInvoices.length > 0 && (
-        <Card className="border-indigo-200 shadow-sm bg-indigo-50/30">
-          <CardHeader className="border-b border-indigo-100 py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-lg flex items-center gap-2 text-indigo-800">
-                  <Clock className="w-5 h-5 text-indigo-600" />
-                  Invoices Pending Approval
-                </CardTitle>
-                <p className="text-sm text-indigo-700 mt-1">
-                  Providers with invoices waiting for approval or time entry
-                </p>
-              </div>
-              <Badge className="bg-indigo-200 text-indigo-800 hover:bg-indigo-300 border-indigo-300">
-                {providersWithPendingInvoices.length} Providers
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {providersWithPendingInvoices.map(provider => (
-                <Link 
-                  key={provider.id}
-                  to={`${createPageUrl("Invoices")}?status=pending_providers_approval,sent_for_approval&search=${encodeURIComponent(provider.full_name)}`}
-                  className="block group"
-                >
-                  <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-indigo-200 shadow-sm group-hover:border-indigo-400 group-hover:shadow-md transition-all">
-                    <div className="flex items-center">
-                      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center mr-3 text-indigo-700 font-bold text-xs">
-                        {provider.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}
-                      </div>
-                      <div>
-                        <span className="font-medium text-slate-900 text-sm block group-hover:text-indigo-700 transition-colors">{provider.full_name}</span>
-                        <span className="text-xs text-slate-500">{provider.pendingCount} Invoice{provider.pendingCount !== 1 ? 's' : ''}</span>
-                      </div>
-                    </div>
-                    <div className="w-6 h-6 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                      →
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-        )}
-
-        {/* Missing Prior Month Invoices */}
-        {providersMissingPriorInvoice.length > 0 && (
-        <Card className="border-orange-200 shadow-sm bg-orange-50/30">
-          <CardHeader className="border-b border-orange-100 py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-lg flex items-center gap-2 text-orange-800">
-                  <AlertCircle className="w-5 h-5 text-orange-600" />
-                  Missing Invoices - {previousMonthStr}
-                </CardTitle>
-                <p className="text-sm text-orange-700 mt-1">
-                  The following providers have no invoices recorded for last month
-                </p>
-              </div>
-              <Badge className="bg-orange-200 text-orange-800 hover:bg-orange-300 border-orange-300">
-                {providersMissingPriorInvoice.length} Providers
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {providersMissingPriorInvoice.map(provider => (
-                <div key={provider.id} className="flex items-center justify-between p-3 bg-white rounded-lg border border-orange-200 shadow-sm">
-                  <div className="flex items-center">
-                    <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center mr-3 text-orange-700 font-bold text-xs">
-                      {provider.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}
-                    </div>
-                    <span className="font-medium text-slate-900 text-sm">{provider.full_name}</span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => createWaiverMutation.mutate({
-                      provider_id: provider.id,
-                      month: previousMonthStr,
-                      reason: "No On Call Time to Record"
-                    })}
-                    className="text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-50 h-7"
-                    title="Mark as Not Required (No On Call Time)"
-                  >
-                    Not Required
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-        )}
-
-        {/* License Expirations Detail */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-slate-900">License Expirations</h2>
-            <Button
-              onClick={exportLicenseExpirations}
-              variant="outline"
-              size="sm"
-              className="gap-2"
-            >
-              <Download className="w-4 h-4" />
-              Export
-            </Button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-            <LicenseExpirationCard
-              title="Expiring in 7 Days"
-              licenses={licensesExpiring7Days}
-              providers={providers}
-              severity="high"
-            />
-            <LicenseExpirationCard
-              title="Expiring in 14 Days"
-              licenses={licensesExpiring14Days}
-              providers={providers}
-              severity="medium"
-            />
-            <LicenseExpirationCard
-              title="Expiring in 30 Days"
-              licenses={licensesExpiring30Days}
-              providers={providers}
-              severity="low"
-            />
-            <LicenseExpirationCard
-              title="Expiring in 60 Days"
-              licenses={licensesExpiring60Days}
-              providers={providers}
-              severity="info"
-            />
-          </div>
-        </div>
-
-
-
-        {/* Invoice Summary */}
-        <Card className="border-slate-200 shadow-sm">
-        <CardHeader className="border-b border-slate-100 py-4">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Invoice Summary by Status ({invoices.length})</CardTitle>
-              <div className="flex items-center gap-3">
-                <Select value={invoiceLocationFilter} onValueChange={setInvoiceLocationFilter}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Filter by Location" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableLocations.map(loc => (
-                      <SelectItem key={loc} value={loc}>
-                        {loc === 'all' ? 'All Locations' : loc}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  onClick={exportInvoiceSummary}
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  Export
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-              {Object.entries({
-                'Not Started': { invoices: invoices.filter(inv => inv.status === 'not_started'), color: 'gray' },
-                'Draft': { invoices: invoices.filter(inv => inv.status === 'draft'), color: 'slate' },
-                'Sent for Approval': { invoices: invoices.filter(inv => inv.status === 'pending_providers_approval' || inv.status === 'pending_providers_time' || inv.status === 'sent_for_approval'), color: 'yellow' },
-                'Sent To Vendor': { invoices: invoices.filter(inv => inv.status === 'sent_to_vendor'), color: 'blue' },
-                'Partial': { invoices: invoices.filter(inv => inv.status === 'partial'), color: 'indigo' },
-                'Paid To ENTIC': { invoices: invoices.filter(inv => inv.status === 'paid_to_entic'), color: 'emerald' },
-                'Provider Paid': { invoices: invoices.filter(inv => inv.status === 'provider_paid'), color: 'purple' },
-              }).map(([status, { invoices: statusInvoices, color }]) => {
-                const filteredStatusInvoices = (invoiceLocationFilter === 'all' 
-                  ? statusInvoices 
-                  : statusInvoices.filter(inv => inv.program_group === invoiceLocationFilter)
-                ).sort((a, b) => {
-                  const dateA = a.invoice_date ? new Date(a.invoice_date) : new Date(0);
-                  const dateB = b.invoice_date ? new Date(b.invoice_date) : new Date(0);
-                  return dateB - dateA;
-                });
-
-                if (filteredStatusInvoices.length === 0) return null;
-
-                return (
-                  <Card key={status} className={`border-${color}-200 bg-${color}-50/30 shadow-sm`}>
-                    <CardHeader className="pb-2 border-b border-slate-200 bg-white">
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-semibold text-slate-900 text-xs">{status}</h3>
-                        <Badge className={`bg-${color}-100 text-${color}-800 border-${color}-300 text-xs`}>
-                          {filteredStatusInvoices.length}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-2">
-                      {filteredStatusInvoices.length > 0 ? (
-                        <div className="space-y-1 max-h-40 overflow-y-auto pr-1">
-                          {filteredStatusInvoices.map(inv => {
-                            const isUConn = inv.program_group === 'UConn';
-                            return (
-                              <Link 
-                                key={inv.id} 
-                                to={`${createPageUrl("Invoices")}?edit=${inv.id}`}
-                                className={`block text-xs px-2 py-1.5 bg-white hover:bg-${color}-100 rounded border border-slate-200 hover:border-${color}-400 transition-all shadow-sm hover:shadow`}
-                              >
-                                <div className="font-medium text-slate-900 text-xs">
-                                  {inv.invoice_number || 'N/A'}
-                                </div>
-                                <div className="text-[10px] text-slate-600 truncate">
-                                  {providers.find(p => p.id === inv.staff_member_id)?.full_name || 'Unknown'}
-                                </div>
-                                <div className="text-[10px] text-slate-500 truncate">
-                                  {inv.program_group || 'No Location'}
-                                </div>
-                                {isUConn && inv.month && (
-                                  <div className="text-[10px] text-blue-600 font-medium">
-                                    {inv.month}
-                                  </div>
-                                )}
-                              </Link>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <p className="text-center py-6 text-slate-400 text-xs">No invoices</p>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Financial Overview - Total */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-slate-900">Financial Overview</h2>
-            <Button
-              onClick={exportFinancialOverview}
-              variant="outline"
-              size="sm"
-              className="gap-2"
-            >
-              <Download className="w-4 h-4" />
-              Export
-            </Button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <Card 
-              className="border-slate-200 shadow-sm bg-gradient-to-br from-orange-50 to-white cursor-pointer hover:shadow-lg transition-shadow"
-              onClick={() => openFinancialDetail('outstanding')}
-            >
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-slate-600">Outstanding to ENTIC</CardTitle>
-                <Clock className="w-5 h-5 text-orange-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-orange-700">{formatCurrency(outstandingToENTIC)}</div>
-                <p className="text-xs text-slate-500 mt-1">Expected - Received (calculated)</p>
-                <p className="text-xs text-blue-600 mt-2 hover:underline">Click to view details →</p>
-              </CardContent>
-            </Card>
-
-            <Card 
-              className="border-slate-200 shadow-sm bg-gradient-to-br from-green-50 to-white cursor-pointer hover:shadow-lg transition-shadow"
-              onClick={() => openFinancialDetail('paidToENTIC')}
-            >
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-slate-600">Total Paid to ENTIC</CardTitle>
-                <CheckCircle2 className="w-5 h-5 text-green-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-green-700">{formatCurrency(totalPaidToENTIC)}</div>
-                <p className="text-xs text-slate-500 mt-1">Payments received from clients</p>
-                <p className="text-xs text-blue-600 mt-2 hover:underline">Click to view details →</p>
-              </CardContent>
-            </Card>
-
-            <Card 
-              className="border-slate-200 shadow-sm bg-gradient-to-br from-blue-50 to-white cursor-pointer hover:shadow-lg transition-shadow"
-              onClick={() => openFinancialDetail('owedToProviders')}
-            >
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-slate-600">Owed to Providers</CardTitle>
-                <DollarSign className="w-5 h-5 text-blue-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-blue-700">{formatCurrency(totalOwedToProviders)}</div>
-                <p className="text-xs text-slate-500 mt-1">Received but not yet paid out</p>
-                <p className="text-xs text-blue-600 mt-2 hover:underline">Click to view details →</p>
-              </CardContent>
-            </Card>
-
-            {unallocatedPayments > 0 && (
-              <Link to={createPageUrl("Payments") + "?showUnallocated=true"} className="block">
-                <Card className="border-slate-200 shadow-sm bg-gradient-to-br from-purple-50 to-white cursor-pointer hover:shadow-lg transition-shadow h-full">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-slate-600">Unallocated Payments</CardTitle>
-                    <Wallet className="w-5 h-5 text-purple-600" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold text-purple-700">{formatCurrency(unallocatedPayments)}</div>
-                    <p className="text-xs text-slate-500 mt-1">Payments pending allocation</p>
-                    <p className="text-xs text-blue-600 mt-2 hover:underline">Click to allocate →</p>
-                  </CardContent>
-                </Card>
-              </Link>
-            )}
-          </div>
-        </div>
-
-        {/* Financial Overview by Program/Location */}
-        <Card className="border-slate-200 shadow-sm">
-          <CardHeader className="border-b border-slate-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Financial Overview by Program/Location</CardTitle>
-                <p className="text-sm text-slate-500 mt-1">Detailed breakdown of finances per program (click amounts for details)</p>
-              </div>
-              <Building2 className="w-6 h-6 text-slate-400" />
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-slate-50 border-b border-slate-200">
-                  <tr>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Program/Location</th>
-                    <th className="text-right p-4 text-sm font-semibold text-slate-700">Outstanding to ENTIC</th>
-                    <th className="text-right p-4 text-sm font-semibold text-slate-700">Paid to ENTIC</th>
-                    <th className="text-right p-4 text-sm font-semibold text-slate-700">Owed to Providers</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {programsSorted.map((program) => {
-                    const data = financialsByProgram[program];
-                    return (
-                      <tr key={program} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                        <td className="p-4 font-medium text-slate-900">{program}</td>
-                        <td 
-                          className="p-4 text-right font-medium text-orange-700 cursor-pointer hover:underline"
-                          onClick={() => openFinancialDetail('outstanding', program)}
-                        >
-                          {formatCurrency(data.outstanding)}
-                        </td>
-                        <td 
-                          className="p-4 text-right font-medium text-green-700 cursor-pointer hover:underline"
-                          onClick={() => openFinancialDetail('paidToENTIC', program)}
-                        >
-                          {formatCurrency(data.paidToENTIC)}
-                        </td>
-                        <td 
-                          className="p-4 text-right font-medium text-blue-700 cursor-pointer hover:underline"
-                          onClick={() => openFinancialDetail('owedToProviders', program)}
-                        >
-                          {formatCurrency(data.owedToProviders)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-                <tfoot className="bg-slate-50 border-t-2 border-slate-300">
-                  <tr>
-                    <td className="p-4 font-bold text-slate-900">Total</td>
-                    <td 
-                      className="p-4 text-right font-bold text-orange-700 cursor-pointer hover:underline"
-                      onClick={() => openFinancialDetail('outstanding')}
-                    >
-                      {formatCurrency(outstandingToENTIC)}
-                    </td>
-                    <td 
-                      className="p-4 text-right font-bold text-green-700 cursor-pointer hover:underline"
-                      onClick={() => openFinancialDetail('paidToENTIC')}
-                    >
-                      {formatCurrency(totalPaidToENTIC)}
-                    </td>
-                    <td 
-                      className="p-4 text-right font-bold text-blue-700 cursor-pointer hover:underline"
-                      onClick={() => openFinancialDetail('owedToProviders')}
-                    >
-                      {formatCurrency(totalOwedToProviders)}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* CME Compliance - Only Non-Compliant Doctors */}
-        <Card className="border-slate-200 shadow-sm">
-          <CardHeader className="border-b border-slate-100 py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-lg">CME Non-Compliance - Doctors Requiring Attention</CardTitle>
-                <p className="text-xs text-slate-500 mt-1">Doctors must earn 3+ CME credits</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  onClick={exportCMECompliance}
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  Export
-                </Button>
-                <GraduationCap className="w-6 h-6 text-slate-400" />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="mb-3">
-              <div className="text-xl font-bold text-slate-900">
-                {doctorsCompliant} / {doctors.length}
-              </div>
-              <p className="text-xs text-slate-600">Doctors compliant</p>
-            </div>
-            {doctorsNonCompliant.length > 0 ? (
-              <div className="space-y-2">
-                {doctorsNonCompliant.map(doctor => {
-                  const credits = cmeByProvider[doctor.id] || 0;
-                  return (
-                    <div key={doctor.id} className="flex items-center justify-between p-3 bg-gradient-to-r from-red-100 to-red-50 rounded-lg border-2 border-red-400 shadow-md hover:shadow-lg transition-all duration-200">
-                      <div className="flex-1">
-                        <p className="font-bold text-slate-900 text-sm">{doctor.full_name}</p>
-                        <p className="text-xs text-slate-700 font-medium">{credits} / 3 CME credits</p>
-                      </div>
-                      <Badge className="bg-red-600 text-white border-0 font-bold text-xs">
-                        Non-compliant
-                      </Badge>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-6 bg-green-50 rounded-lg border border-green-200">
-                <CheckCircle2 className="w-10 h-10 text-green-600 mx-auto mb-2" />
-                <p className="text-green-700 font-medium text-sm">All doctors are CME compliant!</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          )
+        ))}
       </div>
 
       <FinancialDetailModal
@@ -1257,84 +817,5 @@ export default function Dashboard() {
         programGroup={modalState.programGroup}
       />
     </div>
-  );
-}
-
-function LicenseExpirationCard({ title, licenses, providers, severity }) {
-  const severityColors = {
-    high: 'border-red-500 bg-gradient-to-br from-red-100 to-red-50 shadow-lg shadow-red-200/50',
-    medium: 'border-orange-500 bg-gradient-to-br from-orange-100 to-orange-50 shadow-lg shadow-orange-200/50',
-    low: 'border-yellow-500 bg-gradient-to-br from-yellow-100 to-yellow-50 shadow-lg shadow-yellow-200/50',
-    info: 'border-blue-400 bg-gradient-to-br from-blue-50 to-slate-50 shadow-md'
-  };
-
-  const iconClasses = {
-    high: 'text-red-700 w-5 h-5 animate-pulse',
-    medium: 'text-orange-700 w-5 h-5',
-    low: 'text-yellow-700 w-5 h-5',
-    info: 'text-blue-600 w-4 h-4'
-  };
-
-  const itemColors = {
-    high: 'bg-white border-red-300 hover:border-red-400 hover:shadow-md',
-    medium: 'bg-white border-orange-300 hover:border-orange-400 hover:shadow-md',
-    low: 'bg-white border-yellow-300 hover:border-yellow-400 hover:shadow-md',
-    info: 'bg-white border-blue-200 hover:border-blue-300 hover:shadow-md'
-  };
-
-  return (
-    <Card className={`border-2 ${severityColors[severity]} transition-all duration-300 hover:scale-105`}>
-      <CardHeader className="border-b-2 border-slate-200 bg-white/80 backdrop-blur-sm py-3">
-        <div className="flex items-center gap-2">
-          <AlertCircle className={iconClasses[severity]} />
-          <CardTitle className="text-xs font-bold text-slate-900">{title}</CardTitle>
-        </div>
-        <div className="text-xl font-bold text-slate-900 mt-1">{licenses.length}</div>
-      </CardHeader>
-      <CardContent className="p-3 bg-white/60 backdrop-blur-sm">
-        {licenses.length > 0 ? (
-          <div className="space-y-1.5">
-            {licenses.slice(0, 3).map(license => {
-              const provider = providers.find(p => p.id === license.provider_id);
-              const daysUntil = differenceInDays(parseISO(license.expiration_date), new Date());
-              return (
-                <Link 
-                  key={license.id} 
-                  to={`${createPageUrl("Licenses")}?edit=${license.id}`}
-                  className="block"
-                >
-                  <div className={`flex items-center justify-between p-2 rounded-lg border-2 transition-all duration-200 ${itemColors[severity]} hover:scale-[1.02] cursor-pointer`}>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-slate-900 text-xs truncate">{provider?.full_name}</p>
-                      <p className="text-[10px] text-slate-700 font-medium">
-                        {license.license_type}
-                      </p>
-                    </div>
-                    <Badge className={`text-[10px] ml-2 font-bold ${
-                      daysUntil <= 7 ? 'bg-red-600 text-white border-0' : 
-                      daysUntil <= 14 ? 'bg-orange-600 text-white border-0' : 
-                      daysUntil <= 30 ? 'bg-yellow-600 text-white border-0' :
-                      'bg-blue-600 text-white border-0'
-                    }`}>
-                      {daysUntil}d
-                    </Badge>
-                  </div>
-                </Link>
-              );
-            })}
-            {licenses.length > 3 && (
-              <Link to={createPageUrl("Licenses")} className="block text-[10px] text-blue-600 hover:text-blue-800 font-semibold text-center pt-1 hover:underline">
-                View all {licenses.length} →
-              </Link>
-            )}
-          </div>
-        ) : (
-          <div className="text-center py-4 bg-green-50 rounded-lg border border-green-200">
-            <CheckCircle2 className="w-6 h-6 text-green-600 mx-auto mb-1" />
-            <p className="text-xs text-green-700 font-medium">None expiring</p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
   );
 }
