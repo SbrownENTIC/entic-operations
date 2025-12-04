@@ -178,6 +178,70 @@ export default function Dashboard() {
     }));
   }, [invoices, payments]);
 
+  // Missing Prior Month Invoices Tracking
+  const targetProviderNames = [
+    "belachew tessema",
+    "benjamin wycherly",
+    "erin alday",
+    "hailun wang",
+    "jerlon chi",
+    "kimberly rutherford",
+    "ryan drake",
+    "seth brown",
+    "stephen wolfe"
+  ];
+
+  const previousMonthDate = subMonths(new Date(), 1);
+  const previousMonthStr = format(previousMonthDate, 'MMMM yyyy');
+
+  const targetProviders = providers.filter(p => 
+    p.status === 'active' && 
+    targetProviderNames.some(name => p.full_name.toLowerCase().includes(name))
+  );
+
+  const providersMissingPriorInvoice = targetProviders.filter(provider => {
+    // Check if provider is the primary staff member on an invoice for the month
+    const isPrimaryOnInvoice = invoices.some(inv => 
+      inv.staff_member_id === provider.id && 
+      inv.month === previousMonthStr
+    );
+
+    // Check if provider has any linked outside income for the month that is attached to an invoice
+    const hasLinkedIncomeInvoiced = outsideIncomes.some(inc => 
+      inc.provider_id === provider.id && 
+      (inc.invoice_month === previousMonthStr || inc.workMonth === previousMonthStr) &&
+      inc.invoice_id
+    );
+
+    // Check if invoice is waived
+    const isWaived = invoiceWaivers.some(w => 
+      w.provider_id === provider.id && 
+      w.month === previousMonthStr
+    );
+
+    return !isPrimaryOnInvoice && !hasLinkedIncomeInvoiced && !isWaived;
+  });
+
+  // Providers with pending approval invoices (Any Date)
+  const providersWithPendingInvoices = React.useMemo(() => {
+    const relevantStatuses = ['pending_providers_approval', 'sent_for_approval'];
+    const pendingInvoices = invoices.filter(inv => relevantStatuses.includes(inv.status));
+    
+    const providerIds = [...new Set(pendingInvoices.map(inv => inv.staff_member_id))];
+    
+    return providerIds.map(id => {
+        const provider = providers.find(p => p.id === id);
+        if (!provider) return null;
+        const count = pendingInvoices.filter(inv => inv.staff_member_id === id).length;
+        return { ...provider, pendingCount: count };
+    }).filter(Boolean).sort((a, b) => b.pendingCount - a.pendingCount);
+  }, [invoices, providers]);
+
+  // Format currency with commas
+  const formatCurrency = (amount) => {
+    return '$' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
   const handleSyncPaymentsAndInvoices = async () => {
     setSyncing(true);
     setSyncMessage('');
