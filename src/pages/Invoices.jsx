@@ -783,14 +783,7 @@ export default function Invoices() {
                     >
                       {bulkUpdateMutation.isPending ? 'Updating...' : 'Update Selected'}
                     </Button>
-                    <div className="w-px h-8 bg-blue-200 mx-2"></div>
-                    <Button 
-                      onClick={handleBulkSyncToAirtable}
-                      disabled={syncingAirtable}
-                      className="bg-indigo-600 hover:bg-indigo-700"
-                    >
-                      {syncingAirtable ? 'Syncing...' : 'Sync to Airtable'}
-                    </Button>
+
                   </div>
                 </div>
               )}
