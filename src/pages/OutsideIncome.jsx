@@ -18,6 +18,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { parseISO, format } from "date-fns";
 import OutsideIncomeForm from "../components/income/OutsideIncomeForm";
+import EmptyState from "@/components/ui/EmptyState";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -701,8 +702,25 @@ export default function OutsideIncome() {
                     </tbody>
                   </table>
                 {sortedIncomes.length === 0 && (
-                  <div className="text-center py-12 text-slate-500">
-                    No income records found
+                  <div className="p-4">
+                    <EmptyState
+                      title="No income records found"
+                      description={searchTerm ? "Try adjusting your search terms" : "Track external work and income"}
+                      action={
+                        !searchTerm && (
+                          <Button
+                            onClick={() => {
+                              setEditingIncome(null);
+                              setShowForm(true);
+                            }}
+                            className="bg-blue-600 hover:bg-blue-700 mt-4"
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Add Income
+                          </Button>
+                        )
+                      }
+                    />
                   </div>
                 )}
               </div>

@@ -9,6 +9,7 @@ import { Plus, Search, Eye, Pencil, Trash2, DollarSign, Download, ArrowUpDown, A
 import { format, parseISO } from "date-fns";
 import PaymentForm from "../components/payments/PaymentForm";
 import PaymentDetailModal from "../components/payments/PaymentDetailModal";
+import EmptyState from "@/components/ui/EmptyState";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -852,8 +853,25 @@ export default function Payments() {
                   </tbody>
                 </table>
                 {sortedPayments.length === 0 && (
-                  <div className="text-center py-12 text-slate-500">
-                    No payments found
+                  <div className="p-4">
+                    <EmptyState
+                      title="No payments found"
+                      description={searchTerm ? "Try adjusting your search terms" : "Record your first payment"}
+                      action={
+                        !searchTerm && (
+                          <Button
+                            onClick={() => {
+                              setEditingPayment(null);
+                              setShowForm(true);
+                            }}
+                            className="bg-blue-600 hover:bg-blue-700 mt-4"
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Record Payment
+                          </Button>
+                        )
+                      }
+                    />
                   </div>
                 )}
               </div>

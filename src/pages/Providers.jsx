@@ -10,6 +10,7 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { format, parseISO } from "date-fns";
 import ProviderForm from "../components/providers/ProviderForm";
+import EmptyState from "@/components/ui/EmptyState";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -352,8 +353,25 @@ export default function Providers() {
                 </tbody>
               </table>
               {sortedProviders.length === 0 && (
-                <div className="text-center py-12 text-slate-500">
-                  No providers found
+                <div className="p-4">
+                  <EmptyState
+                    title="No providers found"
+                    description={searchTerm ? "Try adjusting your search terms" : "Get started by adding your first provider"}
+                    action={
+                      !searchTerm && (
+                        <Button
+                          onClick={() => {
+                            setEditingProvider(null);
+                            setShowForm(true);
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700 mt-4"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add Provider
+                        </Button>
+                      )
+                    }
+                  />
                 </div>
               )}
             </div>

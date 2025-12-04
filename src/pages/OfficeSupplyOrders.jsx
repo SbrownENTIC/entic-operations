@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { format, parseISO } from "date-fns";
 import SupplyOrderForm from "../components/supplies/SupplyOrderForm";
+import EmptyState from "@/components/ui/EmptyState";
 
 export default function OfficeSupplyOrders() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -366,8 +367,25 @@ export default function OfficeSupplyOrders() {
                 </tbody>
               </table>
               {sortedOrders.length === 0 && (
-                <div className="text-center py-12 text-slate-500">
-                  No orders found
+                <div className="p-4">
+                  <EmptyState
+                    title="No orders found"
+                    description={searchTerm ? "Try adjusting your search terms" : "Create a new office supply order"}
+                    action={
+                      !searchTerm && (
+                        <Button
+                          onClick={() => {
+                            setEditingOrder(null);
+                            setShowForm(true);
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700 mt-4"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          New Order
+                        </Button>
+                      )
+                    }
+                  />
                 </div>
               )}
             </div>

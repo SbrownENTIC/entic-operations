@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Pencil, Trash2, Send, Clock, Mail, ArrowUpDown, ArrowUp, ArrowDown, RotateCcw, CheckCircle, AlertCircle, CloudUpload, RefreshCw } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import ReminderForm from "../components/reminders/ReminderForm";
+import EmptyState from "@/components/ui/EmptyState";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -523,8 +524,25 @@ The Operations Team`;
                 </tbody>
               </table>
               {sortedReminders.length === 0 && (
-                <div className="text-center py-12 text-slate-500">
-                  No reminders found
+                <div className="p-4">
+                  <EmptyState
+                    title="No reminders found"
+                    description={searchTerm ? "Try adjusting your search terms" : "Set up automated email reminders"}
+                    action={
+                      !searchTerm && (
+                        <Button
+                          onClick={() => {
+                            setEditingReminder(null);
+                            setShowForm(true);
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700 mt-4"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Create Reminder
+                        </Button>
+                      )
+                    }
+                  />
                 </div>
               )}
             </div>

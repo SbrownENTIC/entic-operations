@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, ChevronLeft, ChevronRight, RefreshCw, Calendar as CalendarIcon, Search, Pencil, Trash2, List, ArrowUpDown, ArrowUp, ArrowDown, Check, UserCheck, Download } from "lucide-react";
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, addMonths, subMonths, isSameDay, startOfWeek, endOfWeek, startOfDay, addDays, differenceInDays } from "date-fns";
 import OnCallForm from "../components/oncall/OnCallForm";
+import EmptyState from "@/components/ui/EmptyState";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -660,8 +661,25 @@ export default function OnCallSchedule() {
                   </tbody>
                 </table>
                 {sortedSchedules.length === 0 && (
-                  <div className="text-center py-12 text-slate-500">
-                    No schedules found
+                  <div className="p-4">
+                    <EmptyState
+                      title="No schedules found"
+                      description={searchTerm ? "Try adjusting your search terms" : "Add on-call shifts for your providers"}
+                      action={
+                        !searchTerm && (
+                          <Button
+                            onClick={() => {
+                              setEditingSchedule(null);
+                              setShowForm(true);
+                            }}
+                            className="bg-blue-600 hover:bg-blue-700 mt-4"
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Add Schedule
+                          </Button>
+                        )
+                      }
+                    />
                   </div>
                 )}
               </div>

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import CMEForm from "../components/cme/CMEForm";
+import EmptyState from "@/components/ui/EmptyState";
 
 export default function CMETracking() {
   const [showForm, setShowForm] = useState(false);
@@ -243,8 +244,25 @@ export default function CMETracking() {
                 </tbody>
               </table>
               {sortedCME.length === 0 && (
-                <div className="text-center py-12 text-slate-500">
-                  No CME records found
+                <div className="p-4">
+                  <EmptyState
+                    title="No CME records found"
+                    description={searchTerm ? "Try adjusting your search terms" : "Start tracking CME credits for your providers"}
+                    action={
+                      !searchTerm && (
+                        <Button
+                          onClick={() => {
+                            setEditingCME(null);
+                            setShowForm(true);
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700 mt-4"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add CME
+                        </Button>
+                      )
+                    }
+                  />
                 </div>
               )}
             </div>

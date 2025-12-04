@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { differenceInDays, format, parseISO } from "date-fns";
 import PrivilegeForm from "../components/privileges/PrivilegeForm";
+import EmptyState from "@/components/ui/EmptyState";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -288,8 +289,25 @@ export default function ClinicalPrivileges() {
                 </tbody>
               </table>
               {sortedPrivileges.length === 0 && (
-                <div className="text-center py-12 text-slate-500">
-                  No privileges found
+                <div className="p-4">
+                  <EmptyState
+                    title="No privileges found"
+                    description={searchTerm ? "Try adjusting your search terms" : "Track clinical privileges for your providers"}
+                    action={
+                      !searchTerm && (
+                        <Button
+                          onClick={() => {
+                            setEditingPrivilege(null);
+                            setShowForm(true);
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700 mt-4"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add Privilege
+                        </Button>
+                      )
+                    }
+                  />
                 </div>
               )}
             </div>

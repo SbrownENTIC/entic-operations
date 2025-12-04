@@ -11,6 +11,7 @@ import { format, parseISO } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import InvoiceForm from "../components/invoices/InvoiceForm";
+import EmptyState from "@/components/ui/EmptyState";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1018,8 +1019,26 @@ export default function Invoices() {
                   </tbody>
                 </table>
                 {sortedInvoices.length === 0 && (
-                  <div className="text-center py-12 text-slate-500">
-                    No invoices found
+                  <div className="p-4">
+                    <EmptyState
+                      title="No invoices found"
+                      description={searchTerm ? "Try adjusting your search or filters" : "Create your first invoice to get started"}
+                      action={
+                        !searchTerm && (
+                          <Button
+                            onClick={() => {
+                              setEditingInvoice(null);
+                              setPreselectedIncomes([]);
+                              setShowForm(true);
+                            }}
+                            className="bg-blue-600 hover:bg-blue-700 mt-4"
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Create Invoice
+                          </Button>
+                        )
+                      }
+                    />
                   </div>
                 )}
               </div>

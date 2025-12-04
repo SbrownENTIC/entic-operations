@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, AlertTriangle, Pencil, ArrowUpDown, ArrowUp, ArrowDown, CloudUpload, RefreshCw } from "lucide-react";
 import { differenceInDays, format, parseISO } from "date-fns";
 import LicenseForm from "../components/licenses/LicenseForm";
+import EmptyState from "@/components/ui/EmptyState";
 
 export default function Licenses() {
   const [showForm, setShowForm] = useState(false);
@@ -316,8 +317,25 @@ export default function Licenses() {
                 </tbody>
               </table>
               {sortedLicenses.length === 0 && (
-                <div className="text-center py-12 text-slate-500">
-                  No licenses found
+                <div className="p-4">
+                  <EmptyState
+                    title="No licenses found"
+                    description={searchTerm ? "Try adjusting your search terms" : "Add license details to track expirations"}
+                    action={
+                      !searchTerm && (
+                        <Button
+                          onClick={() => {
+                            setEditingLicense(null);
+                            setShowForm(true);
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700 mt-4"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add License
+                        </Button>
+                      )
+                    }
+                  />
                 </div>
               )}
             </div>
