@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Printer, AlertCircle, FileDown } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Printer, AlertCircle, FileDown, CloudUpload } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, parseISO } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -351,6 +351,38 @@ export default function Invoices() {
       if (Object.keys(updateData).length > 0) {
         bulkUpdateMutation.mutate({ ids: selectedInvoices, updateData });
       }
+    }
+  };
+
+  const handleSingleSyncToAirtable = async (invoice) => {
+    if (!window.confirm(`Sync invoice ${invoice.invoice_number} to Airtable?`)) return;
+    
+    if (!invoice.approved_invoice_url) {
+      alert('Cannot sync! This invoice does not have an APPROVED PDF. Please upload or generate one first.');
+      return;
+    }
+
+    setSyncingAirtable(true);
+    try {
+      await base44.functions.invoke('syncUConnInvoiceToAirtable', {
+        invoices: [{ id: invoice.id, pdf_url: invoice.approved_invoice_url }]
+      });
+
+      const timestamp = new Date().toISOString();
+      await base44.entities.Invoice.update(invoice.id, {
+        status: 'sent_to_vendor',
+        invoice_sent_to_vendor: true,
+        sent_to_vendor_at: timestamp,
+        manual_status_override: true
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      alert('Successfully synced invoice to Airtable!');
+    } catch (error) {
+      console.error("Sync error", error);
+      alert('Error syncing: ' + error.message);
+    } finally {
+      setSyncingAirtable(false);
     }
   };
 
@@ -894,6 +926,18 @@ export default function Invoices() {
                         </td>
                         <td className="px-3 py-2 text-right no-print">
                           <div className="flex gap-2 justify-end">
+                            {invoice.program_group === 'UConn' && (
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleSingleSyncToAirtable(invoice)}
+                                disabled={syncingAirtable}
+                                title="Sync to Airtable"
+                                className="text-indigo-600 hover:text-indigo-700"
+                              >
+                                <CloudUpload className="w-4 h-4" />
+                              </Button>
+                            )}
                             {invoice.draft_invoice_url && (
                               <Button 
                                 variant="ghost" 
