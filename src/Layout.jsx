@@ -83,6 +83,16 @@ const navigationItems = [
     url: createPageUrl("Reminders"),
     icon: Bell,
   },
+  {
+    title: "Licenses",
+    url: createPageUrl("Licenses"),
+    icon: ShieldCheck,
+  },
+  {
+    title: "Reports",
+    url: createPageUrl("Reports"),
+    icon: BarChart3,
+  },
 ];
 
 const moreMenuItems = [
@@ -90,11 +100,6 @@ const moreMenuItems = [
     title: "Clinical Privileges",
     url: createPageUrl("ClinicalPrivileges"),
     icon: Award,
-  },
-  {
-    title: "Licenses",
-    url: createPageUrl("Licenses"),
-    icon: ShieldCheck,
   },
   {
     title: "CME Tracking",
@@ -106,21 +111,16 @@ const moreMenuItems = [
     url: createPageUrl("OfficeSupplyCatalog"),
     icon: Boxes,
   },
-    {
+  {
     title: "Clinical Catalog",
     url: createPageUrl("ClinicalSupplyCatalog"),
     icon: FileText,
-    },
-    {
-      title: "Reports",
-      url: createPageUrl("Reports"),
-      icon: BarChart3,
-    },
-    {
-      title: "Documentation",
-      url: createPageUrl("Documentation"),
-      icon: HelpCircle,
-    },
+  },
+  {
+    title: "Documentation",
+    url: createPageUrl("Documentation"),
+    icon: HelpCircle,
+  },
 ];
 
 export default function Layout({ children, currentPageName }) {
