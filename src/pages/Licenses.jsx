@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, AlertTriangle, Pencil, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Search, AlertTriangle, Pencil, ArrowUpDown, ArrowUp, ArrowDown, CloudUpload, RefreshCw } from "lucide-react";
 import { differenceInDays, format, parseISO } from "date-fns";
 import LicenseForm from "../components/licenses/LicenseForm";
 
@@ -15,6 +15,8 @@ export default function Licenses() {
   const [editingLicense, setEditingLicense] = useState(null);
   const [sortField, setSortField] = useState('expiration_date');
   const [sortDirection, setSortDirection] = useState('asc');
+  const [airtableSyncing, setAirtableSyncing] = useState(false);
+  const [airtableMessage, setAirtableMessage] = useState('');
   const queryClient = useQueryClient();
 
   const urlParams = new URLSearchParams(window.location.search);
@@ -75,6 +77,20 @@ export default function Licenses() {
       updateMutation.mutate({ id: editingLicense.id, data });
     } else {
       createMutation.mutate(data);
+    }
+  };
+
+  const handleSyncToAirtable = async () => {
+    setAirtableSyncing(true);
+    setAirtableMessage('');
+    try {
+      const response = await base44.functions.invoke('syncLicensesToAirtable', {});
+      setAirtableMessage(response.data.message);
+    } catch (error) {
+      const errorMessage = error.response?.data?.error || error.message;
+      setAirtableMessage('Error syncing to Airtable: ' + errorMessage);
+    } finally {
+      setAirtableSyncing(false);
     }
   };
 
@@ -139,17 +155,36 @@ export default function Licenses() {
             <h1 className="text-2xl font-bold text-slate-900">License Management</h1>
             <p className="text-slate-600 text-sm">Track provider licenses and expiration dates</p>
           </div>
-          <Button
-            onClick={() => {
-              setEditingLicense(null);
-              setShowForm(true);
-            }}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add License
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              onClick={handleSyncToAirtable}
+              disabled={airtableSyncing}
+              variant="outline"
+              className="border-purple-300 text-purple-700 hover:bg-purple-50 gap-2"
+            >
+              {airtableSyncing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CloudUpload className="w-4 h-4" />}
+              Sync to Airtable
+            </Button>
+            <Button
+              onClick={() => {
+                setEditingLicense(null);
+                setShowForm(true);
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add License
+            </Button>
+          </div>
         </div>
+
+        {airtableMessage && (
+          <Card className="border-green-200 bg-green-50">
+            <CardContent className="p-4">
+              <p className="text-sm text-green-900">{airtableMessage}</p>
+            </CardContent>
+          </Card>
+        )}
 
         {showForm && (
           <LicenseForm

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Pencil, Trash2, Send, Clock, Mail, ArrowUpDown, ArrowUp, ArrowDown, RotateCcw, CheckCircle, AlertCircle } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Send, Clock, Mail, ArrowUpDown, ArrowUp, ArrowDown, RotateCcw, CheckCircle, AlertCircle, CloudUpload, RefreshCw } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import ReminderForm from "../components/reminders/ReminderForm";
 import {
@@ -28,6 +28,7 @@ export default function Reminders() {
   const [sortDirection, setSortDirection] = useState('asc');
   const [statusMessage, setStatusMessage] = useState(null);
   const [testingReminders, setTestingReminders] = useState(false);
+  const [airtableSyncing, setAirtableSyncing] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: reminders = [], isLoading } = useQuery({
@@ -184,6 +185,26 @@ The Operations Team`;
     }
   };
 
+  const handleSyncToAirtable = async () => {
+    setAirtableSyncing(true);
+    setStatusMessage(null); // Use statusMessage for airtable feedback too
+    try {
+      const response = await base44.functions.invoke('syncOfficeClosuresToAirtable', {});
+      setStatusMessage({
+        type: 'success',
+        message: response.data.message
+      });
+    } catch (error) {
+      const errorMessage = error.response?.data?.error || error.message;
+      setStatusMessage({
+        type: 'error',
+        message: 'Error syncing to Airtable: ' + errorMessage
+      });
+    } finally {
+      setAirtableSyncing(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="p-6 md:p-8 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
@@ -253,6 +274,15 @@ The Operations Team`;
             <p className="text-slate-600 text-sm">Manage automated email reminders, notifications, and office closures</p>
           </div>
           <div className="flex gap-2">
+            <Button
+              onClick={handleSyncToAirtable}
+              disabled={airtableSyncing}
+              variant="outline"
+              className="border-purple-300 text-purple-700 hover:bg-purple-50 gap-2"
+            >
+              {airtableSyncing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CloudUpload className="w-4 h-4" />}
+              Sync to Airtable
+            </Button>
             <Button
               onClick={async () => {
                 setTestingReminders(true);
