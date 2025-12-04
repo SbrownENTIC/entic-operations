@@ -4,7 +4,7 @@ import { AlertCircle, FileText, Award } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
-import { Clock, Send, UserCheck } from "lucide-react";
+import { Clock, Send, UserCheck, PackageOpen } from "lucide-react";
 
 export default function AlertsWidget({ 
   uconnPendingVendorInvoices, 
@@ -12,14 +12,16 @@ export default function AlertsWidget({
   sentToCOOInvoices,
   pendingProviderApprovalCount,
   pendingProviderTimeCount,
-  privilegesExpiring30Days 
+  privilegesExpiring30Days,
+  partiallyReceivedCount
 }) {
   const hasAlerts = uconnPendingVendorInvoices > 0 || 
                     sentForApprovalInvoices > 0 || 
                     sentToCOOInvoices > 0 ||
                     pendingProviderApprovalCount > 0 || 
                     pendingProviderTimeCount > 0 || 
-                    privilegesExpiring30Days.length > 0;
+                    privilegesExpiring30Days.length > 0 ||
+                    partiallyReceivedCount > 0;
 
   if (!hasAlerts) return null;
 
@@ -114,6 +116,21 @@ export default function AlertsWidget({
               <div className="text-4xl font-bold text-purple-700 mb-1">{privilegesExpiring30Days.length}</div>
               <Link to={`${createPageUrl("ClinicalPrivileges")}?filter=expiring_30`} className="text-xs text-purple-700 hover:text-purple-900 font-semibold hover:underline">
                 View privileges →
+              </Link>
+            </CardContent>
+          </Card>
+        )}
+
+        {partiallyReceivedCount > 0 && (
+          <Card className="border-3 border-orange-500 bg-gradient-to-br from-orange-100 to-orange-50 shadow-xl shadow-orange-200/50 hover:scale-105 transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-orange-300">
+              <CardTitle className="text-sm font-bold text-slate-900">Partially Received Orders</CardTitle>
+              <PackageOpen className="w-5 h-5 text-orange-700 animate-pulse" />
+            </CardHeader>
+            <CardContent className="pt-3">
+              <div className="text-4xl font-bold text-orange-700 mb-1">{partiallyReceivedCount}</div>
+              <Link to={`${createPageUrl("OfficeSupplyOrders")}?status=partially_received`} className="text-xs text-orange-700 hover:text-orange-900 font-semibold hover:underline">
+                View orders →
               </Link>
             </CardContent>
           </Card>

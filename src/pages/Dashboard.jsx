@@ -176,6 +176,19 @@ export default function Dashboard() {
     staleTime: 30000
   });
 
+  const { data: partiallyReceivedOrders = [] } = useQuery({
+    queryKey: ['partially-received-orders'],
+    queryFn: async () => {
+      try {
+        return await base44.entities.SupplyOrder.filter({ status: 'partially_received' });
+      } catch (error) {
+        return handleQueryError(error);
+      }
+    },
+    retry: false,
+    staleTime: 30000
+  });
+
   const { data: outsideIncomes = [] } = useQuery({
     queryKey: ['outside-income'],
     queryFn: async () => {
@@ -732,6 +745,7 @@ export default function Dashboard() {
             pendingProviderApprovalCount={pendingProviderApprovalCount}
             pendingProviderTimeCount={pendingProviderTimeCount}
             privilegesExpiring30Days={privilegesExpiring30Days}
+            partiallyReceivedCount={partiallyReceivedOrders.length}
           />
         );
       case 'summary_cards':
