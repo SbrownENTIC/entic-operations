@@ -51,6 +51,11 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
     queryFn: () => base44.entities.OnCallSchedule.list()
   });
 
+  const { data: externalContacts = [] } = useQuery({
+    queryKey: ['external-contacts'],
+    queryFn: () => base44.entities.ExternalContact.list()
+  });
+
   // Reset manual edit flags when dates change to allow re-calculation
   const prevDatesRef = React.useRef({ closure_date: '', reopen_date: '' });
   useEffect(() => {
@@ -285,6 +290,16 @@ The Operations Team
       setFormData({
         ...formData,
         recipients: [...formData.recipients, provider.email]
+      });
+    }
+  };
+
+  const addExternalContactEmail = (contactId) => {
+    const contact = externalContacts.find(c => c.id === contactId);
+    if (contact && contact.email && !formData.recipients.includes(contact.email)) {
+      setFormData({
+        ...formData,
+        recipients: [...formData.recipients, contact.email]
       });
     }
   };
@@ -677,6 +692,22 @@ The Operations Team
                     {providers.map(provider => (
                       <SelectItem key={provider.id} value={provider.id}>
                         {provider.full_name} ({provider.email})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-xs text-slate-600">Add External Contact</Label>
+                <Select onValueChange={addExternalContactEmail}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select an external contact to add..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {externalContacts.map(contact => (
+                      <SelectItem key={contact.id} value={contact.id}>
+                        {contact.name} ({contact.email})
                       </SelectItem>
                     ))}
                   </SelectContent>
