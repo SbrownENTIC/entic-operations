@@ -225,7 +225,7 @@ export default function Layout({ children, currentPageName }) {
             </div>
 
             {/* Desktop Navigation */}
-            <div className="hidden lg:flex items-center gap-2 flex-1 justify-center px-2 pb-1">
+            <div className="hidden lg:flex items-center gap-1 flex-1 justify-center px-2 pb-1">
               <Link 
                 to={createPageUrl("OfficeSupplyOrders") + "?filter=pending"}
                 className="relative p-2 hover:bg-blue-50 rounded-lg transition-all border border-transparent hover:border-blue-200"
@@ -241,7 +241,7 @@ export default function Layout({ children, currentPageName }) {
                 <Link
                   key={item.title}
                   to={item.url}
-                  className={`flex items-center gap-1 px-1 py-1 rounded-lg text-[10px] font-medium transition-all duration-200 border h-16 w-24 justify-center text-center leading-3 whitespace-normal ${
+                  className={`flex items-center gap-1 px-1 py-1 rounded-lg text-[11px] font-medium transition-all duration-200 border h-14 w-[105px] justify-center text-center leading-tight whitespace-normal ${
                     location.pathname === item.url
                       ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md border-blue-600'
                       : 'bg-white text-slate-700 hover:bg-blue-50 border-slate-200 hover:border-blue-300 shadow-sm hover:shadow'
