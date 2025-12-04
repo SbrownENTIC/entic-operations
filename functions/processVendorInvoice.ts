@@ -1,0 +1,73 @@
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+
+Deno.serve(async (req) => {
+    try {
+        const base44 = createClientFromRequest(req);
+        const { file_url } = await req.json();
+
+        if (!file_url) {
+            return Response.json({ error: 'file_url is required' }, { status: 400 });
+        }
+
+        const user = await base44.auth.me();
+        if (!user) {
+            return Response.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        // 1. Define schema for extraction
+        const extractionSchema = {
+            type: "object",
+            properties: {
+                vendor_name: { type: "string" },
+                invoice_number: { type: "string" },
+                invoice_date: { type: "string", format: "date", description: "YYYY-MM-DD format" },
+                due_date: { type: "string", format: "date", description: "YYYY-MM-DD format" },
+                total_amount: { type: "number" },
+                line_items: {
+                    type: "array",
+                    items: {
+                        type: "object",
+                        properties: {
+                            item_code: { type: "string" },
+                            description: { type: "string" },
+                            quantity: { type: "number" },
+                            unit_price: { type: "number" },
+                            total_price: { type: "number" }
+                        }
+                    }
+                }
+            },
+            required: ["vendor_name", "total_amount"]
+        };
+
+        // 2. Extract data using AI
+        const extractionResult = await base44.integrations.Core.ExtractDataFromUploadedFile({
+            file_url: file_url,
+            json_schema: extractionSchema
+        });
+
+        if (extractionResult.status === 'error') {
+            throw new Error(extractionResult.details || 'Failed to extract data');
+        }
+
+        const data = extractionResult.output;
+
+        // 3. Create the VendorInvoice record
+        const invoice = await base44.entities.VendorInvoice.create({
+            vendor_name: data.vendor_name || "Unknown Vendor",
+            invoice_number: data.invoice_number,
+            invoice_date: data.invoice_date,
+            due_date: data.due_date,
+            total_amount: data.total_amount || 0,
+            status: 'pending_review',
+            document_url: file_url,
+            extracted_data: data // Store full extraction including line items
+        });
+
+        return Response.json({ success: true, invoice });
+
+    } catch (error) {
+        console.error('Error processing invoice:', error);
+        return Response.json({ error: error.message }, { status: 500 });
+    }
+});

@@ -25,16 +25,8 @@ export default function VendorInvoiceUpload({ onClose, onUploadComplete }) {
       // 1. Upload file
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
 
-      // 2. Create initial entity record
-      // Note: In a real implementation, we would trigger the backend extraction function here
-      // For now, we just create a placeholder record
-      await base44.entities.VendorInvoice.create({
-        vendor_name: "Processing...",
-        status: "pending_review",
-        document_url: file_url,
-        total_amount: 0,
-        invoice_date: new Date().toISOString().split('T')[0]
-      });
+      // 2. Process with AI extraction
+      await base44.functions.invoke('processVendorInvoice', { file_url });
 
       onUploadComplete();
     } catch (error) {
