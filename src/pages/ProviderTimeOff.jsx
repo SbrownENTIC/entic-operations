@@ -327,9 +327,10 @@ export default function ProviderTimeOff() {
             <Button
               variant="outline"
               onClick={handleFixSethBrownDates}
+              disabled={timeOffLoading}
               className="gap-2 text-orange-600 border-orange-200 hover:bg-orange-50"
             >
-              Fix Seth Brown Dates
+              {timeOffLoading ? 'Updating...' : 'Fix Seth Brown Dates'}
             </Button>
             <Button
               variant="outline"
