@@ -128,21 +128,9 @@ Deno.serve(async (req) => {
       
       // Validate Re-Open Date
       if (reminder.reopen_date) {
-        if (closureDate && reminder.reopen_date <= closureDate) {
-          errors.push({ table: 'Office Closures', name: closureName, error: 'Date Re-Open must be after Date Closed' });
-          continue;
-        }
+        // We allow syncing even if re-open date seems invalid (e.g. same or before closure date) 
+        // to ensure Airtable receives the data exactly as it is in the app.
         fields['Date Re-Open'] = reminder.reopen_date;
-
-        // Multi-Day Detection logic
-        // If Re-Open is more than 1 day after Closure (meaning at least one full day in between, or Re-Open is simply > Closure + 1 day)
-        // Actually, if Re-Open is NOT the same day (which is impossible for closure)
-        // User requirement: "When Date Re-Open ≠ Date Closed, it should be marked as multi-day"
-        // But Re-Open is usually the day AFTER closure. 
-        // Let's assume Multi-Day means the closure spans more than 1 day.
-        // i.e. Re-Open Date > Closure Date + 1 day
-        // Multi-Day Detection logic (Calculated for internal logic if needed, but field is likely computed in Airtable)
-        // We do not sync 'Is Multi-Day?' to Airtable as it is a computed field.
       }
 
       // 'Email Subject (Smart)' is a computed field in Airtable, so we cannot sync to it.
