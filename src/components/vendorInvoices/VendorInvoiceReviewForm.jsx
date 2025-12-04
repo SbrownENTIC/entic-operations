@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Loader2, Save, Trash2, Plus, Check, AlertCircle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
-export default function VendorInvoiceReviewForm({ invoice, onSave, onApprove, onReject, isSaving }) {
+export default function VendorInvoiceReviewForm({ invoice, supplies = [], onSave, onApprove, onReject, isSaving }) {
   const [formData, setFormData] = useState({
     vendor_name: "",
     invoice_number: "",
@@ -23,6 +23,9 @@ export default function VendorInvoiceReviewForm({ invoice, onSave, onApprove, on
 
   useEffect(() => {
     if (invoice) {
+      // Check for catalog matches when invoice loads
+      const lineItems = invoice.extracted_data?.line_items || [];
+      
       setFormData({
         vendor_name: invoice.vendor_name || "",
         invoice_number: invoice.invoice_number || "",
@@ -34,6 +37,13 @@ export default function VendorInvoiceReviewForm({ invoice, onSave, onApprove, on
       });
     }
   }, [invoice]);
+
+  // Helper to check catalog status
+  const checkCatalogStatus = (itemCode) => {
+    if (!itemCode) return { found: false, supply: null };
+    const supply = supplies.find(s => s.item_number === itemCode);
+    return { found: !!supply, supply };
+  };
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -150,56 +160,82 @@ export default function VendorInvoiceReviewForm({ invoice, onSave, onApprove, on
         </div>
 
         <div className="space-y-3">
-          {(formData.extracted_data?.line_items || []).map((item, index) => (
-            <Card key={index} className="p-3 bg-slate-50">
-              <div className="grid grid-cols-12 gap-2 items-start">
-                <div className="col-span-5 space-y-1">
-                  <Label className="text-xs">Description</Label>
-                  <Input 
-                    className="h-8 text-sm"
-                    value={item.description} 
-                    onChange={(e) => handleLineItemChange(index, 'description', e.target.value)} 
-                  />
-                  <Input 
-                    className="h-8 text-xs text-slate-500" 
-                    placeholder="Item Code"
-                    value={item.item_code || ""} 
-                    onChange={(e) => handleLineItemChange(index, 'item_code', e.target.value)} 
-                  />
-                </div>
-                <div className="col-span-2 space-y-1">
-                  <Label className="text-xs">Qty</Label>
-                  <Input 
-                    type="number"
-                    className="h-8 text-sm"
-                    value={item.quantity} 
-                    onChange={(e) => handleLineItemChange(index, 'quantity', parseFloat(e.target.value))} 
-                  />
-                </div>
-                <div className="col-span-2 space-y-1">
-                  <Label className="text-xs">Price</Label>
-                  <Input 
-                    type="number"
-                    step="0.01"
-                    className="h-8 text-sm"
-                    value={item.unit_price} 
-                    onChange={(e) => handleLineItemChange(index, 'unit_price', parseFloat(e.target.value))} 
-                  />
-                </div>
-                <div className="col-span-2 space-y-1">
-                  <Label className="text-xs">Total</Label>
-                  <div className="h-8 flex items-center text-sm font-medium px-2">
-                    ${(item.quantity * item.unit_price).toFixed(2)}
+          {(formData.extracted_data?.line_items || []).map((item, index) => {
+            const { found, supply } = checkCatalogStatus(item.item_code);
+            
+            return (
+              <Card key={index} className={`p-3 ${found ? 'bg-slate-50' : 'bg-amber-50 border-amber-200'}`}>
+                <div className="grid grid-cols-12 gap-2 items-start">
+                  <div className="col-span-5 space-y-1">
+                    <Label className="text-xs flex items-center gap-2">
+                      Description
+                      {!found && item.item_code && (
+                        <Badge variant="outline" className="text-[10px] h-4 px-1 bg-amber-100 text-amber-800 border-amber-200 flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          Not in Catalog
+                        </Badge>
+                      )}
+                      {found && (
+                        <Badge variant="outline" className="text-[10px] h-4 px-1 bg-green-100 text-green-800 border-green-200 flex items-center gap-1">
+                          <Check className="w-3 h-3" />
+                          Matched: {supply.product_name}
+                        </Badge>
+                      )}
+                    </Label>
+                    <Input 
+                      className="h-8 text-sm"
+                      value={item.description} 
+                      onChange={(e) => handleLineItemChange(index, 'description', e.target.value)} 
+                    />
+                    <div className="flex gap-2">
+                      <Input 
+                        className="h-8 text-xs text-slate-500" 
+                        placeholder="Item Code"
+                        value={item.item_code || ""} 
+                        onChange={(e) => handleLineItemChange(index, 'item_code', e.target.value)} 
+                      />
+                    </div>
+                    {/* Auto-generated ordering note for missing items */}
+                    {!found && item.item_code && (
+                       <div className="text-xs text-amber-700 italic mt-1">
+                         Note: Item {item.item_code} needs to be ordered ({item.quantity} units)
+                       </div>
+                    )}
+                  </div>
+                  <div className="col-span-2 space-y-1">
+                    <Label className="text-xs">Qty</Label>
+                    <Input 
+                      type="number"
+                      className="h-8 text-sm"
+                      value={item.quantity} 
+                      onChange={(e) => handleLineItemChange(index, 'quantity', parseFloat(e.target.value))} 
+                    />
+                  </div>
+                  <div className="col-span-2 space-y-1">
+                    <Label className="text-xs">Price</Label>
+                    <Input 
+                      type="number"
+                      step="0.01"
+                      className="h-8 text-sm"
+                      value={item.unit_price} 
+                      onChange={(e) => handleLineItemChange(index, 'unit_price', parseFloat(e.target.value))} 
+                    />
+                  </div>
+                  <div className="col-span-2 space-y-1">
+                    <Label className="text-xs">Total</Label>
+                    <div className="h-8 flex items-center text-sm font-medium px-2">
+                      ${(item.quantity * item.unit_price).toFixed(2)}
+                    </div>
+                  </div>
+                  <div className="col-span-1 flex justify-end pt-5">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700" onClick={() => removeLineItem(index)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
-                <div className="col-span-1 flex justify-end pt-5">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700" onClick={() => removeLineItem(index)}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </div>
       </div>
 

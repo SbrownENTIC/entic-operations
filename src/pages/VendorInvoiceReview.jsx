@@ -26,6 +26,12 @@ export default function VendorInvoiceReview() {
     enabled: !!id
   });
 
+  // Fetch supplies for catalog matching
+  const { data: supplies = [] } = useQuery({
+    queryKey: ['supplies-catalog'],
+    queryFn: () => base44.entities.Supply.list(null, 1000)
+  });
+
   const updateMutation = useMutation({
     mutationFn: (data) => base44.entities.VendorInvoice.update(id, data),
     onSuccess: () => {
@@ -104,6 +110,7 @@ export default function VendorInvoiceReview() {
             <div className="p-6 max-w-2xl mx-auto">
                 <VendorInvoiceReviewForm 
                     invoice={invoice} 
+                    supplies={supplies}
                     onSave={handleSave}
                     onApprove={handleApprove}
                     onReject={handleReject}
