@@ -4,12 +4,24 @@ import { AlertCircle, FileText, Award } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
+import { Clock, Send, UserCheck } from "lucide-react";
+
 export default function AlertsWidget({ 
   uconnPendingVendorInvoices, 
   sentForApprovalInvoices, 
+  pendingProviderApprovalCount,
+  pendingProviderTimeCount,
+  sentToVendorCount,
   privilegesExpiring30Days 
 }) {
-  if (!(uconnPendingVendorInvoices > 0 || sentForApprovalInvoices > 0 || privilegesExpiring30Days.length > 0)) return null;
+  const hasAlerts = uconnPendingVendorInvoices > 0 || 
+                    sentForApprovalInvoices > 0 || 
+                    pendingProviderApprovalCount > 0 || 
+                    pendingProviderTimeCount > 0 || 
+                    sentToVendorCount > 0 ||
+                    privilegesExpiring30Days.length > 0;
+
+  if (!hasAlerts) return null;
 
   return (
     <div>
@@ -39,6 +51,51 @@ export default function AlertsWidget({
             <CardContent className="pt-3">
               <div className="text-4xl font-bold text-yellow-700 mb-1">{sentForApprovalInvoices}</div>
               <Link to={`${createPageUrl("Invoices")}?status=sent_for_approval`} className="text-xs text-yellow-700 hover:text-yellow-900 font-semibold hover:underline">
+                View invoices →
+              </Link>
+            </CardContent>
+          </Card>
+        )}
+
+        {pendingProviderApprovalCount > 0 && (
+          <Card className={`bg-gradient-to-br from-amber-100 to-amber-50 transition-all duration-300 ${pendingProviderApprovalCount > 0 ? 'border-[5px] border-amber-600 animate-yellow-glow' : 'border-3 border-amber-300 shadow-xl shadow-amber-200/50 hover:scale-105'}`}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-amber-300">
+              <CardTitle className="text-sm font-bold text-slate-900">Pending Provider Approval</CardTitle>
+              <UserCheck className="w-5 h-5 text-amber-700 animate-slow-pulse" />
+            </CardHeader>
+            <CardContent className="pt-3">
+              <div className="text-4xl font-bold text-amber-700 mb-1">{pendingProviderApprovalCount}</div>
+              <Link to={`${createPageUrl("Invoices")}?status=pending_providers_approval`} className="text-xs text-amber-700 hover:text-amber-900 font-semibold hover:underline">
+                View invoices →
+              </Link>
+            </CardContent>
+          </Card>
+        )}
+
+        {pendingProviderTimeCount > 0 && (
+          <Card className={`bg-gradient-to-br from-indigo-100 to-indigo-50 transition-all duration-300 ${pendingProviderTimeCount > 0 ? 'border-[5px] border-indigo-600 animate-alert-glow' : 'border-3 border-indigo-300 shadow-xl shadow-indigo-200/50 hover:scale-105'}`}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-indigo-300">
+              <CardTitle className="text-sm font-bold text-slate-900">Pending Provider Time</CardTitle>
+              <Clock className="w-5 h-5 text-indigo-700 animate-slow-pulse" />
+            </CardHeader>
+            <CardContent className="pt-3">
+              <div className="text-4xl font-bold text-indigo-700 mb-1">{pendingProviderTimeCount}</div>
+              <Link to={`${createPageUrl("Invoices")}?status=pending_providers_time`} className="text-xs text-indigo-700 hover:text-indigo-900 font-semibold hover:underline">
+                View invoices →
+              </Link>
+            </CardContent>
+          </Card>
+        )}
+
+        {sentToVendorCount > 0 && (
+          <Card className={`bg-gradient-to-br from-cyan-100 to-cyan-50 transition-all duration-300 ${sentToVendorCount > 0 ? 'border-[5px] border-cyan-600 animate-alert-glow' : 'border-3 border-cyan-300 shadow-xl shadow-cyan-200/50 hover:scale-105'}`}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-cyan-300">
+              <CardTitle className="text-sm font-bold text-slate-900">Sent to Vendor</CardTitle>
+              <Send className="w-5 h-5 text-cyan-700 animate-slow-pulse" />
+            </CardHeader>
+            <CardContent className="pt-3">
+              <div className="text-4xl font-bold text-cyan-700 mb-1">{sentToVendorCount}</div>
+              <Link to={`${createPageUrl("Invoices")}?status=sent_to_vendor`} className="text-xs text-cyan-700 hover:text-cyan-900 font-semibold hover:underline">
                 View invoices →
               </Link>
             </CardContent>

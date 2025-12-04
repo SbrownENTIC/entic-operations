@@ -422,6 +422,18 @@ export default function Dashboard() {
     inv.status === 'sent_for_approval'
   ).length;
 
+  const pendingProviderApprovalCount = invoices.filter(inv => 
+    inv.status === 'pending_providers_approval'
+  ).length;
+
+  const pendingProviderTimeCount = invoices.filter(inv => 
+    inv.status === 'pending_providers_time'
+  ).length;
+
+  const sentToVendorCount = invoices.filter(inv => 
+    inv.status === 'sent_to_vendor'
+  ).length;
+
   const draftInvoices = invoices.filter(inv => 
     inv.status === 'draft'
   ).length;
@@ -716,6 +728,9 @@ export default function Dashboard() {
           <AlertsWidget
             uconnPendingVendorInvoices={uconnPendingVendorInvoices}
             sentForApprovalInvoices={sentForApprovalInvoices}
+            pendingProviderApprovalCount={pendingProviderApprovalCount}
+            pendingProviderTimeCount={pendingProviderTimeCount}
+            sentToVendorCount={sentToVendorCount}
             privilegesExpiring30Days={privilegesExpiring30Days}
           />
         );
