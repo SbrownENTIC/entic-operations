@@ -213,7 +213,10 @@ export default function ProviderTimeOff() {
       queryClient.invalidateQueries({ queryKey: ['provider-timeoff'] });
     } catch (error) {
       console.error('Error updating dates:', error);
-      alert('Failed to update dates: ' + error.message);
+      const errorMessage = error.response?.status === 404 
+        ? "Function not ready yet. Please wait a moment and try again." 
+        : error.message;
+      alert('Failed to update dates: ' + errorMessage);
     }
   };
 
