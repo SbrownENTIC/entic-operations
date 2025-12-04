@@ -8,7 +8,8 @@ export default function SummaryCardsWidget({
   supplyOrders, 
   draftInvoices, 
   licensesExpiring14Days,
-  pendingVendorInvoices = []
+  pendingVendorInvoices = [],
+  rejectedVendorInvoices = []
 }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -23,6 +24,22 @@ export default function SummaryCardsWidget({
             <div className="text-4xl font-bold text-orange-700 mb-1">{pendingVendorInvoices.length}</div>
             <Link to={createPageUrl("VendorInvoices")} className="text-xs text-orange-700 hover:text-orange-900 font-semibold hover:underline">
               Review invoices →
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+
+      {rejectedVendorInvoices.length > 0 && (
+        <Card className={`bg-gradient-to-br from-rose-100 to-rose-50 transition-all duration-300 ${rejectedVendorInvoices.length > 0 ? 'border-[5px] border-rose-600 animate-alert-glow' : 'border-3 border-rose-300 shadow-xl shadow-rose-300/60 hover:scale-105'}`}>
+          <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-rose-400">
+            <AlertCircle className="w-6 h-6 text-rose-700 animate-slow-pulse" />
+            <CardTitle className="text-sm font-bold text-slate-900">Rejected Invoices</CardTitle>
+            <AlertCircle className="w-6 h-6 text-rose-700 animate-slow-pulse" />
+          </CardHeader>
+          <CardContent className="pt-3">
+            <div className="text-4xl font-bold text-rose-700 mb-1">{rejectedVendorInvoices.length}</div>
+            <Link to={createPageUrl("VendorInvoices") + "?status=rejected"} className="text-xs text-rose-700 hover:text-rose-900 font-semibold hover:underline">
+              View rejected →
             </Link>
           </CardContent>
         </Card>
