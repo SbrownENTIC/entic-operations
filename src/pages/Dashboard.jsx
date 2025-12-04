@@ -1080,19 +1080,21 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Link to={createPageUrl("Payments") + "?showUnallocated=true"} className="block">
-              <Card className="border-slate-200 shadow-sm bg-gradient-to-br from-purple-50 to-white cursor-pointer hover:shadow-lg transition-shadow h-full">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-600">Unallocated Payments</CardTitle>
-                  <Wallet className="w-5 h-5 text-purple-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-purple-700">{formatCurrency(unallocatedPayments)}</div>
-                  <p className="text-xs text-slate-500 mt-1">Payments pending allocation</p>
-                  <p className="text-xs text-blue-600 mt-2 hover:underline">Click to allocate →</p>
-                </CardContent>
-              </Card>
-            </Link>
+            {unallocatedPayments > 0 && (
+              <Link to={createPageUrl("Payments") + "?showUnallocated=true"} className="block">
+                <Card className="border-slate-200 shadow-sm bg-gradient-to-br from-purple-50 to-white cursor-pointer hover:shadow-lg transition-shadow h-full">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium text-slate-600">Unallocated Payments</CardTitle>
+                    <Wallet className="w-5 h-5 text-purple-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-purple-700">{formatCurrency(unallocatedPayments)}</div>
+                    <p className="text-xs text-slate-500 mt-1">Payments pending allocation</p>
+                    <p className="text-xs text-blue-600 mt-2 hover:underline">Click to allocate →</p>
+                  </CardContent>
+                </Card>
+              </Link>
+            )}
           </div>
         </div>
 
