@@ -780,56 +780,54 @@ export default function Invoices() {
                 </Button>
               </div>
               {selectedInvoices.length > 0 && (
-                <div className="flex flex-col gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-slate-900">
+                <div className="flex flex-col xl:flex-row items-center justify-between gap-3 p-2 bg-blue-50 rounded-lg border border-blue-200 shadow-sm">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="font-semibold text-slate-900 text-sm whitespace-nowrap">
                       {selectedInvoices.length} selected
                     </span>
                     <Button 
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
                       onClick={() => setSelectedInvoices([])}
+                      className="h-8 text-xs text-slate-600 hover:text-slate-900 hover:bg-blue-100"
                     >
-                      Clear Selection
+                      Clear
                     </Button>
                   </div>
                   
-                  <div className="flex flex-wrap items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-slate-700">Status:</span>
-                      <Select 
-                        value={bulkStatusUpdate} 
-                        onValueChange={setBulkStatusUpdate}
-                      >
-                        <SelectTrigger className="w-52 bg-white">
-                          <SelectValue placeholder="Update Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="not_started">Not Started</SelectItem>
-                          <SelectItem value="draft">Draft</SelectItem>
-                          <SelectItem value="pending_providers_approval">Pending Providers Approval</SelectItem>
-                          <SelectItem value="pending_providers_time">Pending Providers Time</SelectItem>
-                          <SelectItem value="sent_to_coo_for_approval">Sent to COO for Approval</SelectItem>
-                          <SelectItem value="sent_for_approval">Sent for Approval</SelectItem>
-                          <SelectItem value="approved">Approved</SelectItem>
-                          <SelectItem value="sent_to_vendor">Sent to Vendor</SelectItem>
-                          <SelectItem value="paid_to_entic">Paid to ENTIC</SelectItem>
-                          <SelectItem value="provider_paid">Provider Paid</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  <div className="flex flex-wrap items-center justify-end gap-3 w-full">
+                    <Select 
+                      value={bulkStatusUpdate} 
+                      onValueChange={setBulkStatusUpdate}
+                    >
+                      <SelectTrigger className="w-[180px] h-9 text-sm bg-white">
+                        <SelectValue placeholder="Update Status..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="not_started">Not Started</SelectItem>
+                        <SelectItem value="draft">Draft</SelectItem>
+                        <SelectItem value="pending_providers_approval">Pending Providers Approval</SelectItem>
+                        <SelectItem value="pending_providers_time">Pending Providers Time</SelectItem>
+                        <SelectItem value="sent_to_coo_for_approval">Sent to COO for Approval</SelectItem>
+                        <SelectItem value="sent_for_approval">Sent for Approval</SelectItem>
+                        <SelectItem value="approved">Approved</SelectItem>
+                        <SelectItem value="sent_to_vendor">Sent to Vendor</SelectItem>
+                        <SelectItem value="paid_to_entic">Paid to ENTIC</SelectItem>
+                        <SelectItem value="provider_paid">Provider Paid</SelectItem>
+                      </SelectContent>
+                    </Select>
 
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-slate-700">Date Provider Paid:</span>
+                    <div className="flex items-center gap-2 bg-white rounded-md border border-slate-200 px-2 py-0.5 h-9">
+                      <span className="text-xs text-slate-500 whitespace-nowrap">Paid:</span>
                       <Input
                         type="date"
                         value={bulkDateProviderPaid}
                         onChange={(e) => setBulkDateProviderPaid(e.target.value)}
-                        className="w-48"
+                        className="w-auto border-0 p-0 h-8 text-sm focus-visible:ring-0"
                       />
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 bg-white rounded-md border border-slate-200 px-2 h-9">
                       <input
                         type="checkbox"
                         id="bulk-provider-paid"
@@ -837,17 +835,18 @@ export default function Invoices() {
                         onChange={(e) => setBulkProviderPaid(e.target.checked)}
                         className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                       />
-                      <label htmlFor="bulk-provider-paid" className="text-sm text-slate-700 cursor-pointer">
-                        Mark as Provider Paid
+                      <label htmlFor="bulk-provider-paid" className="text-sm text-slate-700 cursor-pointer whitespace-nowrap">
+                        Mark Paid
                       </label>
                     </div>
 
                     <Button 
                       onClick={handleBulkUpdate}
+                      size="sm"
                       disabled={(!bulkDateProviderPaid && !bulkProviderPaid && !bulkStatusUpdate) || bulkUpdateMutation.isPending}
-                      className="bg-blue-600 hover:bg-blue-700"
+                      className="bg-blue-600 hover:bg-blue-700 h-9 whitespace-nowrap"
                     >
-                      {bulkUpdateMutation.isPending ? 'Updating...' : 'Update Selected'}
+                      {bulkUpdateMutation.isPending ? '...' : 'Update'}
                     </Button>
 
                   </div>
