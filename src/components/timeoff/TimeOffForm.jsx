@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X } from "lucide-react";
+import { DatePicker } from "@/components/ui/date-picker";
 
 export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = useState({
@@ -96,23 +97,17 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
 
             <div className="space-y-2">
               <Label htmlFor="start_date">Start Date *</Label>
-              <Input
-                id="start_date"
-                type="date"
+              <DatePicker
                 value={formData.start_date}
-                onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                required
+                onChange={(date) => setFormData({ ...formData, start_date: date })}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="end_date">End Date *</Label>
-              <Input
-                id="end_date"
-                type="date"
+              <DatePicker
                 value={formData.end_date}
-                onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                required
+                onChange={(date) => setFormData({ ...formData, end_date: date })}
               />
             </div>
 

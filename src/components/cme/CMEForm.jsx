@@ -81,12 +81,9 @@ export default function CMEForm({ cme, providers, onSubmit, onCancel, isLoading 
 
             <div className="space-y-2">
               <Label htmlFor="completion_date">Completion Date *</Label>
-              <Input
-                id="completion_date"
-                type="date"
+              <DatePicker
                 value={formData.completion_date}
-                onChange={(e) => setFormData({ ...formData, completion_date: e.target.value })}
-                required
+                onChange={(date) => setFormData({ ...formData, completion_date: date })}
               />
             </div>
 

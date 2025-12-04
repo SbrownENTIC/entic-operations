@@ -117,23 +117,17 @@ export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel
 
             <div className="space-y-2">
               <Label htmlFor="granted_date">Granted Date *</Label>
-              <Input
-                id="granted_date"
-                type="date"
+              <DatePicker
                 value={formData.granted_date}
-                onChange={(e) => setFormData({ ...formData, granted_date: e.target.value })}
-                required
+                onChange={(date) => setFormData({ ...formData, granted_date: date })}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="expiration_date">Expiration Date *</Label>
-              <Input
-                id="expiration_date"
-                type="date"
+              <DatePicker
                 value={formData.expiration_date}
-                onChange={(e) => setFormData({ ...formData, expiration_date: e.target.value })}
-                required
+                onChange={(date) => setFormData({ ...formData, expiration_date: date })}
               />
             </div>
 
