@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Printer, AlertCircle, FileDown, CloudUpload } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, parseISO } from "date-fns";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import InvoiceForm from "../components/invoices/InvoiceForm";
 import EmptyState from "@/components/ui/EmptyState";
@@ -44,6 +44,7 @@ export default function Invoices() {
   const [syncingAirtable, setSyncingAirtable] = useState(false);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const { data: invoices = [], isLoading: invoicesLoading } = useQuery({
     queryKey: ['invoices'],
@@ -92,8 +93,24 @@ export default function Invoices() {
         setShowForm(true);
         window.history.replaceState({}, '', createPageUrl("Invoices"));
       }
+    } else if (!create && !editId) {
+      // If no query params and form is open, close it (handled by navigation from Layout)
+      // Only do this if we initiated a clear action or navigation
+      // But we need to distinguish between "just loaded page" and "navigated back to root".
+      // The Layout navigation will push to /Invoices.
+      // If we are here and showForm is true, we should probably close it?
+      // Actually, if we just navigate to /Invoices, showForm should be false.
+      
+      // However, managing this via useEffect on location might be tricky if state isn't synced.
+      // Let's trust that if the user clicks "Invoices" link in Layout, it navigates to /Invoices.
+      // And we need to react to that.
+      if (location.search === '' && showForm) {
+         setShowForm(false);
+         setEditingInvoice(null);
+         setPreselectedIncomes([]);
+      }
     }
-  }, [invoices]);
+  }, [invoices, location.search]);
 
   // Scroll to top when form is opened
   useEffect(() => {

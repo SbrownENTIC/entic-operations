@@ -370,7 +370,10 @@ function LayoutContent({ children, currentPageName }) {
                   <Link
                     key={item.title}
                     to={item.url}
-                    onClick={() => setMobileMenuOpen(false)}
+                    onClick={(e) => {
+                      setMobileMenuOpen(false);
+                      handleNavigationClick(e, item.url);
+                    }}
                     className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm transition-all ${
                       location.pathname === item.url
                         ? 'bg-blue-100 text-blue-700 font-medium'
@@ -385,7 +388,10 @@ function LayoutContent({ children, currentPageName }) {
                   <Link
                     key={item.title}
                     to={item.url}
-                    onClick={() => setMobileMenuOpen(false)}
+                    onClick={(e) => {
+                      setMobileMenuOpen(false);
+                      handleNavigationClick(e, item.url);
+                    }}
                     className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm transition-all ${
                       location.pathname === item.url
                         ? 'bg-blue-100 text-blue-700 font-medium'
