@@ -436,6 +436,167 @@ export default function Documentation() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* USER MANUAL */}
+        <TabsContent value="manual">
+          <div className="space-y-8">
+            <Card>
+              <CardHeader className="bg-slate-50 border-b border-slate-100">
+                <CardTitle>ENTIC Operations Center User Manual</CardTitle>
+                <CardDescription>A complete guide to navigating and using the system</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="grid md:grid-cols-[250px_1fr] divide-x divide-slate-100">
+                  <div className="p-4 bg-slate-50/50">
+                    <h4 className="font-semibold text-sm text-slate-900 mb-3">Table of Contents</h4>
+                    <nav className="space-y-1 text-sm">
+                      <a href="#dashboard" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">1. Dashboard</a>
+                      <a href="#providers" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">2. Provider Management</a>
+                      <a href="#billing" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">3. Billing & Invoices</a>
+                      <a href="#payments" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">4. Payments & Allocations</a>
+                      <a href="#supplies" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">5. Supply Management</a>
+                      <a href="#compliance" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">6. Compliance & Tracking</a>
+                      <a href="#reports" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">7. Reports</a>
+                    </nav>
+                  </div>
+                  
+                  <ScrollArea className="h-[600px]">
+                    <div className="p-8 space-y-10">
+                      
+                      {/* 1. Dashboard */}
+                      <section id="dashboard" className="space-y-4">
+                        <div className="flex items-center gap-3 pb-2 border-b border-slate-200">
+                          <div className="bg-blue-100 p-2 rounded-lg"><Settings className="w-5 h-5 text-blue-600" /></div>
+                          <h3 className="text-xl font-bold text-slate-900">1. Dashboard</h3>
+                        </div>
+                        <div className="prose prose-sm text-slate-600 max-w-none">
+                          <p>The <strong>Dashboard</strong> is your mission control center. It provides a real-time snapshot of the practice's health.</p>
+                          <ul className="list-disc pl-4 space-y-2 mt-2">
+                            <li><strong>Alerts:</strong> Red/Yellow alerts at the top highlight urgent actions like expiring licenses, pending approvals, or overdue invoices.</li>
+                            <li><strong>Summary Cards:</strong> Quick counts of supply orders, draft invoices, and other pending items.</li>
+                            <li><strong>Financial Overview:</strong> A high-level view of what's owed to ENTIC, what's been collected, and what's owed to providers.</li>
+                            <li><strong>Customization:</strong> Use the "Customize Dashboard" button to show/hide widgets based on your role.</li>
+                          </ul>
+                        </div>
+                      </section>
+
+                      {/* 2. Provider Management */}
+                      <section id="providers" className="space-y-4">
+                        <div className="flex items-center gap-3 pb-2 border-b border-slate-200">
+                          <div className="bg-purple-100 p-2 rounded-lg"><Users className="w-5 h-5 text-purple-600" /></div>
+                          <h3 className="text-xl font-bold text-slate-900">2. Provider Management</h3>
+                        </div>
+                        <div className="prose prose-sm text-slate-600 max-w-none">
+                          <p>Manage all staff details in the <strong>Providers</strong> module.</p>
+                          <h4 className="font-bold text-slate-800 mt-4">Key Features:</h4>
+                          <ul className="list-disc pl-4 space-y-2">
+                            <li><strong>Profile:</strong> Store email, phone, role, and program locations.</li>
+                            <li><strong>Status:</strong> Toggle between Active/Inactive. Inactive providers are hidden from most lists.</li>
+                            <li><strong>Documents:</strong> Upload and track employment contracts or other HR docs.</li>
+                            <li><strong>Terminations:</strong> Set a termination date, and the system will auto-deactivate the provider after that date passes.</li>
+                          </ul>
+                        </div>
+                      </section>
+
+                      {/* 3. Billing & Invoices */}
+                      <section id="billing" className="space-y-4">
+                        <div className="flex items-center gap-3 pb-2 border-b border-slate-200">
+                          <div className="bg-green-100 p-2 rounded-lg"><FileText className="w-5 h-5 text-green-600" /></div>
+                          <h3 className="text-xl font-bold text-slate-900">3. Billing & Invoices</h3>
+                        </div>
+                        <div className="prose prose-sm text-slate-600 max-w-none">
+                          <p>This is the core revenue engine. The flow moves from <em>Outside Income</em> → <em>Invoices</em>.</p>
+                          
+                          <h4 className="font-bold text-slate-800 mt-4">Outside Income (The "Shift" Logger)</h4>
+                          <p>Log every shift or service here. You can enter them manually or let the system auto-generate them from the On-Call Schedule.</p>
+                          
+                          <h4 className="font-bold text-slate-800 mt-4">Invoices (The "Bill")</h4>
+                          <p>Group multiple income records into a single invoice to send to a facility (e.g., "November 2025 Invoices for UConn").</p>
+                          <ul className="list-disc pl-4 space-y-2">
+                            <li><strong>Creation:</strong> Select a provider and program. The system finds all "Pending" income records for them.</li>
+                            <li><strong>PDF Generation:</strong> For UConn and Manchester, the system auto-generates a PDF using their official templates.</li>
+                            <li><strong>Status Tracking:</strong> Monitor the lifecycle from <em>Draft</em> → <em>Sent to Vendor</em> → <em>Paid</em>.</li>
+                          </ul>
+                        </div>
+                      </section>
+
+                      {/* 4. Payments & Allocations */}
+                      <section id="payments" className="space-y-4">
+                        <div className="flex items-center gap-3 pb-2 border-b border-slate-200">
+                          <div className="bg-emerald-100 p-2 rounded-lg"><DollarSign className="w-5 h-5 text-emerald-600" /></div>
+                          <h3 className="text-xl font-bold text-slate-900">4. Payments & Allocations</h3>
+                        </div>
+                        <div className="prose prose-sm text-slate-600 max-w-none">
+                          <p>When money hits the bank, log it here. <strong>Crucial Rule:</strong> Never just log a total; you must allocate it.</p>
+                          
+                          <h4 className="font-bold text-slate-800 mt-4">How to Process a Check:</h4>
+                          <ol className="list-decimal pl-4 space-y-2">
+                            <li>Create a new Payment record with the total check amount.</li>
+                            <li><strong>Attach Remittance:</strong> Upload the scan/PDF of the check or remittance advice.</li>
+                            <li><strong>Allocate:</strong> Click "Add Allocation" and select the invoices this check pays for.</li>
+                            <li><strong>Save:</strong> The system updates invoice balances. If an invoice is fully paid, its status flips to "Paid to ENTIC".</li>
+                          </ol>
+                        </div>
+                      </section>
+
+                      {/* 5. Supply Management */}
+                      <section id="supplies" className="space-y-4">
+                        <div className="flex items-center gap-3 pb-2 border-b border-slate-200">
+                          <div className="bg-orange-100 p-2 rounded-lg"><Package className="w-5 h-5 text-orange-600" /></div>
+                          <h3 className="text-xl font-bold text-slate-900">5. Supply Management</h3>
+                        </div>
+                        <div className="prose prose-sm text-slate-600 max-w-none">
+                          <p>Manage inventory requests for both Office and Clinical supplies.</p>
+                          <ul className="list-disc pl-4 space-y-2 mt-2">
+                            <li><strong>Catalogs:</strong> Define standard items (toner, gloves, paper) in the catalogs to make ordering easy.</li>
+                            <li><strong>Requests:</strong> Staff use a simplified form to request items.</li>
+                            <li><strong>Fulfillment:</strong> Managers review requests. Mark as "Ordered" when you buy them, and "Received" when they arrive.</li>
+                            <li><strong>Partial Receipt:</strong> You can mark individual line items as received if a shipment is split.</li>
+                          </ul>
+                        </div>
+                      </section>
+
+                      {/* 6. Compliance & Tracking */}
+                      <section id="compliance" className="space-y-4">
+                        <div className="flex items-center gap-3 pb-2 border-b border-slate-200">
+                          <div className="bg-red-100 p-2 rounded-lg"><ShieldAlert className="w-5 h-5 text-red-600" /></div>
+                          <h3 className="text-xl font-bold text-slate-900">6. Compliance & Tracking</h3>
+                        </div>
+                        <div className="prose prose-sm text-slate-600 max-w-none">
+                          <p>Keep the practice legal and compliant.</p>
+                          <ul className="list-disc pl-4 space-y-2 mt-2">
+                            <li><strong>Licenses:</strong> Track expiration dates for Medical Licenses, DEA, etc. The system alerts you 90/60/30 days out.</li>
+                            <li><strong>Privileges:</strong> Track hospital privileges per facility.</li>
+                            <li><strong>CME:</strong> Log Continuing Medical Education credits. The dashboard tracks if doctors meet their annual quota (3 credits).</li>
+                            <li><strong>Time Off:</strong> Calendar view of provider vacations and time off.</li>
+                          </ul>
+                        </div>
+                      </section>
+
+                      {/* 7. Reports */}
+                      <section id="reports" className="space-y-4">
+                        <div className="flex items-center gap-3 pb-2 border-b border-slate-200">
+                          <div className="bg-indigo-100 p-2 rounded-lg"><ClipboardList className="w-5 h-5 text-indigo-600" /></div>
+                          <h3 className="text-xl font-bold text-slate-900">7. Reports</h3>
+                        </div>
+                        <div className="prose prose-sm text-slate-600 max-w-none">
+                          <p>Export data for accounting and payroll.</p>
+                          <ul className="list-disc pl-4 space-y-2 mt-2">
+                            <li><strong>Monthly Financials:</strong> The "Payout Bible". Shows exactly what each provider earned and collected for a specific month.</li>
+                            <li><strong>Invoice Aging:</strong> See who owes money and how long it's been outstanding.</li>
+                            <li><strong>Payment Tracking:</strong> Detailed audit trail of every dollar received.</li>
+                            <li><strong>Supply Analysis:</strong> See which locations are spending the most on supplies.</li>
+                          </ul>
+                        </div>
+                      </section>
+
+                    </div>
+                  </ScrollArea>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
       </Tabs>
 
       <div className="mt-12">
