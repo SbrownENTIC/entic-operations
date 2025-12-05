@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, AlertTriangle, Pencil, ArrowUpDown, ArrowUp, ArrowDown, CloudUpload, RefreshCw } from "lucide-react";
 import { differenceInDays, format, parseISO } from "date-fns";
+import { useLocation } from "react-router-dom";
 import LicenseForm from "../components/licenses/LicenseForm";
 import EmptyState from "@/components/ui/EmptyState";
 import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
@@ -20,6 +21,7 @@ export default function Licenses() {
   const [airtableSyncing, setAirtableSyncing] = useState(false);
   const [airtableMessage, setAirtableMessage] = useState('');
   const queryClient = useQueryClient();
+  const location = useLocation();
 
   const urlParams = new URLSearchParams(window.location.search);
   const editId = urlParams.get('edit');
@@ -43,8 +45,12 @@ export default function Licenses() {
         // Clear the URL parameter so we don't reopen on refresh/re-render
         window.history.replaceState({}, document.title, window.location.pathname);
       }
+    } else if (location.search === '' && showForm) {
+      // Close form when navigating to root URL
+      setShowForm(false);
+      setEditingLicense(null);
     }
-  }, [editId, licenses]);
+  }, [editId, licenses, location.search]);
 
   const createMutation = useMutation({
     mutationFn: async (data) => {

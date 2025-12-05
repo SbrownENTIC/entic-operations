@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Search, Pencil, Trash2, FileText, ArrowUpDown, ArrowUp, ArrowDown, Download, UserCheck, DollarSign, Printer } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { parseISO, format } from "date-fns";
 import OutsideIncomeForm from "../components/income/OutsideIncomeForm";
@@ -47,6 +47,7 @@ export default function OutsideIncome() {
   const [linkMessage, setLinkMessage] = useState('');
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const { data: incomes = [], isLoading: incomesLoading } = useQuery({
     queryKey: ['outside-income'],
@@ -62,6 +63,14 @@ export default function OutsideIncome() {
     queryKey: ['program-locations'],
     queryFn: () => base44.entities.ProgramLocation.list()
   });
+
+  // Close form when navigating to root URL
+  React.useEffect(() => {
+    if (location.search === '' && showForm) {
+      setShowForm(false);
+      setEditingIncome(null);
+    }
+  }, [location.search]);
 
   const createMutation = useMutation({
     mutationFn: async (data) => {

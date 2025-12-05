@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { useLocation } from "react-router-dom";
 import CMEForm from "../components/cme/CMEForm";
 import EmptyState from "@/components/ui/EmptyState";
 import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
@@ -18,6 +19,7 @@ export default function CMETracking() {
   const [sortField, setSortField] = useState('completion_date');
   const [sortDirection, setSortDirection] = useState('desc');
   const queryClient = useQueryClient();
+  const location = useLocation();
 
   const { data: cmeRecords = [] } = useQuery({
     queryKey: ['cme'],
@@ -28,6 +30,14 @@ export default function CMETracking() {
     queryKey: ['providers'],
     queryFn: () => base44.entities.Provider.list()
   });
+
+  // Close form when navigating to root URL
+  React.useEffect(() => {
+    if (location.search === '' && showForm) {
+      setShowForm(false);
+      setEditingCME(null);
+    }
+  }, [location.search]);
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.CME.create(data),

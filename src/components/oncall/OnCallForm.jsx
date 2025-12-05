@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X } from "lucide-react";
+import { useFormState } from "@/components/FormContext";
 
 export default function OnCallForm({ schedule, providers, onSubmit, onCancel, isLoading }) {
+  const { setIsDirty } = useFormState();
   const [formData, setFormData] = useState({
     provider_id: '',
     start_date: '',
@@ -24,8 +26,15 @@ export default function OnCallForm({ schedule, providers, onSubmit, onCancel, is
     }
   }, [schedule]);
 
+  // Track dirty state
+  useEffect(() => {
+    setIsDirty(true);
+    return () => setIsDirty(false);
+  }, [formData]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    setIsDirty(false);
     // We pass validation up to parent if needed, but for now just submit
     // The parent can handle conflict checking or we can do it here if we had access to all schedules
     // For now, conflict checking is implemented in drag-and-drop, and we'll trust the user on manual entry or add backend checks later

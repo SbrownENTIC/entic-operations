@@ -12,6 +12,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { MultiDatePicker } from "@/components/ui/multi-date-picker";
 import { Combobox } from "@/components/ui/combobox";
 import { addDays, format, parseISO, differenceInDays } from "date-fns";
+import { useFormState } from "@/components/FormContext";
 
 const COMMON_REASONS = [
   "Vacation",
@@ -26,6 +27,7 @@ const COMMON_REASONS = [
 ];
 
 export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) {
+  const { setIsDirty } = useFormState();
   const [selectedDates, setSelectedDates] = useState([]);
   const [formData, setFormData] = useState({
     provider_id: '',
@@ -56,7 +58,14 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
     }
   }, [formData.start_date, formData.end_date, timeOff]);
 
+  // Track dirty state
+  useEffect(() => {
+    setIsDirty(true);
+    return () => setIsDirty(false);
+  }, [formData, selectedDates]);
+
   const handleSubmit = (e) => {
+    setIsDirty(false);
     e.preventDefault();
     
     if (!timeOff && selectedDates.length > 0) {

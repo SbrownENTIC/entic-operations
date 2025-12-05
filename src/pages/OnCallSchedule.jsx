@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, ChevronLeft, ChevronRight, RefreshCw, Calendar as CalendarIcon, Search, Pencil, Trash2, List, ArrowUpDown, ArrowUp, ArrowDown, Check, UserCheck, Download, Filter, AlertTriangle } from "lucide-react";
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, addMonths, subMonths, isSameDay, startOfWeek, endOfWeek, startOfDay, endOfDay, addDays, differenceInDays, addMilliseconds, areIntervalsOverlapping } from "date-fns";
+import { useLocation } from "react-router-dom";
 import OnCallForm from "../components/oncall/OnCallForm";
 import EmptyState from "@/components/ui/EmptyState";
 import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
@@ -57,6 +58,7 @@ export default function OnCallSchedule() {
   const [conflictAlert, setConflictAlert] = useState(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const location = useLocation();
 
   const { data: schedules = [], isLoading: schedulesLoading } = useQuery({
     queryKey: ['oncall-schedules'],
@@ -72,6 +74,14 @@ export default function OnCallSchedule() {
     queryKey: ['program-locations'],
     queryFn: () => base44.entities.ProgramLocation.list()
   });
+
+  // Close form when navigating to root URL
+  React.useEffect(() => {
+    if (location.search === '' && showForm) {
+      setShowForm(false);
+      setEditingSchedule(null);
+    }
+  }, [location.search]);
 
   const createMutation = useMutation({
     mutationFn: async (data) => {

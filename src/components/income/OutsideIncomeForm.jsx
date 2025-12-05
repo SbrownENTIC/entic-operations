@@ -21,8 +21,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useFormState } from "@/components/FormContext";
 
 export default function OutsideIncomeForm({ income, providers, onSubmit, onCancel, isLoading }) {
+  const { setIsDirty } = useFormState();
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     provider_id: '',
@@ -125,7 +127,14 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
     }
   }, [formData.program_location_id, programLocations, isHartfordHospitalRVUBased]);
 
+  // Track dirty state
+  useEffect(() => {
+    setIsDirty(true);
+    return () => setIsDirty(false);
+  }, [formData]);
+
   const handleSubmit = (e) => {
+    setIsDirty(false);
     e.preventDefault();
     const cleanedDates = formData.work_dates.filter(d => d);
     

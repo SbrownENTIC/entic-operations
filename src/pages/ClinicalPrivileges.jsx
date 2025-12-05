@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { differenceInDays, format, parseISO } from "date-fns";
+import { useLocation } from "react-router-dom";
 import PrivilegeForm from "../components/privileges/PrivilegeForm";
 import EmptyState from "@/components/ui/EmptyState";
 import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
@@ -30,6 +31,7 @@ export default function ClinicalPrivileges() {
   const [sortDirection, setSortDirection] = useState('asc');
   const [filterExpiring, setFilterExpiring] = useState(false);
   const queryClient = useQueryClient();
+  const location = useLocation();
 
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -37,6 +39,14 @@ export default function ClinicalPrivileges() {
       setFilterExpiring(true);
     }
   }, []);
+
+  // Close form when navigating to root URL
+  React.useEffect(() => {
+    if (location.search === '' && showForm) {
+      setShowForm(false);
+      setEditingPrivilege(null);
+    }
+  }, [location.search]);
 
   const { data: privileges = [] } = useQuery({
     queryKey: ['privileges'],

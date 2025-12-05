@@ -14,8 +14,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import InvoiceForm from "../invoices/InvoiceForm";
+import { useFormState } from "@/components/FormContext";
 
 export default function PaymentForm({ payment, invoices, providers, onSubmit, onCancel, isLoading }) {
+  const { setIsDirty } = useFormState();
   const [formData, setFormData] = useState({
     payment_date: payment?.payment_date || format(new Date(), 'yyyy-MM-dd'),
     payment_month: payment?.payment_month || '',
@@ -92,6 +94,12 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
     }
   }, [payment]);
 
+  // Track dirty state
+  useEffect(() => {
+    setIsDirty(true);
+    return () => setIsDirty(false);
+  }, [formData]);
+
   // Auto-calculate payment_month from allocations
   useEffect(() => {
     if (formData.allocations && formData.allocations.length > 0) {
@@ -115,6 +123,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setIsDirty(false);
     onSubmit(formData);
   };
 
