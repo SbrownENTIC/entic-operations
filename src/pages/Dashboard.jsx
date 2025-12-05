@@ -910,6 +910,7 @@ export default function Dashboard() {
         title={modalState.title}
         invoices={modalState.invoices}
         providers={providers}
+        payments={payments}
         type={modalState.type}
         programGroup={modalState.programGroup}
       />
