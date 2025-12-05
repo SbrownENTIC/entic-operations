@@ -578,11 +578,12 @@ export default function Documentation() {
                     <nav className="space-y-1 text-sm">
                       <a href="#dashboard" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">1. Dashboard</a>
                       <a href="#providers" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">2. Provider Management</a>
-                      <a href="#billing" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">3. Billing & Invoices</a>
-                      <a href="#payments" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">4. Payments & Allocations</a>
-                      <a href="#supplies" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">5. Supply Management</a>
-                      <a href="#compliance" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">6. Compliance & Tracking</a>
-                      <a href="#reports" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">7. Reports</a>
+                      <a href="#oncall" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">3. On-Call Schedule</a>
+                      <a href="#billing" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">4. Billing & Invoices</a>
+                      <a href="#payments" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">5. Payments & Allocations</a>
+                      <a href="#supplies" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">6. Supply Management</a>
+                      <a href="#compliance" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">7. Compliance & Tracking</a>
+                      <a href="#reports" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">8. Reports</a>
                     </nav>
                   </div>
                   
@@ -624,7 +625,25 @@ export default function Documentation() {
                         </div>
                       </section>
 
-                      {/* 3. Billing & Invoices */}
+                      {/* 3. On-Call Schedule */}
+                      <section id="oncall" className="space-y-4">
+                        <div className="flex items-center gap-3 pb-2 border-b border-slate-200">
+                          <div className="bg-indigo-100 p-2 rounded-lg"><Calendar className="w-5 h-5 text-indigo-600" /></div>
+                          <h3 className="text-xl font-bold text-slate-900">3. On-Call Schedule</h3>
+                        </div>
+                        <div className="prose prose-sm text-slate-600 max-w-none">
+                          <p>Manage and view the provider rotation for all facilities. This schedule drives the automatic income generation for on-call shifts.</p>
+                          <h4 className="font-bold text-slate-800 mt-4">Key Features:</h4>
+                          <ul className="list-disc pl-4 space-y-2">
+                            <li><strong>Views:</strong> Switch between Calendar view for a monthly overview and List view for detailed editing.</li>
+                            <li><strong>Adding Shifts:</strong> Click "Add Schedule" to assign providers to locations.</li>
+                            <li><strong>Auto-Income:</strong> For locations like St. Francis, the system can automatically create "Outside Income" records when you add a schedule.</li>
+                            <li><strong>Filtering:</strong> Easily filter the schedule by Provider or Location to find specific shifts.</li>
+                          </ul>
+                        </div>
+                      </section>
+
+                      {/* 4. Billing & Invoices */}
                       <section id="billing" className="space-y-4">
                         <div className="flex items-center gap-3 pb-2 border-b border-slate-200">
                           <div className="bg-green-100 p-2 rounded-lg"><FileText className="w-5 h-5 text-green-600" /></div>
@@ -646,11 +665,11 @@ export default function Documentation() {
                         </div>
                       </section>
 
-                      {/* 4. Payments & Allocations */}
+                      {/* 5. Payments & Allocations */}
                       <section id="payments" className="space-y-4">
                         <div className="flex items-center gap-3 pb-2 border-b border-slate-200">
                           <div className="bg-emerald-100 p-2 rounded-lg"><DollarSign className="w-5 h-5 text-emerald-600" /></div>
-                          <h3 className="text-xl font-bold text-slate-900">4. Payments & Allocations</h3>
+                          <h3 className="text-xl font-bold text-slate-900">5. Payments & Allocations</h3>
                         </div>
                         <div className="prose prose-sm text-slate-600 max-w-none">
                           <p>When money hits the bank, log it here. <strong>Crucial Rule:</strong> Never just log a total; you must allocate it.</p>
@@ -665,11 +684,11 @@ export default function Documentation() {
                         </div>
                       </section>
 
-                      {/* 5. Supply Management */}
+                      {/* 6. Supply Management */}
                       <section id="supplies" className="space-y-4">
                         <div className="flex items-center gap-3 pb-2 border-b border-slate-200">
                           <div className="bg-orange-100 p-2 rounded-lg"><Package className="w-5 h-5 text-orange-600" /></div>
-                          <h3 className="text-xl font-bold text-slate-900">5. Supply Management</h3>
+                          <h3 className="text-xl font-bold text-slate-900">6. Supply Management</h3>
                         </div>
                         <div className="prose prose-sm text-slate-600 max-w-none">
                           <p>Manage inventory requests for both Office and Clinical supplies.</p>
@@ -682,11 +701,11 @@ export default function Documentation() {
                         </div>
                       </section>
 
-                      {/* 6. Compliance & Tracking */}
+                      {/* 7. Compliance & Tracking */}
                       <section id="compliance" className="space-y-4">
                         <div className="flex items-center gap-3 pb-2 border-b border-slate-200">
                           <div className="bg-red-100 p-2 rounded-lg"><ShieldAlert className="w-5 h-5 text-red-600" /></div>
-                          <h3 className="text-xl font-bold text-slate-900">6. Compliance & Tracking</h3>
+                          <h3 className="text-xl font-bold text-slate-900">7. Compliance & Tracking</h3>
                         </div>
                         <div className="prose prose-sm text-slate-600 max-w-none">
                           <p>Keep the practice legal and compliant.</p>
@@ -699,11 +718,11 @@ export default function Documentation() {
                         </div>
                       </section>
 
-                      {/* 7. Reports */}
+                      {/* 8. Reports */}
                       <section id="reports" className="space-y-4">
                         <div className="flex items-center gap-3 pb-2 border-b border-slate-200">
                           <div className="bg-indigo-100 p-2 rounded-lg"><ClipboardList className="w-5 h-5 text-indigo-600" /></div>
-                          <h3 className="text-xl font-bold text-slate-900">7. Reports</h3>
+                          <h3 className="text-xl font-bold text-slate-900">8. Reports</h3>
                         </div>
                         <div className="prose prose-sm text-slate-600 max-w-none">
                           <p>Export data for accounting and payroll.</p>

@@ -34,7 +34,7 @@ export default function PrintableAdminManual() {
           <li>4. Workflow: UConn Invoices</li>
           <li>5. Workflow: Manchester Invoices</li>
           <li>6. Workflow: Reminders & Closures</li>
-          <li>7. Automated Jobs (Cron)</li>
+          <li>7. Automated Scheduled Tasks</li>
           <li>8. Maintenance & Troubleshooting</li>
         </ul>
       </div>
@@ -88,10 +88,10 @@ export default function PrintableAdminManual() {
             <tbody className="divide-y divide-slate-200">
               <tr><td className="p-2 font-mono">generateUConnPDF</td><td className="p-2">Fills <code>MasterUConnServiceInvoice.pdf</code> with invoice data. Returns URL.</td></tr>
               <tr><td className="p-2 font-mono">syncUConnInvoiceToAirtable</td><td className="p-2">Sends invoice data + PDF URL to Airtable 'Notifications' table.</td></tr>
-              <tr><td className="p-2 font-mono">sendScheduledReminders</td><td className="p-2">Daily Cron. Finds today's Reminders -> Calls <code>syncReminderToAirtable</code>.</td></tr>
+              <tr><td className="p-2 font-mono">sendScheduledReminders</td><td className="p-2">Daily Schedule. Finds today's Reminders -> Calls <code>syncReminderToAirtable</code>.</td></tr>
               <tr><td className="p-2 font-mono">syncOfficeClosuresToAirtable</td><td className="p-2">Syncs Holiday reminders to Airtable 'Office Closures' table.</td></tr>
-              <tr><td className="p-2 font-mono">checkLicenseExpirations</td><td className="p-2">Daily Cron. Direct email send (via Base44) for expiring licenses.</td></tr>
-              <tr><td className="p-2 font-mono">syncPaymentsAndInvoices</td><td className="p-2">Hourly Cron. Recalculates invoice balances from payments.</td></tr>
+              <tr><td className="p-2 font-mono">checkLicenseExpirations</td><td className="p-2">Daily Schedule. Direct email send (via Base44) for expiring licenses.</td></tr>
+              <tr><td className="p-2 font-mono">syncPaymentsAndInvoices</td><td className="p-2">Hourly Schedule. Recalculates invoice balances from payments.</td></tr>
               <tr><td className="p-2 font-mono">fixOutsideIncomeAmounts</td><td className="p-2">Utility. Recalculates <code>Days * Rate = Total</code> for income records.</td></tr>
             </tbody>
           </table>
@@ -187,7 +187,7 @@ export default function PrintableAdminManual() {
         <div className="text-sm text-slate-800 leading-relaxed">
           <div className="mb-4">
             <h4 className="font-bold text-slate-900 mb-1">Scenario A: Daily Email Alerts</h4>
-            <p className="text-xs"><strong>Cron Job:</strong> <code>sendScheduledReminders</code> runs daily.</p>
+            <p className="text-xs"><strong>Scheduled Task:</strong> <code>sendScheduledReminders</code> runs daily.</p>
             <p className="text-xs">1. Finds active Reminders where <code>send_date == Today</code>.</p>
             <p className="text-xs">2. For each recipient, calls <code>syncReminderToAirtable</code>.</p>
             <p className="text-xs">3. Creates record in Airtable <strong>Notifications</strong> table -> Airtable sends email.</p>
@@ -204,11 +204,11 @@ export default function PrintableAdminManual() {
         </div>
       </section>
 
-      {/* 7. Automated Jobs (Cron) */}
+      {/* 7. Automated Scheduled Tasks */}
       <section className="space-y-4 break-inside-avoid">
         <div className="flex items-center gap-3 pb-2 border-b border-slate-300">
           <div className="p-2 rounded-lg bg-green-50 border border-green-100"><Clock className="w-6 h-6 text-green-700" /></div>
-          <h3 className="text-2xl font-bold text-slate-900">7. Automated Backend Jobs (Cron)</h3>
+          <h3 className="text-2xl font-bold text-slate-900">7. Automated Scheduled Tasks</h3>
         </div>
         <div className="text-sm text-slate-800 leading-relaxed">
           <table className="w-full text-left border-collapse text-xs">
@@ -270,6 +270,13 @@ export default function PrintableAdminManual() {
             <h4 className="font-bold text-blue-900 mb-1">Financial Data Mismatch?</h4>
             <p className="text-xs mb-1">Use the <strong>"Fix & Sync Data"</strong> button on the Invoices page.</p>
             <p className="text-xs text-slate-600">This triggers <code>syncPaymentsAndInvoices</code> manually to force-recalculate all balances.</p>
+          </div>
+
+          <div className="mt-6 pt-4 border-t border-slate-200">
+            <h4 className="font-bold text-slate-900 mb-1">Questions or Concerns?</h4>
+            <p className="text-sm text-slate-700">
+              Please email your system administrator <strong>Steve Brown</strong> at <a href="mailto:steve.brown@enticmd.com" className="text-blue-600 hover:underline">steve.brown@enticmd.com</a>.
+            </p>
           </div>
 
         </div>

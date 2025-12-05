@@ -335,6 +335,15 @@ export default function PrintableManual() {
         </div>
       </section>
 
+      <section className="break-inside-avoid mt-12 border-t-2 border-slate-100 pt-6">
+        <div className="bg-slate-50 p-6 rounded-lg border border-slate-200">
+          <h3 className="text-lg font-bold text-slate-900 mb-2">Questions or Concerns?</h3>
+          <p className="text-slate-700">
+            Please email your system administrator <strong>Steve Brown</strong> at <a href="mailto:steve.brown@enticmd.com" className="text-blue-600 hover:underline">steve.brown@enticmd.com</a>.
+          </p>
+        </div>
+      </section>
+
     </div>
   );
 }
