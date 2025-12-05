@@ -1,5 +1,16 @@
-import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import React, { useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { FormProvider, useFormState } from "@/components/FormContext";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -130,8 +141,19 @@ const moreMenuItems = [
   },
 ];
 
-export default function Layout({ children, currentPageName }) {
+export default function Layout(props) {
+  return (
+    <FormProvider>
+      <LayoutContent {...props} />
+    </FormProvider>
+  );
+}
+
+function LayoutContent({ children, currentPageName }) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { isDirty, setIsDirty } = useFormState();
+  const [pendingNavigation, setPendingNavigation] = useState(null);
 
   // Scroll to top on route change
   React.useEffect(() => {
@@ -140,6 +162,24 @@ export default function Layout({ children, currentPageName }) {
 
   const [previousCount, setPreviousCount] = React.useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+
+  const handleNavigationClick = (e, url) => {
+    // If form is dirty, intercept navigation
+    if (isDirty) {
+      e.preventDefault();
+      setPendingNavigation(url);
+    }
+    // If not dirty, let default Link behavior happen
+    // This will handle navigating to "/Invoices" from "/Invoices?edit=1" correctly
+  };
+
+  const handleConfirmNavigation = () => {
+    setIsDirty(false); // Reset dirty state
+    if (pendingNavigation) {
+      navigate(pendingNavigation);
+      setPendingNavigation(null);
+    }
+  };
 
   const { data: pendingOrders = [] } = useQuery({
     queryKey: ['pending-review-orders'],
@@ -259,6 +299,7 @@ export default function Layout({ children, currentPageName }) {
                 <Link
                   key={item.title}
                   to={item.url}
+                  onClick={(e) => handleNavigationClick(e, item.url)}
                   className={`flex items-center gap-1 px-1 py-1 rounded-lg text-[11px] font-medium transition-all duration-200 border h-14 w-[105px] justify-center text-center leading-tight whitespace-normal ${
                     location.pathname === item.url
                       ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md border-blue-600'
@@ -377,6 +418,23 @@ export default function Layout({ children, currentPageName }) {
         </AnimatePresence>
       </main>
       <Toaster />
+
+      <AlertDialog open={!!pendingNavigation} onOpenChange={(open) => !open && setPendingNavigation(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes. Are you sure you want to leave? Your changes will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingNavigation(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmNavigation} className="bg-red-600 hover:bg-red-700">
+              Discard Changes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
