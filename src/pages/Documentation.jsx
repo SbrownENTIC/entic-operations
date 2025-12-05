@@ -346,6 +346,7 @@ export default function Documentation() {
 
             </CardContent>
           </Card>
+          </ScrollArea>
         </TabsContent>
 
         {/* STEVE'S CHECKLIST */}
