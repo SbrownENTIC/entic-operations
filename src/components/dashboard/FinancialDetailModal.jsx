@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { ExternalLink, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
-export default function FinancialDetailModal({ isOpen, onClose, title, invoices, providers, type, programGroup }) {
+export default function FinancialDetailModal({ isOpen, onClose, title, invoices, providers, payments = [], type, programGroup }) {
   const [sortField, setSortField] = React.useState(null);
   const [sortDirection, setSortDirection] = React.useState('desc');
 
@@ -51,8 +51,21 @@ export default function FinancialDetailModal({ isOpen, onClose, title, invoices,
       let bValue = b[sortField];
       
       if (sortField === 'provider') {
-        aValue = providers.find(p => p.id === a.staff_member_id)?.full_name || '';
-        bValue = providers.find(p => p.id === b.staff_member_id)?.full_name || '';
+      aValue = providers.find(p => p.id === a.staff_member_id)?.full_name || '';
+      bValue = providers.find(p => p.id === b.staff_member_id)?.full_name || '';
+      } else if (sortField === 'quarter') {
+      const getQuarterTimestamp = (inv) => {
+        const linkedPayments = payments.filter(p => 
+          p.allocations?.some(a => a.invoice_id === inv.id)
+        );
+        if (linkedPayments.length > 0) {
+          const latest = [...linkedPayments].sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date))[0];
+          return latest && latest.payment_date ? new Date(latest.payment_date).getTime() : 0;
+        }
+        return 0;
+      };
+      aValue = getQuarterTimestamp(a);
+      bValue = getQuarterTimestamp(b);
       } else if (sortField === 'invoice_date') {
         aValue = new Date(a.invoice_date || 0);
         bValue = new Date(b.invoice_date || 0);
@@ -166,6 +179,12 @@ export default function FinancialDetailModal({ isOpen, onClose, title, invoices,
                       Date <SortIcon field="invoice_date" />
                     </th>
                     <th 
+                      className="text-left p-3 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 select-none"
+                      onClick={() => handleSort('quarter')}
+                    >
+                      Quarter <SortIcon field="quarter" />
+                    </th>
+                    <th 
                       className="text-right p-3 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 select-none"
                       onClick={() => handleSort('total')}
                     >
@@ -211,6 +230,21 @@ export default function FinancialDetailModal({ isOpen, onClose, title, invoices,
                         <td className="p-3 text-sm text-slate-600">
                           {format(parseISO(invoice.invoice_date), 'MMM d, yyyy')}
                         </td>
+                        <td className="p-3 text-sm text-slate-600">
+                          {(() => {
+                            const linkedPayments = payments.filter(p => 
+                              p.allocations?.some(a => a.invoice_id === invoice.id)
+                            );
+                            if (linkedPayments.length > 0) {
+                              const latest = [...linkedPayments].sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date))[0];
+                              if (latest && latest.payment_date) {
+                                const d = parseISO(latest.payment_date);
+                                return `Q${Math.floor(d.getMonth() / 3) + 1} ${d.getFullYear()}`;
+                              }
+                            }
+                            return '-';
+                          })()}
+                        </td>
                         <td className="p-3 text-sm text-right font-medium text-slate-900">
                           {formatCurrency(invoice.total || 0)}
                         </td>
@@ -249,7 +283,7 @@ export default function FinancialDetailModal({ isOpen, onClose, title, invoices,
                     <td className="p-3 text-sm text-right font-bold text-blue-600">
                       {formatCurrency(totalAmount)}
                     </td>
-                    <td colSpan="2"></td>
+                    <td colSpan="3"></td>
                   </tr>
                 </tfoot>
               </table>
