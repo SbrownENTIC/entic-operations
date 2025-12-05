@@ -461,6 +461,10 @@ export default function Dashboard() {
     inv.program_group === 'UConn' && inv.status === 'approved'
   ).length;
 
+  const approvedInvoicesCount = invoices.filter(inv => 
+    inv.status === 'approved'
+  ).length;
+
   // CME compliance for doctors
   const doctors = providers.filter(p => p.role === 'ENT MD' && p.status === 'active');
   const cmeByProvider = {};
@@ -739,6 +743,7 @@ export default function Dashboard() {
       case 'alerts':
         return (
           <AlertsWidget
+            approvedInvoicesCount={approvedInvoicesCount}
             uconnPendingVendorInvoices={uconnPendingVendorInvoices}
             sentForApprovalInvoices={sentForApprovalInvoices}
             sentToCOOInvoices={sentToCOOInvoices}

@@ -7,6 +7,7 @@ import { createPageUrl } from "@/utils";
 import { Clock, Send, UserCheck, PackageOpen } from "lucide-react";
 
 export default function AlertsWidget({ 
+  approvedInvoicesCount,
   uconnPendingVendorInvoices, 
   sentForApprovalInvoices, 
   sentToCOOInvoices,
@@ -15,7 +16,8 @@ export default function AlertsWidget({
   privilegesExpiring30Days,
   partiallyReceivedCount
 }) {
-  const hasAlerts = uconnPendingVendorInvoices > 0 || 
+  const hasAlerts = approvedInvoicesCount > 0 ||
+                    uconnPendingVendorInvoices > 0 || 
                     sentForApprovalInvoices > 0 || 
                     sentToCOOInvoices > 0 ||
                     pendingProviderApprovalCount > 0 || 
@@ -29,6 +31,21 @@ export default function AlertsWidget({
     <div>
       <h2 className="text-lg font-semibold text-slate-900 mb-3">Alerts</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {approvedInvoicesCount > 0 && (
+          <Card className={`bg-gradient-to-br from-green-100 to-green-50 transition-all duration-300 ${approvedInvoicesCount > 0 ? 'border-[5px] border-green-600 animate-alert-glow' : 'border-3 border-green-300 shadow-xl shadow-green-200/50 hover:scale-105'}`}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-green-300">
+              <CardTitle className="text-sm font-bold text-slate-900">Invoices to Send to Vendor</CardTitle>
+              <Send className="w-5 h-5 text-green-700 animate-slow-pulse" />
+            </CardHeader>
+            <CardContent className="pt-3">
+              <div className="text-4xl font-bold text-green-700 mb-1">{approvedInvoicesCount}</div>
+              <Link to={`${createPageUrl("Invoices")}?status=approved`} className="text-xs text-green-700 hover:text-green-900 font-semibold hover:underline">
+                View invoices →
+              </Link>
+            </CardContent>
+          </Card>
+        )}
+
         {uconnPendingVendorInvoices > 0 && (
           <Card className={`bg-gradient-to-br from-blue-100 to-blue-50 transition-all duration-300 ${uconnPendingVendorInvoices > 0 ? 'border-[5px] border-blue-600 animate-alert-glow' : 'border-3 border-blue-300 shadow-xl shadow-blue-200/50 hover:scale-105'}`}>
             <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-blue-300">
