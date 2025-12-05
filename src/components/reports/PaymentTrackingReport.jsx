@@ -243,7 +243,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
         // Standard tracking for other locations
         rows.push([`${programGroup} - TRACKING`, '', '', '', '', '', '', '']);
         rows.push(['', '', '', '', '', '', '', '']);
-        rows.push(['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Date/Voucher Number', 'Date Paid Provider', 'Notes']);
+        rows.push(['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', 'Date Paid Provider', 'Notes']);
 
         sortByMonth(groupInvoices);
 
