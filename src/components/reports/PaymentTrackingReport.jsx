@@ -66,7 +66,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
         if (directorshipLocation) {
           rows.push([`${programGroup} - DIRECTORSHIP TRACKING`, '', '', '', '', '', '', '']);
           rows.push(['', '', '', '', '', '', '', '']);
-          rows.push(['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Date/Voucher Number', 'Date Paid Provider', 'Notes']);
+          rows.push(['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Voucher Number', 'Date Paid Provider', 'Notes']);
 
           const directorshipRate = programGroup === 'Hartford Hospital' ? 3250 : 1750;
           
@@ -110,13 +110,13 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
             const providerName = provider?.full_name || 'Unknown';
 
             // Find payment info
-            let paymentInfo = '';
+            let paymentDate = '';
+            let voucherNumber = '';
             payments.forEach(payment => {
               payment.allocations?.forEach(allocation => {
                 if (allocation.invoice_id === invoice.id) {
-                  const payDate = format(parseISO(payment.payment_date), 'MM/dd/yyyy');
-                  const voucher = payment.reference_number || '';
-                  paymentInfo = `${payDate} / ${voucher}`;
+                  paymentDate = format(parseISO(payment.payment_date), 'MM/dd/yyyy');
+                  voucherNumber = payment.reference_number || '';
                 }
               });
             });
@@ -134,7 +134,8 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
               invoice.month || '',
               formatCurrency(expectedAmount),
               formatCurrency(receivedAmount),
-              paymentInfo,
+              paymentDate,
+              voucherNumber,
               invoice.date_provider_paid ? format(parseISO(invoice.date_provider_paid), 'MM/dd/yyyy') : '',
               shouldHideNotes ? '' : (invoice.notes || '')
             ]);
@@ -148,7 +149,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
         if (onCallLocation) {
           rows.push([`${programGroup} - ON-CALL TRACKING`, '', '', '', '', '', '', '']);
           rows.push(['', '', '', '', '', '', '', '']);
-          rows.push(['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Date/Voucher Number', 'Date Paid Provider', 'Notes']);
+          rows.push(['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Voucher Number', 'Date Paid Provider', 'Notes']);
 
           const onCallInvoices = groupInvoices.filter(inv => {
             // For Hartford Hospital, ONLY use invoice number
@@ -192,13 +193,13 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
             const providerName = provider?.full_name || 'Unknown';
 
             // Find payment info
-            let paymentInfo = '';
+            let paymentDate = '';
+            let voucherNumber = '';
             payments.forEach(payment => {
               payment.allocations?.forEach(allocation => {
                 if (allocation.invoice_id === invoice.id) {
-                  const payDate = format(parseISO(payment.payment_date), 'MM/dd/yyyy');
-                  const voucher = payment.reference_number || '';
-                  paymentInfo = `${payDate} / ${voucher}`;
+                  paymentDate = format(parseISO(payment.payment_date), 'MM/dd/yyyy');
+                  voucherNumber = payment.reference_number || '';
                 }
               });
             });
@@ -216,7 +217,8 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
               invoice.month || '',
               formatCurrency(expectedAmount),
               formatCurrency(receivedAmount),
-              paymentInfo,
+              paymentDate,
+              voucherNumber,
               invoice.date_provider_paid ? format(parseISO(invoice.date_provider_paid), 'MM/dd/yyyy') : '',
               shouldHideNotes ? '' : (invoice.notes || '')
             ]);
@@ -242,13 +244,13 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
           const providerName = provider?.full_name || 'Unknown';
 
           // Find payment info
-          let paymentInfo = '';
+          let paymentDate = '';
+          let voucherNumber = '';
           payments.forEach(payment => {
             payment.allocations?.forEach(allocation => {
               if (allocation.invoice_id === invoice.id) {
-                const payDate = format(parseISO(payment.payment_date), 'MM/dd/yyyy');
-                const voucher = payment.reference_number || '';
-                paymentInfo = `${payDate} / ${voucher}`;
+                paymentDate = format(parseISO(payment.payment_date), 'MM/dd/yyyy');
+                voucherNumber = payment.reference_number || '';
               }
             });
           });
@@ -266,7 +268,8 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
             invoice.month || '',
             formatCurrency(expectedAmount),
             formatCurrency(receivedAmount),
-            paymentInfo,
+            paymentDate,
+            voucherNumber,
             invoice.date_provider_paid ? format(parseISO(invoice.date_provider_paid), 'MM/dd/yyyy') : '',
             shouldHideNotes ? '' : (invoice.notes || '')
           ]);
