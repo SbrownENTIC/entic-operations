@@ -70,8 +70,7 @@ Deno.serve(async (req) => {
 
     // Construct Email Content
     const emailSubject = `Manchester ${invoiceMonth} Invoices`;
-    // Using semicolon separator for better Microsoft/Outlook compatibility
-    const toRecipient = "brownsteven89@gmail.com; brownsteven89@icloud.com";
+    const toRecipient = "brownsteven89@gmail.com, brownsteven89@icloud.com";
     // Ensure these are the correct CCs
     const ccRecipients = "steve.brown@enticmd.com";
     
