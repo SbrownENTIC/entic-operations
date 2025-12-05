@@ -64,17 +64,18 @@ Deno.serve(async (req) => {
         providerIds.map(id => base44.asServiceRole.entities.Provider.get(id))
     );
 
-    const providerList = providers.map(p => `- ${p.full_name}`).join('\n');
+    const providerList = providers.map(p => `- ${p.full_name}`).join('\n') || "(No providers identified)";
     
     // Use the month from the first invoice (assuming batch is for same month)
     const invoiceMonth = validInvoices[0].month || 'the invoice period';
-    const invoiceNumbers = validInvoices.map(i => i.invoice_number).join(', ');
+    const invoiceNumbers = validInvoices.map(i => i.invoice_number).join(', ') || "(No Invoice Numbers)";
 
     // Construct Email Content
     const emailSubject = `UConn ${invoiceMonth} Invoices`;
-    const toRecipient = "amoffo@uchc.edu, jserrano@uchc.edu";
+    // Using comma separator without space to ensure compatibility
+    const toRecipient = "amoffo@uchc.edu,jserrano@uchc.edu";
     // Ensure these are the correct CCs
-    const ccRecipients = "steve.brown@enticmd.com, heldridge@enticmd.com";
+    const ccRecipients = "steve.brown@enticmd.com,heldridge@enticmd.com";
     
     const emailBody = `Hey Team,\n\nHope your week is off to a fantastic start.\n\nThe ${invoiceMonth} clinic session details for you to process and enter for:\n\n${providerList}\n\nPlease see the attached invoices.\n\nThank you so much,\nSteve Brown\nOperations Manager`;
 

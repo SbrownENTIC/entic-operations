@@ -62,15 +62,16 @@ Deno.serve(async (req) => {
         providerIds.map(id => base44.asServiceRole.entities.Provider.get(id))
     );
 
-    const providerList = providers.map(p => p.full_name).join('\n');
+    const providerList = providers.map(p => p.full_name).join('\n') || "(No providers identified)";
     
     // Use the month from the first invoice (assuming batch is for same month)
     const invoiceMonth = validInvoices[0].month || 'the invoice period';
-    const invoiceNumbers = validInvoices.map(i => i.invoice_number).join(', ');
+    const invoiceNumbers = validInvoices.map(i => i.invoice_number).join(', ') || "(No Invoice Numbers)";
 
     // Construct Email Content
     const emailSubject = `Manchester ${invoiceMonth} Invoices`;
-    const toRecipient = "brownsteven89@gmail.com, brownsteven89@icloud.com";
+    // Using comma separator without space to ensure compatibility
+    const toRecipient = "brownsteven89@gmail.com,brownsteven89@icloud.com";
     // Ensure these are the correct CCs
     const ccRecipients = "steve.brown@enticmd.com";
     
