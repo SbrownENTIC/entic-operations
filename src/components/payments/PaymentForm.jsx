@@ -227,6 +227,8 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
       newAllocations.pop();
     }
 
+    let newNotes = formData.notes || '';
+
     selectedBulkInvoices.forEach(invoiceId => {
       // Check if already added to avoid duplicates
       if (newAllocations.some(a => a.invoice_id === invoiceId)) return;
@@ -246,18 +248,14 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
         if (invoice.notes && invoice.notes.trim()) {
           const invoiceIdentifier = invoice.invoice_number || `Invoice`;
           const noteToAdd = `${invoiceIdentifier}: ${invoice.notes}`;
-          const currentNotes = formData.notes || '';
-          if (!currentNotes.includes(noteToAdd)) {
-            setFormData(prev => ({ 
-              ...prev, 
-              notes: currentNotes ? `${currentNotes}\n${noteToAdd}` : noteToAdd 
-            }));
+          if (!newNotes.includes(noteToAdd)) {
+            newNotes = newNotes ? `${newNotes}\n${noteToAdd}` : noteToAdd;
           }
         }
       }
     });
 
-    setFormData(prev => ({ ...prev, allocations: newAllocations }));
+    updateForm(prev => ({ ...prev, allocations: newAllocations, notes: newNotes }));
     setShowBulkSelect(false);
   };
 
@@ -281,7 +279,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                 <Input
                   type="date"
                   value={formData.payment_date}
-                  onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })}
+                  onChange={(e) => updateForm({ ...formData, payment_date: e.target.value })}
                   required
                 />
               </div>
@@ -307,7 +305,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                 </label>
                 <Select
                   value={formData.payer}
-                  onValueChange={(value) => setFormData({ ...formData, payer: value })}
+                  onValueChange={(value) => updateForm({ ...formData, payer: value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select payer" />
@@ -330,7 +328,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                   type="number"
                   step="0.01"
                   value={formData.total_amount}
-                  onChange={(e) => setFormData({ ...formData, total_amount: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => updateForm({ ...formData, total_amount: parseFloat(e.target.value) || 0 })}
                   required
                 />
               </div>
@@ -341,7 +339,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                 </label>
                 <Select
                   value={formData.payment_method}
-                  onValueChange={(value) => setFormData({ ...formData, payment_method: value })}
+                  onValueChange={(value) => updateForm({ ...formData, payment_method: value })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -362,7 +360,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                 </label>
                 <Input
                   value={formData.reference_number}
-                  onChange={(e) => setFormData({ ...formData, reference_number: e.target.value })}
+                  onChange={(e) => updateForm({ ...formData, reference_number: e.target.value })}
                   placeholder="Check number or transaction ID"
                 />
               </div>
@@ -373,7 +371,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                 </label>
                 <Select
                   value={formData.status}
-                  onValueChange={(value) => setFormData({ ...formData, status: value })}
+                  onValueChange={(value) => updateForm({ ...formData, status: value })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -558,7 +556,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
               <Textarea
                 id="notes"
                 value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                onChange={(e) => updateForm({ ...formData, notes: e.target.value })}
                 rows={4}
               />
             </div>

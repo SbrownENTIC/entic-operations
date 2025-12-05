@@ -107,7 +107,7 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
   // Handle flu vaccine date change
   const handleFluVaccineDateChange = (dateString) => {
     const yearRange = calculateFluVaccineYear(dateString);
-    setFormData({ 
+    updateForm({ 
       ...formData, 
       flu_vaccine_date: dateString,
       flu_vaccine_year: yearRange
@@ -186,7 +186,7 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
   };
 
   const toggleLocation = (locationId) => {
-    setFormData(prev => ({
+    updateForm(prev => ({
       ...prev,
       program_locations: prev.program_locations.includes(locationId)
         ? prev.program_locations.filter(l => l !== locationId)
@@ -194,8 +194,24 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
     }));
   };
 
+  // Helpers for nested lists to also trigger dirty state
+  const updateLicenses = (newLicenses) => {
+    setLicenses(newLicenses);
+    setIsDirty(true);
+  };
+
+  const updateCmeRecords = (newRecords) => {
+    setCmeRecords(newRecords);
+    setIsDirty(true);
+  };
+
+  const updatePrivileges = (newPrivileges) => {
+    setPrivileges(newPrivileges);
+    setIsDirty(true);
+  };
+
   const addLicense = () => {
-    setLicenses([...licenses, {
+    updateLicenses([...licenses, {
       license_type: 'MED',
       issue_date: '',
       expiration_date: '',
@@ -205,17 +221,17 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
   };
 
   const removeLicense = (index) => {
-    setLicenses(licenses.filter((_, i) => i !== index));
+    updateLicenses(licenses.filter((_, i) => i !== index));
   };
 
   const updateLicense = (index, field, value) => {
     const newLicenses = [...licenses];
     newLicenses[index] = { ...newLicenses[index], [field]: value };
-    setLicenses(newLicenses);
+    updateLicenses(newLicenses);
   };
 
   const addCME = () => {
-    setCmeRecords([...cmeRecords, {
+    updateCmeRecords([...cmeRecords, {
       course_name: '',
       credits: 0,
       completion_date: '',
@@ -224,17 +240,17 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
   };
 
   const removeCME = (index) => {
-    setCmeRecords(cmeRecords.filter((_, i) => i !== index));
+    updateCmeRecords(cmeRecords.filter((_, i) => i !== index));
   };
 
   const updateCME = (index, field, value) => {
     const newCME = [...cmeRecords];
     newCME[index] = { ...newCME[index], [field]: value };
-    setCmeRecords(newCME);
+    updateCmeRecords(newCME);
   };
 
   const addPrivilege = () => {
-    setPrivileges([...privileges, {
+    updatePrivileges([...privileges, {
       facility_name: 'Hartford Hospital',
       granted_date: '',
       expiration_date: '',
@@ -244,13 +260,13 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
   };
 
   const removePrivilege = (index) => {
-    setPrivileges(privileges.filter((_, i) => i !== index));
+    updatePrivileges(privileges.filter((_, i) => i !== index));
   };
 
   const updatePrivilege = (index, field, value) => {
     const newPrivileges = [...privileges];
     newPrivileges[index] = { ...newPrivileges[index], [field]: value };
-    setPrivileges(newPrivileges);
+    updatePrivileges(newPrivileges);
   };
 
   return (
@@ -271,7 +287,7 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
               <Input
                 id="full_name"
                 value={formData.full_name}
-                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                onChange={(e) => updateForm({ ...formData, full_name: e.target.value })}
                 required
               />
             </div>
@@ -282,7 +298,7 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
                 id="email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) => updateForm({ ...formData, email: e.target.value })}
                 required
               />
             </div>
@@ -293,13 +309,13 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
                 id="phone"
                 type="tel"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                onChange={(e) => updateForm({ ...formData, phone: e.target.value })}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="status">Status *</Label>
-              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+              <Select value={formData.status} onValueChange={(value) => updateForm({ ...formData, status: value })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -316,7 +332,7 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
                 id="role"
                 placeholder="e.g., ENT DM, Audiologist, PA"
                 value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                onChange={(e) => updateForm({ ...formData, role: e.target.value })}
               />
             </div>
 
@@ -324,7 +340,7 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
               <Label htmlFor="termination_date">Termination Date / Last Day of Work</Label>
               <DatePicker
                 value={formData.termination_date}
-                onChange={(date) => setFormData({ ...formData, termination_date: date })}
+                onChange={(date) => updateForm({ ...formData, termination_date: date })}
               />
               <p className="text-xs text-slate-500">Provider will automatically become inactive on this date</p>
             </div>
@@ -379,7 +395,7 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
               <Textarea
                 id="notes"
                 value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                onChange={(e) => updateForm({ ...formData, notes: e.target.value })}
                 rows={3}
               />
             </div>
