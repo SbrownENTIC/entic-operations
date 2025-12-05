@@ -833,9 +833,25 @@ export default function Invoices() {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="max-w-md border-slate-200"
-                  />
-                </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    />
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                    {['Q1', 'Q2', 'Q3', 'Q4'].map(q => (
+                    <Button
+                      key={q}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleMarkQuarterPaid(q)}
+                      disabled={bulkUpdateMutation.isPending}
+                      className="h-auto py-1 px-1 text-[10px] leading-3 whitespace-normal w-[50px] text-center border-slate-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
+                    >
+                      Pay Provider {q}
+                    </Button>
+                    ))}
+                    </div>
+
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-[180px] bg-white">
                     <SelectValue placeholder="Filter by Status" />
                   </SelectTrigger>
@@ -863,21 +879,7 @@ export default function Invoices() {
                 </Button>
                 </div>
 
-                {/* Bulk Quarter Actions */}
-                <div className="flex flex-wrap items-center gap-2 pt-3 mt-1 border-t border-slate-100">
-                  {['Q1', 'Q2', 'Q3', 'Q4'].map(q => (
-                    <Button
-                      key={q}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleMarkQuarterPaid(q)}
-                      disabled={bulkUpdateMutation.isPending}
-                      className="h-8 text-xs border-slate-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
-                    >
-                      Pay Provider {q}
-                    </Button>
-                  ))}
-                </div>
+
               {selectedInvoices.length > 0 && (
                 <div className="flex flex-col xl:flex-row items-center justify-between gap-2 p-1.5 bg-blue-50 rounded-lg border border-blue-200 shadow-sm">
                   <div className="flex items-center gap-2 shrink-0">
