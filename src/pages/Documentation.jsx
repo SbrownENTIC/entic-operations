@@ -19,6 +19,7 @@ export default function Documentation() {
           <TabsTrigger value="system" className="py-3">How System Works</TabsTrigger>
           <TabsTrigger value="maintenance" className="py-3">Maintenance Guide</TabsTrigger>
           <TabsTrigger value="checklist" className="py-3">Steve's Checklist</TabsTrigger>
+          <TabsTrigger value="manual" className="py-3">User Manual</TabsTrigger>
         </TabsList>
 
         {/* SOPs Content */}
@@ -171,6 +172,34 @@ export default function Documentation() {
                         <li><strong>Reject:</strong> Enter reason. Status changes to <em>Rejected</em>.</li>
                       </ul>
                       <p>4. <strong>Fulfillment:</strong> When items arrive, mark individual items as "Received". When all items are received, Order Status becomes <em>Received</em>.</p>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </CardContent>
+            </Card>
+
+            {/* REPORTS SOP */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><ClipboardList className="w-5 h-5 text-purple-600" /> Reports Module</CardTitle>
+                <CardDescription>Financial & Operational Insights</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Accordion type="single" collapsible>
+                  <AccordionItem value="financials">
+                    <AccordionTrigger>Key Financial Reports</AccordionTrigger>
+                    <AccordionContent className="text-sm text-slate-600 space-y-2">
+                      <p><strong>Payment Tracking:</strong> Comprehensive view of all payments and their allocations.</p>
+                      <p><strong>Invoice Aging:</strong> Breakdown of outstanding invoices by age (30/60/90 days) to prioritize collections.</p>
+                      <p><strong>Monthly Financials:</strong> Essential for provider payouts. Shows exactly how much was collected for each provider in a given month.</p>
+                    </AccordionContent>
+                  </AccordionItem>
+                  <AccordionItem value="operational">
+                    <AccordionTrigger>Operational Reports</AccordionTrigger>
+                    <AccordionContent className="text-sm text-slate-600 space-y-2">
+                      <p><strong>Supply Orders:</strong> Analyze spending by location or month to identify trends.</p>
+                      <p><strong>Unlinked Invoices:</strong> Quickly find invoices that haven't been paid or allocated yet.</p>
+                      <p><strong>Outside Income:</strong> Summary of all logged shifts and revenue by facility.</p>
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>
