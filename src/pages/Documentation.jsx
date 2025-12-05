@@ -7,26 +7,27 @@ import { CheckCircle2, AlertCircle, FileText, Settings, Users, DollarSign, Calen
 
 export default function Documentation() {
   return (
-    <div className="container mx-auto py-8 px-4 max-w-6xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900">System Documentation</h1>
-        <p className="text-slate-600 mt-2">Comprehensive operating procedures, system logic, and maintenance guides for the ENTIC Operations Center.</p>
+    <div className="container mx-auto py-6 px-4 max-w-6xl h-[calc(100vh-6rem)] flex flex-col">
+      <div className="mb-6 flex-shrink-0">
+        <h1 className="text-2xl font-bold text-slate-900">System Documentation</h1>
+        <p className="text-slate-600 mt-1 text-sm">Comprehensive operating procedures, system logic, and maintenance guides for the ENTIC Operations Center.</p>
       </div>
 
-      <Tabs defaultValue="sops" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-1 md:grid-cols-4 h-auto">
-          <TabsTrigger value="sops" className="py-3">SOPs (Modules)</TabsTrigger>
-          <TabsTrigger value="system" className="py-3">How System Works</TabsTrigger>
-          <TabsTrigger value="maintenance" className="py-3">Maintenance Guide</TabsTrigger>
-          <TabsTrigger value="checklist" className="py-3">Steve's Checklist</TabsTrigger>
-          <TabsTrigger value="manual" className="py-3">User Manual</TabsTrigger>
+      <Tabs defaultValue="sops" className="flex-1 flex flex-col overflow-hidden">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto flex-shrink-0 gap-1 bg-slate-100/50 p-1">
+          <TabsTrigger value="sops" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm">SOPs (Modules)</TabsTrigger>
+          <TabsTrigger value="system" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm">How System Works</TabsTrigger>
+          <TabsTrigger value="maintenance" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm">Maintenance Guide</TabsTrigger>
+          <TabsTrigger value="checklist" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm">Steve's Checklist</TabsTrigger>
+          <TabsTrigger value="manual" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm">User Manual</TabsTrigger>
         </TabsList>
 
         {/* SOPs Content */}
-        <TabsContent value="sops">
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* INVOICES SOP */}
-            <Card>
+        <TabsContent value="sops" className="flex-1 overflow-hidden mt-4">
+          <ScrollArea className="h-full pr-4">
+            <div className="grid gap-6 md:grid-cols-2 pb-6">
+              {/* INVOICES SOP */}
+              <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><FileText className="w-5 h-5 text-blue-600" /> Invoices Module</CardTitle>
                 <CardDescription>Billing workflows for all facility types</CardDescription>
@@ -206,13 +207,15 @@ export default function Documentation() {
               </CardContent>
             </Card>
           </div>
+          </ScrollArea>
         </TabsContent>
 
         {/* SYSTEM LOGIC */}
-        <TabsContent value="system">
-          <Card>
-            <CardHeader>
-              <CardTitle>How the System Works (The "Magic")</CardTitle>
+        <TabsContent value="system" className="flex-1 overflow-hidden mt-4">
+          <ScrollArea className="h-full pr-4">
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>How the System Works (The "Magic")</CardTitle>
               <CardDescription>Understanding the automation and data relationships</CardDescription>
             </CardHeader>
             <CardContent className="space-y-8">
@@ -274,13 +277,15 @@ export default function Documentation() {
 
             </CardContent>
           </Card>
+          </ScrollArea>
         </TabsContent>
 
         {/* MAINTENANCE GUIDE */}
-        <TabsContent value="maintenance">
-          <Card>
-            <CardHeader>
-              <CardTitle>Maintenance & Troubleshooting</CardTitle>
+        <TabsContent value="maintenance" className="flex-1 overflow-hidden mt-4">
+          <ScrollArea className="h-full pr-4">
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Maintenance & Troubleshooting</CardTitle>
               <CardDescription>Tools to keep data clean and accurate</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -344,15 +349,15 @@ export default function Documentation() {
         </TabsContent>
 
         {/* STEVE'S CHECKLIST */}
-        <TabsContent value="checklist">
-          <Card className="border-l-4 border-l-blue-600 bg-slate-50/50">
-            <CardHeader>
-              <CardTitle>When Steve Is Out: Coverage Checklist</CardTitle>
+        <TabsContent value="checklist" className="flex-1 overflow-hidden mt-4">
+          <ScrollArea className="h-full pr-4">
+            <Card className="border-l-4 border-l-blue-600 bg-slate-50/50 mb-6">
+              <CardHeader>
+                <CardTitle>When Steve Is Out: Coverage Checklist</CardTitle>
               <CardDescription>Essential tasks to ensure zero downtime</CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[600px] pr-4">
-                <div className="space-y-8">
+              <div className="space-y-8">
                   
                   {/* DAILY */}
                   <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
@@ -432,22 +437,22 @@ export default function Documentation() {
                   </div>
 
                 </div>
-              </ScrollArea>
             </CardContent>
           </Card>
+          </ScrollArea>
         </TabsContent>
 
         {/* USER MANUAL */}
-        <TabsContent value="manual">
-          <div className="space-y-8">
-            <Card>
-              <CardHeader className="bg-slate-50 border-b border-slate-100">
+        <TabsContent value="manual" className="flex-1 overflow-hidden mt-4">
+          <div className="h-full flex flex-col">
+            <Card className="flex-1 flex flex-col overflow-hidden">
+              <CardHeader className="bg-slate-50 border-b border-slate-100 flex-shrink-0">
                 <CardTitle>ENTIC Operations Center User Manual</CardTitle>
                 <CardDescription>A complete guide to navigating and using the system</CardDescription>
               </CardHeader>
-              <CardContent className="p-0">
-                <div className="grid md:grid-cols-[250px_1fr] divide-x divide-slate-100">
-                  <div className="p-4 bg-slate-50/50">
+              <CardContent className="p-0 flex-1 overflow-hidden">
+                <div className="grid md:grid-cols-[250px_1fr] divide-x divide-slate-100 h-full">
+                  <div className="p-4 bg-slate-50/50 overflow-y-auto">
                     <h4 className="font-semibold text-sm text-slate-900 mb-3">Table of Contents</h4>
                     <nav className="space-y-1 text-sm">
                       <a href="#dashboard" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">1. Dashboard</a>
@@ -460,7 +465,7 @@ export default function Documentation() {
                     </nav>
                   </div>
                   
-                  <ScrollArea className="h-[600px]">
+                  <ScrollArea className="h-full">
                     <div className="p-8 space-y-10">
                       
                       {/* 1. Dashboard */}
@@ -599,15 +604,15 @@ export default function Documentation() {
         </TabsContent>
       </Tabs>
 
-      <div className="mt-12">
+      <div className="mt-6 flex-shrink-0">
         <Card className="bg-slate-50 border-slate-200">
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="bg-blue-100 p-3 rounded-full">
-              <Users className="w-6 h-6 text-blue-600" />
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="bg-blue-100 p-2 rounded-full">
+              <Users className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <h3 className="font-bold text-slate-900">Questions or Concerns?</h3>
-              <p className="text-slate-600">
+              <h3 className="font-bold text-slate-900 text-sm">Questions or Concerns?</h3>
+              <p className="text-slate-600 text-xs">
                 Please email your system administrator, <strong>Steve Brown</strong>, at <a href="mailto:steve.brown@enticmd.com" className="text-blue-600 hover:underline">steve.brown@enticmd.com</a>.
               </p>
             </div>
