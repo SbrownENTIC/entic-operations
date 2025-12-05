@@ -448,19 +448,36 @@ export default function Documentation() {
         <TabsContent value="manual" className="flex-1 overflow-hidden mt-4">
           <style>{`
             @media print {
+              @page { margin: 2cm; }
               body * { visibility: hidden; }
-              .manual-print-content, .manual-print-content * { visibility: visible; }
-              .manual-print-content { 
+              .manual-print-wrapper, .manual-print-wrapper * { visibility: visible; }
+              .manual-print-wrapper { 
                 position: absolute; 
                 left: 0; 
                 top: 0; 
                 width: 100%; 
                 height: auto !important; 
-                overflow: visible !important; 
+                overflow: visible !important;
+                display: block !important;
               }
-              /* Hide scroll area wrappers */
+              /* Reset layout for print */
+              .manual-toc-section {
+                width: 100% !important;
+                height: auto !important;
+                overflow: visible !important;
+                border-right: none !important;
+                border-bottom: 1px solid #e2e8f0;
+                margin-bottom: 2rem;
+                page-break-after: always;
+              }
+              .manual-content-section {
+                padding: 0 !important;
+                height: auto !important;
+                overflow: visible !important;
+              }
+              /* Hide scroll area wrappers and other artifacts */
               .scroll-area-viewport { overflow: visible !important; }
-              /* Hide elements that shouldn't print */
+              [data-radix-scroll-area-viewport] { overflow: visible !important; }
               .no-print { display: none !important; }
             }
           `}</style>
@@ -477,8 +494,8 @@ export default function Documentation() {
                 </Button>
               </CardHeader>
               <CardContent className="p-0 flex-1 overflow-hidden">
-                <div className="grid md:grid-cols-[250px_1fr] divide-x divide-slate-100 h-full">
-                  <div className="p-4 bg-slate-50/50 overflow-y-auto no-print">
+                <div className="grid md:grid-cols-[250px_1fr] divide-x divide-slate-100 h-full manual-print-wrapper">
+                  <div className="p-4 bg-slate-50/50 overflow-y-auto manual-toc-section">
                     <h4 className="font-semibold text-sm text-slate-900 mb-3">Table of Contents</h4>
                     <nav className="space-y-1 text-sm">
                       <a href="#dashboard" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">1. Dashboard</a>
@@ -491,8 +508,8 @@ export default function Documentation() {
                     </nav>
                   </div>
                   
-                  <ScrollArea className="h-full">
-                    <div className="p-8 space-y-10 manual-print-content">
+                  <ScrollArea className="h-full manual-content-section">
+                    <div className="p-8 space-y-10">
                       
                       {/* 1. Dashboard */}
                       <section id="dashboard" className="space-y-4">
