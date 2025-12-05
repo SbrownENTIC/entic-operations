@@ -436,6 +436,38 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
     );
   });
 
+  // Helper to ensure mutual exclusivity of status checkboxes
+  const handleStatusCheckboxChange = (targetStatus, booleanFieldToSet, isChecked) => {
+    if (!isChecked) {
+      if (booleanFieldToSet) {
+        handleChange(booleanFieldToSet, false);
+      }
+      return;
+    }
+
+    const updates = {};
+    const booleanFields = ['provider_paid', 'invoice_ready_to_send', 'invoice_sent_for_approval', 'invoice_sent_to_vendor'];
+    
+    // Uncheck all boolean fields
+    booleanFields.forEach(field => {
+      updates[field] = false;
+    });
+
+    // Set the target boolean field
+    if (booleanFieldToSet) {
+      updates[booleanFieldToSet] = true;
+    }
+
+    // Update status
+    if (targetStatus) {
+      updates.status = targetStatus;
+      manualEditFlags.current.status = true;
+    }
+
+    setFormData(prev => ({ ...prev, ...updates }));
+    setIsDirty(true);
+  };
+
   return (
     <Card className="border-slate-200 shadow-sm">
       <CardHeader className="border-b border-slate-100">
@@ -686,7 +718,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
               <Checkbox
                 id="provider_paid"
                 checked={formData.provider_paid}
-                onCheckedChange={(checked) => { handleChange('provider_paid', checked); }}
+                onCheckedChange={(checked) => handleStatusCheckboxChange('provider_paid', 'provider_paid', checked)}
               />
               <label htmlFor="provider_paid" className="text-sm font-medium cursor-pointer">
                 Provider Paid
@@ -697,7 +729,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
               <Checkbox
                 id="invoice_ready_to_send"
                 checked={formData.invoice_ready_to_send}
-                onCheckedChange={(checked) => { handleChange('invoice_ready_to_send', checked); }}
+                onCheckedChange={(checked) => handleStatusCheckboxChange('approved', 'invoice_ready_to_send', checked)}
               />
               <label htmlFor="invoice_ready_to_send" className="text-sm font-medium cursor-pointer">
                 Invoice Ready to Send
@@ -708,16 +740,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
               <Checkbox
                 id="invoice_sent_for_approval"
                 checked={formData.invoice_sent_for_approval}
-                onCheckedChange={(checked) => {
-                  setIsDirty(true);
-                  const updates = { invoice_sent_for_approval: checked };
-                  // If checked, auto-update status unless already further along
-                  if (checked && formData.status !== 'paid_to_entic' && formData.status !== 'provider_paid' && formData.status !== 'sent_to_vendor') {
-                    updates.status = 'sent_for_approval';
-                    manualEditFlags.current.status = true;
-                  }
-                  setFormData({ ...formData, ...updates });
-                }}
+                onCheckedChange={(checked) => handleStatusCheckboxChange('sent_for_approval', 'invoice_sent_for_approval', checked)}
               />
               <label htmlFor="invoice_sent_for_approval" className="text-sm font-medium cursor-pointer">
                 Invoice Sent for Approval
@@ -728,16 +751,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
               <Checkbox
                 id="invoice_sent_to_vendor"
                 checked={formData.invoice_sent_to_vendor}
-                onCheckedChange={(checked) => {
-                  setIsDirty(true);
-                  const updates = { invoice_sent_to_vendor: checked };
-                  // If checked, auto-update status unless already paid
-                  if (checked && formData.status !== 'paid_to_entic' && formData.status !== 'provider_paid') {
-                    updates.status = 'sent_to_vendor';
-                    manualEditFlags.current.status = true;
-                  }
-                  setFormData({ ...formData, ...updates });
-                }}
+                onCheckedChange={(checked) => handleStatusCheckboxChange('sent_to_vendor', 'invoice_sent_to_vendor', checked)}
               />
               <label htmlFor="invoice_sent_to_vendor" className="text-sm font-medium cursor-pointer">
                 Invoice Sent to Vendor
@@ -748,13 +762,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
               <Checkbox
                 id="pending_providers_time"
                 checked={formData.status === 'pending_providers_time'}
-                onCheckedChange={(checked) => {
-                  if (checked) {
-                    setFormData({ ...formData, status: 'pending_providers_time' });
-                    manualEditFlags.current.status = true;
-                    setIsDirty(true);
-                  }
-                }}
+                onCheckedChange={(checked) => handleStatusCheckboxChange('pending_providers_time', null, checked)}
               />
               <label htmlFor="pending_providers_time" className="text-sm font-medium cursor-pointer">
                 Provider Needs to Enter Time
@@ -765,13 +773,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
               <Checkbox
                 id="pending_providers_approval"
                 checked={formData.status === 'pending_providers_approval'}
-                onCheckedChange={(checked) => {
-                  if (checked) {
-                    setFormData({ ...formData, status: 'pending_providers_approval' });
-                    manualEditFlags.current.status = true;
-                    setIsDirty(true);
-                  }
-                }}
+                onCheckedChange={(checked) => handleStatusCheckboxChange('pending_providers_approval', null, checked)}
               />
               <label htmlFor="pending_providers_approval" className="text-sm font-medium cursor-pointer">
                 Sent to Provider for Approval
@@ -782,13 +784,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
               <Checkbox
                 id="sent_to_coo_for_approval"
                 checked={formData.status === 'sent_to_coo_for_approval'}
-                onCheckedChange={(checked) => {
-                  if (checked) {
-                    setFormData({ ...formData, status: 'sent_to_coo_for_approval' });
-                    manualEditFlags.current.status = true;
-                    setIsDirty(true);
-                  }
-                }}
+                onCheckedChange={(checked) => handleStatusCheckboxChange('sent_to_coo_for_approval', null, checked)}
               />
               <label htmlFor="sent_to_coo_for_approval" className="text-sm font-medium cursor-pointer">
                 Sent to COO for Approval
@@ -799,13 +795,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
               <Checkbox
                 id="sent_for_approval"
                 checked={formData.status === 'sent_for_approval'}
-                onCheckedChange={(checked) => {
-                  if (checked) {
-                    setFormData({ ...formData, status: 'sent_for_approval' });
-                    manualEditFlags.current.status = true;
-                    setIsDirty(true);
-                  }
-                }}
+                onCheckedChange={(checked) => handleStatusCheckboxChange('sent_for_approval', null, checked)}
               />
               <label htmlFor="sent_for_approval" className="text-sm font-medium cursor-pointer">
                 Sent to Vendor for Approval
