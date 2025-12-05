@@ -3,7 +3,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CheckCircle2, AlertCircle, FileText, Settings, Users, DollarSign, Calendar, ClipboardList, ShieldAlert, Package, CreditCard, Bell } from "lucide-react";
+import { CheckCircle2, AlertCircle, FileText, Settings, Users, DollarSign, Calendar, ClipboardList, ShieldAlert, Package, CreditCard, Bell, Printer } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function Documentation() {
   return (
@@ -445,15 +446,39 @@ export default function Documentation() {
 
         {/* USER MANUAL */}
         <TabsContent value="manual" className="flex-1 overflow-hidden mt-4">
+          <style>{`
+            @media print {
+              body * { visibility: hidden; }
+              .manual-print-content, .manual-print-content * { visibility: visible; }
+              .manual-print-content { 
+                position: absolute; 
+                left: 0; 
+                top: 0; 
+                width: 100%; 
+                height: auto !important; 
+                overflow: visible !important; 
+              }
+              /* Hide scroll area wrappers */
+              .scroll-area-viewport { overflow: visible !important; }
+              /* Hide elements that shouldn't print */
+              .no-print { display: none !important; }
+            }
+          `}</style>
           <div className="h-full flex flex-col">
             <Card className="flex-1 flex flex-col overflow-hidden">
-              <CardHeader className="bg-slate-50 border-b border-slate-100 flex-shrink-0">
-                <CardTitle>ENTIC Operations Center User Manual</CardTitle>
-                <CardDescription>A complete guide to navigating and using the system</CardDescription>
+              <CardHeader className="bg-slate-50 border-b border-slate-100 flex-shrink-0 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>ENTIC Operations Center User Manual</CardTitle>
+                  <CardDescription>A complete guide to navigating and using the system</CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-2 no-print">
+                  <Printer className="w-4 h-4" />
+                  Print Manual
+                </Button>
               </CardHeader>
               <CardContent className="p-0 flex-1 overflow-hidden">
                 <div className="grid md:grid-cols-[250px_1fr] divide-x divide-slate-100 h-full">
-                  <div className="p-4 bg-slate-50/50 overflow-y-auto">
+                  <div className="p-4 bg-slate-50/50 overflow-y-auto no-print">
                     <h4 className="font-semibold text-sm text-slate-900 mb-3">Table of Contents</h4>
                     <nav className="space-y-1 text-sm">
                       <a href="#dashboard" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">1. Dashboard</a>
@@ -467,7 +492,7 @@ export default function Documentation() {
                   </div>
                   
                   <ScrollArea className="h-full">
-                    <div className="p-8 space-y-10">
+                    <div className="p-8 space-y-10 manual-print-content">
                       
                       {/* 1. Dashboard */}
                       <section id="dashboard" className="space-y-4">
