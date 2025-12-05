@@ -121,7 +121,7 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
               <Combobox
                 options={providers.map(p => ({ value: p.id, label: p.full_name }))}
                 value={formData.provider_id}
-                onChange={(value) => setFormData({ ...formData, provider_id: value })}
+                onChange={(value) => { setIsDirty(true); setFormData({ ...formData, provider_id: value })}
                 placeholder="Select provider..."
                 searchPlaceholder="Search providers..."
                 emptyText="No provider found"
@@ -152,7 +152,7 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
                   <Label htmlFor="start_date">Start Date *</Label>
                   <DatePicker
                     value={formData.start_date}
-                    onChange={(date) => setFormData({ ...formData, start_date: date })}
+                    onChange={(date) => { setIsDirty(true); setFormData({ ...formData, start_date: date })}
                   />
                 </div>
 
@@ -160,7 +160,7 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
                   <Label htmlFor="end_date">End Date *</Label>
                   <DatePicker
                     value={formData.end_date}
-                    onChange={(date) => setFormData({ ...formData, end_date: date })}
+                    onChange={(date) => { setIsDirty(true); setFormData({ ...formData, end_date: date })}
                   />
                 </div>
               </>
@@ -169,7 +169,7 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
                 <Label>Select Dates *</Label>
                 <MultiDatePicker
                   value={selectedDates}
-                  onChange={setSelectedDates}
+                  onChange={(dates) => { setIsDirty(true); setSelectedDates(dates); }}
                   placeholder="Pick multiple days (consecutive days will be grouped)"
                 />
                 <p className="text-xs text-slate-500 mt-1">
@@ -185,7 +185,7 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
                   id="partial_day_end_time"
                   type="time"
                   value={formData.partial_day_end_time}
-                  onChange={(e) => setFormData({ ...formData, partial_day_end_time: e.target.value })}
+                  onChange={(e) => { setIsDirty(true); setFormData({ ...formData, partial_day_end_time: e.target.value })}
                   placeholder="e.g., 12:00 PM"
                 />
               </div>
@@ -196,7 +196,7 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
               <Combobox
                 options={[...new Set([...COMMON_REASONS, ...(formData.reason ? [formData.reason] : [])])].map(r => ({ value: r, label: r }))}
                 value={formData.reason}
-                onChange={(value) => setFormData({ ...formData, reason: value })}
+                onChange={(value) => { setIsDirty(true); setFormData({ ...formData, reason: value })}
                 placeholder="Select or type a reason..."
                 searchPlaceholder="Search reasons..."
                 creatable
@@ -227,7 +227,7 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
             <Textarea
               id="notes"
               value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              onChange={(e) => { setIsDirty(true); setFormData({ ...formData, notes: e.target.value })}
               rows={3}
               placeholder="Additional notes or details"
             />

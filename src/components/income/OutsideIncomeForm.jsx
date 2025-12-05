@@ -143,6 +143,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
   };
 
   const addWorkDate = () => {
+    setIsDirty(true);
     setFormData({
       ...formData,
       work_dates: [...formData.work_dates, '']
@@ -150,6 +151,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
   };
 
   const removeWorkDate = (index) => {
+    setIsDirty(true);
     setFormData({
       ...formData,
       work_dates: formData.work_dates.filter((_, i) => i !== index)
@@ -157,6 +159,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
   };
 
   const updateWorkDate = (index, value) => {
+    setIsDirty(true);
     const newDates = [...formData.work_dates];
     newDates[index] = value;
     setFormData({ ...formData, work_dates: newDates });
@@ -205,6 +208,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
                             key={provider.id}
                             value={provider.full_name}
                             onSelect={() => {
+                              setIsDirty(true);
                               setFormData({ ...formData, provider_id: provider.id });
                               setOpen(false);
                             }}
@@ -251,7 +255,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
               <Input
                 id="facility_name"
                 value={formData.facility_name}
-                onChange={(e) => setFormData({ ...formData, facility_name: e.target.value })}
+                onChange={(e) => { setIsDirty(true); setFormData({ ...formData, facility_name: e.target.value })}
               />
             </div>
 
@@ -263,7 +267,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
                   type="number"
                   step="0.01"
                   value={formData.total_rvus}
-                  onChange={(e) => setFormData({ ...formData, total_rvus: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => { setIsDirty(true); setFormData({ ...formData, total_rvus: parseFloat(e.target.value) || 0 })}
                   required
                 />
               </div>
@@ -286,7 +290,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
                   type="number"
                   step="0.01"
                   value={formData.rate}
-                  onChange={(e) => setFormData({ ...formData, rate: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => { setIsDirty(true); setFormData({ ...formData, rate: parseFloat(e.target.value) || 0 })}
                 />
               </div>
             )}
@@ -300,7 +304,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
                     type="number"
                     step="0.01"
                     value={formData.total_amount}
-                    onChange={(e) => setFormData({ ...formData, total_amount: parseFloat(e.target.value) || 0 })}
+                    onChange={(e) => { setIsDirty(true); setFormData({ ...formData, total_amount: parseFloat(e.target.value) || 0 })}
                     required
                     className="text-lg font-semibold"
                   />
@@ -343,7 +347,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
                 id="temp_oncall_start_date"
                 type="date"
                 value={formData.temp_oncall_start_date}
-                onChange={(e) => setFormData({ ...formData, temp_oncall_start_date: e.target.value })}
+                onChange={(e) => { setIsDirty(true); setFormData({ ...formData, temp_oncall_start_date: e.target.value })}
               />
             </div>
           </div>
@@ -384,7 +388,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
             <Textarea
               id="notes"
               value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              onChange={(e) => { setIsDirty(true); setFormData({ ...formData, notes: e.target.value })}
               rows={3}
             />
           </div>
