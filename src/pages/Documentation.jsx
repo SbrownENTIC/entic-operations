@@ -450,104 +450,48 @@ export default function Documentation() {
         <TabsContent value="manual" className="flex-1 overflow-hidden mt-4">
           <style>{`
             @media print {
-              @page { margin: 15mm; size: auto; }
-              
-              /* GLOBAL RESET */
-              html, body {
-                height: auto !important;
-                min-height: 0 !important;
-                overflow: visible !important;
-                background: white !important;
-                width: 100% !important;
-                margin: 0 !important;
-                padding: 0 !important;
+              @page { 
+                margin: 1.5cm; 
+                size: auto; 
               }
 
-              /* HIDE EVERYTHING BY DEFAULT */
-              body * {
-                visibility: hidden;
-              }
-              
-              /* TARGET THE INNER CONTENT DIRECTLY */
-              .manual-inner-content, 
-              .manual-inner-content * { 
-                visibility: visible !important;
-              }
-
-              /* POSITION THE CONTENT AT THE TOP, BYPASSING PARENTS */
-              .manual-inner-content {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100% !important;
-                height: auto !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                overflow: visible !important;
-                display: block !important;
-                background: white !important;
-                z-index: 9999;
-              }
-              
-              /* Ensure text is black and readable */
-              .manual-inner-content p, 
-              .manual-inner-content li,
-              .manual-inner-content h1,
-              .manual-inner-content h2,
-              .manual-inner-content h3,
-              .manual-inner-content h4 {
-                 color: black !important;
-              }
-
-              /* Hide TOC explicitly */
-              .manual-toc-section {
-                display: none !important;
-              }
-
-              section {
-                page-break-inside: avoid;
-                margin-bottom: 30px !important;
-                border-bottom: 1px solid #eee;
-                padding-bottom: 20px;
-              }
-
-              /* TEXT STYLING */
-              h1, h2, h3, h4 { color: black !important; }
-              p, li { color: black !important; font-size: 12pt !important; }
-              a { text-decoration: none !important; color: black !important; }
-
-              /* UTILS */
-              .no-print { display: none !important; }
-            }
-
-            @media print {
-              /* Hide the entire application root */
+              /* Hide the main app root */
               #root {
                 display: none !important;
               }
 
-              /* Ensure the portal container is visible */
+              /* Reset body/html for full page printing */
+              html, body {
+                height: auto !important;
+                min-height: 100% !important;
+                overflow: visible !important;
+                background: white !important;
+                margin: 0 !important;
+                padding: 0 !important;
+              }
+
+              /* Show the portal and ensure it is visible */
               .print-portal {
                 display: block !important;
                 position: absolute;
                 top: 0;
                 left: 0;
                 width: 100%;
+                height: auto;
                 background: white;
                 z-index: 9999;
+                visibility: visible !important;
               }
 
-              /* Reset page properties */
-              @page {
-                margin: 1.5cm;
-                size: auto;
+              /* Ensure all children of the portal are visible */
+              .print-portal * {
+                visibility: visible !important;
+                color-adjust: exact;
+                -webkit-print-color-adjust: exact;
               }
 
-              html, body {
-                height: auto !important;
-                overflow: visible !important;
-                background: white !important;
-              }
+              /* Utilities */
+              .no-print { display: none !important; }
             }
 
             /* Hide portal on screen */
