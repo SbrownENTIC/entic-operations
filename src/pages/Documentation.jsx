@@ -486,11 +486,14 @@ export default function Documentation() {
               }
 
               /* RESET SCROLL AREAS - CRITICAL FOR PAGINATION */
+              .manual-print-wrapper [data-radix-scroll-area-root],
               .manual-print-wrapper [data-radix-scroll-area-viewport],
               .manual-print-wrapper [data-radix-scroll-area-viewport] > div {
+                position: static !important;
                 display: block !important;
                 height: auto !important;
                 overflow: visible !important;
+                width: 100% !important;
               }
 
               /* TOC STYLING */
