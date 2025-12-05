@@ -281,18 +281,40 @@ export default function Dashboard() {
   );
 
   const providersMissingPriorInvoice = targetProviders.filter(provider => {
+    // Special rule for Belachew Tessema - must have Hartford Hospital invoice
+    const isTessema = provider.full_name.toLowerCase().includes('belachew tessema');
+
     // Check if provider is the primary staff member on an invoice for the month
-    const isPrimaryOnInvoice = invoices.some(inv => 
-      inv.staff_member_id === provider.id && 
-      inv.month === previousMonthStr
-    );
+    const isPrimaryOnInvoice = invoices.some(inv => {
+      const matchProvider = inv.staff_member_id === provider.id;
+      const matchMonth = inv.month === previousMonthStr;
+      
+      if (matchProvider && matchMonth) {
+        // If Tessema, enforce Hartford Hospital program group
+        if (isTessema) {
+          return inv.program_group === 'Hartford Hospital';
+        }
+        return true;
+      }
+      return false;
+    });
 
     // Check if provider has any linked outside income for the month that is attached to an invoice
-    const hasLinkedIncomeInvoiced = outsideIncomes.some(inc => 
-      inc.provider_id === provider.id && 
-      (inc.invoice_month === previousMonthStr || inc.workMonth === previousMonthStr) &&
-      inc.invoice_id
-    );
+    const hasLinkedIncomeInvoiced = outsideIncomes.some(inc => {
+      const matchProvider = inc.provider_id === provider.id;
+      const matchMonth = (inc.invoice_month === previousMonthStr || inc.workMonth === previousMonthStr);
+      const isInvoiced = !!inc.invoice_id;
+      
+      if (matchProvider && matchMonth && isInvoiced) {
+        if (isTessema) {
+             // Find the invoice this income is linked to
+             const linkedInvoice = invoices.find(inv => inv.id === inc.invoice_id);
+             return linkedInvoice && linkedInvoice.program_group === 'Hartford Hospital';
+        }
+        return true;
+      }
+      return false;
+    });
 
     // Check if invoice is waived
     const isWaived = invoiceWaivers.some(w => 
