@@ -453,8 +453,17 @@ export default function Invoices() {
   };
 
   const handleSingleSyncToAirtable = async (invoice) => {
-    if (!window.confirm(`Sync invoice ${invoice.invoice_number} to Airtable?`)) return;
-    
+    const isManchester = invoice.program_group && (
+       invoice.program_group.toLowerCase().includes('manchester') || 
+       invoice.program_group.toLowerCase().includes('echn')
+    );
+    const isUConn = invoice.program_group?.toLowerCase().includes('uconn');
+
+    if (!isManchester && !isUConn) return;
+
+    const targetName = isManchester ? 'Manchester' : 'UConn';
+    if (!window.confirm(`Sync ${targetName} invoice ${invoice.invoice_number} to Airtable?`)) return;
+
     if (!invoice.approved_invoice_url) {
       alert('Cannot sync! This invoice does not have an APPROVED PDF. Please upload or generate one first.');
       return;
@@ -462,7 +471,8 @@ export default function Invoices() {
 
     setSyncingAirtable(true);
     try {
-      await base44.functions.invoke('syncUConnInvoiceToAirtable', {
+      const functionName = isManchester ? 'syncManchesterInvoiceToAirtable' : 'syncUConnInvoiceToAirtable';
+      await base44.functions.invoke(functionName, {
         invoices: [{ id: invoice.id, pdf_url: invoice.approved_invoice_url }]
       });
 
@@ -475,7 +485,7 @@ export default function Invoices() {
       });
 
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      alert('Successfully synced invoice to Airtable!');
+      alert(`Successfully synced ${targetName} invoice to Airtable!`);
     } catch (error) {
       console.error("Sync error", error);
       let errorMessage = error.message;
@@ -529,7 +539,33 @@ export default function Invoices() {
 
   // 2. Send as a single batch
   if (readyInvoices.length > 0) {
-    await base44.functions.invoke('syncUConnInvoiceToAirtable', {
+    // Check if mixed types or predominantly one type
+    const sampleInvoice = invoices.find(i => i.id === readyInvoices[0].id);
+    const isManchester = sampleInvoice.program_group && (
+       sampleInvoice.program_group.toLowerCase().includes('manchester') || 
+       sampleInvoice.program_group.toLowerCase().includes('echn')
+    );
+
+    // Ensure all selected invoices match the type of the first one to avoid cross-sending
+    const allMatch = readyInvoices.every(item => {
+       const inv = invoices.find(i => i.id === item.id);
+       const itemIsManchester = inv.program_group && (
+           inv.program_group.toLowerCase().includes('manchester') || 
+           inv.program_group.toLowerCase().includes('echn')
+       );
+       return isManchester === itemIsManchester;
+    });
+
+    if (!allMatch) {
+        alert("Error: You have selected a mix of Manchester and UConn invoices. Please select only one type at a time for bulk syncing.");
+        setSyncingAirtable(false);
+        return;
+    }
+
+    const functionName = isManchester ? 'syncManchesterInvoiceToAirtable' : 'syncUConnInvoiceToAirtable';
+    const targetName = isManchester ? 'Manchester' : 'UConn';
+
+    await base44.functions.invoke(functionName, {
         invoices: readyInvoices
     });
 
@@ -545,7 +581,7 @@ export default function Invoices() {
     ));
 
     queryClient.invalidateQueries({ queryKey: ['invoices'] });
-    alert(`Successfully synced ${readyInvoices.length} invoices as one email and updated statuses!`);
+    alert(`Successfully synced ${readyInvoices.length} ${targetName} invoices as one email and updated statuses!`);
     setSelectedInvoices([]);
   }
 
@@ -1118,16 +1154,19 @@ export default function Invoices() {
                         </td>
                         <td className="px-3 py-2 text-right no-print">
                           <div className="flex gap-2 justify-end">
-                            {invoice.program_group === 'UConn' && (
+                            {(invoice.program_group?.includes('UConn') || invoice.program_group?.includes('Manchester') || invoice.program_group?.includes('ECHN')) && (
                               <Button 
                                 variant="ghost" 
                                 size="sm"
                                 onClick={() => handleSingleSyncToAirtable(invoice)}
                                 disabled={syncingAirtable}
                                 title="Sync to Airtable"
-                                className="text-indigo-600 hover:text-indigo-700"
+                                className="text-indigo-600 hover:text-indigo-700 relative"
                               >
                                 <CloudUpload className="w-4 h-4" />
+                                <span className="absolute -bottom-1.5 -right-1.5 text-[8px] font-bold bg-white rounded-full border border-slate-200 px-0.5 min-w-[16px] text-center shadow-sm">
+                                  {invoice.program_group?.includes('UConn') ? 'UC' : 'M'}
+                                </span>
                               </Button>
                             )}
                             {invoice.draft_invoice_url && (
