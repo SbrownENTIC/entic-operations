@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Printer, AlertCircle, FileDown, CloudUpload } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Printer, AlertCircle, FileDown, CloudUpload, Upload } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, parseISO } from "date-fns";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -42,6 +42,8 @@ export default function Invoices() {
   const [syncingMonths, setSyncingMonths] = useState(false);
   const [fixMessage, setFixMessage] = useState('');
   const [syncingAirtable, setSyncingAirtable] = useState(false);
+  const [uploadingId, setUploadingId] = useState(null);
+  const fileInputRef = React.useRef(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
@@ -662,6 +664,49 @@ export default function Invoices() {
     setShowForm(true);
   };
 
+  const handleQuickUploadClick = (invoice) => {
+    setUploadingId(invoice.id);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''; // Reset
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleQuickUploadFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !uploadingId) return;
+
+    const invoice = invoices.find(inv => inv.id === uploadingId);
+    if (!invoice) return;
+
+    try {
+      // 1. Upload file
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+
+      // 2. Prepare updates
+      const updates = {
+        approved_invoice_url: file_url
+      };
+
+      // Auto-update status logic (matching form behavior)
+      if (invoice.status !== 'paid_to_entic' && invoice.status !== 'provider_paid' && invoice.status !== 'sent_to_vendor') {
+        updates.status = 'approved';
+        updates.invoice_sent_to_vendor = false;
+        updates.manual_status_override = true;
+      }
+
+      // 3. Update invoice
+      await base44.entities.Invoice.update(uploadingId, updates);
+
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      setUploadingId(null);
+    } catch (error) {
+      console.error("Quick upload failed:", error);
+      alert("Failed to upload invoice: " + error.message);
+      setUploadingId(null);
+    }
+  };
+
   const formatCurrency = (amount) => {
     return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
@@ -816,6 +861,14 @@ export default function Invoices() {
             <h1 className="text-2xl font-bold text-slate-900">Invoices</h1>
             <p className="text-slate-600 text-sm">Manage invoices for outside income</p>
           </div>
+          {/* Hidden file input for quick upload */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            accept=".pdf,.doc,.docx"
+            onChange={handleQuickUploadFile}
+          />
           <div className="flex gap-3 flex-wrap">
             <Button
               onClick={handleFixHartfordInvoices}
@@ -1181,23 +1234,34 @@ export default function Invoices() {
                               </Button>
                             )}
                             <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => handleGeneratePDF(invoice)}
-                              title="Generate PDF"
-                              className="text-blue-600 hover:text-blue-700"
-                            >
-                              <FileDown className="w-4 h-4" />
-                            </Button>
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleGeneratePDF(invoice)}
+                                title="Generate PDF"
+                                className="text-blue-600 hover:text-blue-700"
+                              >
+                                <FileDown className="w-4 h-4" />
+                              </Button>
 
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => setDeleteConfirm(invoice)}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleQuickUploadClick(invoice)}
+                                disabled={uploadingId === invoice.id}
+                                title="Upload Approved Invoice"
+                                className="text-teal-600 hover:text-teal-700"
+                              >
+                                <Upload className={`w-4 h-4 ${uploadingId === invoice.id ? 'animate-pulse' : ''}`} />
+                              </Button>
+
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => setDeleteConfirm(invoice)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
                           </div>
                         </td>
                       </tr>
