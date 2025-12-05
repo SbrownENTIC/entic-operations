@@ -60,6 +60,11 @@ export default function Invoices() {
     queryFn: () => base44.entities.Provider.list()
   });
 
+  const { data: payments = [] } = useQuery({
+    queryKey: ['payments'],
+    queryFn: () => base44.entities.Payment.list()
+  });
+
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const create = urlParams.get('create');
@@ -331,6 +336,18 @@ export default function Invoices() {
       setSortField(field);
       setSortDirection('asc');
     }
+  };
+
+  const getPaymentQuarter = (invoiceId) => {
+    const linkedPayments = payments.filter(p => 
+      p.allocations?.some(a => a.invoice_id === invoiceId)
+    );
+    if (linkedPayments.length === 0) return '-';
+    // Use latest payment date if multiple
+    const latest = linkedPayments.sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date))[0];
+    if (!latest || !latest.payment_date) return '-';
+    const d = parseISO(latest.payment_date);
+    return `Q${Math.floor(d.getMonth() / 3) + 1} ${d.getFullYear()}`;
   };
 
   const handleCancelForm = () => {
@@ -912,6 +929,9 @@ export default function Invoices() {
                       >
                         Paid <SortIcon field="amount_received" />
                       </th>
+                      <th className="text-left px-3 py-2 text-xs font-semibold text-slate-700 print:cursor-default">
+                        Quarter
+                      </th>
                       <th 
                         className="text-left px-3 py-2 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
                         onClick={() => handleSort('balance')}
@@ -960,6 +980,9 @@ export default function Invoices() {
                         </td>
                         <td className="px-3 py-2 text-sm text-green-600 font-medium">
                           ${formatCurrency(invoice.amount_received || 0)}
+                        </td>
+                        <td className="px-3 py-2 text-sm text-slate-600">
+                          {getPaymentQuarter(invoice.id)}
                         </td>
                         <td className="px-3 py-2 text-sm font-medium text-slate-900">
                           ${formatCurrency(invoice.balance)}
