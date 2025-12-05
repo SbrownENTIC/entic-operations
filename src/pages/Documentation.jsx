@@ -98,9 +98,7 @@ export default function Documentation() {
                       <p><strong>Manual Entry:</strong> Use for ad-hoc shifts or corrections. Click "Add Income", select Facility, enter Dates/RVUs.</p>
                       <p><strong>St. Francis Auto-Gen:</strong></p>
                       <ul className="list-disc pl-4 space-y-1">
-                        <li>Go to <strong>On-Call Schedule</strong>.</li>
-                        <li>Click <strong>Link St. Francis Providers</strong> (via "Fix/Sync" logic if available).</li>
-                        <li>System reads the schedule and creates pending Income records for St. Francis shifts automatically.</li>
+                        <li>System reads the schedule and creates pending Income records for St. Francis shifts automatically when a schedule is created or updated.</li>
                       </ul>
                     </AccordionContent>
                   </AccordionItem>
@@ -231,13 +229,7 @@ export default function Documentation() {
                         <p>Runs in background. Ensures <em>Paid</em> status is accurate based on total payments received. If you manually change a status, it sets a "Manual Override" flag to stop this sync.</p>
                       </div>
                     </li>
-                    <li className="flex gap-2">
-                      <Settings className="w-5 h-5 text-slate-400 shrink-0" />
-                      <div>
-                        <span className="font-bold text-slate-800">St. Francis Schedule Sync</span>
-                        <p>Can be triggered manually. Reads "On-Call Schedule" for St. Francis locations and generates corresponding "Outside Income" records so you don't have to double-entry.</p>
-                      </div>
-                    </li>
+                    {/* St. Francis Sync Removed */}
                   </ul>
                 </div>
               </div>
@@ -292,7 +284,7 @@ export default function Documentation() {
                   
                   <Accordion type="single" collapsible className="w-full">
                     <AccordionItem value="pdf-fail">
-                      <AccordionTrigger className="text-sm">UConn PDF is Blank/Wrong</AccordionTrigger>
+                      <AccordionTrigger className="text-sm">UConn/Manchester PDF is Blank/Wrong</AccordionTrigger>
                       <AccordionContent className="text-xs text-slate-600">
                         <strong>Cause:</strong> Usually missing "Work Dates" on the linked Outside Income record.<br/>
                         <strong>Fix:</strong> Go to Outside Income, find the record, add specific dates. Then go back to Invoices and click the "File Down" icon to regenerate.
@@ -376,13 +368,7 @@ export default function Documentation() {
                           <p className="text-sm text-slate-600">For any completed work, create the invoice so it's ready for review. Don't send yet if unsure.</p>
                         </div>
                       </div>
-                      <div className="flex gap-3 items-start">
-                        <input type="checkbox" className="mt-1 w-4 h-4 cursor-pointer" />
-                        <div>
-                          <p className="font-bold text-slate-800">3. Sync St. Francis</p>
-                          <p className="text-sm text-slate-600">Go to <strong>Outside Income</strong> → Click "Link St. Francis Providers" to pull data from the On-Call Schedule.</p>
-                        </div>
-                      </div>
+                      {/* St. Francis Sync Task Removed - Now Automatic */}
                     </div>
                   </div>
 

@@ -183,19 +183,7 @@ export default function OutsideIncome() {
     }
   };
 
-  const handleLinkStFrancisProviders = async () => {
-    setLinkingProviders(true);
-    setLinkMessage('');
-    try {
-      const response = await base44.functions.invoke('linkStFrancisProviders', {});
-      setLinkMessage(response.data.message);
-      queryClient.invalidateQueries({ queryKey: ['outside-income'] });
-    } catch (error) {
-      setLinkMessage('Error linking providers: ' + error.message);
-    } finally {
-      setLinkingProviders(false);
-    }
-  };
+  // St. Francis Link Function Removed
 
   const handleLinkUConnProviders = async () => {
     setLinkingUConnProviders(true);

@@ -223,19 +223,7 @@ export default function OnCallSchedule() {
     setShowForm(true);
   };
 
-  const handleSync2026StFrancis = async () => {
-    setSyncing(true);
-    setSyncMessage('');
-    try {
-      const response = await base44.functions.invoke('sync2026StFrancis', {});
-      setSyncMessage(response.data.message);
-      queryClient.invalidateQueries({ queryKey: ['outside-income'] });
-    } catch (error) {
-      setSyncMessage('Error syncing 2026 St. Francis schedules: ' + error.message);
-    } finally {
-      setSyncing(false);
-    }
-  };
+  // St. Francis Sync Function Removed
 
   const handleUpdateAllProviders = async () => {
     setUpdatingProviders(true);
