@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
         providerIds.map(id => base44.asServiceRole.entities.Provider.get(id))
     );
 
-    const providerList = providers.map(p => p.full_name).join('\n') || "(No providers identified)";
+    const providerList = providers.map(p => `• ${p.full_name}`).join('\n') || "(No providers identified)";
     
     // Use the month from the first invoice (assuming batch is for same month)
     const invoiceMonth = validInvoices[0].month || 'the invoice period';
