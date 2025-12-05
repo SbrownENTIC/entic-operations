@@ -744,7 +744,7 @@ export default function Invoices() {
 
   return (
     <>
-    <div className="h-[calc(100vh-9rem)] flex flex-col overflow-hidden bg-slate-50">
+    <div className={`flex flex-col bg-slate-50 ${showForm ? 'min-h-[calc(100vh-9rem)]' : 'h-[calc(100vh-9rem)] overflow-hidden'}`}>
       <style>{`
         @media print {
           body * { visibility: hidden; }
