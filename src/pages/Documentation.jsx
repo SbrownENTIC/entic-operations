@@ -14,6 +14,66 @@ export default function Documentation() {
 
   return (
     <div className="container mx-auto py-2 px-4 max-w-6xl h-[calc(100vh-8.5rem)] flex flex-col">
+      <style>{`
+        @media print {
+          @page { 
+            margin: 1.5cm; 
+            size: auto; 
+          }
+
+          /* Hide the main app root */
+          #root {
+            display: none !important;
+          }
+
+          /* Reset body/html for full page printing */
+          html, body {
+            height: auto !important;
+            min-height: 100% !important;
+            overflow: visible !important;
+            background: white !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+
+          /* Show the portal and ensure it is visible */
+          .print-portal {
+            display: block !important;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: auto;
+            background: white;
+            z-index: 9999;
+            visibility: visible !important;
+          }
+
+          /* Ensure all children of the portal are visible */
+          .print-portal * {
+            visibility: visible !important;
+            color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+          }
+
+          /* Utilities */
+          .no-print { display: none !important; }
+        }
+
+        /* Hide portal on screen */
+        .print-portal {
+          display: none;
+        }
+      `}</style>
+
+      {/* Render the print-optimized manual into the body based on active tab */}
+      {createPortal(
+        <div className="print-portal">
+          {activeTab === 'admin' ? <PrintableAdminManual /> : <PrintableManual />}
+        </div>,
+        document.body
+      )}
+
       <div className="mb-6 flex-shrink-0">
         <h1 className="text-2xl font-bold text-slate-900">System Documentation</h1>
         <p className="text-slate-600 mt-1 text-sm">Comprehensive operating procedures, system logic, and maintenance guides for the ENTIC Operations Center.</p>
@@ -499,66 +559,6 @@ export default function Documentation() {
 
         {/* USER MANUAL */}
         <TabsContent value="manual" className="flex-1 overflow-hidden mt-4">
-          <style>{`
-            @media print {
-              @page { 
-                margin: 1.5cm; 
-                size: auto; 
-              }
-
-              /* Hide the main app root */
-              #root {
-                display: none !important;
-              }
-
-              /* Reset body/html for full page printing */
-              html, body {
-                height: auto !important;
-                min-height: 100% !important;
-                overflow: visible !important;
-                background: white !important;
-                margin: 0 !important;
-                padding: 0 !important;
-              }
-
-              /* Show the portal and ensure it is visible */
-              .print-portal {
-                display: block !important;
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: auto;
-                background: white;
-                z-index: 9999;
-                visibility: visible !important;
-              }
-
-              /* Ensure all children of the portal are visible */
-              .print-portal * {
-                visibility: visible !important;
-                color-adjust: exact;
-                -webkit-print-color-adjust: exact;
-              }
-
-              /* Utilities */
-              .no-print { display: none !important; }
-            }
-
-            /* Hide portal on screen */
-            .print-portal {
-              display: none;
-            }
-            `}</style>
-
-            {/* Render the print-optimized manual into the body based on active tab */}
-            {createPortal(
-              <div className="print-portal">
-                {activeTab === 'admin' ? <PrintableAdminManual /> : <PrintableManual />}
-              </div>,
-              document.body
-            )}
-
             <div className="h-full flex flex-col">
             <Card className="flex-1 flex flex-col overflow-hidden">
               <CardHeader className="bg-slate-50 border-b border-slate-100 flex-shrink-0 flex flex-row items-center justify-between">
