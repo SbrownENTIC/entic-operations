@@ -11,7 +11,9 @@ import {
   Clock,
   FileCode,
   Cloud,
-  AlertTriangle
+  AlertTriangle,
+  FileText,
+  Bell
 } from "lucide-react";
 
 export default function PrintableAdminManual() {
