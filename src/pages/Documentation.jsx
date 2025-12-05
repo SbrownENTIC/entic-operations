@@ -448,36 +448,69 @@ export default function Documentation() {
         <TabsContent value="manual" className="flex-1 overflow-hidden mt-4">
           <style>{`
             @media print {
-              @page { margin: 2cm; }
+              @page { margin: 20mm; size: auto; }
+              html, body { height: auto !important; overflow: visible !important; background: white !important; }
+              
+              /* Hide everything by default */
               body * { visibility: hidden; }
-              .manual-print-wrapper, .manual-print-wrapper * { visibility: visible; }
+              
+              /* Show our print wrapper and its children */
+              .manual-print-wrapper, .manual-print-wrapper * { 
+                visibility: visible; 
+              }
+              
               .manual-print-wrapper { 
                 position: absolute; 
                 left: 0; 
                 top: 0; 
-                width: 100%; 
+                width: 100% !important;
+                margin: 0;
+                padding: 0;
                 height: auto !important; 
                 overflow: visible !important;
-                display: block !important;
+                display: block !important; /* Disable grid layout */
+                background: white !important;
               }
-              /* Reset layout for print */
+
+              /* TOC Section */
               .manual-toc-section {
                 width: 100% !important;
                 height: auto !important;
+                max-height: none !important;
                 overflow: visible !important;
-                border-right: none !important;
-                border-bottom: 1px solid #e2e8f0;
-                margin-bottom: 2rem;
-                page-break-after: always;
+                border: none !important;
+                margin-bottom: 2rem !important;
+                page-break-after: always; /* Force page break after TOC */
+                display: block !important;
               }
+
+              /* Manual Content Section (ScrollArea) */
               .manual-content-section {
-                padding: 0 !important;
+                width: 100% !important;
                 height: auto !important;
                 overflow: visible !important;
+                display: block !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                border: none !important;
               }
-              /* Hide scroll area wrappers and other artifacts */
-              .scroll-area-viewport { overflow: visible !important; }
-              [data-radix-scroll-area-viewport] { overflow: visible !important; }
+              
+              /* Override ScrollArea specific styles to prevent cutting off content */
+              .manual-content-section [data-radix-scroll-area-viewport] {
+                overflow: visible !important;
+                height: auto !important;
+              }
+              
+              /* The inner div with padding - remove padding to save space if needed, or keep it */
+              .manual-content-section > div {
+                height: auto !important;
+                padding: 0 !important; 
+              }
+              
+              /* Clean up links and text for print */
+              a { text-decoration: none !important; color: black !important; }
+              
+              /* Hide non-print elements explicitly */
               .no-print { display: none !important; }
             }
           `}</style>
