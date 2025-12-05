@@ -338,17 +338,7 @@ export default function Invoices() {
     }
   };
 
-  const getPaymentQuarter = (invoiceId) => {
-    const linkedPayments = payments.filter(p => 
-      p.allocations?.some(a => a.invoice_id === invoiceId)
-    );
-    if (linkedPayments.length === 0) return '-';
-    // Use latest payment date if multiple
-    const latest = linkedPayments.sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date))[0];
-    if (!latest || !latest.payment_date) return '-';
-    const d = parseISO(latest.payment_date);
-    return `Q${Math.floor(d.getMonth() / 3) + 1} ${d.getFullYear()}`;
-  };
+
 
   const handleCancelForm = () => {
     setShowForm(false);
@@ -591,15 +581,33 @@ export default function Invoices() {
       providers.find(p => p.id === pid)?.full_name
     ).filter(Boolean).join(' ');
 
+    // Calculate Quarter
+    const linkedPayments = payments.filter(p => 
+      p.allocations?.some(a => a.invoice_id === invoice.id)
+    );
+    let quarter = '-';
+    let latestPaymentTimestamp = 0;
+
+    if (linkedPayments.length > 0) {
+      const latest = [...linkedPayments].sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date))[0];
+      if (latest && latest.payment_date) {
+        latestPaymentTimestamp = new Date(latest.payment_date).getTime();
+        const d = parseISO(latest.payment_date);
+        quarter = `Q${Math.floor(d.getMonth() / 3) + 1} ${d.getFullYear()}`;
+      }
+    }
+
     return {
       ...invoice,
       provider: providers.find(p => p.id === invoice.staff_member_id),
       providerName: providers.find(p => p.id === invoice.staff_member_id)?.full_name || '',
       linkedProviderNames, // For search purposes
       balance: (invoice.amount_expected || invoice.total || 0) - (invoice.amount_received || 0),
-      hasOutsideIncome: invoice.outside_income_ids && invoice.outside_income_ids.length > 0
+      hasOutsideIncome: invoice.outside_income_ids && invoice.outside_income_ids.length > 0,
+      quarter,
+      latestPaymentTimestamp
     };
-  });
+    });
 
   const filteredInvoices = invoicesWithProviders.filter(invoice => {
     const matchesSearch = invoice.program_group?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -634,6 +642,14 @@ export default function Invoices() {
     } else if (sortField === 'total' || sortField === 'amount_received' || sortField === 'balance') {
       aValue = a[sortField] || 0;
       bValue = b[sortField] || 0;
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    } else if (sortField === 'quarter') {
+      aValue = a.latestPaymentTimestamp || 0;
+      bValue = b.latestPaymentTimestamp || 0;
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    } else if (sortField === 'manual_status_override') {
+      aValue = a.manual_status_override ? 1 : 0;
+      bValue = b.manual_status_override ? 1 : 0;
       return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
     } else {
       aValue = a[sortField] || '';
@@ -929,8 +945,11 @@ export default function Invoices() {
                       >
                         Paid <SortIcon field="amount_received" />
                       </th>
-                      <th className="text-left px-3 py-2 text-xs font-semibold text-slate-700 print:cursor-default">
-                        Quarter
+                      <th 
+                        className="text-left px-3 py-2 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
+                        onClick={() => handleSort('quarter')}
+                      >
+                        Quarter <SortIcon field="quarter" />
                       </th>
                       <th 
                         className="text-left px-3 py-2 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
@@ -944,8 +963,11 @@ export default function Invoices() {
                       >
                         Status <SortIcon field="status" />
                       </th>
-                      <th className="text-center px-3 py-2 text-xs font-semibold text-slate-700 no-print">
-                        Manual
+                      <th 
+                        className="text-center px-3 py-2 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 no-print"
+                        onClick={() => handleSort('manual_status_override')}
+                      >
+                        Manual <SortIcon field="manual_status_override" />
                       </th>
                       <th className="text-right px-3 py-2 text-xs font-semibold text-slate-700 no-print">Actions</th>
                     </tr>
@@ -982,7 +1004,7 @@ export default function Invoices() {
                           ${formatCurrency(invoice.amount_received || 0)}
                         </td>
                         <td className="px-3 py-2 text-sm text-slate-600">
-                          {getPaymentQuarter(invoice.id)}
+                          {invoice.quarter}
                         </td>
                         <td className="px-3 py-2 text-sm font-medium text-slate-900">
                           ${formatCurrency(invoice.balance)}
