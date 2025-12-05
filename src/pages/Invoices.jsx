@@ -1207,6 +1207,17 @@ export default function Invoices() {
                         </td>
                         <td className="px-3 py-2 text-right no-print">
                           <div className="flex gap-2 justify-end">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleQuickUploadClick(invoice)}
+                              disabled={uploadingId === invoice.id}
+                              title="Upload Approved Invoice"
+                              className="text-teal-600 hover:text-teal-700"
+                            >
+                              <Upload className={`w-4 h-4 ${uploadingId === invoice.id ? 'animate-pulse' : ''}`} />
+                            </Button>
+
                             {(invoice.program_group?.includes('UConn') || invoice.program_group?.includes('Manchester') || invoice.program_group?.includes('ECHN')) && (
                               <Button 
                                 variant="ghost" 
@@ -1241,17 +1252,6 @@ export default function Invoices() {
                                 className="text-blue-600 hover:text-blue-700"
                               >
                                 <FileDown className="w-4 h-4" />
-                              </Button>
-
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => handleQuickUploadClick(invoice)}
-                                disabled={uploadingId === invoice.id}
-                                title="Upload Approved Invoice"
-                                className="text-teal-600 hover:text-teal-700"
-                              >
-                                <Upload className={`w-4 h-4 ${uploadingId === invoice.id ? 'animate-pulse' : ''}`} />
                               </Button>
 
                               <Button 
