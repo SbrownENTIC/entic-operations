@@ -28,11 +28,7 @@ export default function LicenseForm({ license, providers, onSubmit, onCancel, is
     }
   }, [license]);
 
-  // Track dirty state
-  useEffect(() => {
-    setIsDirty(true);
-    return () => setIsDirty(false);
-  }, [formData]);
+
 
   const handleSubmit = (e) => {
     e.preventDefault();

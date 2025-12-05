@@ -27,11 +27,7 @@ export default function CMEForm({ cme, providers, onSubmit, onCancel, isLoading 
     }
   }, [cme]);
 
-  // Track dirty state
-  useEffect(() => {
-    setIsDirty(true);
-    return () => setIsDirty(false);
-  }, [formData]);
+
 
   const handleSubmit = (e) => {
     e.preventDefault();

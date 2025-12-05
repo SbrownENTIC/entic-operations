@@ -76,11 +76,7 @@ export default function VendorInvoiceReviewForm({ invoice, supplies = [], onSave
     }));
   };
 
-  // Track dirty state
-  useEffect(() => {
-    setIsDirty(true);
-    return () => setIsDirty(false);
-  }, [formData]);
+
 
   const handleSave = () => {
     setIsDirty(false);

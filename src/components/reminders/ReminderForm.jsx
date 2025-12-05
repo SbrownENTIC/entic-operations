@@ -277,11 +277,7 @@ The Operations Team
     }
   }, [formData.reminder_type, formData.closure_date, formData.reopen_date, formData.closure_name, formData.oncall_provider_list, formData.oncall_phone_list, formData.email_body, formData.closure_time, formData.reopen_time]);
 
-  // Track dirty state
-  useEffect(() => {
-    setIsDirty(true);
-    return () => setIsDirty(false);
-  }, [formData]);
+
 
   const handleSubmit = (e) => {
     e.preventDefault();

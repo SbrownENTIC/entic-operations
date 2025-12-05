@@ -30,11 +30,7 @@ export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel
     }
   }, [privilege]);
 
-  // Track dirty state
-  useEffect(() => {
-    setIsDirty(true);
-    return () => setIsDirty(false);
-  }, [formData]);
+
 
   const handleSubmit = (e) => {
     e.preventDefault();

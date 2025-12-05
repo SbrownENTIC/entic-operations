@@ -44,11 +44,7 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
     }
   }, [order]);
 
-  // Track dirty state
-  useEffect(() => {
-    setIsDirty(true);
-    return () => setIsDirty(false);
-  }, [formData]);
+
 
   const handleSubmit = (e) => {
     e.preventDefault();

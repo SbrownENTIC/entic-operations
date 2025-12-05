@@ -25,11 +25,7 @@ export default function ProgramLocationForm({ location, onSubmit, onCancel, isLo
     }
   }, [location]);
 
-  // Track dirty state
-  useEffect(() => {
-    setIsDirty(true);
-    return () => setIsDirty(false);
-  }, [formData]);
+
 
   const handleSubmit = (e) => {
     e.preventDefault();
