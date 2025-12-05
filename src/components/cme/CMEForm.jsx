@@ -8,8 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { X } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Combobox } from "@/components/ui/combobox";
+import { useFormState } from "@/components/FormContext";
 
 export default function CMEForm({ cme, providers, onSubmit, onCancel, isLoading }) {
+  const { setIsDirty } = useFormState();
   const [formData, setFormData] = useState({
     provider_id: '',
     course_name: '',
@@ -25,8 +27,15 @@ export default function CMEForm({ cme, providers, onSubmit, onCancel, isLoading 
     }
   }, [cme]);
 
+  // Track dirty state
+  useEffect(() => {
+    setIsDirty(true);
+    return () => setIsDirty(false);
+  }, [formData]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    setIsDirty(false);
     onSubmit(formData);
   };
 

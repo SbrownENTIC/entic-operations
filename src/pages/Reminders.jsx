@@ -10,6 +10,7 @@ import { format, parseISO } from "date-fns";
 import ReminderForm from "../components/reminders/ReminderForm";
 import EmptyState from "@/components/ui/EmptyState";
 import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
+import { useLocation } from "react-router-dom";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,11 +33,20 @@ export default function Reminders() {
   const [testingReminders, setTestingReminders] = useState(false);
   const [airtableSyncing, setAirtableSyncing] = useState(false);
   const queryClient = useQueryClient();
+  const location = useLocation();
 
   const { data: reminders = [], isLoading } = useQuery({
     queryKey: ['reminders'],
     queryFn: () => base44.entities.Reminder.list('send_date')
   });
+
+  // Close form when navigating to root URL
+  React.useEffect(() => {
+    if (location.search === '' && showForm) {
+      setShowForm(false);
+      setEditingReminder(null);
+    }
+  }, [location.search]);
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Reminder.create(data),

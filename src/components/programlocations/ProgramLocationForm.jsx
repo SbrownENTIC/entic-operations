@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X } from "lucide-react";
+import { useFormState } from "@/components/FormContext";
 
 export default function ProgramLocationForm({ location, onSubmit, onCancel, isLoading }) {
+  const { setIsDirty } = useFormState();
   const [formData, setFormData] = useState({
     program_location: '',
     program_group: '',
@@ -23,8 +25,15 @@ export default function ProgramLocationForm({ location, onSubmit, onCancel, isLo
     }
   }, [location]);
 
+  // Track dirty state
+  useEffect(() => {
+    setIsDirty(true);
+    return () => setIsDirty(false);
+  }, [formData]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    setIsDirty(false);
     onSubmit(formData);
   };
 

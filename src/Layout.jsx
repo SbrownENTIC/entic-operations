@@ -164,6 +164,11 @@ function LayoutContent({ children, currentPageName }) {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   const handleNavigationClick = (e, url) => {
+    // Dashboard scroll-to-top logic
+    if (url === createPageUrl("Dashboard") && location.pathname === createPageUrl("Dashboard")) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
     // If form is dirty, intercept navigation
     if (isDirty) {
       e.preventDefault();

@@ -10,8 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { X, Plus, Trash2, Search, Check, CheckSquare } from "lucide-react";
+import { useFormState } from "@/components/FormContext";
 
 export default function SupplyOrderForm({ order, category, onSubmit, onCancel, isLoading }) {
+  const { setIsDirty } = useFormState();
   const [formData, setFormData] = useState({
     order_number: '',
     vendor: 'Staples',
@@ -42,8 +44,15 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
     }
   }, [order]);
 
+  // Track dirty state
+  useEffect(() => {
+    setIsDirty(true);
+    return () => setIsDirty(false);
+  }, [formData]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    setIsDirty(false);
     const subtotal = formData.items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0);
     const total = subtotal + (formData.tax || 0);
     

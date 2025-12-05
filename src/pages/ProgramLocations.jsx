@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -7,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import ProgramLocationForm from "../components/programlocations/ProgramLocationForm";
 import {
   AlertDialog,
@@ -27,11 +27,20 @@ export default function ProgramLocations() {
   const [sortField, setSortField] = useState('program_group');
   const [sortDirection, setSortDirection] = useState('asc');
   const queryClient = useQueryClient();
+  const location = useLocation();
 
   const { data: programLocations = [], isLoading } = useQuery({
     queryKey: ['program-locations'],
     queryFn: () => base44.entities.ProgramLocation.list('program_location')
   });
+
+  // Close form when navigating to root URL
+  React.useEffect(() => {
+    if (location.search === '' && showForm) {
+      setShowForm(false);
+      setEditingLocation(null);
+    }
+  }, [location.search]);
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.ProgramLocation.create(data),

@@ -12,8 +12,10 @@ import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
 import { DatePicker } from "@/components/ui/date-picker";
 import { TimePicker } from "@/components/ui/time-picker";
+import { useFormState } from "@/components/FormContext";
 
 export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }) {
+  const { setIsDirty } = useFormState();
   const [formData, setFormData] = useState({
     reminder_name: '',
     reminder_type: 'Custom',
@@ -275,8 +277,15 @@ The Operations Team
     }
   }, [formData.reminder_type, formData.closure_date, formData.reopen_date, formData.closure_name, formData.oncall_provider_list, formData.oncall_phone_list, formData.email_body, formData.closure_time, formData.reopen_time]);
 
+  // Track dirty state
+  useEffect(() => {
+    setIsDirty(true);
+    return () => setIsDirty(false);
+  }, [formData]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    setIsDirty(false);
     onSubmit(formData);
   };
 

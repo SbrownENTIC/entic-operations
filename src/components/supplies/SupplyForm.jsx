@@ -3,8 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useFormState } from "@/components/FormContext";
 
 export default function SupplyForm({ supply, supplies, onSubmit, onCancel, isLoading }) {
+  const { setIsDirty } = useFormState();
   const [formData, setFormData] = useState({
     item_number: '',
     product_name: '',
@@ -29,8 +31,15 @@ export default function SupplyForm({ supply, supplies, onSubmit, onCancel, isLoa
     }
   }, [supply]);
 
+  // Track dirty state
+  useEffect(() => {
+    setIsDirty(true);
+    return () => setIsDirty(false);
+  }, [formData]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    setIsDirty(false);
     
     const submitData = {
       ...formData,

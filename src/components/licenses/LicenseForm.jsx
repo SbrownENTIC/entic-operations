@@ -8,8 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { X } from "lucide-react";
 import { differenceInDays, parseISO } from "date-fns";
 import { DatePicker } from "@/components/ui/date-picker";
+import { useFormState } from "@/components/FormContext";
 
 export default function LicenseForm({ license, providers, onSubmit, onCancel, isLoading }) {
+  const { setIsDirty } = useFormState();
   const [formData, setFormData] = useState({
     provider_id: '',
     license_type: '',
@@ -26,8 +28,15 @@ export default function LicenseForm({ license, providers, onSubmit, onCancel, is
     }
   }, [license]);
 
+  // Track dirty state
+  useEffect(() => {
+    setIsDirty(true);
+    return () => setIsDirty(false);
+  }, [formData]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    setIsDirty(false);
     
     // Check if expiration date is more than 90 days away
     const today = new Date();

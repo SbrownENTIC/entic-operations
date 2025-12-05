@@ -21,12 +21,14 @@ import { format, parseISO } from "date-fns";
 import SupplyOrderForm from "../components/supplies/SupplyOrderForm";
 import EmptyState from "@/components/ui/EmptyState";
 import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
+import { useLocation } from "react-router-dom";
 
 export default function OfficeSupplyOrders() {
   const urlParams = new URLSearchParams(window.location.search);
   const filterParam = urlParams.get('filter');
   
   const [showForm, setShowForm] = useState(false);
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState(filterParam === 'pending' ? 'pending' : 'all');
   const [editingOrder, setEditingOrder] = useState(null);
@@ -40,6 +42,14 @@ export default function OfficeSupplyOrders() {
     queryKey: ['supply-orders', 'office'],
     queryFn: () => base44.entities.SupplyOrder.filter({ category: 'office' }, '-order_date')
   });
+
+  // Close form when navigating to root URL
+  React.useEffect(() => {
+    if (location.search === '' && showForm) {
+      setShowForm(false);
+      setEditingOrder(null);
+    }
+  }, [location.search]);
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.SupplyOrder.create({ ...data, category: 'office' }),

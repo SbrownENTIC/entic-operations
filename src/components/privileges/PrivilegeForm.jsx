@@ -9,8 +9,10 @@ import { X, Search, Check } from "lucide-react";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DatePicker } from "@/components/ui/date-picker";
+import { useFormState } from "@/components/FormContext";
 
 export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel, isLoading }) {
+  const { setIsDirty } = useFormState();
   const [formData, setFormData] = useState({
     provider_id: '',
     facility_name: '',
@@ -28,8 +30,15 @@ export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel
     }
   }, [privilege]);
 
+  // Track dirty state
+  useEffect(() => {
+    setIsDirty(true);
+    return () => setIsDirty(false);
+  }, [formData]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    setIsDirty(false);
     onSubmit(formData);
   };
 

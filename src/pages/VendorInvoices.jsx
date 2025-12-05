@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, FileText, UploadCloud } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import VendorInvoiceList from "../components/vendorInvoices/VendorInvoiceList";
 import VendorInvoiceUpload from "../components/vendorInvoices/VendorInvoiceUpload";
 import { useToast } from "@/components/ui/use-toast";
@@ -26,6 +27,14 @@ export default function VendorInvoices() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const location = useLocation();
+
+  // Close upload modal when navigating to root URL
+  React.useEffect(() => {
+    if (location.search === '' && showUpload) {
+      setShowUpload(false);
+    }
+  }, [location.search]);
 
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ['vendor-invoices'],
