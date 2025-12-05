@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
+import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown, Trash2, CheckSquare } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,6 +28,8 @@ export default function ClinicalSupplyCatalog() {
   const [deletingSupply, setDeletingSupply] = useState(null);
   const [initializing, setInitializing] = useState(false);
   const [initMessage, setInitMessage] = useState('');
+  const [selectedItems, setSelectedItems] = useState([]);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -58,6 +61,17 @@ export default function ClinicalSupplyCatalog() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['supplies'] });
       setDeletingSupply(null);
+    }
+  });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (ids) => {
+      await Promise.all(ids.map(id => base44.entities.Supply.delete(id)));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['supplies'] });
+      setIsBulkDeleting(false);
+      setSelectedItems([]);
     }
   });
 
@@ -119,6 +133,22 @@ export default function ClinicalSupplyCatalog() {
       <ArrowDown className="w-4 h-4 ml-1 inline" />;
   };
 
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedItems(filteredSupplies.map(s => s.id));
+    } else {
+      setSelectedItems([]);
+    }
+  };
+
+  const handleSelectItem = (id, checked) => {
+    if (checked) {
+      setSelectedItems(prev => [...prev, id]);
+    } else {
+      setSelectedItems(prev => prev.filter(item => item !== id));
+    }
+  };
+
   const formatCurrency = (amount) => {
     return '$' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
@@ -144,6 +174,16 @@ export default function ClinicalSupplyCatalog() {
             <p className="text-slate-600 text-sm">View item codes, descriptions, and prices</p>
           </div>
           <div className="flex gap-2">
+            {selectedItems.length > 0 && (
+              <Button
+                variant="destructive"
+                onClick={() => setIsBulkDeleting(true)}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Selected ({selectedItems.length})
+              </Button>
+            )}
             {supplies.length === 0 && (
               <Button
                 onClick={handleInitialize}
@@ -209,6 +249,12 @@ export default function ClinicalSupplyCatalog() {
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                   <tr>
+                    <th className="p-4 w-[50px]">
+                      <Checkbox 
+                        checked={filteredSupplies.length > 0 && selectedItems.length === filteredSupplies.length}
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </th>
                     <th 
                       className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                       onClick={() => handleSort('item_number')}
@@ -239,6 +285,12 @@ export default function ClinicalSupplyCatalog() {
                 <tbody>
                   {sortedSupplies.map((supply) => (
                     <tr key={supply.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                      <td className="p-4">
+                        <Checkbox 
+                          checked={selectedItems.includes(supply.id)}
+                          onCheckedChange={(checked) => handleSelectItem(supply.id, checked)}
+                        />
+                      </td>
                       <td className="p-4 text-slate-600">{supply.item_number || '-'}</td>
                       <td className="p-4 font-medium text-slate-900">{supply.product_name}</td>
                       <td className="p-4 text-slate-600">{supply.codes || '-'}</td>
@@ -298,6 +350,26 @@ export default function ClinicalSupplyCatalog() {
               className="bg-red-600 hover:bg-red-700"
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isBulkDeleting} onOpenChange={setIsBulkDeleting}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Multiple Items</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedItems.length} selected items? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => bulkDeleteMutation.mutate(selectedItems)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {bulkDeleteMutation.isPending ? 'Deleting...' : 'Delete All Selected'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
