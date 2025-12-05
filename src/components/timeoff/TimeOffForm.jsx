@@ -58,11 +58,7 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
     }
   }, [formData.start_date, formData.end_date, timeOff]);
 
-  // Track dirty state
-  useEffect(() => {
-    setIsDirty(true);
-    return () => setIsDirty(false);
-  }, [formData, selectedDates]);
+
 
   const handleSubmit = (e) => {
     setIsDirty(false);

@@ -26,11 +26,7 @@ export default function OnCallForm({ schedule, providers, onSubmit, onCancel, is
     }
   }, [schedule]);
 
-  // Track dirty state
-  useEffect(() => {
-    setIsDirty(true);
-    return () => setIsDirty(false);
-  }, [formData]);
+
 
   const handleSubmit = (e) => {
     e.preventDefault();

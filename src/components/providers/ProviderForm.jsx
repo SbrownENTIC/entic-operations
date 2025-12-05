@@ -82,11 +82,7 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
     }
   }, [provider, existingPrivileges]);
 
-  // Track dirty state
-  useEffect(() => {
-    setIsDirty(true);
-    return () => setIsDirty(false);
-  }, [formData, licenses, cmeRecords, privileges]);
+
 
   // Calculate flu vaccine year based on date
   const calculateFluVaccineYear = (dateString) => {

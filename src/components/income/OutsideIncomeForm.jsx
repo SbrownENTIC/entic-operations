@@ -127,11 +127,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
     }
   }, [formData.program_location_id, programLocations, isHartfordHospitalRVUBased]);
 
-  // Track dirty state
-  useEffect(() => {
-    setIsDirty(true);
-    return () => setIsDirty(false);
-  }, [formData]);
+
 
   const handleSubmit = (e) => {
     setIsDirty(false);

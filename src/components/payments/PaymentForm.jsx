@@ -94,11 +94,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
     }
   }, [payment]);
 
-  // Track dirty state
-  useEffect(() => {
-    setIsDirty(true);
-    return () => setIsDirty(false);
-  }, [formData]);
+
 
   // Auto-calculate payment_month from allocations
   useEffect(() => {
