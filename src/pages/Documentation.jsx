@@ -448,69 +448,81 @@ export default function Documentation() {
         <TabsContent value="manual" className="flex-1 overflow-hidden mt-4">
           <style>{`
             @media print {
-              @page { margin: 20mm; size: auto; }
-              html, body { height: auto !important; overflow: visible !important; background: white !important; }
+              @page { margin: 15mm; size: auto; }
               
-              /* Hide everything by default */
-              body * { visibility: hidden; }
-              
-              /* Show our print wrapper and its children */
-              .manual-print-wrapper, .manual-print-wrapper * { 
-                visibility: visible; 
-              }
-              
-              .manual-print-wrapper { 
-                position: absolute; 
-                left: 0; 
-                top: 0; 
-                width: 100% !important;
-                margin: 0;
-                padding: 0;
-                height: auto !important; 
+              /* GLOBAL RESET */
+              html, body {
+                height: auto !important;
+                min-height: 0 !important;
                 overflow: visible !important;
-                display: block !important; /* Disable grid layout */
                 background: white !important;
-              }
-
-              /* TOC Section */
-              .manual-toc-section {
                 width: 100% !important;
-                height: auto !important;
-                max-height: none !important;
-                overflow: visible !important;
-                border: none !important;
-                margin-bottom: 2rem !important;
-                page-break-after: always; /* Force page break after TOC */
-                display: block !important;
-              }
-
-              /* Manual Content Section (ScrollArea) */
-              .manual-content-section {
-                width: 100% !important;
-                height: auto !important;
-                overflow: visible !important;
-                display: block !important;
-                padding: 0 !important;
                 margin: 0 !important;
-                border: none !important;
+                padding: 0 !important;
+              }
+
+              /* HIDE EVERYTHING NOT IN PRINT WRAPPER */
+              body > *:not(#root) { display: none !important; }
+              #root > * { display: none !important; }
+              /* We need to traverse down to find our wrapper, so we can't just display:none everything. 
+                 Instead, we use visibility hidden for the tree, and visible for the target. */
+              body * {
+                visibility: hidden;
               }
               
-              /* Override ScrollArea specific styles to prevent cutting off content */
-              .manual-content-section [data-radix-scroll-area-viewport] {
+              /* MAKE PRINT WRAPPER VISIBLE & POSITIONED */
+              .manual-print-wrapper, 
+              .manual-print-wrapper * { 
+                visibility: visible;
+              }
+
+              .manual-print-wrapper {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100% !important;
+                height: auto !important;
+                min-height: 0 !important;
                 overflow: visible !important;
-                height: auto !important;
+                display: block !important;
+                background: white !important;
+                z-index: 9999;
               }
-              
-              /* The inner div with padding - remove padding to save space if needed, or keep it */
-              .manual-content-section > div {
+
+              /* FORCE RESET ALL SCROLL AREAS AND CONTAINERS */
+              .manual-print-wrapper [data-radix-scroll-area-viewport],
+              .manual-print-wrapper [data-radix-scroll-area-viewport] > div,
+              .manual-content-section,
+              .manual-toc-section {
+                position: static !important;
                 height: auto !important;
-                padding: 0 !important; 
+                width: 100% !important;
+                overflow: visible !important;
+                display: block !important;
               }
-              
-              /* Clean up links and text for print */
+
+              /* TOC STYLING */
+              .manual-toc-section {
+                border-bottom: 2px solid #eee !important;
+                margin-bottom: 40px !important;
+                padding-bottom: 20px !important;
+                page-break-after: always !important;
+              }
+
+              /* CONTENT SECTIONS */
+              section {
+                page-break-inside: avoid;
+                margin-bottom: 30px !important;
+                border-bottom: 1px solid #eee;
+                padding-bottom: 20px;
+              }
+
+              /* TEXT STYLING */
+              h1, h2, h3, h4 { color: black !important; }
+              p, li { color: black !important; font-size: 12pt !important; }
               a { text-decoration: none !important; color: black !important; }
-              
-              /* Hide non-print elements explicitly */
+
+              /* UTILS */
               .no-print { display: none !important; }
             }
           `}</style>
