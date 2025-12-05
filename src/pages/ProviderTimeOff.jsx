@@ -204,21 +204,7 @@ export default function ProviderTimeOff() {
     document.body.removeChild(link);
   };
 
-  const handleFixJamesOBrienDates = async () => {
-    if (!confirm('Update all of Dr. James O\'Brien\'s time off records to year 2026?')) return;
-    
-    try {
-      const response = await base44.functions.invoke('fixJamesOBrienTimeOff', {});
-      alert(response.data.message || 'Update complete');
-      queryClient.invalidateQueries({ queryKey: ['provider-timeoff'] });
-    } catch (error) {
-      console.error('Error updating dates:', error);
-      const errorMessage = error.response?.status === 404 
-        ? "Function not ready yet. Please wait a moment and try again." 
-        : error.message;
-      alert('Failed to update dates: ' + errorMessage);
-    }
-  };
+
 
   if (timeOffLoading || providersLoading) {
     return (
@@ -324,14 +310,7 @@ export default function ProviderTimeOff() {
             <p className="text-slate-600 text-sm">Track provider absences, partial days, and CME events</p>
           </div>
           <div className="flex gap-3">
-            <Button
-              variant="outline"
-              onClick={handleFixJamesOBrienDates}
-              disabled={timeOffLoading}
-              className="gap-2 text-orange-600 border-orange-200 hover:bg-orange-50"
-            >
-              {timeOffLoading ? 'Updating...' : 'Fix James O\'Brien Dates'}
-            </Button>
+
             <Button
               variant="outline"
               onClick={() => setViewMode(viewMode === 'list' ? 'calendar' : 'list')}
