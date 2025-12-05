@@ -865,19 +865,18 @@ export default function Invoices() {
 
                 {/* Bulk Quarter Actions */}
                 <div className="flex flex-wrap items-center gap-2 pt-3 mt-1 border-t border-slate-100">
-                <span className="text-sm font-medium text-slate-600 mr-2">Bulk Pay Provider ({new Date().getFullYear()}):</span>
-                {['Q1', 'Q2', 'Q3', 'Q4'].map(q => (
-                  <Button
-                    key={q}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleMarkQuarterPaid(q)}
-                    disabled={bulkUpdateMutation.isPending}
-                    className="h-8 text-xs border-slate-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
-                  >
-                    {q}
-                  </Button>
-                ))}
+                  {['Q1', 'Q2', 'Q3', 'Q4'].map(q => (
+                    <Button
+                      key={q}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleMarkQuarterPaid(q)}
+                      disabled={bulkUpdateMutation.isPending}
+                      className="h-8 text-xs border-slate-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
+                    >
+                      Pay Provider {q}
+                    </Button>
+                  ))}
                 </div>
               {selectedInvoices.length > 0 && (
                 <div className="flex flex-col xl:flex-row items-center justify-between gap-2 p-1.5 bg-blue-50 rounded-lg border border-blue-200 shadow-sm">
