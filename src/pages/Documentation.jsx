@@ -67,6 +67,19 @@ export default function Documentation() {
                       </ul>
                     </AccordionContent>
                   </AccordionItem>
+                  <AccordionItem value="manchester">
+                    <AccordionTrigger>Manchester / ECHN Workflow</AccordionTrigger>
+                    <AccordionContent className="text-sm text-slate-600 space-y-2">
+                      <p><strong>PDF Generation:</strong> Uses a specific Manchester-formatted template.</p>
+                      <p><strong>Airtable Sync & Emailing:</strong></p>
+                      <ul className="list-disc pl-4 space-y-1">
+                        <li>Once invoices are approved (have a PDF), select them in the list.</li>
+                        <li>Click the <strong>Sync to Airtable</strong> button (Cloud Icon).</li>
+                        <li>This triggers an automated email draft to <em>apacileo@echn.org</em> (Ann Marie).</li>
+                        <li>The email body includes a bulleted list of providers and attaches all selected invoices as a single package.</li>
+                      </ul>
+                    </AccordionContent>
+                  </AccordionItem>
                 </Accordion>
               </CardContent>
             </Card>
@@ -122,6 +135,18 @@ export default function Documentation() {
                         <li>Click "Add Allocation" in the form.</li>
                         <li>Select the Invoice. The system suggests the open balance.</li>
                         <li>Save. The Invoice status automatically updates to <strong>Paid to ENTIC</strong> if fully paid.</li>
+                      </ul>
+                      <p className="mt-2"><strong>Bulk Add:</strong> Use the "Bulk Add" button to select multiple invoices at once. The list now shows the <strong>Month</strong> column to help you pick the correct invoice for recurring payments.</p>
+                    </AccordionContent>
+                  </AccordionItem>
+                  <AccordionItem value="remittance">
+                    <AccordionTrigger>Remittance Advice</AccordionTrigger>
+                    <AccordionContent className="text-sm text-slate-600 space-y-2">
+                      <p>When recording a payment, you can now <strong>attach a file</strong> (PDF, Image) as the Remittance Advice.</p>
+                      <ul className="list-disc pl-4 space-y-1">
+                        <li>Click "Attach Remittance" in the payment form.</li>
+                        <li>Upload the document.</li>
+                        <li>Once saved, a "View Attached Remittance Document" link appears in the Payment Details modal.</li>
                       </ul>
                     </AccordionContent>
                   </AccordionItem>
@@ -183,6 +208,8 @@ export default function Documentation() {
                       <p className="font-semibold text-emerald-700">3. Payment → Allocation → Invoice</p>
                       <p>One <em>Payment</em> (e.g., a $10k check) can be split across multiple <em>Invoices</em> via "Allocations". <br/>
                       <strong>Logic:</strong> Invoice Status checks: <em>Amount Expected - Sum(Allocations) = 0?</em> → Mark Paid.</p>
+                      <p className="mt-2 pt-2 border-t border-slate-200 font-medium text-xs">Auto-Month Calculation:</p>
+                      <p className="text-xs">The "Payment Month" field automatically updates to list the months of all linked invoices (e.g., "October 2025, November 2025").</p>
                     </div>
                   </div>
                 </div>
