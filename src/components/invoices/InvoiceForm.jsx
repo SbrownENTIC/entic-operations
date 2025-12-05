@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { X, Upload, AlertCircle, ExternalLink, Edit, Search } from "lucide-react";
+import { X, Upload, AlertCircle, ExternalLink, Edit, Search, Trash2 } from "lucide-react";
 import { format, parseISO, subMonths } from "date-fns";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Link } from "react-router-dom";
@@ -826,11 +826,26 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                   className="flex-1"
                 />
                 {formData.draft_invoice_url && (
-                  <Button type="button" variant="outline" size="sm" asChild>
-                    <a href={formData.draft_invoice_url} target="_blank" rel="noopener noreferrer">
-                      View
-                    </a>
-                  </Button>
+                  <>
+                    <Button type="button" variant="outline" size="sm" asChild>
+                      <a href={formData.draft_invoice_url} target="_blank" rel="noopener noreferrer">
+                        View
+                      </a>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, draft_invoice_url: '' }));
+                        setIsDirty(true);
+                      }}
+                      title="Remove file"
+                      className="text-red-600 hover:text-red-700 px-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
@@ -847,11 +862,26 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                   className="flex-1"
                 />
                 {formData.approved_invoice_url && (
-                  <Button type="button" variant="outline" size="sm" asChild>
-                    <a href={formData.approved_invoice_url} target="_blank" rel="noopener noreferrer">
-                      View
-                    </a>
-                  </Button>
+                  <>
+                    <Button type="button" variant="outline" size="sm" asChild>
+                      <a href={formData.approved_invoice_url} target="_blank" rel="noopener noreferrer">
+                        View
+                      </a>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, approved_invoice_url: '' }));
+                        setIsDirty(true);
+                      }}
+                      title="Remove file"
+                      className="text-red-600 hover:text-red-700 px-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </>
                 )}
               </div>
 
