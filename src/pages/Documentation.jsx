@@ -466,47 +466,40 @@ export default function Documentation() {
                 visibility: hidden;
               }
               
-              /* EXCEPT THE PRINT WRAPPER AND ITS CHILDREN */
-              .manual-print-wrapper, 
-              .manual-print-wrapper * { 
-                visibility: visible;
+              /* TARGET THE INNER CONTENT DIRECTLY */
+              .manual-inner-content, 
+              .manual-inner-content * { 
+                visibility: visible !important;
               }
 
-              /* POSITION THE WRAPPER AT THE TOP */
-              .manual-print-wrapper {
+              /* POSITION THE CONTENT AT THE TOP, BYPASSING PARENTS */
+              .manual-inner-content {
                 position: absolute;
                 left: 0;
                 top: 0;
                 width: 100% !important;
                 height: auto !important;
+                margin: 0 !important;
+                padding: 0 !important;
                 overflow: visible !important;
                 display: block !important;
                 background: white !important;
                 z-index: 9999;
               }
-
-              /* RESET SCROLL AREAS - CRITICAL FOR PAGINATION */
-              .manual-print-wrapper [data-radix-scroll-area-root],
-              .manual-print-wrapper [data-radix-scroll-area-viewport],
-              .manual-print-wrapper [data-radix-scroll-area-viewport] > div {
-                position: static !important;
-                display: block !important;
-                height: auto !important;
-                overflow: visible !important;
-                width: 100% !important;
+              
+              /* Ensure text is black and readable */
+              .manual-inner-content p, 
+              .manual-inner-content li,
+              .manual-inner-content h1,
+              .manual-inner-content h2,
+              .manual-inner-content h3,
+              .manual-inner-content h4 {
+                 color: black !important;
               }
 
-              /* TOC STYLING - HIDDEN FOR PRINT */
+              /* Hide TOC explicitly */
               .manual-toc-section {
                 display: none !important;
-              }
-
-              /* CONTENT STYLING */
-              .manual-content-section {
-                width: 100% !important;
-                height: auto !important;
-                overflow: visible !important;
-                display: block !important;
               }
 
               section {
@@ -553,7 +546,7 @@ export default function Documentation() {
                   </div>
                   
                   <ScrollArea className="h-full manual-content-section">
-                    <div className="p-8 space-y-10">
+                    <div className="p-8 space-y-10 manual-inner-content">
                       
                       {/* 1. Dashboard */}
                       <section id="dashboard" className="space-y-4">
