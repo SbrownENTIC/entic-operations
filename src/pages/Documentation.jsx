@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import PrintableManual from "@/components/documentation/PrintableManual";
+import PrintableAdminManual from "@/components/documentation/PrintableAdminManual";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -9,6 +10,8 @@ import { CheckCircle2, AlertCircle, FileText, Settings, Users, DollarSign, Calen
 import { Button } from "@/components/ui/button";
 
 export default function Documentation() {
+  const [activeTab, setActiveTab] = useState("sops");
+
   return (
     <div className="container mx-auto py-2 px-4 max-w-6xl h-[calc(100vh-8.5rem)] flex flex-col">
       <div className="mb-6 flex-shrink-0">
@@ -16,13 +19,14 @@ export default function Documentation() {
         <p className="text-slate-600 mt-1 text-sm">Comprehensive operating procedures, system logic, and maintenance guides for the ENTIC Operations Center.</p>
       </div>
 
-      <Tabs defaultValue="sops" className="flex-1 flex flex-col overflow-hidden">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto flex-shrink-0 gap-1 bg-slate-100/50 p-1">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 h-auto flex-shrink-0 gap-1 bg-slate-100/50 p-1">
           <TabsTrigger value="sops" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm">SOPs (Modules)</TabsTrigger>
           <TabsTrigger value="system" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm">How System Works</TabsTrigger>
           <TabsTrigger value="maintenance" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm">Maintenance Guide</TabsTrigger>
           <TabsTrigger value="checklist" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm">Steve's Checklist</TabsTrigger>
           <TabsTrigger value="manual" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm">User Manual</TabsTrigger>
+          <TabsTrigger value="admin" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm font-medium text-red-600">Admin Manual</TabsTrigger>
         </TabsList>
 
         {/* SOPs Content */}
@@ -446,6 +450,53 @@ export default function Documentation() {
           </ScrollArea>
         </TabsContent>
 
+        {/* ADMIN MANUAL */}
+        <TabsContent value="admin" className="flex-1 overflow-hidden mt-4">
+          <div className="h-full flex flex-col">
+            <Card className="flex-1 flex flex-col overflow-hidden">
+              <CardHeader className="bg-slate-50 border-b border-slate-100 flex-shrink-0 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-red-800 flex items-center gap-2">
+                    <ShieldAlert className="w-5 h-5" />
+                    System Administrator Manual
+                  </CardTitle>
+                  <CardDescription>Advanced configuration, list management, and system internals</CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-2 no-print">
+                  <Printer className="w-4 h-4" />
+                  Print Admin Manual
+                </Button>
+              </CardHeader>
+              <CardContent className="p-0 flex-1 overflow-hidden">
+                <div className="grid md:grid-cols-[250px_1fr] divide-x divide-slate-100 h-full">
+                  <div className="p-4 bg-slate-50/50 overflow-y-auto">
+                    <h4 className="font-semibold text-sm text-slate-900 mb-3">Admin Sections</h4>
+                    <nav className="space-y-1 text-sm">
+                      <div className="px-2 py-1.5 text-slate-600">1. System Architecture</div>
+                      <div className="px-2 py-1.5 text-slate-600">2. Managing System Lists</div>
+                      <div className="px-2 py-1.5 text-slate-600">3. Maintenance Tools</div>
+                      <div className="px-2 py-1.5 text-slate-600">4. Integrations</div>
+                      <div className="px-2 py-1.5 text-slate-600">5. Security</div>
+                      <div className="px-2 py-1.5 text-slate-600">6. Troubleshooting</div>
+                    </nav>
+                  </div>
+                  
+                  <ScrollArea className="h-full">
+                    <div className="p-8 manual-admin-preview">
+                      <div className="prose prose-sm max-w-none text-slate-600">
+                        <p className="bg-yellow-50 border-l-4 border-yellow-400 p-4 text-yellow-800 mb-6">
+                          <strong>Note:</strong> This view is a preview. Use the "Print Admin Manual" button to generate the clean, full-page document.
+                        </p>
+                        <PrintableAdminManual />
+                      </div>
+                    </div>
+                  </ScrollArea>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
         {/* USER MANUAL */}
         <TabsContent value="manual" className="flex-1 overflow-hidden mt-4">
           <style>{`
@@ -500,12 +551,12 @@ export default function Documentation() {
             }
             `}</style>
 
-            {/* Render the print-optimized manual into the body */}
+            {/* Render the print-optimized manual into the body based on active tab */}
             {createPortal(
-            <div className="print-portal">
-              <PrintableManual />
-            </div>,
-            document.body
+              <div className="print-portal">
+                {activeTab === 'admin' ? <PrintableAdminManual /> : <PrintableManual />}
+              </div>,
+              document.body
             )}
 
             <div className="h-full flex flex-col">
