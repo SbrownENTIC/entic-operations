@@ -7,7 +7,7 @@ import { CheckCircle2, AlertCircle, FileText, Settings, Users, DollarSign, Calen
 
 export default function Documentation() {
   return (
-    <div className="container mx-auto py-6 px-4 max-w-6xl h-[calc(100vh-6rem)] flex flex-col">
+    <div className="container mx-auto py-2 px-4 max-w-6xl h-[calc(100vh-8.5rem)] flex flex-col">
       <div className="mb-6 flex-shrink-0">
         <h1 className="text-2xl font-bold text-slate-900">System Documentation</h1>
         <p className="text-slate-600 mt-1 text-sm">Comprehensive operating procedures, system logic, and maintenance guides for the ENTIC Operations Center.</p>
