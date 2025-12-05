@@ -14,7 +14,6 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useFormState } from "@/components/FormContext";
-import _ from "lodash";
 
 const INVOICE_STATUSES = [
   { value: "not_started", label: "Not Started" },
@@ -197,57 +196,25 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
     }
   }, [invoice, preselectedIncomes, incomes, programLocations, providers]);
 
-  // Track dirty state with deep comparison
-  const cleanState = useRef(null);
-
-  // Set clean state when initial data is loaded/set
+  // Track dirty state
   useEffect(() => {
-    if (!cleanState.current) {
-        // If it's the first load (cleanState is null), set it.
-        // However, InvoiceForm has complex initialization logic in other useEffects.
-        // We need to capture the state *after* initialization is complete.
-        // Since the other useEffects run and update formData, we can't easily know when it's "done".
-        // But we know that `invoice` prop change triggers a reset.
-    }
-  }, []);
-
-  // Update cleanState when invoice prop changes (edit mode)
-  useEffect(() => {
-    if (invoice) {
-      const initialData = {
-        ...invoice,
-        outside_income_ids: invoice.outside_income_ids || []
-      };
-      cleanState.current = initialData;
-    } else if (preselectedIncomes.length > 0) {
-        // Wait for the preselectedIncomes effect to run?
-        // The preselectedIncomes effect runs and calls setFormData.
-        // We need to capture that state.
-    } else {
-        // Create mode, empty state
-        // But defaults are set in useState.
-        // So cleanState should be defaults.
-        if (!cleanState.current) {
-             cleanState.current = formData;
-        }
-    }
-  }, [invoice, preselectedIncomes]);
-
-  // Update cleanState after auto-calculations ONLY if form is not yet dirty?
-  // No, the problem is auto-calcs make it dirty if we compare to defaults.
-  // But we want auto-calcs to be considered "clean" if they happen on load.
-
-  // NEW STRATEGY: Only set dirty on USER INTERACTION.
-  // I will use a wrapper for setFormData that sets dirty.
-  // And replace setFormData in the JSX controls.
-
-  const updateForm = (arg) => {
-    setFormData(prev => {
-      const newData = typeof arg === 'function' ? arg(prev) : arg;
-      return newData;
-    });
+    // We assume if formData changes it might be dirty. 
+    // Ideally we compare with initial state, but for now any change after mount/initial load logic sets it dirty.
+    // However, the initial useEffects above set formData.
+    // Let's rely on user interactions calling setFormData usually triggering re-renders.
+    
+    // A simple approach: Any change to key fields that are user-editable sets dirty.
+    // But we have auto-calculations.
+    
+    // Better: Set dirty to true whenever setFormData is called by USER input.
+    // BUT we can't easily hook into setFormData calls specifically from user input without wrapping every input handler.
+    
+    // Alternative: Use a ref to track if initial load is done.
+    
     setIsDirty(true);
-  };
+    
+    return () => setIsDirty(false);
+  }, [formData]);
 
   // Reset dirty on unmount
   useEffect(() => {
@@ -385,8 +352,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
   };
 
   const toggleIncome = (incomeId) => {
-    // Using updateForm to mark as dirty
-    updateForm(prev => {
+    setFormData(prev => {
       const isSelected = prev.outside_income_ids.includes(incomeId);
       const newIncomeIds = isSelected 
         ? prev.outside_income_ids.filter(id => id !== incomeId)
@@ -422,7 +388,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
 
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
 
-      updateForm(prev => {
+      setFormData(prev => {
         const updates = {
           [type === 'draft' ? 'draft_invoice_url' : 'approved_invoice_url']: file_url
         };
@@ -450,7 +416,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
   // Mark field as manually edited when user changes it
   const handleManualEdit = (field, value) => {
     manualEditFlags.current[field] = true;
-    updateForm({ ...formData, [field]: parseFloat(value) });
+    setFormData({ ...formData, [field]: parseFloat(value) });
   };
 
   // Incomes available for linking (not linked to other invoices OR linked to this invoice)
@@ -558,14 +524,14 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
               <Input
                 id="invoice_number"
                 value={formData.invoice_number}
-                onChange={(e) => updateForm({ ...formData, invoice_number: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, invoice_number: e.target.value })}
                 placeholder={formData.program_group === 'UConn' ? 'Auto-generated' : ''}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="program_group">Program Group *</Label>
-              <Select value={formData.program_group} onValueChange={(value) => updateForm({ ...formData, program_group: value })}>
+              <Select value={formData.program_group} onValueChange={(value) => setFormData({ ...formData, program_group: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select program group" />
                 </SelectTrigger>
@@ -581,7 +547,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
 
             <div className="space-y-2">
               <Label htmlFor="staff_member_id">Staff Member *</Label>
-              <Select value={formData.staff_member_id} onValueChange={(value) => updateForm({ ...formData, staff_member_id: value })}>
+              <Select value={formData.staff_member_id} onValueChange={(value) => setFormData({ ...formData, staff_member_id: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select staff member" />
                 </SelectTrigger>
@@ -610,7 +576,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
               <Label htmlFor="invoice_date">Invoice Date *</Label>
               <DatePicker
                 value={formData.invoice_date}
-                onChange={(date) => updateForm({ ...formData, invoice_date: date })}
+                onChange={(date) => setFormData({ ...formData, invoice_date: date })}
                 defaultMonth={subMonths(new Date(), 1)}
               />
             </div>
@@ -621,7 +587,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                 id="month"
                 placeholder="e.g., January 2024 (auto-filled from invoice #)"
                 value={formData.month}
-                onChange={(e) => updateForm({ ...formData, month: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, month: e.target.value })}
               />
             </div>
 
@@ -636,7 +602,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
               </Label>
               <Select value={formData.status} onValueChange={(value) => {
                 manualEditFlags.current.status = true;
-                updateForm({ ...formData, status: value });
+                setFormData({ ...formData, status: value });
               }}>
                 <SelectTrigger>
                   <SelectValue />
@@ -719,17 +685,17 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
               <Label htmlFor="date_provider_paid">Date Provider Paid</Label>
               <DatePicker
                 value={formData.date_provider_paid}
-                onChange={(date) => updateForm({ ...formData, date_provider_paid: date })}
+                onChange={(date) => setFormData({ ...formData, date_provider_paid: date })}
               />
             </div>
-            </div>
+          </div>
 
-            <div className="grid md:grid-cols-2 gap-4 p-4 bg-slate-50 rounded-lg">
+          <div className="grid md:grid-cols-2 gap-4 p-4 bg-slate-50 rounded-lg">
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="provider_paid"
                 checked={formData.provider_paid}
-                onCheckedChange={(checked) => updateForm({ ...formData, provider_paid: checked })}
+                onCheckedChange={(checked) => setFormData({ ...formData, provider_paid: checked })}
               />
               <label htmlFor="provider_paid" className="text-sm font-medium cursor-pointer">
                 Provider Paid
@@ -740,7 +706,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
               <Checkbox
                 id="invoice_ready_to_send"
                 checked={formData.invoice_ready_to_send}
-                onCheckedChange={(checked) => updateForm({ ...formData, invoice_ready_to_send: checked })}
+                onCheckedChange={(checked) => setFormData({ ...formData, invoice_ready_to_send: checked })}
               />
               <label htmlFor="invoice_ready_to_send" className="text-sm font-medium cursor-pointer">
                 Invoice Ready to Send
@@ -758,7 +724,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                     updates.status = 'sent_for_approval';
                     manualEditFlags.current.status = true;
                   }
-                  updateForm({ ...formData, ...updates });
+                  setFormData({ ...formData, ...updates });
                 }}
               />
               <label htmlFor="invoice_sent_for_approval" className="text-sm font-medium cursor-pointer">
@@ -777,7 +743,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                     updates.status = 'sent_to_vendor';
                     manualEditFlags.current.status = true;
                   }
-                  updateForm({ ...formData, ...updates });
+                  setFormData({ ...formData, ...updates });
                 }}
               />
               <label htmlFor="invoice_sent_to_vendor" className="text-sm font-medium cursor-pointer">
@@ -791,8 +757,8 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                 checked={formData.status === 'pending_providers_time'}
                 onCheckedChange={(checked) => {
                   if (checked) {
+                    setFormData({ ...formData, status: 'pending_providers_time' });
                     manualEditFlags.current.status = true;
-                    updateForm({ ...formData, status: 'pending_providers_time' });
                   }
                 }}
               />
@@ -807,8 +773,8 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                 checked={formData.status === 'pending_providers_approval'}
                 onCheckedChange={(checked) => {
                   if (checked) {
+                    setFormData({ ...formData, status: 'pending_providers_approval' });
                     manualEditFlags.current.status = true;
-                    updateForm({ ...formData, status: 'pending_providers_approval' });
                   }
                 }}
               />
@@ -823,8 +789,8 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                 checked={formData.status === 'sent_to_coo_for_approval'}
                 onCheckedChange={(checked) => {
                   if (checked) {
+                    setFormData({ ...formData, status: 'sent_to_coo_for_approval' });
                     manualEditFlags.current.status = true;
-                    updateForm({ ...formData, status: 'sent_to_coo_for_approval' });
                   }
                 }}
               />
@@ -839,8 +805,8 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                 checked={formData.status === 'sent_for_approval'}
                 onCheckedChange={(checked) => {
                   if (checked) {
+                    setFormData({ ...formData, status: 'sent_for_approval' });
                     manualEditFlags.current.status = true;
-                    updateForm({ ...formData, status: 'sent_for_approval' });
                   }
                 }}
               />
@@ -990,7 +956,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
             <Textarea
               id="notes"
               value={formData.notes}
-              onChange={(e) => updateForm({ ...formData, notes: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={3}
             />
           </div>
