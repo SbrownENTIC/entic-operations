@@ -53,13 +53,16 @@ Deno.serve(async (req) => {
     // Flatten the array of arrays
     const flatIncomes = allOutsideIncomes.flat();
 
-    // Get unique provider IDs
-    const providerIds = [...new Set(flatIncomes.map(inc => inc.provider_id))];
+    // Get unique provider IDs (from both linked incomes and the invoices themselves)
+    const providerIdsFromIncomes = flatIncomes.map(inc => inc.provider_id);
+    const providerIdsFromInvoices = validInvoices.map(inv => inv.staff_member_id);
+    const providerIds = [...new Set([...providerIdsFromIncomes, ...providerIdsFromInvoices])].filter(Boolean);
+
     const providers = await Promise.all(
         providerIds.map(id => base44.asServiceRole.entities.Provider.get(id))
     );
 
-    const providerList = providers.map(p => p.full_name).join('\n');
+    const providerList = providers.map(p => `- ${p.full_name}`).join('\n');
     
     // Use the month from the first invoice (assuming batch is for same month)
     const invoiceMonth = validInvoices[0].month || 'the invoice period';
@@ -67,7 +70,8 @@ Deno.serve(async (req) => {
 
     // Construct Email Content
     const emailSubject = `Manchester ${invoiceMonth} Invoices`;
-    const toRecipient = "brownsteven89@gmail.com, brownsteven89@icloud.com";
+    // Using semicolon separator for better Microsoft/Outlook compatibility
+    const toRecipient = "brownsteven89@gmail.com; brownsteven89@icloud.com";
     // Ensure these are the correct CCs
     const ccRecipients = "steve.brown@enticmd.com";
     

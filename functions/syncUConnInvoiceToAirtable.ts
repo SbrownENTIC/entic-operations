@@ -55,8 +55,11 @@ Deno.serve(async (req) => {
     // Flatten the array of arrays
     const flatIncomes = allOutsideIncomes.flat();
 
-    // Get unique provider IDs
-    const providerIds = [...new Set(flatIncomes.map(inc => inc.provider_id))];
+    // Get unique provider IDs (from both linked incomes and the invoices themselves)
+    const providerIdsFromIncomes = flatIncomes.map(inc => inc.provider_id);
+    const providerIdsFromInvoices = validInvoices.map(inv => inv.staff_member_id);
+    const providerIds = [...new Set([...providerIdsFromIncomes, ...providerIdsFromInvoices])].filter(Boolean);
+
     const providers = await Promise.all(
         providerIds.map(id => base44.asServiceRole.entities.Provider.get(id))
     );
@@ -69,9 +72,10 @@ Deno.serve(async (req) => {
 
     // Construct Email Content
     const emailSubject = `UConn ${invoiceMonth} Invoices`;
-    const toRecipient = "amoffo@uchc.edu, jserrano@uchc.edu";
+    // Using semicolon separator for better Microsoft/Outlook compatibility
+    const toRecipient = "amoffo@uchc.edu; jserrano@uchc.edu";
     // Ensure these are the correct CCs
-    const ccRecipients = "steve.brown@enticmd.com, heldridge@enticmd.com";
+    const ccRecipients = "steve.brown@enticmd.com; heldridge@enticmd.com";
     
     const emailBody = `Hey Team,\n\nHope your week is off to a fantastic start.\n\nThe ${invoiceMonth} clinic session details for you to process and enter for:\n\n${providerList}\n\nPlease see the attached invoices.\n\nThank you so much,\nSteve Brown\nOperations Manager`;
 
