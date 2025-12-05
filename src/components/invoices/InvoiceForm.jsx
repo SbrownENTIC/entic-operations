@@ -129,6 +129,8 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
         amount_expected: true,
         status: true
       };
+      // Ensure form is not marked dirty immediately after loading existing data
+      setIsDirty(false);
     } else if (preselectedIncomes.length > 0) {
       const selectedIncomes = incomes.filter(inc => preselectedIncomes.includes(inc.id));
       const totalDays = selectedIncomes.reduce((sum, inc) => sum + (inc.days_worked || 0), 0);
