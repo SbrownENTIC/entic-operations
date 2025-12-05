@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Eye, Pencil, Trash2, DollarSign, Download, ArrowUpDown, ArrowUp, ArrowDown, AlertCircle, RefreshCw, Wrench, Printer } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { useLocation } from "react-router-dom";
 import PaymentForm from "../components/payments/PaymentForm";
 import PaymentDetailModal from "../components/payments/PaymentDetailModal";
 import EmptyState from "@/components/ui/EmptyState";
@@ -35,6 +36,7 @@ export default function Payments() {
   const [fixingAllocations, setFixingAllocations] = useState(false);
   const [updateMessage, setUpdateMessage] = useState('');
   const queryClient = useQueryClient();
+  const location = useLocation();
 
   const { data: payments = [], isLoading: paymentsLoading } = useQuery({
     queryKey: ['payments'],
@@ -77,8 +79,12 @@ export default function Payments() {
     // Clear URL params after processing
     if (showUnallocated || editPaymentId) {
       window.history.replaceState({}, '', window.location.pathname);
+    } else if (location.search === '' && showForm) {
+      // If URL has no params and form is open, it means we navigated back to root
+      setShowForm(false);
+      setEditingPayment(null);
     }
-  }, [payments]);
+  }, [payments, location.search]);
 
   // Update invoice amounts and statuses based on all payment allocations
   const updateInvoiceStatuses = async () => {

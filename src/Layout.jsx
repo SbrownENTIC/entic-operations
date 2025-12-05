@@ -325,6 +325,7 @@ function LayoutContent({ children, currentPageName }) {
                     <DropdownMenuItem key={item.title} asChild>
                       <Link
                         to={item.url}
+                        onClick={(e) => handleNavigationClick(e, item.url)}
                         className="flex items-center gap-2 cursor-pointer"
                       >
                         <item.icon className="w-4 h-4" />

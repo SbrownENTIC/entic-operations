@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Eye, Pencil, Trash2, CheckCircle, XCircle, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { format, parseISO } from "date-fns";
 import ProviderForm from "../components/providers/ProviderForm";
@@ -35,6 +35,7 @@ export default function Providers() {
   const [terminationMessage, setTerminationMessage] = useState('');
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const location = useLocation();
 
   const { data: providers = [], isLoading } = useQuery({
     queryKey: ['providers'],
@@ -74,6 +75,14 @@ export default function Providers() {
       checkTerminations();
     }
   }, [providers.length, queryClient]);
+
+  // Close form when navigating to root URL (clearing params)
+  React.useEffect(() => {
+    if (location.search === '' && showForm) {
+      setShowForm(false);
+      setEditingProvider(null);
+    }
+  }, [location.search]);
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Provider.create(data),
