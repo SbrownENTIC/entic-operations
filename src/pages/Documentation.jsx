@@ -496,16 +496,9 @@ export default function Documentation() {
                 width: 100% !important;
               }
 
-              /* TOC STYLING */
+              /* TOC STYLING - HIDDEN FOR PRINT */
               .manual-toc-section {
-                width: 100% !important;
-                height: auto !important;
-                overflow: visible !important;
-                display: block !important;
-                border-bottom: 2px solid #eee !important;
-                margin-bottom: 40px !important;
-                padding-bottom: 20px !important;
-                page-break-after: always !important;
+                display: none !important;
               }
 
               /* CONTENT STYLING */
