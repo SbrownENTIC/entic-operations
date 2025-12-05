@@ -115,6 +115,21 @@ export default function PaymentDetailModal({ payment, invoices, providers, onClo
                       ${formatCurrency(payment.unallocated_amount || 0)}
                     </p>
                   </div>
+                  
+                  {payment.remittance_url && (
+                    <div className="col-span-2 pt-2 border-t border-slate-100 mt-2">
+                      <p className="text-sm text-slate-500 mb-1">Remittance Advice</p>
+                      <a 
+                        href={payment.remittance_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 hover:underline font-medium bg-blue-50 px-3 py-2 rounded-md border border-blue-100"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        View Attached Remittance Document
+                      </a>
+                    </div>
+                  )}
                 </div>
                 
                 {payment.notes && (
