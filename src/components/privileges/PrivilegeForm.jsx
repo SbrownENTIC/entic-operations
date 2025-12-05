@@ -30,11 +30,10 @@ export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel
     }
   }, [privilege]);
 
-  // Track dirty state
-  useEffect(() => {
+  const handleChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
     setIsDirty(true);
-    return () => setIsDirty(false);
-  }, [formData]);
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -91,7 +90,7 @@ export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel
                           key={provider.id}
                           value={provider.full_name}
                           onSelect={() => {
-                            setFormData({ ...formData, provider_id: provider.id });
+                            handleChange('provider_id', provider.id);
                             setOpen(false);
                           }}
                         >
@@ -111,7 +110,7 @@ export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel
 
             <div className="space-y-2">
               <Label htmlFor="facility_name">Facility *</Label>
-              <Select value={formData.facility_name} onValueChange={(value) => setFormData({ ...formData, facility_name: value })}>
+              <Select value={formData.facility_name} onValueChange={(value) => handleChange('facility_name', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select facility" />
                 </SelectTrigger>
@@ -129,7 +128,7 @@ export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel
               <Label htmlFor="granted_date">Granted Date *</Label>
               <DatePicker
                 value={formData.granted_date}
-                onChange={(date) => setFormData({ ...formData, granted_date: date })}
+                onChange={(date) => handleChange('granted_date', date)}
               />
             </div>
 
@@ -137,13 +136,13 @@ export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel
               <Label htmlFor="expiration_date">Expiration Date *</Label>
               <DatePicker
                 value={formData.expiration_date}
-                onChange={(date) => setFormData({ ...formData, expiration_date: date })}
+                onChange={(date) => handleChange('expiration_date', date)}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
-              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+              <Select value={formData.status} onValueChange={(value) => handleChange('status', value)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -161,7 +160,7 @@ export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel
             <Textarea
               id="notes"
               value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              onChange={(e) => handleChange('notes', e.target.value)}
               rows={3}
             />
           </div>

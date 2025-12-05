@@ -25,11 +25,10 @@ export default function ProgramLocationForm({ location, onSubmit, onCancel, isLo
     }
   }, [location]);
 
-  // Track dirty state
-  useEffect(() => {
+  const handleChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
     setIsDirty(true);
-    return () => setIsDirty(false);
-  }, [formData]);
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -55,7 +54,7 @@ export default function ProgramLocationForm({ location, onSubmit, onCancel, isLo
               <Input
                 id="program_location"
                 value={formData.program_location}
-                onChange={(e) => setFormData({ ...formData, program_location: e.target.value })}
+                onChange={(e) => handleChange('program_location', e.target.value)}
                 placeholder="e.g., Hartford Hospital (On-Call)"
                 required
               />
@@ -66,7 +65,7 @@ export default function ProgramLocationForm({ location, onSubmit, onCancel, isLo
               <Input
                 id="program_group"
                 value={formData.program_group}
-                onChange={(e) => setFormData({ ...formData, program_group: e.target.value })}
+                onChange={(e) => handleChange('program_group', e.target.value)}
                 placeholder="e.g., Hartford Hospital"
                 required
               />
@@ -77,7 +76,7 @@ export default function ProgramLocationForm({ location, onSubmit, onCancel, isLo
 
             <div className="space-y-2">
               <Label htmlFor="program_type">Program Type *</Label>
-              <Select value={formData.program_type} onValueChange={(value) => setFormData({ ...formData, program_type: value })}>
+              <Select value={formData.program_type} onValueChange={(value) => handleChange('program_type', value)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -96,7 +95,7 @@ export default function ProgramLocationForm({ location, onSubmit, onCancel, isLo
                 type="number"
                 step="0.01"
                 value={formData.daily_rate}
-                onChange={(e) => setFormData({ ...formData, daily_rate: parseFloat(e.target.value) || 0 })}
+                onChange={(e) => handleChange('daily_rate', parseFloat(e.target.value) || 0)}
               />
             </div>
 
@@ -106,7 +105,7 @@ export default function ProgramLocationForm({ location, onSubmit, onCancel, isLo
                 id="invoice_counter"
                 type="number"
                 value={formData.invoice_counter}
-                onChange={(e) => setFormData({ ...formData, invoice_counter: parseInt(e.target.value) || 0 })}
+                onChange={(e) => handleChange('invoice_counter', parseInt(e.target.value) || 0)}
               />
               <p className="text-xs text-slate-500">
                 Used for auto-generating invoice numbers
@@ -118,7 +117,7 @@ export default function ProgramLocationForm({ location, onSubmit, onCancel, isLo
               <Textarea
                 id="notes"
                 value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                onChange={(e) => handleChange('notes', e.target.value)}
                 rows={3}
               />
             </div>

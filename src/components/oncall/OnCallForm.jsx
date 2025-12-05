@@ -26,11 +26,10 @@ export default function OnCallForm({ schedule, providers, onSubmit, onCancel, is
     }
   }, [schedule]);
 
-  // Track dirty state
-  useEffect(() => {
+  const handleChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
     setIsDirty(true);
-    return () => setIsDirty(false);
-  }, [formData]);
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -58,7 +57,7 @@ export default function OnCallForm({ schedule, providers, onSubmit, onCancel, is
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="provider_id">Provider *</Label>
-              <Select value={formData.provider_id} onValueChange={(value) => setFormData({ ...formData, provider_id: value })}>
+              <Select value={formData.provider_id} onValueChange={(value) => handleChange('provider_id', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select provider" />
                 </SelectTrigger>
@@ -77,7 +76,7 @@ export default function OnCallForm({ schedule, providers, onSubmit, onCancel, is
               <Input
                 id="location"
                 value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                onChange={(e) => handleChange('location', e.target.value)}
               />
             </div>
 
@@ -87,7 +86,7 @@ export default function OnCallForm({ schedule, providers, onSubmit, onCancel, is
                 id="start_date"
                 type="date"
                 value={formData.start_date}
-                onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                onChange={(e) => handleChange('start_date', e.target.value)}
                 required
               />
             </div>
@@ -98,7 +97,7 @@ export default function OnCallForm({ schedule, providers, onSubmit, onCancel, is
                 id="end_date"
                 type="date"
                 value={formData.end_date}
-                onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                onChange={(e) => handleChange('end_date', e.target.value)}
                 required
               />
             </div>
@@ -109,7 +108,7 @@ export default function OnCallForm({ schedule, providers, onSubmit, onCancel, is
                 id="start_time"
                 type="time"
                 value={formData.start_time}
-                onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+                onChange={(e) => handleChange('start_time', e.target.value)}
               />
             </div>
 
@@ -119,7 +118,7 @@ export default function OnCallForm({ schedule, providers, onSubmit, onCancel, is
                 id="end_time"
                 type="time"
                 value={formData.end_time}
-                onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+                onChange={(e) => handleChange('end_time', e.target.value)}
               />
             </div>
 
@@ -128,7 +127,7 @@ export default function OnCallForm({ schedule, providers, onSubmit, onCancel, is
               <Textarea
                 id="notes"
                 value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                onChange={(e) => handleChange('notes', e.target.value)}
                 rows={3}
               />
             </div>

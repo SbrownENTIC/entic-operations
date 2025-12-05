@@ -49,6 +49,7 @@ export default function VendorInvoiceReviewForm({ invoice, supplies = [], onSave
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    setIsDirty(true);
   };
 
   const handleLineItemChange = (index, field, value) => {
@@ -58,6 +59,7 @@ export default function VendorInvoiceReviewForm({ invoice, supplies = [], onSave
       ...prev,
       extracted_data: { ...prev.extracted_data, line_items: newLineItems }
     }));
+    setIsDirty(true);
   };
 
   const removeLineItem = (index) => {
@@ -66,6 +68,7 @@ export default function VendorInvoiceReviewForm({ invoice, supplies = [], onSave
       ...prev,
       extracted_data: { ...prev.extracted_data, line_items: newLineItems }
     }));
+    setIsDirty(true);
   };
 
   const addLineItem = () => {
@@ -74,13 +77,8 @@ export default function VendorInvoiceReviewForm({ invoice, supplies = [], onSave
       ...prev,
       extracted_data: { ...prev.extracted_data, line_items: newLineItems }
     }));
-  };
-
-  // Track dirty state
-  useEffect(() => {
     setIsDirty(true);
-    return () => setIsDirty(false);
-  }, [formData]);
+  };
 
   const handleSave = () => {
     setIsDirty(false);

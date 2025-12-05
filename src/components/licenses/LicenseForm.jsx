@@ -28,11 +28,10 @@ export default function LicenseForm({ license, providers, onSubmit, onCancel, is
     }
   }, [license]);
 
-  // Track dirty state
-  useEffect(() => {
+  const handleChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
     setIsDirty(true);
-    return () => setIsDirty(false);
-  }, [formData]);
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -69,7 +68,7 @@ export default function LicenseForm({ license, providers, onSubmit, onCancel, is
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="provider_id">Provider *</Label>
-              <Select value={formData.provider_id} onValueChange={(value) => setFormData({ ...formData, provider_id: value })}>
+              <Select value={formData.provider_id} onValueChange={(value) => handleChange('provider_id', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select provider" />
                 </SelectTrigger>
@@ -85,7 +84,7 @@ export default function LicenseForm({ license, providers, onSubmit, onCancel, is
 
             <div className="space-y-2">
               <Label htmlFor="license_type">License Type *</Label>
-              <Select value={formData.license_type} onValueChange={(value) => setFormData({ ...formData, license_type: value })}>
+              <Select value={formData.license_type} onValueChange={(value) => handleChange('license_type', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select license type" />
                 </SelectTrigger>
@@ -116,7 +115,7 @@ export default function LicenseForm({ license, providers, onSubmit, onCancel, is
               <Label htmlFor="issue_date">Issue Date</Label>
               <DatePicker
                 value={formData.issue_date}
-                onChange={(date) => setFormData({ ...formData, issue_date: date })}
+                onChange={(date) => handleChange('issue_date', date)}
               />
             </div>
 
@@ -124,13 +123,13 @@ export default function LicenseForm({ license, providers, onSubmit, onCancel, is
               <Label htmlFor="expiration_date">Expiration Date *</Label>
               <DatePicker
                 value={formData.expiration_date}
-                onChange={(date) => setFormData({ ...formData, expiration_date: date })}
+                onChange={(date) => handleChange('expiration_date', date)}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
-              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+              <Select value={formData.status} onValueChange={(value) => handleChange('status', value)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -148,7 +147,7 @@ export default function LicenseForm({ license, providers, onSubmit, onCancel, is
                 id="document_url"
                 type="url"
                 value={formData.document_url}
-                onChange={(e) => setFormData({ ...formData, document_url: e.target.value })}
+                onChange={(e) => handleChange('document_url', e.target.value)}
                 placeholder="https://..."
               />
             </div>
@@ -159,7 +158,7 @@ export default function LicenseForm({ license, providers, onSubmit, onCancel, is
             <Textarea
               id="notes"
               value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              onChange={(e) => handleChange('notes', e.target.value)}
               rows={3}
             />
           </div>
