@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
         providerIds.map(id => base44.asServiceRole.entities.Provider.get(id))
     );
 
-    const providerNames = providers.map(p => p.full_name).join(', ');
+    const providerList = providers.map(p => p.full_name).join('\n');
     
     // Use the month from the first invoice (assuming batch is for same month)
     const invoiceMonth = validInvoices[0].month || 'the invoice period';
@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
     // Ensure these are the correct CCs
     const ccRecipients = "steve.brown@enticmd.com";
     
-    const emailBody = `Hi Ann Marie,\n\nHope your week’s going smoothly. I’m sending over the ${invoiceMonth} Manchester invoice for ${providerNames}, please see the attached.\n\nIf anything looks off or you need additional documentation, I’m happy to send it along.\n\nThank you so much,\nSteve Brown\nOperations Manager`;
+    const emailBody = `Hey Ann Marie,\n\nHope your week is off to a fantastic start.\n\nThe ${invoiceMonth} clinic session details for you to process and enter for:\n\n${providerList}\n\nPlease see the attached invoices.\n\nThank you so much,\n\nSteve Brown\n\nOperations Manager`;
 
     // Prepare Airtable Record Fields - Mapping to the generic Notifications table
     const fields = {
