@@ -627,6 +627,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                     <th className="p-3 text-left font-medium text-slate-700">Invoice #</th>
                     <th className="p-3 text-left font-medium text-slate-700">Program</th>
                     <th className="p-3 text-left font-medium text-slate-700">Provider</th>
+                    <th className="p-3 text-left font-medium text-slate-700">Month</th>
                     <th className="p-3 text-left font-medium text-slate-700">Date</th>
                     <th className="p-3 text-right font-medium text-slate-700">Balance</th>
                   </tr>
@@ -674,6 +675,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                           <td className="p-3 font-medium">{invoice.invoice_number || '-'}</td>
                           <td className="p-3 text-slate-600">{invoice.program_group}</td>
                           <td className="p-3 text-slate-600">{provider?.full_name || '-'}</td>
+                          <td className="p-3 text-slate-600">{invoice.month || '-'}</td>
                           <td className="p-3 text-slate-600">{invoice.invoice_date ? format(new Date(invoice.invoice_date), 'MM/dd/yyyy') : '-'}</td>
                           <td className="p-3 text-right font-medium text-green-600">${balance.toFixed(2)}</td>
                         </tr>
@@ -681,7 +683,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                     })}
                   {invoices.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="p-8 text-center text-slate-500">No invoices found</td>
+                      <td colSpan={7} className="p-8 text-center text-slate-500">No invoices found</td>
                     </tr>
                   )}
                 </tbody>
