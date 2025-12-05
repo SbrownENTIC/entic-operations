@@ -243,10 +243,6 @@ function LayoutContent({ children, currentPageName }) {
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <style>{`
-        html {
-          -webkit-text-size-adjust: 100%;
-          text-size-adjust: 100%;
-        }
         :root {
           --primary: 221 83% 53%;
           --primary-foreground: 210 40% 98%;
