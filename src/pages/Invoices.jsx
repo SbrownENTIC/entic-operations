@@ -365,24 +365,74 @@ export default function Invoices() {
   const handleBulkUpdate = () => {
     if (selectedInvoices.length > 0) {
       const updateData = {};
-      
+
       if (bulkDateProviderPaid) {
         updateData.date_provider_paid = bulkDateProviderPaid;
       }
-      
+
       if (bulkProviderPaid) {
         updateData.provider_paid = true;
         updateData.status = 'provider_paid';
       }
-      
+
       if (bulkStatusUpdate) {
         updateData.status = bulkStatusUpdate;
       }
-      
+
       if (Object.keys(updateData).length > 0) {
         bulkUpdateMutation.mutate({ ids: selectedInvoices, updateData });
       }
     }
+  };
+
+  const handleMarkQuarterPaid = (quarterPrefix) => {
+    const currentYear = new Date().getFullYear();
+    const targetQuarter = `${quarterPrefix} ${currentYear}`;
+    const today = new Date();
+
+    // Calculate quarter end date
+    let quarterEndDate;
+    switch (quarterPrefix) {
+      case 'Q1': quarterEndDate = new Date(currentYear, 2, 31); break; // March 31
+      case 'Q2': quarterEndDate = new Date(currentYear, 5, 30); break; // June 30
+      case 'Q3': quarterEndDate = new Date(currentYear, 8, 30); break; // Sept 30
+      case 'Q4': quarterEndDate = new Date(currentYear, 11, 31); break; // Dec 31
+      default: return;
+    }
+
+    // Normalize dates to start of day for comparison
+    const isOver = today > quarterEndDate;
+
+    if (!isOver) {
+      alert(`Quarter ${quarterPrefix} of ${currentYear} is not yet complete.\n\nYou can only use this action after ${format(quarterEndDate, 'MMMM d, yyyy')}.`);
+      return;
+    }
+
+    // Filter invoices for this quarter that aren't already paid to provider
+    const targetInvoices = invoicesWithProviders.filter(inv => 
+      inv.quarter === targetQuarter && 
+      !inv.provider_paid && 
+      inv.status !== 'provider_paid'
+    );
+
+    if (targetInvoices.length === 0) {
+      alert(`No unpaid invoices found for ${targetQuarter}.`);
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to mark ${targetInvoices.length} invoices for ${targetQuarter} as 'Paid to Provider'?\n\nThis will:\n- Set status to 'Provider Paid'\n- Set paid date to today (${format(today, 'MM/dd/yyyy')})\n- Prevent further auto-updates`)) {
+      return;
+    }
+
+    const ids = targetInvoices.map(inv => inv.id);
+    const updateData = {
+      status: 'provider_paid',
+      provider_paid: true,
+      date_provider_paid: format(today, 'yyyy-MM-dd'),
+      manual_status_override: true
+    };
+
+    bulkUpdateMutation.mutate({ ids, updateData });
   };
 
   const handleSingleSyncToAirtable = async (invoice) => {
@@ -811,7 +861,24 @@ export default function Invoices() {
                   <AlertCircle className="w-4 h-4 mr-2" />
                   {filterNoIncome ? "Showing No Income" : "Show Without Income"}
                 </Button>
-              </div>
+                </div>
+
+                {/* Bulk Quarter Actions */}
+                <div className="flex flex-wrap items-center gap-2 pt-3 mt-1 border-t border-slate-100">
+                <span className="text-sm font-medium text-slate-600 mr-2">Bulk Pay Provider ({new Date().getFullYear()}):</span>
+                {['Q1', 'Q2', 'Q3', 'Q4'].map(q => (
+                  <Button
+                    key={q}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleMarkQuarterPaid(q)}
+                    disabled={bulkUpdateMutation.isPending}
+                    className="h-8 text-xs border-slate-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
+                  >
+                    {q}
+                  </Button>
+                ))}
+                </div>
               {selectedInvoices.length > 0 && (
                 <div className="flex flex-col xl:flex-row items-center justify-between gap-2 p-1.5 bg-blue-50 rounded-lg border border-blue-200 shadow-sm">
                   <div className="flex items-center gap-2 shrink-0">
