@@ -287,6 +287,7 @@ The Operations Team
 
   const addRecipient = () => {
     if (newRecipient && !formData.recipients.includes(newRecipient)) {
+      setIsDirty(true);
       setFormData({
         ...formData,
         recipients: [...formData.recipients, newRecipient]
@@ -296,6 +297,7 @@ The Operations Team
   };
 
   const removeRecipient = (email) => {
+    setIsDirty(true);
     setFormData({
       ...formData,
       recipients: formData.recipients.filter(r => r !== email)
@@ -305,6 +307,7 @@ The Operations Team
   const addProviderEmail = (providerId) => {
     const provider = providers.find(p => p.id === providerId);
     if (provider && provider.email && !formData.recipients.includes(provider.email)) {
+      setIsDirty(true);
       setFormData({
         ...formData,
         recipients: [...formData.recipients, provider.email]
@@ -315,6 +318,7 @@ The Operations Team
   const addExternalContactEmail = (contactId) => {
     const contact = externalContacts.find(c => c.id === contactId);
     if (contact && contact.email && !formData.recipients.includes(contact.email)) {
+      setIsDirty(true);
       setFormData({
         ...formData,
         recipients: [...formData.recipients, contact.email]
@@ -388,7 +392,7 @@ The Operations Team
               <Input
                 id="reminder_name"
                 value={formData.reminder_name}
-                onChange={(e) => setFormData({ ...formData, reminder_name: e.target.value })}
+                onChange={(e) => { setIsDirty(true); setFormData({ ...formData, reminder_name: e.target.value })}
                 placeholder="e.g., License Renewal Reminder"
                 required
               />
@@ -425,6 +429,7 @@ The Operations Team
               <DatePicker
                 value={formData.send_date}
                 onChange={(date) => {
+                  setIsDirty(true);
                   setFormData({ ...formData, send_date: date });
                   setManuallyEdited(prev => ({ ...prev, send_date: true }));
                 }}
@@ -494,7 +499,7 @@ The Operations Team
                     type="number"
                     min="1"
                     value={formData.frequency_count}
-                    onChange={(e) => setFormData({ ...formData, frequency_count: parseInt(e.target.value) })}
+                    onChange={(e) => { setIsDirty(true); setFormData({ ...formData, frequency_count: parseInt(e.target.value) })}
                     className="w-24"
                   />
                   <span className="text-sm text-slate-600">
@@ -543,7 +548,7 @@ The Operations Team
                   <Label htmlFor="closure_date">Closure Date</Label>
                   <DatePicker
                     value={formData.closure_date}
-                    onChange={(date) => setFormData({ ...formData, closure_date: date })}
+                    onChange={(date) => { setIsDirty(true); setFormData({ ...formData, closure_date: date })}
                   />
                 </div>
 
@@ -551,7 +556,7 @@ The Operations Team
                   <Label htmlFor="closure_time">Closure Time (Optional)</Label>
                   <TimePicker
                     value={formData.closure_time || ''}
-                    onChange={(value) => setFormData({ ...formData, closure_time: value })}
+                    onChange={(value) => { setIsDirty(true); setFormData({ ...formData, closure_time: value })}
                   />
                 </div>
 
@@ -565,6 +570,7 @@ The Operations Team
                   <DatePicker
                     value={formData.reopen_date}
                     onChange={(date) => {
+                      setIsDirty(true);
                       setFormData({ ...formData, reopen_date: date });
                       setManuallyEdited(prev => ({ ...prev, reopen_date: true }));
                     }}
@@ -582,7 +588,7 @@ The Operations Team
                   <Label htmlFor="reopen_time">Reopen Time (Optional)</Label>
                   <TimePicker
                     value={formData.reopen_time || ''}
-                    onChange={(value) => setFormData({ ...formData, reopen_time: value })}
+                    onChange={(value) => { setIsDirty(true); setFormData({ ...formData, reopen_time: value })}
                   />
                 </div>
 
@@ -597,6 +603,7 @@ The Operations Team
                     id="oncall_provider_list"
                     value={formData.oncall_provider_list}
                     onChange={(e) => {
+                      setIsDirty(true);
                       setFormData({ ...formData, oncall_provider_list: e.target.value });
                       setManuallyEdited(prev => ({ ...prev, oncall_provider_list: true }));
                     }}
@@ -624,6 +631,7 @@ The Operations Team
                     id="oncall_phone_list"
                     value={formData.oncall_phone_list}
                     onChange={(e) => {
+                      setIsDirty(true);
                       setFormData({ ...formData, oncall_phone_list: e.target.value });
                       setManuallyEdited(prev => ({ ...prev, oncall_phone_list: true }));
                     }}
@@ -651,6 +659,7 @@ The Operations Team
               id="email_subject"
               value={formData.email_subject}
               onChange={(e) => {
+                setIsDirty(true);
                 setFormData({ ...formData, email_subject: e.target.value });
                 setManuallyEdited(prev => ({ ...prev, email_subject: true }));
               }}
@@ -676,7 +685,7 @@ The Operations Team
             <Textarea
               id="email_body"
               value={formData.email_body}
-              onChange={(e) => setFormData({ ...formData, email_body: e.target.value })}
+              onChange={(e) => { setIsDirty(true); setFormData({ ...formData, email_body: e.target.value })}
               rows={8}
               placeholder="Enter your email message here..."
               required
@@ -771,7 +780,7 @@ The Operations Team
             <Textarea
               id="notes"
               value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              onChange={(e) => { setIsDirty(true); setFormData({ ...formData, notes: e.target.value })}
               rows={3}
               placeholder="Additional notes or context for this reminder..."
             />

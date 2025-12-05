@@ -125,7 +125,7 @@ export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel
               <Label htmlFor="granted_date">Granted Date *</Label>
               <DatePicker
                 value={formData.granted_date}
-                onChange={(date) => setFormData({ ...formData, granted_date: date })}
+                onChange={(date) => { setIsDirty(true); setFormData({ ...formData, granted_date: date })}
               />
             </div>
 
@@ -133,7 +133,7 @@ export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel
               <Label htmlFor="expiration_date">Expiration Date *</Label>
               <DatePicker
                 value={formData.expiration_date}
-                onChange={(date) => setFormData({ ...formData, expiration_date: date })}
+                onChange={(date) => { setIsDirty(true); setFormData({ ...formData, expiration_date: date })}
               />
             </div>
 
@@ -157,7 +157,7 @@ export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel
             <Textarea
               id="notes"
               value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              onChange={(e) => { setIsDirty(true); setFormData({ ...formData, notes: e.target.value })}
               rows={3}
             />
           </div>
