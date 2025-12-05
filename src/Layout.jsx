@@ -276,7 +276,6 @@ function LayoutContent({ children, currentPageName }) {
                 src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/691521cbabed77e5043c7037/267bf0119_thumbnail_ENTIC_horizontal_BKGD.png" 
                 alt="ENTIC Logo" 
                 className="h-14 w-auto object-contain"
-                crossOrigin="anonymous"
               />
               <div>
                 <h2 className="font-bold text-slate-900 text-sm">Operations Center</h2>
