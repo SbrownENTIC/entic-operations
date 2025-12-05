@@ -461,55 +461,58 @@ export default function Documentation() {
                 padding: 0 !important;
               }
 
-              /* HIDE EVERYTHING NOT IN PRINT WRAPPER */
-              body > *:not(#root) { display: none !important; }
-              #root > * { display: none !important; }
-              /* We need to traverse down to find our wrapper, so we can't just display:none everything. 
-                 Instead, we use visibility hidden for the tree, and visible for the target. */
+              /* HIDE EVERYTHING BY DEFAULT */
               body * {
                 visibility: hidden;
               }
               
-              /* MAKE PRINT WRAPPER VISIBLE & POSITIONED */
+              /* EXCEPT THE PRINT WRAPPER AND ITS CHILDREN */
               .manual-print-wrapper, 
               .manual-print-wrapper * { 
                 visibility: visible;
               }
 
+              /* POSITION THE WRAPPER AT THE TOP */
               .manual-print-wrapper {
                 position: absolute;
                 left: 0;
                 top: 0;
                 width: 100% !important;
                 height: auto !important;
-                min-height: 0 !important;
                 overflow: visible !important;
                 display: block !important;
                 background: white !important;
                 z-index: 9999;
               }
 
-              /* FORCE RESET ALL SCROLL AREAS AND CONTAINERS */
+              /* RESET SCROLL AREAS - CRITICAL FOR PAGINATION */
               .manual-print-wrapper [data-radix-scroll-area-viewport],
-              .manual-print-wrapper [data-radix-scroll-area-viewport] > div,
-              .manual-content-section,
-              .manual-toc-section {
-                position: static !important;
-                height: auto !important;
-                width: 100% !important;
-                overflow: visible !important;
+              .manual-print-wrapper [data-radix-scroll-area-viewport] > div {
                 display: block !important;
+                height: auto !important;
+                overflow: visible !important;
               }
 
               /* TOC STYLING */
               .manual-toc-section {
+                width: 100% !important;
+                height: auto !important;
+                overflow: visible !important;
+                display: block !important;
                 border-bottom: 2px solid #eee !important;
                 margin-bottom: 40px !important;
                 padding-bottom: 20px !important;
                 page-break-after: always !important;
               }
 
-              /* CONTENT SECTIONS */
+              /* CONTENT STYLING */
+              .manual-content-section {
+                width: 100% !important;
+                height: auto !important;
+                overflow: visible !important;
+                display: block !important;
+              }
+
               section {
                 page-break-inside: avoid;
                 margin-bottom: 30px !important;
