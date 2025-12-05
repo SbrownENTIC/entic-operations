@@ -1065,17 +1065,7 @@ export default function Invoices() {
                             >
                               <FileDown className="w-4 h-4" />
                             </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => {
-                                setEditingInvoice(invoice);
-                                setPreselectedIncomes([]);
-                                setShowForm(true);
-                              }}
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </Button>
+
                             <Button 
                               variant="ghost" 
                               size="sm"
