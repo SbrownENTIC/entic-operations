@@ -1,4 +1,6 @@
 import React from "react";
+import { createPortal } from "react-dom";
+import PrintableManual from "@/components/documentation/PrintableManual";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -517,8 +519,52 @@ export default function Documentation() {
               /* UTILS */
               .no-print { display: none !important; }
             }
-          `}</style>
-          <div className="h-full flex flex-col">
+
+            @media print {
+              /* Hide the entire application root */
+              #root {
+                display: none !important;
+              }
+
+              /* Ensure the portal container is visible */
+              .print-portal {
+                display: block !important;
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                background: white;
+                z-index: 9999;
+              }
+
+              /* Reset page properties */
+              @page {
+                margin: 1.5cm;
+                size: auto;
+              }
+
+              html, body {
+                height: auto !important;
+                overflow: visible !important;
+                background: white !important;
+              }
+            }
+
+            /* Hide portal on screen */
+            .print-portal {
+              display: none;
+            }
+            `}</style>
+
+            {/* Render the print-optimized manual into the body */}
+            {createPortal(
+            <div className="print-portal">
+              <PrintableManual />
+            </div>,
+            document.body
+            )}
+
+            <div className="h-full flex flex-col">
             <Card className="flex-1 flex flex-col overflow-hidden">
               <CardHeader className="bg-slate-50 border-b border-slate-100 flex-shrink-0 flex flex-row items-center justify-between">
                 <div>
