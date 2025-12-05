@@ -44,7 +44,11 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
     }
   }, [order]);
 
-
+  // Track dirty state
+  useEffect(() => {
+    setIsDirty(true);
+    return () => setIsDirty(false);
+  }, [formData]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -71,7 +75,6 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
   };
 
   const addItem = () => {
-    setIsDirty(true);
     setFormData({
       ...formData,
       items: [...formData.items, { supply_id: '', supply_name: '', quantity: 1, unit_price: 0, received: false }]
@@ -79,7 +82,6 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
   };
 
   const selectSupply = (index, supply) => {
-    setIsDirty(true);
     const newItems = [...formData.items];
     newItems[index] = { 
       ...newItems[index], 
@@ -94,7 +96,6 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
   };
 
   const removeItem = (index) => {
-    setIsDirty(true);
     setFormData({
       ...formData,
       items: formData.items.filter((_, i) => i !== index)
@@ -102,7 +103,6 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
   };
 
   const updateItem = (index, field, value) => {
-    setIsDirty(true);
     const newItems = [...formData.items];
     newItems[index] = { ...newItems[index], [field]: value };
     setFormData({ ...formData, items: newItems });
@@ -126,7 +126,7 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
               <Input
                 id="order_number"
                 value={formData.order_number}
-                onChange={(e) => { setIsDirty(true); setFormData({ ...formData, order_number: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, order_number: e.target.value })}
               />
             </div>
 
@@ -164,7 +164,7 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
                 id="order_date"
                 type="date"
                 value={formData.order_date}
-                onChange={(e) => { setIsDirty(true); setFormData({ ...formData, order_date: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, order_date: e.target.value })}
                 required
               />
             </div>
@@ -345,7 +345,7 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
                 step="0.01"
                 placeholder="0.00"
                 value={formData.tax || ''}
-                onChange={(e) => { setIsDirty(true); setFormData({ ...formData, tax: parseFloat(e.target.value) || 0 })}
+                onChange={(e) => setFormData({ ...formData, tax: parseFloat(e.target.value) || 0 })}
                 className="w-32 text-right"
               />
             </div>
@@ -362,7 +362,7 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
             <Textarea
               id="notes"
               value={formData.notes}
-              onChange={(e) => { setIsDirty(true); setFormData({ ...formData, notes: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={3}
             />
           </div>

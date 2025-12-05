@@ -94,7 +94,11 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
     }
   }, [payment]);
 
-
+  // Track dirty state
+  useEffect(() => {
+    setIsDirty(true);
+    return () => setIsDirty(false);
+  }, [formData]);
 
   // Auto-calculate payment_month from allocations
   useEffect(() => {
@@ -124,7 +128,6 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
   };
 
   const addAllocation = () => {
-    setIsDirty(true);
     setFormData({
       ...formData,
       allocations: [...formData.allocations, { invoice_id: '', provider_id: '', amount: 0, notes: '' }]
@@ -132,7 +135,6 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
   };
 
   const removeAllocation = (index) => {
-    setIsDirty(true);
     setFormData({
       ...formData,
       allocations: formData.allocations.filter((_, i) => i !== index)
@@ -140,7 +142,6 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
   };
 
   const updateAllocation = (index, field, value) => {
-    setIsDirty(true);
     const newAllocations = [...formData.allocations];
     
     // If updating invoice_id, auto-populate provider, amount, and payment notes
@@ -219,7 +220,6 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
   };
 
   const handleBulkAdd = () => {
-    setIsDirty(true);
     const newAllocations = [...formData.allocations];
     
     // Remove empty initial allocation if it exists and we are adding bulk items
@@ -281,7 +281,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                 <Input
                   type="date"
                   value={formData.payment_date}
-                  onChange={(e) => { setIsDirty(true); setFormData({ ...formData, payment_date: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })}
                   required
                 />
               </div>
@@ -330,7 +330,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                   type="number"
                   step="0.01"
                   value={formData.total_amount}
-                  onChange={(e) => { setIsDirty(true); setFormData({ ...formData, total_amount: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => setFormData({ ...formData, total_amount: parseFloat(e.target.value) || 0 })}
                   required
                 />
               </div>
@@ -362,7 +362,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                 </label>
                 <Input
                   value={formData.reference_number}
-                  onChange={(e) => { setIsDirty(true); setFormData({ ...formData, reference_number: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, reference_number: e.target.value })}
                   placeholder="Check number or transaction ID"
                 />
               </div>
@@ -558,7 +558,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
               <Textarea
                 id="notes"
                 value={formData.notes}
-                onChange={(e) => { setIsDirty(true); setFormData({ ...formData, notes: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={4}
               />
             </div>

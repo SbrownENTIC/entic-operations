@@ -31,7 +31,11 @@ export default function SupplyForm({ supply, supplies, onSubmit, onCancel, isLoa
     }
   }, [supply]);
 
-
+  // Track dirty state
+  useEffect(() => {
+    setIsDirty(true);
+    return () => setIsDirty(false);
+  }, [formData]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -63,7 +67,7 @@ export default function SupplyForm({ supply, supplies, onSubmit, onCancel, isLoa
               <Input
                 id="item_number"
                 value={formData.item_number}
-                onChange={(e) => { setIsDirty(true); setFormData({ ...formData, item_number: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, item_number: e.target.value })}
                 placeholder="e.g., SKU-12345"
               />
             </div>
@@ -73,7 +77,7 @@ export default function SupplyForm({ supply, supplies, onSubmit, onCancel, isLoa
               <Input
                 id="product_name"
                 value={formData.product_name}
-                onChange={(e) => { setIsDirty(true); setFormData({ ...formData, product_name: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, product_name: e.target.value })}
                 placeholder="e.g., Copy Paper"
                 required
               />
@@ -84,7 +88,7 @@ export default function SupplyForm({ supply, supplies, onSubmit, onCancel, isLoa
               <Input
                 id="codes"
                 value={formData.codes}
-                onChange={(e) => { setIsDirty(true); setFormData({ ...formData, codes: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, codes: e.target.value })}
                 placeholder="e.g., CPT/HCPCS codes"
               />
             </div>
@@ -95,7 +99,7 @@ export default function SupplyForm({ supply, supplies, onSubmit, onCancel, isLoa
                 id="vendor"
                 list="vendors"
                 value={formData.vendor}
-                onChange={(e) => { setIsDirty(true); setFormData({ ...formData, vendor: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
                 placeholder="Select or type vendor name"
               />
               <datalist id="vendors">
@@ -112,7 +116,7 @@ export default function SupplyForm({ supply, supplies, onSubmit, onCancel, isLoa
                 type="number"
                 step="0.01"
                 value={formData.unit_price}
-                onChange={(e) => { setIsDirty(true); setFormData({ ...formData, unit_price: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, unit_price: e.target.value })}
                 placeholder="0.00"
                 required
               />
@@ -123,7 +127,7 @@ export default function SupplyForm({ supply, supplies, onSubmit, onCancel, isLoa
               <Input
                 id="units"
                 value={formData.units}
-                onChange={(e) => { setIsDirty(true); setFormData({ ...formData, units: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, units: e.target.value })}
                 placeholder="e.g., box, each, case"
               />
             </div>
@@ -133,7 +137,7 @@ export default function SupplyForm({ supply, supplies, onSubmit, onCancel, isLoa
               <Input
                 id="image_url"
                 value={formData.image_url}
-                onChange={(e) => { setIsDirty(true); setFormData({ ...formData, image_url: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
                 placeholder="https://example.com/image.jpg"
               />
               {formData.image_url && (

@@ -28,7 +28,11 @@ export default function LicenseForm({ license, providers, onSubmit, onCancel, is
     }
   }, [license]);
 
-
+  // Track dirty state
+  useEffect(() => {
+    setIsDirty(true);
+    return () => setIsDirty(false);
+  }, [formData]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -112,7 +116,7 @@ export default function LicenseForm({ license, providers, onSubmit, onCancel, is
               <Label htmlFor="issue_date">Issue Date</Label>
               <DatePicker
                 value={formData.issue_date}
-                onChange={(date) => { setIsDirty(true); setFormData({ ...formData, issue_date: date })}
+                onChange={(date) => setFormData({ ...formData, issue_date: date })}
               />
             </div>
 
@@ -120,7 +124,7 @@ export default function LicenseForm({ license, providers, onSubmit, onCancel, is
               <Label htmlFor="expiration_date">Expiration Date *</Label>
               <DatePicker
                 value={formData.expiration_date}
-                onChange={(date) => { setIsDirty(true); setFormData({ ...formData, expiration_date: date })}
+                onChange={(date) => setFormData({ ...formData, expiration_date: date })}
               />
             </div>
 
@@ -144,7 +148,7 @@ export default function LicenseForm({ license, providers, onSubmit, onCancel, is
                 id="document_url"
                 type="url"
                 value={formData.document_url}
-                onChange={(e) => { setIsDirty(true); setFormData({ ...formData, document_url: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, document_url: e.target.value })}
                 placeholder="https://..."
               />
             </div>
@@ -155,7 +159,7 @@ export default function LicenseForm({ license, providers, onSubmit, onCancel, is
             <Textarea
               id="notes"
               value={formData.notes}
-              onChange={(e) => { setIsDirty(true); setFormData({ ...formData, notes: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={3}
             />
           </div>

@@ -48,12 +48,10 @@ export default function VendorInvoiceReviewForm({ invoice, supplies = [], onSave
   };
 
   const handleChange = (field, value) => {
-    setIsDirty(true);
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleLineItemChange = (index, field, value) => {
-    setIsDirty(true);
     const newLineItems = [...(formData.extracted_data.line_items || [])];
     newLineItems[index] = { ...newLineItems[index], [field]: value };
     setFormData(prev => ({
@@ -63,7 +61,6 @@ export default function VendorInvoiceReviewForm({ invoice, supplies = [], onSave
   };
 
   const removeLineItem = (index) => {
-    setIsDirty(true);
     const newLineItems = (formData.extracted_data.line_items || []).filter((_, i) => i !== index);
     setFormData(prev => ({
       ...prev,
@@ -72,7 +69,6 @@ export default function VendorInvoiceReviewForm({ invoice, supplies = [], onSave
   };
 
   const addLineItem = () => {
-    setIsDirty(true);
     const newLineItems = [...(formData.extracted_data.line_items || []), { description: "", quantity: 1, unit_price: 0, total_price: 0 }];
     setFormData(prev => ({
       ...prev,
@@ -80,7 +76,11 @@ export default function VendorInvoiceReviewForm({ invoice, supplies = [], onSave
     }));
   };
 
-
+  // Track dirty state
+  useEffect(() => {
+    setIsDirty(true);
+    return () => setIsDirty(false);
+  }, [formData]);
 
   const handleSave = () => {
     setIsDirty(false);

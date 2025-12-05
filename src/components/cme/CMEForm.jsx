@@ -27,7 +27,11 @@ export default function CMEForm({ cme, providers, onSubmit, onCancel, isLoading 
     }
   }, [cme]);
 
-
+  // Track dirty state
+  useEffect(() => {
+    setIsDirty(true);
+    return () => setIsDirty(false);
+  }, [formData]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -53,7 +57,7 @@ export default function CMEForm({ cme, providers, onSubmit, onCancel, isLoading 
               <Combobox
                 options={providers.map(p => ({ value: p.id, label: p.full_name }))}
                 value={formData.provider_id}
-                onChange={(value) => { setIsDirty(true); setFormData({ ...formData, provider_id: value })}
+                onChange={(value) => setFormData({ ...formData, provider_id: value })}
                 placeholder="Select provider..."
                 searchPlaceholder="Search providers..."
                 emptyText="No provider found"
@@ -65,7 +69,7 @@ export default function CMEForm({ cme, providers, onSubmit, onCancel, isLoading 
               <Input
                 id="course_name"
                 value={formData.course_name}
-                onChange={(e) => { setIsDirty(true); setFormData({ ...formData, course_name: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, course_name: e.target.value })}
                 required
               />
             </div>
@@ -77,7 +81,7 @@ export default function CMEForm({ cme, providers, onSubmit, onCancel, isLoading 
                 type="number"
                 step="0.5"
                 value={formData.credits}
-                onChange={(e) => { setIsDirty(true); setFormData({ ...formData, credits: parseFloat(e.target.value) })}
+                onChange={(e) => setFormData({ ...formData, credits: parseFloat(e.target.value) })}
                 required
               />
             </div>
@@ -86,7 +90,7 @@ export default function CMEForm({ cme, providers, onSubmit, onCancel, isLoading 
               <Label htmlFor="completion_date">Completion Date *</Label>
               <DatePicker
                 value={formData.completion_date}
-                onChange={(date) => { setIsDirty(true); setFormData({ ...formData, completion_date: date })}
+                onChange={(date) => setFormData({ ...formData, completion_date: date })}
               />
             </div>
 
@@ -97,7 +101,7 @@ export default function CMEForm({ cme, providers, onSubmit, onCancel, isLoading 
                 type="url"
                 placeholder="https://..."
                 value={formData.certificate_url}
-                onChange={(e) => { setIsDirty(true); setFormData({ ...formData, certificate_url: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, certificate_url: e.target.value })}
               />
             </div>
 
@@ -106,7 +110,7 @@ export default function CMEForm({ cme, providers, onSubmit, onCancel, isLoading 
               <Textarea
                 id="notes"
                 value={formData.notes}
-                onChange={(e) => { setIsDirty(true); setFormData({ ...formData, notes: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={3}
               />
             </div>

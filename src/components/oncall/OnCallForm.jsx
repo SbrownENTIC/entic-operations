@@ -26,7 +26,11 @@ export default function OnCallForm({ schedule, providers, onSubmit, onCancel, is
     }
   }, [schedule]);
 
-
+  // Track dirty state
+  useEffect(() => {
+    setIsDirty(true);
+    return () => setIsDirty(false);
+  }, [formData]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -73,7 +77,7 @@ export default function OnCallForm({ schedule, providers, onSubmit, onCancel, is
               <Input
                 id="location"
                 value={formData.location}
-                onChange={(e) => { setIsDirty(true); setFormData({ ...formData, location: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
               />
             </div>
 
@@ -83,7 +87,7 @@ export default function OnCallForm({ schedule, providers, onSubmit, onCancel, is
                 id="start_date"
                 type="date"
                 value={formData.start_date}
-                onChange={(e) => { setIsDirty(true); setFormData({ ...formData, start_date: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                 required
               />
             </div>
@@ -94,7 +98,7 @@ export default function OnCallForm({ schedule, providers, onSubmit, onCancel, is
                 id="end_date"
                 type="date"
                 value={formData.end_date}
-                onChange={(e) => { setIsDirty(true); setFormData({ ...formData, end_date: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
                 required
               />
             </div>
@@ -105,7 +109,7 @@ export default function OnCallForm({ schedule, providers, onSubmit, onCancel, is
                 id="start_time"
                 type="time"
                 value={formData.start_time}
-                onChange={(e) => { setIsDirty(true); setFormData({ ...formData, start_time: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
               />
             </div>
 
@@ -115,7 +119,7 @@ export default function OnCallForm({ schedule, providers, onSubmit, onCancel, is
                 id="end_time"
                 type="time"
                 value={formData.end_time}
-                onChange={(e) => { setIsDirty(true); setFormData({ ...formData, end_time: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
               />
             </div>
 
@@ -124,7 +128,7 @@ export default function OnCallForm({ schedule, providers, onSubmit, onCancel, is
               <Textarea
                 id="notes"
                 value={formData.notes}
-                onChange={(e) => { setIsDirty(true); setFormData({ ...formData, notes: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={3}
               />
             </div>
