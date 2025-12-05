@@ -127,11 +127,10 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
     }
   }, [formData.program_location_id, programLocations, isHartfordHospitalRVUBased]);
 
-  // Track dirty state
-  useEffect(() => {
+  const handleChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
     setIsDirty(true);
-    return () => setIsDirty(false);
-  }, [formData]);
+  };
 
   const handleSubmit = (e) => {
     setIsDirty(false);
@@ -151,6 +150,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
       ...formData,
       work_dates: [...formData.work_dates, '']
     });
+    setIsDirty(true);
   };
 
   const removeWorkDate = (index) => {
@@ -158,12 +158,14 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
       ...formData,
       work_dates: formData.work_dates.filter((_, i) => i !== index)
     });
+    setIsDirty(true);
   };
 
   const updateWorkDate = (index, value) => {
     const newDates = [...formData.work_dates];
     newDates[index] = value;
     setFormData({ ...formData, work_dates: newDates });
+    setIsDirty(true);
   };
 
   const selectedLocation = programLocations.find(pl => pl.id === formData.program_location_id);
@@ -209,7 +211,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
                             key={provider.id}
                             value={provider.full_name}
                             onSelect={() => {
-                              setFormData({ ...formData, provider_id: provider.id });
+                              handleChange('provider_id', provider.id);
                               setOpen(false);
                             }}
                           >
@@ -230,7 +232,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
 
             <div className="space-y-2">
               <Label htmlFor="program_location_id">Program/Location</Label>
-              <Select value={formData.program_location_id} onValueChange={(value) => setFormData({ ...formData, program_location_id: value })}>
+              <Select value={formData.program_location_id} onValueChange={(value) => handleChange('program_location_id', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select program/location" />
                 </SelectTrigger>
@@ -255,7 +257,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
               <Input
                 id="facility_name"
                 value={formData.facility_name}
-                onChange={(e) => setFormData({ ...formData, facility_name: e.target.value })}
+                onChange={(e) => handleChange('facility_name', e.target.value)}
               />
             </div>
 
@@ -267,7 +269,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
                   type="number"
                   step="0.01"
                   value={formData.total_rvus}
-                  onChange={(e) => setFormData({ ...formData, total_rvus: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => handleChange('total_rvus', parseFloat(e.target.value) || 0)}
                   required
                 />
               </div>
@@ -290,7 +292,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
                   type="number"
                   step="0.01"
                   value={formData.rate}
-                  onChange={(e) => setFormData({ ...formData, rate: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => handleChange('rate', parseFloat(e.target.value) || 0)}
                 />
               </div>
             )}
@@ -304,7 +306,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
                     type="number"
                     step="0.01"
                     value={formData.total_amount}
-                    onChange={(e) => setFormData({ ...formData, total_amount: parseFloat(e.target.value) || 0 })}
+                    onChange={(e) => handleChange('total_amount', parseFloat(e.target.value) || 0)}
                     required
                     className="text-lg font-semibold"
                   />
@@ -329,7 +331,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
 
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
-              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+              <Select value={formData.status} onValueChange={(value) => handleChange('status', value)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -347,7 +349,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
                 id="temp_oncall_start_date"
                 type="date"
                 value={formData.temp_oncall_start_date}
-                onChange={(e) => setFormData({ ...formData, temp_oncall_start_date: e.target.value })}
+                onChange={(e) => handleChange('temp_oncall_start_date', e.target.value)}
               />
             </div>
           </div>
@@ -388,7 +390,7 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
             <Textarea
               id="notes"
               value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              onChange={(e) => handleChange('notes', e.target.value)}
               rows={3}
             />
           </div>

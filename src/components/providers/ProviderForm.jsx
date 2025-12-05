@@ -82,12 +82,6 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
     }
   }, [provider, existingPrivileges]);
 
-  // Track dirty state
-  useEffect(() => {
-    setIsDirty(true);
-    return () => setIsDirty(false);
-  }, [formData, licenses, cmeRecords, privileges]);
-
   // Calculate flu vaccine year based on date
   const calculateFluVaccineYear = (dateString) => {
     if (!dateString) return '';
@@ -112,6 +106,12 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
       flu_vaccine_date: dateString,
       flu_vaccine_year: yearRange
     });
+    setIsDirty(true);
+  };
+
+  const handleChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    setIsDirty(true);
   };
 
   const handleSubmit = async (e) => {
@@ -192,6 +192,7 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
         ? prev.program_locations.filter(l => l !== locationId)
         : [...prev.program_locations, locationId]
     }));
+    setIsDirty(true);
   };
 
   const addLicense = () => {
@@ -202,16 +203,19 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
       status: 'active',
       notes: ''
     }]);
+    setIsDirty(true);
   };
 
   const removeLicense = (index) => {
     setLicenses(licenses.filter((_, i) => i !== index));
+    setIsDirty(true);
   };
 
   const updateLicense = (index, field, value) => {
     const newLicenses = [...licenses];
     newLicenses[index] = { ...newLicenses[index], [field]: value };
     setLicenses(newLicenses);
+    setIsDirty(true);
   };
 
   const addCME = () => {
@@ -221,16 +225,19 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
       completion_date: '',
       notes: ''
     }]);
+    setIsDirty(true);
   };
 
   const removeCME = (index) => {
     setCmeRecords(cmeRecords.filter((_, i) => i !== index));
+    setIsDirty(true);
   };
 
   const updateCME = (index, field, value) => {
     const newCME = [...cmeRecords];
     newCME[index] = { ...newCME[index], [field]: value };
     setCmeRecords(newCME);
+    setIsDirty(true);
   };
 
   const addPrivilege = () => {
@@ -241,16 +248,19 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
       status: 'active',
       notes: ''
     }]);
+    setIsDirty(true);
   };
 
   const removePrivilege = (index) => {
     setPrivileges(privileges.filter((_, i) => i !== index));
+    setIsDirty(true);
   };
 
   const updatePrivilege = (index, field, value) => {
     const newPrivileges = [...privileges];
     newPrivileges[index] = { ...newPrivileges[index], [field]: value };
     setPrivileges(newPrivileges);
+    setIsDirty(true);
   };
 
   return (
@@ -271,7 +281,7 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
               <Input
                 id="full_name"
                 value={formData.full_name}
-                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                onChange={(e) => handleChange('full_name', e.target.value)}
                 required
               />
             </div>
@@ -282,7 +292,7 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
                 id="email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) => handleChange('email', e.target.value)}
                 required
               />
             </div>
@@ -293,13 +303,13 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
                 id="phone"
                 type="tel"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                onChange={(e) => handleChange('phone', e.target.value)}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="status">Status *</Label>
-              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+              <Select value={formData.status} onValueChange={(value) => handleChange('status', value)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -316,7 +326,7 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
                 id="role"
                 placeholder="e.g., ENT DM, Audiologist, PA"
                 value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                onChange={(e) => handleChange('role', e.target.value)}
               />
             </div>
 
@@ -324,7 +334,7 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
               <Label htmlFor="termination_date">Termination Date / Last Day of Work</Label>
               <DatePicker
                 value={formData.termination_date}
-                onChange={(date) => setFormData({ ...formData, termination_date: date })}
+                onChange={(date) => handleChange('termination_date', date)}
               />
               <p className="text-xs text-slate-500">Provider will automatically become inactive on this date</p>
             </div>
@@ -379,7 +389,7 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
               <Textarea
                 id="notes"
                 value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                onChange={(e) => handleChange('notes', e.target.value)}
                 rows={3}
               />
             </div>

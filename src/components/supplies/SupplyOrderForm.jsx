@@ -44,11 +44,10 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
     }
   }, [order]);
 
-  // Track dirty state
-  useEffect(() => {
+  const handleChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
     setIsDirty(true);
-    return () => setIsDirty(false);
-  }, [formData]);
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -79,6 +78,7 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
       ...formData,
       items: [...formData.items, { supply_id: '', supply_name: '', quantity: 1, unit_price: 0, received: false }]
     });
+    setIsDirty(true);
   };
 
   const selectSupply = (index, supply) => {
@@ -93,6 +93,7 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
     };
     setFormData({ ...formData, items: newItems });
     setItemSelectOpen({ ...itemSelectOpen, [index]: false });
+    setIsDirty(true);
   };
 
   const removeItem = (index) => {
@@ -100,12 +101,14 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
       ...formData,
       items: formData.items.filter((_, i) => i !== index)
     });
+    setIsDirty(true);
   };
 
   const updateItem = (index, field, value) => {
     const newItems = [...formData.items];
     newItems[index] = { ...newItems[index], [field]: value };
     setFormData({ ...formData, items: newItems });
+    setIsDirty(true);
   };
 
   return (
@@ -126,13 +129,13 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
               <Input
                 id="order_number"
                 value={formData.order_number}
-                onChange={(e) => setFormData({ ...formData, order_number: e.target.value })}
+                onChange={(e) => handleChange('order_number', e.target.value)}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="vendor">Vendor *</Label>
-              <Select value={formData.vendor} onValueChange={(value) => setFormData({ ...formData, vendor: value })}>
+              <Select value={formData.vendor} onValueChange={(value) => handleChange('vendor', value)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -145,7 +148,7 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
             {/* New Location field */}
             <div className="space-y-2">
               <Label htmlFor="location">Location *</Label>
-              <Select value={formData.location} onValueChange={(value) => setFormData({ ...formData, location: value })}>
+              <Select value={formData.location} onValueChange={(value) => handleChange('location', value)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -164,7 +167,7 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
                 id="order_date"
                 type="date"
                 value={formData.order_date}
-                onChange={(e) => setFormData({ ...formData, order_date: e.target.value })}
+                onChange={(e) => handleChange('order_date', e.target.value)}
                 required
               />
             </div>
@@ -173,7 +176,7 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
               <Label htmlFor="status">Status</Label>
               <Select 
                 value={formData.status} 
-                onValueChange={(value) => setFormData({ ...formData, status: value })}
+                onValueChange={(value) => handleChange('status', value)}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -345,7 +348,7 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
                 step="0.01"
                 placeholder="0.00"
                 value={formData.tax || ''}
-                onChange={(e) => setFormData({ ...formData, tax: parseFloat(e.target.value) || 0 })}
+                onChange={(e) => handleChange('tax', parseFloat(e.target.value) || 0)}
                 className="w-32 text-right"
               />
             </div>
@@ -362,7 +365,7 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
             <Textarea
               id="notes"
               value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              onChange={(e) => handleChange('notes', e.target.value)}
               rows={3}
             />
           </div>

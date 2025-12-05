@@ -58,11 +58,10 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
     }
   }, [formData.start_date, formData.end_date, timeOff]);
 
-  // Track dirty state
-  useEffect(() => {
+  const handleChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
     setIsDirty(true);
-    return () => setIsDirty(false);
-  }, [formData, selectedDates]);
+  };
 
   const handleSubmit = (e) => {
     setIsDirty(false);
@@ -125,7 +124,7 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
               <Combobox
                 options={providers.map(p => ({ value: p.id, label: p.full_name }))}
                 value={formData.provider_id}
-                onChange={(value) => setFormData({ ...formData, provider_id: value })}
+                onChange={(value) => handleChange('provider_id', value)}
                 placeholder="Select provider..."
                 searchPlaceholder="Search providers..."
                 emptyText="No provider found"
@@ -136,7 +135,7 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
               <Label htmlFor="type">Type *</Label>
               <Select 
                 value={formData.type} 
-                onValueChange={(value) => setFormData({ ...formData, type: value })}
+                onValueChange={(value) => handleChange('type', value)}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -156,7 +155,7 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
                   <Label htmlFor="start_date">Start Date *</Label>
                   <DatePicker
                     value={formData.start_date}
-                    onChange={(date) => setFormData({ ...formData, start_date: date })}
+                    onChange={(date) => handleChange('start_date', date)}
                   />
                 </div>
 
@@ -164,7 +163,7 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
                   <Label htmlFor="end_date">End Date *</Label>
                   <DatePicker
                     value={formData.end_date}
-                    onChange={(date) => setFormData({ ...formData, end_date: date })}
+                    onChange={(date) => handleChange('end_date', date)}
                   />
                 </div>
               </>
@@ -173,7 +172,7 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
                 <Label>Select Dates *</Label>
                 <MultiDatePicker
                   value={selectedDates}
-                  onChange={setSelectedDates}
+                  onChange={(dates) => { setSelectedDates(dates); setIsDirty(true); }}
                   placeholder="Pick multiple days (consecutive days will be grouped)"
                 />
                 <p className="text-xs text-slate-500 mt-1">
@@ -189,7 +188,7 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
                   id="partial_day_end_time"
                   type="time"
                   value={formData.partial_day_end_time}
-                  onChange={(e) => setFormData({ ...formData, partial_day_end_time: e.target.value })}
+                  onChange={(e) => handleChange('partial_day_end_time', e.target.value)}
                   placeholder="e.g., 12:00 PM"
                 />
               </div>
@@ -200,11 +199,11 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
               <Combobox
                 options={[...new Set([...COMMON_REASONS, ...(formData.reason ? [formData.reason] : [])])].map(r => ({ value: r, label: r }))}
                 value={formData.reason}
-                onChange={(value) => setFormData({ ...formData, reason: value })}
+                onChange={(value) => handleChange('reason', value)}
                 placeholder="Select or type a reason..."
                 searchPlaceholder="Search reasons..."
                 creatable
-                onCreate={(value) => setFormData({ ...formData, reason: value })}
+                onCreate={(value) => handleChange('reason', value)}
               />
             </div>
 
@@ -212,7 +211,7 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
               <Label htmlFor="status">Status</Label>
               <Select 
                 value={formData.status} 
-                onValueChange={(value) => setFormData({ ...formData, status: value })}
+                onValueChange={(value) => handleChange('status', value)}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -231,7 +230,7 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
             <Textarea
               id="notes"
               value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              onChange={(e) => handleChange('notes', e.target.value)}
               rows={3}
               placeholder="Additional notes or details"
             />

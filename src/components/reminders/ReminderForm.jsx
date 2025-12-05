@@ -277,11 +277,10 @@ The Operations Team
     }
   }, [formData.reminder_type, formData.closure_date, formData.reopen_date, formData.closure_name, formData.oncall_provider_list, formData.oncall_phone_list, formData.email_body, formData.closure_time, formData.reopen_time]);
 
-  // Track dirty state
-  useEffect(() => {
+  const handleChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
     setIsDirty(true);
-    return () => setIsDirty(false);
-  }, [formData]);
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -392,7 +391,7 @@ The Operations Team
               <Input
                 id="reminder_name"
                 value={formData.reminder_name}
-                onChange={(e) => setFormData({ ...formData, reminder_name: e.target.value })}
+                onChange={(e) => handleChange('reminder_name', e.target.value)}
                 placeholder="e.g., License Renewal Reminder"
                 required
               />
@@ -402,7 +401,7 @@ The Operations Team
               <Label htmlFor="reminder_type">Reminder Type</Label>
               <Select 
                 value={formData.reminder_type} 
-                onValueChange={(value) => setFormData({ ...formData, reminder_type: value })}
+                onValueChange={(value) => handleChange('reminder_type', value)}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -429,7 +428,7 @@ The Operations Team
               <DatePicker
                 value={formData.send_date}
                 onChange={(date) => {
-                  setFormData({ ...formData, send_date: date });
+                  handleChange('send_date', date);
                   setManuallyEdited(prev => ({ ...prev, send_date: true }));
                 }}
               />
@@ -456,7 +455,7 @@ The Operations Team
               <Label htmlFor="status">Status</Label>
               <Select 
                 value={formData.status} 
-                onValueChange={(value) => setFormData({ ...formData, status: value })}
+                onValueChange={(value) => handleChange('status', value)}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -473,7 +472,7 @@ The Operations Team
               <Label htmlFor="frequency">Frequency *</Label>
               <Select 
                 value={formData.frequency} 
-                onValueChange={(value) => setFormData({ ...formData, frequency: value })}
+                onValueChange={(value) => handleChange('frequency', value)}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -498,7 +497,7 @@ The Operations Team
                     type="number"
                     min="1"
                     value={formData.frequency_count}
-                    onChange={(e) => setFormData({ ...formData, frequency_count: parseInt(e.target.value) })}
+                    onChange={(e) => handleChange('frequency_count', parseInt(e.target.value))}
                     className="w-24"
                   />
                   <span className="text-sm text-slate-600">
@@ -526,7 +525,7 @@ The Operations Team
                   <Label htmlFor="closure_name">Closure Name</Label>
                   <Select
                     value={formData.closure_name}
-                    onValueChange={(value) => setFormData({ ...formData, closure_name: value })}
+                    onValueChange={(value) => handleChange('closure_name', value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select closure..." />
@@ -547,7 +546,7 @@ The Operations Team
                   <Label htmlFor="closure_date">Closure Date</Label>
                   <DatePicker
                     value={formData.closure_date}
-                    onChange={(date) => setFormData({ ...formData, closure_date: date })}
+                    onChange={(date) => handleChange('closure_date', date)}
                   />
                 </div>
 
@@ -555,7 +554,7 @@ The Operations Team
                   <Label htmlFor="closure_time">Closure Time (Optional)</Label>
                   <TimePicker
                     value={formData.closure_time || ''}
-                    onChange={(value) => setFormData({ ...formData, closure_time: value })}
+                    onChange={(value) => handleChange('closure_time', value)}
                   />
                 </div>
 
@@ -569,7 +568,7 @@ The Operations Team
                   <DatePicker
                     value={formData.reopen_date}
                     onChange={(date) => {
-                      setFormData({ ...formData, reopen_date: date });
+                      handleChange('reopen_date', date);
                       setManuallyEdited(prev => ({ ...prev, reopen_date: true }));
                     }}
                   />
@@ -586,7 +585,7 @@ The Operations Team
                   <Label htmlFor="reopen_time">Reopen Time (Optional)</Label>
                   <TimePicker
                     value={formData.reopen_time || ''}
-                    onChange={(value) => setFormData({ ...formData, reopen_time: value })}
+                    onChange={(value) => handleChange('reopen_time', value)}
                   />
                 </div>
 
@@ -601,7 +600,7 @@ The Operations Team
                     id="oncall_provider_list"
                     value={formData.oncall_provider_list}
                     onChange={(e) => {
-                      setFormData({ ...formData, oncall_provider_list: e.target.value });
+                      handleChange('oncall_provider_list', e.target.value);
                       setManuallyEdited(prev => ({ ...prev, oncall_provider_list: true }));
                     }}
                     placeholder="Dr. John Smith"
@@ -628,7 +627,7 @@ The Operations Team
                     id="oncall_phone_list"
                     value={formData.oncall_phone_list}
                     onChange={(e) => {
-                      setFormData({ ...formData, oncall_phone_list: e.target.value });
+                      handleChange('oncall_phone_list', e.target.value);
                       setManuallyEdited(prev => ({ ...prev, oncall_phone_list: true }));
                     }}
                     placeholder="860-123-4567"
@@ -655,7 +654,7 @@ The Operations Team
               id="email_subject"
               value={formData.email_subject}
               onChange={(e) => {
-                setFormData({ ...formData, email_subject: e.target.value });
+                handleChange('email_subject', e.target.value);
                 setManuallyEdited(prev => ({ ...prev, email_subject: true }));
               }}
               placeholder="e.g., Your medical license expires in 30 days"
@@ -680,7 +679,7 @@ The Operations Team
             <Textarea
               id="email_body"
               value={formData.email_body}
-              onChange={(e) => setFormData({ ...formData, email_body: e.target.value })}
+              onChange={(e) => handleChange('email_body', e.target.value)}
               rows={8}
               placeholder="Enter your email message here..."
               required
@@ -774,8 +773,8 @@ The Operations Team
             <Label htmlFor="notes">Notes</Label>
             <Textarea
               id="notes"
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              value={formData.notes || ''}
+              onChange={(e) => handleChange('notes', e.target.value)}
               rows={3}
               placeholder="Additional notes or context for this reminder..."
             />

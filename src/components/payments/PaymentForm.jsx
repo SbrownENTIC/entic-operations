@@ -94,11 +94,10 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
     }
   }, [payment]);
 
-  // Track dirty state
-  useEffect(() => {
+  const handleChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
     setIsDirty(true);
-    return () => setIsDirty(false);
-  }, [formData]);
+  };
 
   // Auto-calculate payment_month from allocations
   useEffect(() => {
@@ -132,6 +131,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
       ...formData,
       allocations: [...formData.allocations, { invoice_id: '', provider_id: '', amount: 0, notes: '' }]
     });
+    setIsDirty(true);
   };
 
   const removeAllocation = (index) => {
@@ -139,6 +139,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
       ...formData,
       allocations: formData.allocations.filter((_, i) => i !== index)
     });
+    setIsDirty(true);
   };
 
   const updateAllocation = (index, field, value) => {
@@ -175,6 +176,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
               allocations: newAllocations,
               notes: updatedNotes 
             }));
+            setIsDirty(true);
             return; // Exit early since we're updating formData here
           }
         }
@@ -186,6 +188,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
     }
     
     setFormData({ ...formData, allocations: newAllocations });
+    setIsDirty(true);
   };
 
   const toggleCombobox = (index, isOpen) => {
@@ -259,6 +262,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
 
     setFormData(prev => ({ ...prev, allocations: newAllocations }));
     setShowBulkSelect(false);
+    setIsDirty(true);
   };
 
   const totalAllocated = formData.allocations.reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
@@ -281,7 +285,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                 <Input
                   type="date"
                   value={formData.payment_date}
-                  onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })}
+                  onChange={(e) => handleChange('payment_date', e.target.value)}
                   required
                 />
               </div>
@@ -307,7 +311,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                 </label>
                 <Select
                   value={formData.payer}
-                  onValueChange={(value) => setFormData({ ...formData, payer: value })}
+                  onValueChange={(value) => handleChange('payer', value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select payer" />
@@ -330,7 +334,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                   type="number"
                   step="0.01"
                   value={formData.total_amount}
-                  onChange={(e) => setFormData({ ...formData, total_amount: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => handleChange('total_amount', parseFloat(e.target.value) || 0)}
                   required
                 />
               </div>
@@ -341,7 +345,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                 </label>
                 <Select
                   value={formData.payment_method}
-                  onValueChange={(value) => setFormData({ ...formData, payment_method: value })}
+                  onValueChange={(value) => handleChange('payment_method', value)}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -362,7 +366,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                 </label>
                 <Input
                   value={formData.reference_number}
-                  onChange={(e) => setFormData({ ...formData, reference_number: e.target.value })}
+                  onChange={(e) => handleChange('reference_number', e.target.value)}
                   placeholder="Check number or transaction ID"
                 />
               </div>
@@ -373,7 +377,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                 </label>
                 <Select
                   value={formData.status}
-                  onValueChange={(value) => setFormData({ ...formData, status: value })}
+                  onValueChange={(value) => handleChange('status', value)}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -558,7 +562,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
               <Textarea
                 id="notes"
                 value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                onChange={(e) => handleChange('notes', e.target.value)}
                 rows={4}
               />
             </div>
