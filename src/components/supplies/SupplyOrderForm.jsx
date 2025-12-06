@@ -16,7 +16,7 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
   const { setIsDirty } = useFormState();
   const [formData, setFormData] = useState({
     order_number: '',
-    vendor: 'Staples',
+    vendor: category === 'clinical' ? 'Henry Schein' : 'Staples',
     location: 'Glastonbury',
     order_date: '',
     status: 'order_placed',
@@ -141,6 +141,7 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Staples">Staples</SelectItem>
+                  <SelectItem value="Henry Schein">Henry Schein</SelectItem>
                 </SelectContent>
               </Select>
             </div>
