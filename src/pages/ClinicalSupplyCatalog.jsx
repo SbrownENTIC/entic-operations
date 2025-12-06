@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown, Trash2, CheckSquare } from "lucide-react";
+import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown, Trash2, CheckSquare, Upload, FileSpreadsheet } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog,
@@ -30,6 +30,7 @@ export default function ClinicalSupplyCatalog() {
   const [initMessage, setInitMessage] = useState('');
   const [selectedItems, setSelectedItems] = useState([]);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const fileInputRef = React.useRef(null);
 
   const queryClient = useQueryClient();
 
@@ -83,18 +84,32 @@ export default function ClinicalSupplyCatalog() {
     }
   };
 
-  const handleInitialize = async () => {
+  const handleFileUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
     setInitializing(true);
     setInitMessage('');
-    try {
-      const response = await base44.functions.invoke('setupClinicalCatalog', {});
-      setInitMessage(response.data.message);
-      queryClient.invalidateQueries({ queryKey: ['supplies'] });
-    } catch (error) {
-      setInitMessage('Error initializing catalog: ' + (error.response?.data?.error || error.message));
-    } finally {
-      setInitializing(false);
-    }
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const text = e.target.result;
+      try {
+        const response = await base44.functions.invoke('importClinicalSupplies', { csvContent: text });
+        setInitMessage(response.data.message);
+        if (response.data.errors) {
+           console.error("Import errors:", response.data.errors);
+           setInitMessage(prev => prev + ` (${response.data.errors.length} errors)`);
+        }
+        queryClient.invalidateQueries({ queryKey: ['supplies'] });
+      } catch (error) {
+        setInitMessage('Error importing CSV: ' + (error.response?.data?.error || error.message));
+      } finally {
+        setInitializing(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    };
+    reader.readAsText(file);
   };
 
   const handleSort = (field) => {
@@ -184,16 +199,24 @@ export default function ClinicalSupplyCatalog() {
                 Delete Selected ({selectedItems.length})
               </Button>
             )}
-            {supplies.length === 0 && (
-              <Button
-                onClick={handleInitialize}
-                disabled={initializing}
-                variant="outline"
-                className="border-green-600 text-green-600 hover:bg-green-50"
-              >
-                {initializing ? 'Importing...' : 'Import Default Items'}
-              </Button>
-            )}
+              <div className="relative">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  accept=".csv"
+                  className="hidden"
+                />
+                <Button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={initializing}
+                  variant="outline"
+                  className="border-green-600 text-green-600 hover:bg-green-50"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  {initializing ? 'Importing...' : 'Import CSV'}
+                </Button>
+              </div>
             <Button
               onClick={() => {
                 setEditingSupply(null);
