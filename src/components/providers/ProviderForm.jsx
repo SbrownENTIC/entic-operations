@@ -26,6 +26,7 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
     status: 'active',
     role: '',
     program_locations: [],
+    start_date: '',
     termination_date: '',
     flu_vaccine_year: '',
     flu_vaccine_date: '',
@@ -33,6 +34,7 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
     ...(provider ? {
       ...provider,
       program_locations: provider.program_locations || [],
+      start_date: provider.start_date || '',
       termination_date: provider.termination_date || '',
       flu_vaccine_year: String(provider.flu_vaccine_year || ''),
       flu_vaccine_date: provider.flu_vaccine_date || ''
@@ -328,6 +330,15 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
                 value={formData.role}
                 onChange={(e) => handleChange('role', e.target.value)}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="start_date">Start Date</Label>
+              <DatePicker
+                value={formData.start_date}
+                onChange={(date) => handleChange('start_date', date)}
+              />
+              <p className="text-xs text-slate-500">Date provider starts/started employment</p>
             </div>
 
             <div className="space-y-2">

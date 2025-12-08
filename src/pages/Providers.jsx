@@ -282,6 +282,12 @@ export default function Providers() {
                           <span className="text-slate-900 truncate max-w-[200px]">{provider.email}</span>
                         </div>
                         <div className="flex justify-between py-1 border-b border-slate-100">
+                          <span className="text-slate-500">Start Date:</span>
+                          <span className="text-slate-900">
+                            {provider.start_date ? format(parseISO(provider.start_date), 'MM-dd-yyyy') : '-'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between py-1 border-b border-slate-100">
                           <span className="text-slate-500">Termination:</span>
                           <span className="text-slate-900">
                             {provider.termination_date ? format(parseISO(provider.termination_date), 'MM-dd-yyyy') : '-'}
@@ -364,6 +370,12 @@ export default function Providers() {
                     >
                       Status <SortIcon field="status" />
                     </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      onClick={() => handleSort('start_date')}
+                    >
+                      Start Date <SortIcon field="start_date" />
+                    </th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700">
                       Termination Date
                     </th>
@@ -397,6 +409,9 @@ export default function Providers() {
                           <Badge variant={provider.status === 'active' ? 'default' : 'secondary'}>
                             {capitalizedStatus}
                           </Badge>
+                        </td>
+                        <td className="p-4 text-slate-600">
+                          {provider.start_date ? format(parseISO(provider.start_date), 'MM-dd-yyyy') : '-'}
                         </td>
                         <td className="p-4 text-slate-600">
                           {provider.termination_date ? format(parseISO(provider.termination_date), 'MM-dd-yyyy') : '-'}
