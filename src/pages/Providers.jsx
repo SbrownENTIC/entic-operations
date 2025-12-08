@@ -71,8 +71,9 @@ export default function Providers() {
             const startDate = new Date(provider.start_date);
             startDate.setHours(0, 0, 0, 0);
 
-            // If start date is in future, set to pending (unless already pending or inactive)
-            if (startDate > today && provider.status !== 'pending' && provider.status !== 'inactive') {
+            // If start date is in future, set to pending (unless already pending)
+            // We allow inactive -> pending transition to catch new hires that might have been defaulted to inactive
+            if (startDate > today && provider.status !== 'pending') {
                await base44.entities.Provider.update(provider.id, {
                  ...provider,
                  status: 'pending',
