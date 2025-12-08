@@ -84,7 +84,7 @@ export default function ContactReferenceSheet() {
   ];
 
   return (
-    <div className="space-y-8 p-4 md:p-8 max-w-5xl mx-auto bg-white min-h-screen">
+    <div className="space-y-8 p-4 md:p-8 max-w-5xl mx-auto bg-white">
       <div className="text-center space-y-2 border-b pb-6">
         <h1 className="text-3xl font-bold text-slate-900">Hospital & Surgery Center Contact Reference Sheet</h1>
         <p className="text-slate-500">Key contacts for credentialing, compliance, and IT support</p>
