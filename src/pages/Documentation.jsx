@@ -70,7 +70,7 @@ export default function Documentation() {
       {/* Render the print-optimized manual into the body based on active tab */}
       {createPortal(
         <div className="print-portal">
-          {activeTab === 'admin' ? <PrintableAdminManual /> : <PrintableManual />}
+          {activeTab === 'admin' ? <PrintableAdminManual /> : activeTab === 'contacts' ? <ContactReferenceSheet /> : <PrintableManual />}
         </div>,
         document.body
       )}
@@ -561,11 +561,22 @@ export default function Documentation() {
 
         {/* CONTACT SHEET */}
         <TabsContent value="contacts" className="flex-1 overflow-hidden mt-4">
-          <ScrollArea className="h-full pr-4">
-             <div className="pb-6">
-                <ContactReferenceSheet />
-             </div>
-          </ScrollArea>
+          <div className="h-full flex flex-col">
+            <div className="flex justify-between items-center mb-4 px-1 no-print">
+               <div className="text-sm text-slate-500 italic">
+                 This sheet is optimized for printing
+               </div>
+               <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-2">
+                  <Printer className="w-4 h-4" />
+                  Print Contact Sheet
+               </Button>
+            </div>
+            <ScrollArea className="h-full pr-4">
+               <div className="pb-6">
+                  <ContactReferenceSheet />
+               </div>
+            </ScrollArea>
+          </div>
         </TabsContent>
 
         {/* USER MANUAL */}
