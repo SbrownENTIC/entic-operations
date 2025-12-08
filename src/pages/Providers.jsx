@@ -51,18 +51,44 @@ export default function Providers() {
         
         let updated = false;
         for (const provider of providers) {
+          // 1. Check for Terminations
           if (provider.status === 'active' && provider.termination_date) {
             const terminationDate = new Date(provider.termination_date);
             terminationDate.setHours(0, 0, 0, 0);
             
             if (terminationDate <= today) {
-              // Ensure we keep all existing fields and only update status
               await base44.entities.Provider.update(provider.id, {
                 ...provider,
                 status: 'inactive',
                 flu_vaccine_year: String(provider.flu_vaccine_year || '')
               });
               updated = true;
+            }
+          }
+
+          // 2. Check for Future Start Dates (Pending)
+          if (provider.start_date) {
+            const startDate = new Date(provider.start_date);
+            startDate.setHours(0, 0, 0, 0);
+
+            // If start date is in future, set to pending (unless already pending or inactive)
+            if (startDate > today && provider.status !== 'pending' && provider.status !== 'inactive') {
+               await base44.entities.Provider.update(provider.id, {
+                 ...provider,
+                 status: 'pending',
+                 flu_vaccine_year: String(provider.flu_vaccine_year || '')
+               });
+               updated = true;
+            }
+
+            // If start date arrived, activate pending providers
+            if (startDate <= today && provider.status === 'pending') {
+               await base44.entities.Provider.update(provider.id, {
+                 ...provider,
+                 status: 'active',
+                 flu_vaccine_year: String(provider.flu_vaccine_year || '')
+               });
+               updated = true;
             }
           }
         }
