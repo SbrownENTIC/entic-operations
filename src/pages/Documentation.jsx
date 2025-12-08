@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import PrintableManual from "@/components/documentation/PrintableManual";
 import PrintableAdminManual from "@/components/documentation/PrintableAdminManual";
+import ContactReferenceSheet from "@/components/documentation/ContactReferenceSheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -86,6 +87,7 @@ export default function Documentation() {
           <TabsTrigger value="maintenance" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm">Maintenance Guide</TabsTrigger>
           <TabsTrigger value="checklist" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm">Steve's Checklist</TabsTrigger>
           <TabsTrigger value="manual" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm">User Manual</TabsTrigger>
+          <TabsTrigger value="contacts" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm">Contact Sheet</TabsTrigger>
           <TabsTrigger value="admin" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm font-medium text-red-600">Admin Manual</TabsTrigger>
         </TabsList>
 
@@ -555,6 +557,15 @@ export default function Documentation() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        {/* CONTACT SHEET */}
+        <TabsContent value="contacts" className="flex-1 overflow-hidden mt-4">
+          <ScrollArea className="h-full pr-4">
+             <div className="pb-6">
+                <ContactReferenceSheet />
+             </div>
+          </ScrollArea>
         </TabsContent>
 
         {/* USER MANUAL */}
