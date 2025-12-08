@@ -855,7 +855,7 @@ export default function Invoices() {
         }
       `}</style>
       <div className="flex-shrink-0 p-2 md:p-3">
-        <div className="max-w-7xl mx-auto space-y-2">
+        <div className="max-w-[1600px] mx-auto space-y-2">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 no-print">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Invoices</h1>
@@ -922,7 +922,7 @@ export default function Invoices() {
       </div>
 
       <div className="flex-1 overflow-hidden px-4 md:px-6 pb-4">
-        <div className="max-w-7xl mx-auto h-full">
+        <div className="max-w-[1600px] mx-auto h-full">
         <div className="print-content h-full flex flex-col">
           <div className="hidden print:block mb-4 flex-shrink-0">
             <h1 className="text-2xl font-bold">Invoices Report</h1>
