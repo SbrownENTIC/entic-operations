@@ -114,6 +114,7 @@ export default function MonthlyFinancialsReport({ payments, formatCurrency }) {
                   <thead className="bg-slate-100 border-b border-slate-200 sticky top-0">
                     <tr>
                       <th className="text-left p-3 font-semibold text-slate-700">Date</th>
+                      <th className="text-left p-3 font-semibold text-slate-700">Invoice Month</th>
                       <th className="text-left p-3 font-semibold text-slate-700">Payer</th>
                       <th className="text-left p-3 font-semibold text-slate-700">Reference</th>
                       <th className="text-left p-3 font-semibold text-slate-700">Method</th>
@@ -127,6 +128,9 @@ export default function MonthlyFinancialsReport({ payments, formatCurrency }) {
                       <tr key={payment.id} className="border-b border-slate-100 hover:bg-slate-50">
                         <td className="p-3 text-slate-600">
                           {format(parseISO(payment.payment_date), 'MMM d, yyyy')}
+                        </td>
+                        <td className="p-3 text-slate-600">
+                          {payment.payment_month || '-'}
                         </td>
                         <td className="p-3 font-medium text-slate-900">{payment.payer || '-'}</td>
                         <td className="p-3 text-slate-600">{payment.reference_number || '-'}</td>
