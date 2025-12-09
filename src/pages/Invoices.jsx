@@ -1234,7 +1234,7 @@ export default function Invoices() {
                               <Upload className={`w-4 h-4 ${uploadingId === invoice.id ? 'animate-pulse' : ''}`} />
                             </Button>
 
-                            {(invoice.program_group?.includes('UConn') || invoice.program_group?.includes('Manchester') || invoice.program_group?.includes('ECHN')) && (
+                            {(invoice.program_group?.includes('UConn') || invoice.program_group?.includes('Manchester') || invoice.program_group?.includes('ECHN') || invoice.program_group === 'Hartford Hospital') && (
                               <Button 
                                 variant="ghost" 
                                 size="sm"
@@ -1245,7 +1245,7 @@ export default function Invoices() {
                               >
                                 <CloudUpload className="w-4 h-4" />
                                 <span className="absolute -bottom-1.5 -right-1.5 text-[8px] font-bold bg-white rounded-full border border-slate-200 px-0.5 min-w-[16px] text-center shadow-sm">
-                                  {invoice.program_group?.includes('UConn') ? 'UC' : 'M'}
+                                  {invoice.program_group?.includes('UConn') ? 'UC' : invoice.program_group === 'Hartford Hospital' ? 'HH' : 'M'}
                                 </span>
                               </Button>
                             )}
