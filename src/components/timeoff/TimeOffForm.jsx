@@ -11,7 +11,7 @@ import { X } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
 import { MultiDatePicker } from "@/components/ui/multi-date-picker";
 import { Combobox } from "@/components/ui/combobox";
-import { addDays, format, parseISO, differenceInDays } from "date-fns";
+import { addDays, format, parseISO, differenceInDays, parse, isValid } from "date-fns";
 import { useFormState } from "@/components/FormContext";
 
 const COMMON_REASONS = [
@@ -29,6 +29,7 @@ const COMMON_REASONS = [
 export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) {
   const { setIsDirty } = useFormState();
   const [selectedDates, setSelectedDates] = useState([]);
+  const [pasteInput, setPasteInput] = useState("");
   const [formData, setFormData] = useState({
     provider_id: '',
     start_date: '',
@@ -178,6 +179,65 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
                 <p className="text-xs text-slate-500 mt-1">
                   Consecutive days will be grouped into a single entry. Non-consecutive days will create separate entries.
                 </p>
+                
+                <div className="mt-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                  <Label htmlFor="paste_dates" className="text-sm font-medium text-slate-700">
+                    Or Paste List of Dates
+                  </Label>
+                  <div className="flex gap-2 mt-2">
+                    <Textarea
+                      id="paste_dates"
+                      value={pasteInput}
+                      onChange={(e) => setPasteInput(e.target.value)}
+                      placeholder="e.g. 1/19/2026&#10;2/12/2026&#10;3/16/2026"
+                      className="text-sm font-mono"
+                      rows={5}
+                    />
+                  </div>
+                  <div className="flex justify-between items-center mt-2">
+                    <p className="text-xs text-slate-500">
+                      Supports MM/DD/YYYY formats. Ignores numbering and extra text.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        if (!pasteInput) return;
+                        
+                        const lines = pasteInput.split(/\r?\n/);
+                        const newDates = new Set(selectedDates);
+                        let addedCount = 0;
+                        
+                        lines.forEach(line => {
+                          // Try to find date pattern MM/DD/YYYY
+                          const dateMatch = line.match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);
+                          
+                          if (dateMatch) {
+                            try {
+                              const dateStr = `${dateMatch[1]}/${dateMatch[2]}/${dateMatch[3]}`;
+                              const parsedDate = parse(dateStr, 'M/d/yyyy', new Date());
+                              
+                              if (isValid(parsedDate)) {
+                                newDates.add(format(parsedDate, 'yyyy-MM-dd'));
+                                addedCount++;
+                              }
+                            } catch (e) {
+                              console.error("Failed to parse date from line:", line);
+                            }
+                          }
+                        });
+                        
+                        setSelectedDates(Array.from(newDates).sort());
+                        setIsDirty(true);
+                        setPasteInput(""); // Clear input after processing
+                      }}
+                      disabled={!pasteInput}
+                    >
+                      Process & Add Dates
+                    </Button>
+                  </div>
+                </div>
               </div>
             )}
 
