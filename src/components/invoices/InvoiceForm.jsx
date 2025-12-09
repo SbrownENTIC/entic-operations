@@ -390,6 +390,12 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
           manualEditFlags.current.status = true;
         }
 
+        // Auto-update status to draft when draft invoice is uploaded
+        if (type === 'draft' && prev.status === 'not_started' && !manualEditFlags.current.status) {
+          updates.status = 'draft';
+          manualEditFlags.current.status = true;
+        }
+
         return {
           ...prev,
           ...updates
