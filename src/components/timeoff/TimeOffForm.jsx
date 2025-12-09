@@ -65,12 +65,45 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
   };
 
   const handleSubmit = (e) => {
-    setIsDirty(false);
     e.preventDefault();
     
-    if (!timeOff && selectedDates.length > 0) {
+    if (!formData.provider_id) {
+      alert("Please select a provider.");
+      return;
+    }
+
+    if (!timeOff) {
+      // Create Mode
+      let datesToSubmit = new Set(selectedDates);
+
+      // Auto-process paste input if exists
+      if (pasteInput) {
+        const lines = pasteInput.split(/\r?\n/);
+        lines.forEach(line => {
+          const dateMatch = line.match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);
+          if (dateMatch) {
+            try {
+              const dateStr = `${dateMatch[1]}/${dateMatch[2]}/${dateMatch[3]}`;
+              const parsedDate = parse(dateStr, 'M/d/yyyy', new Date());
+              if (isValid(parsedDate)) {
+                datesToSubmit.add(format(parsedDate, 'yyyy-MM-dd'));
+              }
+            } catch (e) {
+              console.error("Failed to parse date from line:", line);
+            }
+          }
+        });
+      }
+
+      if (datesToSubmit.size === 0) {
+        alert("Please select dates or paste a list of dates.");
+        return;
+      }
+
+      setIsDirty(false);
+
       // Process multiple dates into consecutive ranges
-      const sortedDates = [...selectedDates].sort();
+      const sortedDates = Array.from(datesToSubmit).sort();
       const ranges = [];
       
       if (sortedDates.length > 0) {
@@ -102,7 +135,8 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
       
       onSubmit(entries);
     } else {
-      // Single entry update or create (fallback)
+      // Edit Mode (Single Entry)
+      setIsDirty(false);
       onSubmit(formData);
     }
   };
