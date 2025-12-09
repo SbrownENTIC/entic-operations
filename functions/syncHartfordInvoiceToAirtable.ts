@@ -111,6 +111,35 @@ Deno.serve(async (req) => {
         throw new Error(`Airtable Error: ${JSON.stringify(errorData)}`);
     }
 
+    // Automatically mark associated Directorship invoices as sent
+    const timestamp = new Date().toISOString();
+    await Promise.all(validInvoices.map(async (mainInvoice) => {
+        try {
+             // Find sibling directorship invoices
+             const siblings = await base44.asServiceRole.entities.Invoice.filter({
+                 staff_member_id: mainInvoice.staff_member_id,
+                 month: mainInvoice.month,
+                 program_group: 'Hartford Hospital'
+             });
+             
+             const directorships = siblings.filter(inv => 
+                 inv.invoice_number && 
+                 inv.invoice_number.includes('(Directorship)')
+             );
+             
+             await Promise.all(directorships.map(dirInv => 
+                 base44.asServiceRole.entities.Invoice.update(dirInv.id, {
+                     status: 'sent_to_vendor',
+                     invoice_sent_to_vendor: true,
+                     sent_to_vendor_at: timestamp,
+                     manual_status_override: true
+                 })
+             ));
+        } catch (err) {
+            console.error(`Failed to update directorship invoice for ${mainInvoice.invoice_number}:`, err);
+        }
+    }));
+
     return Response.json({ success: true, message: `Synced ${validInvoices.length} Hartford Hospital invoices to Airtable successfully` });
 
   } catch (error) {
