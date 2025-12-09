@@ -142,7 +142,7 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
   };
 
   return (
-    <Card className="border-blue-200 bg-blue-50/30">
+    <Card className="border-slate-200 shadow-none border-0">
       <CardHeader className="border-b border-slate-100">
         <div className="flex items-center justify-between">
           <CardTitle>{timeOff ? 'Edit Time Off Entry' : 'Add Time Off / CME'}</CardTitle>

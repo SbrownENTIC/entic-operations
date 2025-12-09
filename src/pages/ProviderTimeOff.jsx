@@ -740,7 +740,7 @@ export default function ProviderTimeOff() {
           setEditingTimeOff(null);
         }
       }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 border-0 bg-transparent shadow-none [&>button]:hidden">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 [&>button]:hidden">
           <TimeOffForm
             timeOff={editingTimeOff}
             onSubmit={handleSubmit}
