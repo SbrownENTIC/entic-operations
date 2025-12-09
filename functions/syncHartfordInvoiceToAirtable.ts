@@ -26,17 +26,33 @@ Deno.serve(async (req) => {
     }
 
     const invoiceIds = itemsToProcess.map(i => i.id);
-    const attachments = itemsToProcess.map(i => ({ "url": i.pdf_url }));
 
     const invoiceDetails = await Promise.all(
         invoiceIds.map(id => base44.asServiceRole.entities.Invoice.get(id))
     );
 
-    const validInvoices = invoiceDetails.filter(i => i && i.program_group === 'Hartford Hospital');
+    // Filter for Hartford Hospital AND exclude Directorship invoices
+    // The user specified that Directorship details are on the main invoice, so we don't need to send the Directorship invoice record/pdf.
+    const validInvoices = invoiceDetails.filter(i => 
+        i && 
+        i.program_group === 'Hartford Hospital' &&
+        !i.invoice_number?.includes('(Directorship)')
+    );
     
     if (validInvoices.length === 0) {
+        // If we filtered out everything (e.g. only Directorship invoice was selected), just return success to avoid errors in UI
+        const ignoredInvoices = invoiceDetails.filter(i => i && i.invoice_number?.includes('(Directorship)'));
+        if (ignoredInvoices.length > 0) {
+            return Response.json({ success: true, message: `Skipped ${ignoredInvoices.length} Directorship invoice(s) as requested` });
+        }
         return Response.json({ error: 'No valid Hartford Hospital invoices found' }, { status: 404 });
     }
+
+    // Rebuild attachments list to only include PDFs for the valid (non-Directorship) invoices
+    const validIds = validInvoices.map(i => i.id);
+    const attachments = itemsToProcess
+        .filter(item => validIds.includes(item.id))
+        .map(i => ({ "url": i.pdf_url }));
 
     const allOutsideIncomes = await Promise.all(
         validInvoices.map(inv => base44.asServiceRole.entities.OutsideIncome.filter({
@@ -95,7 +111,7 @@ Deno.serve(async (req) => {
         throw new Error(`Airtable Error: ${JSON.stringify(errorData)}`);
     }
 
-    return Response.json({ success: true, message: `Synced ${itemsToProcess.length} Hartford Hospital invoices to Airtable successfully` });
+    return Response.json({ success: true, message: `Synced ${validInvoices.length} Hartford Hospital invoices to Airtable successfully` });
 
   } catch (error) {
     console.error('Error syncing Hartford Hospital invoices to Airtable:', error);
