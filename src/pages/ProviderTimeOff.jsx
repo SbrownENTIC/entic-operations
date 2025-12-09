@@ -384,18 +384,6 @@ export default function ProviderTimeOff() {
           </div>
         </div>
 
-        {showForm && (
-          <TimeOffForm
-            timeOff={editingTimeOff}
-            onSubmit={handleSubmit}
-            onCancel={() => {
-              setShowForm(false);
-              setEditingTimeOff(null);
-            }}
-            isLoading={createMutation.isPending || updateMutation.isPending}
-          />
-        )}
-
         <BulkSyncModal
           isOpen={showSyncModal}
           onClose={() => setShowSyncModal(false)}
@@ -744,6 +732,26 @@ export default function ProviderTimeOff() {
         </div>
       </div>
     </div>
+
+      {/* Add/Edit Time Off Modal */}
+      <Dialog open={showForm} onOpenChange={(open) => {
+        if (!open) {
+          setShowForm(false);
+          setEditingTimeOff(null);
+        }
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 border-0 bg-transparent shadow-none [&>button]:hidden">
+          <TimeOffForm
+            timeOff={editingTimeOff}
+            onSubmit={handleSubmit}
+            onCancel={() => {
+              setShowForm(false);
+              setEditingTimeOff(null);
+            }}
+            isLoading={createMutation.isPending || updateMutation.isPending}
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* Day Entries Modal */}
       <Dialog open={!!viewingDayEntries} onOpenChange={() => setViewingDayEntries(null)}>
