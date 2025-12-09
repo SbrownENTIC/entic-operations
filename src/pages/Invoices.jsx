@@ -460,10 +460,11 @@ export default function Invoices() {
        invoice.program_group.toLowerCase().includes('echn')
     );
     const isUConn = invoice.program_group?.toLowerCase().includes('uconn');
+    const isHartford = invoice.program_group === 'Hartford Hospital';
 
-    if (!isManchester && !isUConn) return;
+    if (!isManchester && !isUConn && !isHartford) return;
 
-    const targetName = isManchester ? 'Manchester' : 'UConn';
+    const targetName = isManchester ? 'Manchester' : isHartford ? 'Hartford Hospital' : 'UConn';
     if (!window.confirm(`Sync ${targetName} invoice ${invoice.invoice_number} to Airtable?`)) return;
 
     if (!invoice.approved_invoice_url) {
@@ -473,7 +474,10 @@ export default function Invoices() {
 
     setSyncingAirtable(true);
     try {
-      const functionName = isManchester ? 'syncManchesterInvoiceToAirtable' : 'syncUConnInvoiceToAirtable';
+      let functionName = 'syncUConnInvoiceToAirtable';
+      if (isManchester) functionName = 'syncManchesterInvoiceToAirtable';
+      if (isHartford) functionName = 'syncHartfordInvoiceToAirtable';
+
       await base44.functions.invoke(functionName, {
         invoices: [{ id: invoice.id, pdf_url: invoice.approved_invoice_url }]
       });
