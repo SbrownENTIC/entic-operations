@@ -1211,7 +1211,7 @@ export default function Invoices() {
                         </td>
                         <td className="px-3 py-2 text-right no-print">
                           <div className="flex gap-2 justify-end">
-                            {!invoice.program_group?.includes('St. Francis') && (
+                            {!invoice.program_group?.includes('St. Francis') && invoice.program_group !== 'Hartford Hospital' && (
                               <Button 
                                 variant="ghost" 
                                 size="sm"
