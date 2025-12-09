@@ -5,12 +5,13 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Pencil, Trash2, Calendar, ArrowUpDown, ArrowUp, ArrowDown, Download, X, Check } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Calendar, ArrowUpDown, ArrowUp, ArrowDown, Download, X, Check, RefreshCw } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, parseISO, differenceInDays, isWithinInterval, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getDay } from "date-fns";
 import TimeOffForm from "../components/timeoff/TimeOffForm";
+import BulkSyncModal from "../components/timeoff/BulkSyncModal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,6 +44,8 @@ export default function ProviderTimeOff() {
   const [bulkReason, setBulkReason] = useState('');
   const [providerSelectOpen, setProviderSelectOpen] = useState(false);
   const [viewingDayEntries, setViewingDayEntries] = useState(null); // New state for day entries modal
+  const [showSyncModal, setShowSyncModal] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: timeOffEntries = [], isLoading: timeOffLoading } = useQuery({
@@ -158,6 +161,39 @@ export default function ProviderTimeOff() {
   const handleBulkUpdateReason = () => {
     if (selectedEntries.length > 0 && bulkReason) {
       bulkUpdateMutation.mutate({ ids: selectedEntries, updateData: { reason: bulkReason } });
+    }
+  };
+
+  const handleSync = async ({ providerId, datesToAdd, idsToDelete }) => {
+    setIsSyncing(true);
+    try {
+      // 1. Delete removed entries
+      if (idsToDelete.length > 0) {
+        await Promise.all(idsToDelete.map(id => base44.entities.ProviderTimeOff.delete(id)));
+      }
+
+      // 2. Add new entries
+      if (datesToAdd.length > 0) {
+        const newEntries = datesToAdd.map(dateStr => ({
+          provider_id: providerId,
+          start_date: dateStr,
+          end_date: dateStr, // Single day default
+          type: 'time_off',
+          status: 'approved',
+          reason: 'Bulk Sync Import'
+        }));
+        // Batch create (could be large, doing in parallel)
+        await Promise.all(newEntries.map(entry => base44.entities.ProviderTimeOff.create(entry)));
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['provider-timeoff'] });
+      setShowSyncModal(false);
+      // Optional: Show success toast
+    } catch (error) {
+      console.error("Sync failed", error);
+      alert("Sync failed: " + error.message);
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -328,6 +364,14 @@ export default function ProviderTimeOff() {
               Export
             </Button>
             <Button
+              onClick={() => setShowSyncModal(true)}
+              variant="outline"
+              className="border-green-600 text-green-600 hover:bg-green-50 gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Bulk Sync
+            </Button>
+            <Button
               onClick={() => {
                 setEditingTimeOff(null);
                 setShowForm(true);
@@ -351,6 +395,15 @@ export default function ProviderTimeOff() {
             isLoading={createMutation.isPending || updateMutation.isPending}
           />
         )}
+
+        <BulkSyncModal
+          isOpen={showSyncModal}
+          onClose={() => setShowSyncModal(false)}
+          providers={providers}
+          existingEntries={timeOffEntries}
+          onSync={handleSync}
+          isLoading={isSyncing}
+        />
         </div>
       </div>
 
