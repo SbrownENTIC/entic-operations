@@ -238,33 +238,61 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
                       size="sm"
                       onClick={() => {
                         if (!pasteInput) return;
-                        
+
                         const lines = pasteInput.split(/\r?\n/);
                         const newDates = new Set(selectedDates);
                         let addedCount = 0;
-                        
+
                         lines.forEach(line => {
-                          // Try to find date pattern MM/DD/YYYY
-                          const dateMatch = line.match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);
-                          
-                          if (dateMatch) {
-                            try {
-                              const dateStr = `${dateMatch[1]}/${dateMatch[2]}/${dateMatch[3]}`;
-                              const parsedDate = parse(dateStr, 'M/d/yyyy', new Date());
-                              
-                              if (isValid(parsedDate)) {
-                                newDates.add(format(parsedDate, 'yyyy-MM-dd'));
-                                addedCount++;
-                              }
-                            } catch (e) {
-                              console.error("Failed to parse date from line:", line);
+                          // 1. Clean the line (remove numbering, bullets, etc.)
+                          const cleanLine = line.replace(/^[\d\-\*\.]+\s+/, '').trim();
+                          if (!cleanLine) return;
+
+                          let parsedDate = null;
+
+                          // 2. Try finding standard numeric formats: M/D/Y, M-D-Y, Y-M-D
+                          const digitGroups = cleanLine.match(/(\d{1,4})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
+
+                          if (digitGroups) {
+                            const p1 = parseInt(digitGroups[1]);
+                            const p2 = parseInt(digitGroups[2]);
+                            const p3 = parseInt(digitGroups[3]);
+
+                            if (p1 > 1000) {
+                              // YYYY-MM-DD
+                              parsedDate = new Date(p1, p2 - 1, p3);
+                            } else if (p3 > 1000) {
+                              // MM/DD/YYYY
+                              parsedDate = new Date(p3, p1 - 1, p2);
+                            } else {
+                              // Assume MM/DD/YY (2 digit year)
+                              const year = p3 < 100 ? p3 + 2000 : p3;
+                              parsedDate = new Date(year, p1 - 1, p2);
                             }
                           }
+
+                          // 3. Fallback: Try natural language parsing (e.g., "Jan 15, 2025")
+                          if (!parsedDate || !isValid(parsedDate)) {
+                              const d = new Date(cleanLine);
+                              // Basic validation to ensure it's reasonable (e.g. not year 1900 from "1")
+                              if (isValid(d) && d.getFullYear() > 2000 && d.getFullYear() < 2100) {
+                                  parsedDate = d;
+                              }
+                          }
+
+                          if (parsedDate && isValid(parsedDate)) {
+                            newDates.add(format(parsedDate, 'yyyy-MM-dd'));
+                            addedCount++;
+                          }
                         });
-                        
-                        setSelectedDates(Array.from(newDates).sort());
-                        setIsDirty(true);
-                        setPasteInput(""); // Clear input after processing
+
+                        if (newDates.size === selectedDates.length) {
+                           alert("No valid dates found in the text. Please check the format.");
+                        } else {
+                           setSelectedDates(Array.from(newDates).sort());
+                           setIsDirty(true);
+                           setPasteInput(""); // Clear input after processing
+                        }
                       }}
                       disabled={!pasteInput}
                     >
