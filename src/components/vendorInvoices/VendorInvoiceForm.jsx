@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { DialogFooter } from "@/components/ui/dialog";
-import { Loader2 } from "lucide-react";
+import { Loader2, ExternalLink } from "lucide-react";
 
 export default function VendorInvoiceForm({ invoice, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = React.useState({
@@ -160,12 +160,23 @@ export default function VendorInvoiceForm({ invoice, onSubmit, onCancel, isLoadi
         </div>
 
         {invoice?.document_url && (
-          <div className="flex-1 border rounded-lg overflow-hidden bg-slate-50 h-[600px] lg:h-auto">
-            <iframe
-              src={`${invoice.document_url}#toolbar=0&navpanes=0&scrollbar=0`}
-              className="w-full h-full"
-              title="Invoice PDF"
-            />
+          <div className="flex-1 border rounded-lg overflow-hidden bg-slate-50 flex flex-col h-[600px] lg:h-auto lg:min-h-full">
+            <div className="p-2 border-b bg-white flex justify-between items-center shrink-0">
+              <span className="text-xs font-medium text-slate-500 uppercase tracking-wider px-2">Document Preview</span>
+              <Button variant="ghost" size="sm" className="h-8" asChild>
+                <a href={invoice.document_url} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Open in New Tab
+                </a>
+              </Button>
+            </div>
+            <div className="flex-1 relative bg-white">
+              <iframe
+                src={`${invoice.document_url}#toolbar=0&navpanes=0&scrollbar=0`}
+                className="absolute inset-0 w-full h-full"
+                title="Invoice PDF"
+              />
+            </div>
           </div>
         )}
       </div>
