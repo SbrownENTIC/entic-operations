@@ -51,7 +51,7 @@ export default function VendorInvoiceReview() {
   if (!invoice) return <div className="p-8">Invoice not found</div>;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="h-[calc(100vh-8rem)] bg-slate-50 flex flex-col">
       {/* Header */}
       <header className="bg-white border-b px-6 py-3 flex items-center justify-between shrink-0 h-16">
         <div className="flex items-center gap-4">
