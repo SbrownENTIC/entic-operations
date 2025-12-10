@@ -84,6 +84,41 @@ function SyncHenryScheinButton() {
   );
 }
 
+function FixVendorDataButton() {
+  const { toast } = useToast();
+  const [loading, setLoading] = React.useState(false);
+
+  const handleFix = async () => {
+    if (!confirm("Update all existing vendor invoices to fix capitalization (e.g. HENRY -> Henry) and link missing locations?")) return;
+    
+    setLoading(true);
+    toast({ title: "Fix Started", description: "Scanning invoices..." });
+    
+    try {
+      const res = await base44.functions.invoke('fixVendorInvoiceData');
+      toast({ 
+        title: "Fix Completed", 
+        description: res.data.message
+      });
+    } catch (err) {
+      toast({ 
+        title: "Error", 
+        description: err.message, 
+        variant: "destructive" 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Button size="sm" variant="outline" onClick={handleFix} disabled={loading} className="h-7 text-xs gap-1 bg-green-50 text-green-700 border-green-200 hover:bg-green-100">
+      <RefreshCw className="w-3 h-3" />
+      {loading ? "Fixing..." : "Fix Vendor Data"}
+    </Button>
+  );
+}
+
 export default function Documentation() {
   const [activeTab, setActiveTab] = useState("sops");
 
@@ -514,6 +549,17 @@ export default function Documentation() {
                     • Finds "Henry Schein" invoices that aren't linked to an order.<br/>
                     • Automatically creates Clinical Supply Orders for them.<br/>
                     • Links them together.
+                  </p>
+                </div>
+
+                <div className="border rounded-lg p-3 bg-slate-50 mt-2">
+                  <div className="flex justify-between items-center mb-1">
+                    <p className="font-medium text-sm">"Fix Vendor Names/Locs"</p>
+                    <FixVendorDataButton />
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    • Fixes ALL CAPS vendor names (e.g. HENRY SCHEIN -> Henry Schein).<br/>
+                    • Scans invoice data to link missing Locations (Glastonbury, etc).
                   </p>
                 </div>
 
