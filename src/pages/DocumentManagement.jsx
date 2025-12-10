@@ -16,7 +16,7 @@ export default function DocumentManagement() {
       id: "vendor_invoices",
       name: "Vendor Invoices",
       description: "Manage invoices from Henry Schein, McKesson, etc.",
-      icon: FileText,
+      icon: Folder,
       color: "text-blue-600",
       bgColor: "bg-blue-100",
     },
