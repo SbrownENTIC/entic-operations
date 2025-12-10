@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, FileText, UploadCloud, Loader2, Files, ArrowUpDown, ArrowUp, ArrowDown, ChevronRight, ArrowLeft, Folder } from "lucide-react";
+import { Search, Plus, FileText, UploadCloud, Loader2, Files, ArrowUpDown, ArrowUp, ArrowDown, ChevronRight, ArrowLeft, Folder, PackagePlus } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import VendorInvoiceList from "../components/vendorInvoices/VendorInvoiceList";
 import VendorFolderGrid from "../components/vendorInvoices/VendorFolderGrid";
@@ -54,6 +54,51 @@ export default function VendorInvoices() {
   });
 
   const splitInputRef = React.useRef(null);
+
+  const allMissingItems = React.useMemo(() => {
+    if (!invoices.length || isLoading) return [];
+    
+    const missing = new Map();
+    const existingCodes = new Set(supplies.map(s => s.item_number));
+
+    invoices.forEach(inv => {
+      const lineItems = inv.extracted_data?.line_items || [];
+      lineItems.forEach(item => {
+        if (item.item_code && !existingCodes.has(item.item_code) && !missing.has(item.item_code)) {
+          missing.set(item.item_code, {
+            product_name: item.description || "Unknown Item",
+            item_number: item.item_code,
+            vendor: inv.vendor_name || "Unknown Vendor",
+            unit_price: item.unit_price || 0,
+            category: 'clinical',
+            units: 'each'
+          });
+        }
+      });
+    });
+    
+    return Array.from(missing.values());
+  }, [invoices, supplies, isLoading]);
+
+  const bulkAddItemsMutation = useMutation({
+    mutationFn: async (items) => {
+      await base44.entities.Supply.bulkCreate(items);
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['supplies-catalog'] });
+      toast({
+        title: "Catalog Updated",
+        description: `Successfully added ${variables.length} items to the clinical catalog.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to add items: " + error.message,
+        variant: "destructive",
+      });
+    }
+  });
 
   const splitMutation = useMutation({
     mutationFn: async (files) => {
@@ -254,6 +299,21 @@ export default function VendorInvoices() {
             <p className="text-slate-600">Manage and process electronic vendor invoices</p>
           </div>
           <div className="flex gap-2">
+            {allMissingItems.length > 0 && (
+              <Button
+                variant="outline"
+                onClick={() => bulkAddItemsMutation.mutate(allMissingItems)}
+                disabled={bulkAddItemsMutation.isPending}
+                className="bg-white text-amber-600 border-amber-200 hover:bg-amber-50 hover:text-amber-700"
+              >
+                {bulkAddItemsMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <PackagePlus className="w-4 h-4 mr-2" />
+                )}
+                Import {allMissingItems.length} Missing Items
+              </Button>
+            )}
             <Button 
                 variant="outline"
                 onClick={() => splitInputRef.current?.click()}
