@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, FileText, ExternalLink } from "lucide-react";
 import { createPageUrl } from "@/utils";
@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/use-toast";
 
 export default function VendorInvoiceReview() {
   const location = useLocation();
+  const navigate = useNavigate();
   const params = new URLSearchParams(location.search);
   const id = params.get("id");
   const { toast } = useToast();
@@ -38,32 +39,12 @@ export default function VendorInvoiceReview() {
       queryClient.invalidateQueries({ queryKey: ['vendor-invoice', id] });
       queryClient.invalidateQueries({ queryKey: ['vendor-invoices'] });
       toast({ title: "Success", description: "Invoice updated successfully" });
+      navigate(createPageUrl("VendorInvoices"));
     }
   });
 
   const handleSave = (formData) => {
     updateMutation.mutate(formData);
-  };
-
-  const handleApprove = () => {
-    // When approving, we just update the status. 
-    // The flags should have been saved during the "Save Changes" or if we want to re-calc them here we could,
-    // but usually approval happens after review/save.
-    // However, to be safe, if the user clicks approve directly without saving, we might miss flags if we relied only on onSave.
-    // But VendorInvoiceReviewForm handles onSave (which computes flags). 
-    // The "Approve" button is outside the form in the layout... wait, no, it's inside the form component in my previous edit.
-    // Ah, I see VendorInvoiceReviewForm receives onApprove.
-    // Let's make sure we don't overwrite flags with just {status: 'approved'}.
-    // updateMutation merges data? No, base44 update typically replaces/patches.
-    // If we just send {status: 'approved'}, the other fields remain.
-    // So if flags were saved before, they persist.
-    updateMutation.mutate({ status: 'approved' });
-    toast({ title: "Approved", description: "Invoice has been approved." });
-  };
-
-  const handleReject = () => {
-    updateMutation.mutate({ status: 'rejected' });
-    toast({ title: "Rejected", description: "Invoice has been rejected." });
   };
 
   if (isLoading) return <div className="p-8 flex justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div></div>;
@@ -123,8 +104,6 @@ export default function VendorInvoiceReview() {
                     invoice={invoice} 
                     supplies={supplies}
                     onSave={handleSave}
-                    onApprove={handleApprove}
-                    onReject={handleReject}
                     isSaving={updateMutation.isPending}
                 />
             </div>

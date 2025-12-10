@@ -12,7 +12,7 @@ import { Loader2, Save, Trash2, Plus, Check, AlertCircle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useFormState } from "@/components/FormContext";
 
-export default function VendorInvoiceReviewForm({ invoice, supplies = [], onSave, onApprove, onReject, isSaving }) {
+export default function VendorInvoiceReviewForm({ invoice, supplies = [], onSave, isSaving }) {
   const { setIsDirty } = useFormState();
   const [formData, setFormData] = useState({
     vendor_name: "",
@@ -310,15 +310,7 @@ export default function VendorInvoiceReviewForm({ invoice, supplies = [], onSave
         </div>
       </div>
 
-      {/* Bottom Actions */}
-      <div className="fixed bottom-0 right-0 left-0 bg-white border-t p-4 flex justify-end gap-3 shadow-lg md:left-[50%]">
-        <Button variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200" onClick={onReject}>
-           <AlertCircle className="w-4 h-4 mr-2" /> Reject Invoice
-        </Button>
-        <Button className="bg-green-600 hover:bg-green-700" onClick={onApprove}>
-           <Check className="w-4 h-4 mr-2" /> Approve & Process
-        </Button>
-      </div>
+
     </div>
   );
 }
