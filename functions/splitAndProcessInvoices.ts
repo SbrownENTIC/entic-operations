@@ -104,27 +104,13 @@ Deno.serve(async (req) => {
 
             const pdfBytes = await newPdf.save();
             
-            // Convert to base64 for upload
-            // We'll use a trick to convert Uint8Array to binary string then btoa
-            let binary = '';
-            const len = pdfBytes.byteLength;
-            for (let i = 0; i < len; i++) {
-                binary += String.fromCharCode(pdfBytes[i]);
-            }
-            const base64Pdf = btoa(binary);
+            // Create a File object from the bytes
+            // Deno supports standard Web API File objects
+            const fileName = `split_invoice_${inv.invoice_number || 'unknown'}_${Date.now()}.pdf`;
+            const fileObj = new File([pdfBytes], fileName, { type: 'application/pdf' });
 
-            // Upload the new PDF
-            // Note: UploadFile integration might vary, but usually expects file content or a URL.
-            // If it supports base64 directly, great. If not, this step might require adjustment based on platform specific behavior.
-            // Assuming we can pass a Data URI or raw base64.
-            // Let's try passing a Data URI to be safe as it contains mime type.
-            const dataUri = `data:application/pdf;base64,${base64Pdf}`;
-            
-            // Actually, looking at docs, UploadFile usually takes a File object in frontend or a blob. 
-            // In backend functions, we can often pass the file as a string.
-            // Let's try passing the dataUri.
             const uploadRes = await base44.integrations.Core.UploadFile({
-                file: dataUri
+                file: fileObj
             });
 
             if (uploadRes && uploadRes.file_url) {
