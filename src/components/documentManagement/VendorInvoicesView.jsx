@@ -428,44 +428,46 @@ export default function VendorInvoicesView() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4 flex-1">
                 {selectedVendor && (
-                  <div className="flex items-center gap-2 mr-4 shrink-0">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => {
-                        setSelectedVendor(null);
-                        setSearchTerm("");
-                      }}
-                      className="mr-1"
-                    >
-                      <ArrowLeft className="w-5 h-5" />
-                    </Button>
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-2 text-sm text-slate-500">
-                        <span 
-                          className="hover:underline cursor-pointer" 
-                          onClick={() => {
-                            setSelectedVendor(null);
-                            setSearchTerm("");
-                          }}
-                        >
-                          Invoices
-                        </span>
-                        <ChevronRight className="w-4 h-4" />
-                        <span className="font-medium text-slate-900">{selectedVendor}</span>
+                  <>
+                    <div className="flex items-center gap-2 mr-4 shrink-0">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => {
+                          setSelectedVendor(null);
+                          setSearchTerm("");
+                        }}
+                        className="mr-1"
+                      >
+                        <ArrowLeft className="w-5 h-5" />
+                      </Button>
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-2 text-sm text-slate-500">
+                          <span 
+                            className="hover:underline cursor-pointer" 
+                            onClick={() => {
+                              setSelectedVendor(null);
+                              setSearchTerm("");
+                            }}
+                          >
+                            Invoices
+                          </span>
+                          <ChevronRight className="w-4 h-4" />
+                          <span className="font-medium text-slate-900">{selectedVendor}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                    <div className="flex items-center gap-4 flex-1">
+                      <Search className="w-5 h-5 text-slate-400" />
+                      <Input
+                        placeholder={`Search in ${selectedVendor}...`}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="max-w-md"
+                      />
+                    </div>
+                  </>
                 )}
-                <div className="flex items-center gap-4 flex-1">
-                  <Search className="w-5 h-5 text-slate-400" />
-                  <Input
-                    placeholder={selectedVendor ? `Search in ${selectedVendor}...` : "Search by vendor or invoice number..."}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="max-w-md"
-                  />
-                </div>
               </div>
               {selectedInvoices.length > 0 && selectedVendor && (
                 <div className="flex items-center gap-4 bg-slate-100 px-4 py-2 rounded-lg">
