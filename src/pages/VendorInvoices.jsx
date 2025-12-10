@@ -4,9 +4,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, FileText, UploadCloud, Loader2, Files, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, Plus, FileText, UploadCloud, Loader2, Files, ArrowUpDown, ArrowUp, ArrowDown, ChevronRight, ArrowLeft, Folder } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import VendorInvoiceList from "../components/vendorInvoices/VendorInvoiceList";
+import VendorFolderGrid from "../components/vendorInvoices/VendorFolderGrid";
 import VendorInvoiceUpload from "../components/vendorInvoices/VendorInvoiceUpload";
 import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -30,6 +31,7 @@ export default function VendorInvoices() {
   const [activeTab, setActiveTab] = useState("all");
   const [sortField, setSortField] = useState('created_date');
   const [sortDirection, setSortDirection] = useState('desc');
+  const [selectedVendor, setSelectedVendor] = useState(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const location = useLocation();
@@ -177,7 +179,12 @@ export default function VendorInvoices() {
     return matchesSearch && matchesTab;
   });
 
-  const sortedInvoices = [...filteredInvoices].sort((a, b) => {
+  // Filter for the list view if a vendor is selected
+  const listInvoices = selectedVendor 
+    ? filteredInvoices.filter(inv => (inv.vendor_name || 'Unknown Vendor') === selectedVendor)
+    : filteredInvoices;
+
+  const sortedInvoices = [...listInvoices].sort((a, b) => {
     let aValue, bValue;
     
     if (sortField === 'total_amount') {
@@ -288,19 +295,46 @@ export default function VendorInvoices() {
             </TabsList>
         </Tabs>
 
-        <Card className="border-slate-200 shadow-sm flex-1 flex flex-col min-h-0 overflow-hidden">
-          <CardHeader className="border-b border-slate-100 shrink-0">
+        <Card className="border-slate-200 shadow-sm flex-1 flex flex-col min-h-0 overflow-hidden bg-slate-50/50">
+          <CardHeader className="border-b border-slate-100 shrink-0 bg-white">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4 flex-1">
-                <Search className="w-5 h-5 text-slate-400" />
-                <Input
-                  placeholder="Search by vendor or invoice number..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="max-w-md"
-                />
+                {selectedVendor ? (
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => setSelectedVendor(null)}
+                      className="mr-1"
+                    >
+                      <ArrowLeft className="w-5 h-5" />
+                    </Button>
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2 text-sm text-slate-500">
+                        <span 
+                          className="hover:underline cursor-pointer" 
+                          onClick={() => setSelectedVendor(null)}
+                        >
+                          Invoices
+                        </span>
+                        <ChevronRight className="w-4 h-4" />
+                        <span className="font-medium text-slate-900">{selectedVendor}</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-4 flex-1">
+                    <Search className="w-5 h-5 text-slate-400" />
+                    <Input
+                      placeholder="Search by vendor or invoice number..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="max-w-md"
+                    />
+                  </div>
+                )}
               </div>
-              {selectedInvoices.length > 0 && (
+              {selectedInvoices.length > 0 && selectedVendor && (
                 <div className="flex items-center gap-4 bg-slate-100 px-4 py-2 rounded-lg">
                   <span className="text-sm font-medium text-slate-700">
                     {selectedInvoices.length} selected
@@ -317,17 +351,26 @@ export default function VendorInvoices() {
             </div>
           </CardHeader>
           <CardContent className="p-0 flex-1 overflow-auto relative">
-            <VendorInvoiceList 
-              invoices={sortedInvoices} 
-              isLoading={isLoading} 
-              onDeleteClick={setDeleteConfirm}
-              selectedIds={selectedInvoices}
-              onToggleSelect={handleToggleSelect}
-              onSort={handleSort}
-              sortField={sortField}
-              sortDirection={sortDirection}
-              supplies={supplies}
-            />
+            {selectedVendor ? (
+              <VendorInvoiceList 
+                invoices={sortedInvoices} 
+                isLoading={isLoading} 
+                onDeleteClick={setDeleteConfirm}
+                selectedIds={selectedInvoices}
+                onToggleSelect={handleToggleSelect}
+                onSort={handleSort}
+                sortField={sortField}
+                sortDirection={sortDirection}
+                supplies={supplies}
+              />
+            ) : (
+              <div className="p-6">
+                <VendorFolderGrid 
+                  invoices={filteredInvoices}
+                  onSelectVendor={setSelectedVendor}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
