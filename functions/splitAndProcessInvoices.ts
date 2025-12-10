@@ -186,10 +186,18 @@ Deno.serve(async (req) => {
                         location: inv.location_name, // Extracted location
                         document_url: uploadRes.file_url,
                         notes: "",
-                        extracted_data: inv
+                        extracted_data: inv,
+                        redacted: false
                     };
 
                     const record = await base44.asServiceRole.entities.VendorInvoice.create(invoiceData);
+
+                    // Trigger Redaction
+                    try {
+                        await base44.asServiceRole.functions.invoke('redactInvoice', { invoice_id: record.id });
+                    } catch (err) {
+                        console.error("Failed to redact split invoice:", err);
+                    }
                     
                     // If Henry Schein, auto-create a Clinical Supply Order
                     if (isHenrySchein && record) {
