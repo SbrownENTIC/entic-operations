@@ -172,6 +172,7 @@ export default function PrintableManual() {
             <ul className="list-disc pl-6 space-y-1">
               <li><strong>UConn & Manchester:</strong> These have special automation. Once created, click the <strong>"File Down" (⬇️)</strong> icon to generate the official PDF. Then click the <strong>"Cloud"</strong> icon to sync it to Airtable for emailing.</li>
               <li><strong>Hartford Hospital:</strong> Creating an RVU invoice will check for Directorships. If found, the system asks to auto-create a separate Directorship invoice.</li>
+              <li><strong>St. Francis:</strong> Income is typically auto-generated from the On-Call Schedule. Create a standard invoice and link these pending records to bill them.</li>
             </ul>
           </div>
         </div>

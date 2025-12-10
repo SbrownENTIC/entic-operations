@@ -151,6 +151,18 @@ export default function Documentation() {
                       </ul>
                     </AccordionContent>
                   </AccordionItem>
+                  <AccordionItem value="stfrancis">
+                    <AccordionTrigger>St. Francis Workflow</AccordionTrigger>
+                    <AccordionContent className="text-sm text-slate-600 space-y-2">
+                      <p><strong>Income Generation:</strong> St. Francis income records are often auto-generated from the On-Call Schedule (Daily Rate).</p>
+                      <p><strong>Invoice Creation:</strong></p>
+                      <ul className="list-disc pl-4 space-y-1">
+                        <li>Create a standard invoice. Select "St. Francis" as the Program Group.</li>
+                        <li>Link the pending income records.</li>
+                        <li>The system groups these into a standard invoice format.</li>
+                      </ul>
+                    </AccordionContent>
+                  </AccordionItem>
                 </Accordion>
               </CardContent>
             </Card>
@@ -345,10 +357,10 @@ export default function Documentation() {
                     </div>
 
                     <div className="bg-slate-50 p-4 rounded border">
-                      <p className="font-semibold text-indigo-700">4. Vendor Invoice → Supply Order</p>
+                      <p className="font-semibold text-indigo-700">4. Vendor Invoice → Clinical Supply Order</p>
                       <p><strong>AI Processing:</strong> Uploaded PDFs are analyzed by AI to extract data.</p>
                       <p><strong>Allocation Logic:</strong> When you allocate line items from a main invoice to a location:
-                      <br/>1. A <strong>New Supply Order</strong> is created for that location.
+                      <br/>1. A <strong>New Clinical Supply Order</strong> is created for that location.
                       <br/>2. A <strong>New Vendor Invoice</strong> is created for that location.
                       <br/>3. The <strong>Original Invoice</strong> total is reduced by the allocated amount.
                       </p>

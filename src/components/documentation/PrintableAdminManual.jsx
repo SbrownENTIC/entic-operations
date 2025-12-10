@@ -33,7 +33,8 @@ export default function PrintableAdminManual() {
           <li>3. Integration Deep Dive (Airtable)</li>
           <li>4. Workflow: UConn Invoices</li>
           <li>5. Workflow: Manchester Invoices</li>
-          <li>6. Workflow: Reminders & Closures</li>
+          <li>6. Workflow: Hartford & St. Francis</li>
+          <li>7. Workflow: Reminders & Closures</li>
           <li>7. Automated Scheduled Tasks</li>
           <li>8. Maintenance & Troubleshooting</li>
           <li>9. Document Management Internals</li>
@@ -182,11 +183,37 @@ export default function PrintableAdminManual() {
         </div>
       </section>
 
-      {/* 6. Workflow: Reminders & Closures */}
+      {/* 6. Workflow: Hartford & St. Francis */}
+      <section className="space-y-4 break-inside-avoid">
+        <div className="flex items-center gap-3 pb-2 border-b border-slate-300">
+          <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-100"><FileText className="w-6 h-6 text-emerald-700" /></div>
+          <h3 className="text-2xl font-bold text-slate-900">6. Workflow: Hartford & St. Francis</h3>
+        </div>
+        <div className="text-sm text-slate-800 leading-relaxed">
+          <div className="mb-4">
+            <h4 className="font-bold text-slate-900 mb-1">Hartford Hospital (Directorships)</h4>
+            <p className="text-xs"><strong>Trigger:</strong> Creating an Invoice with <code>Program Group = 'Hartford Hospital'</code>.</p>
+            <p className="text-xs"><strong>Logic:</strong> The system checks for an active <em>Directorship</em> income record for that provider/month.</p>
+            <ul className="list-disc pl-4 text-xs font-mono text-slate-600 mt-1">
+              <li>If found: Automatically creates a SECOND invoice for the flat Directorship fee (e.g., $3,250).</li>
+              <li>Naming: Appends "(Directorship)" to the invoice number.</li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="font-bold text-slate-900 mb-1">St. Francis</h4>
+            <p className="text-xs"><strong>Income Source:</strong> Driven by the On-Call Schedule.</p>
+            <p className="text-xs"><strong>Logic:</strong> When a schedule is published for St. Francis locations, the system calls <code>sync2026StFrancis</code> (or similar logic) to generate Pending Income records calculated as <code>Days * Rate</code>.</p>
+            <p className="text-xs mt-1"><strong>Invoice:</strong> Standard manual creation. Select St. Francis -> Link Income -> Save.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* 7. Workflow: Reminders & Closures */}
       <section className="space-y-4 break-inside-avoid">
         <div className="flex items-center gap-3 pb-2 border-b border-slate-300">
           <div className="p-2 rounded-lg bg-yellow-50 border border-yellow-100"><Bell className="w-6 h-6 text-yellow-700" /></div>
-          <h3 className="text-2xl font-bold text-slate-900">6. Workflow: Reminders & Closures</h3>
+          <h3 className="text-2xl font-bold text-slate-900">7. Workflow: Reminders & Closures</h3>
         </div>
         <div className="text-sm text-slate-800 leading-relaxed">
           <div className="mb-4">
@@ -212,7 +239,7 @@ export default function PrintableAdminManual() {
       <section className="space-y-4 break-inside-avoid">
         <div className="flex items-center gap-3 pb-2 border-b border-slate-300">
           <div className="p-2 rounded-lg bg-green-50 border border-green-100"><Clock className="w-6 h-6 text-green-700" /></div>
-          <h3 className="text-2xl font-bold text-slate-900">7. Automated Scheduled Tasks</h3>
+          <h3 className="text-2xl font-bold text-slate-900">8. Automated Scheduled Tasks</h3>
         </div>
         <div className="text-sm text-slate-800 leading-relaxed">
           <table className="w-full text-left border-collapse text-xs">
@@ -253,7 +280,7 @@ export default function PrintableAdminManual() {
       <section className="space-y-4 break-inside-avoid">
         <div className="flex items-center gap-3 pb-2 border-b border-slate-300">
           <div className="p-2 rounded-lg bg-red-50 border border-red-100"><AlertTriangle className="w-6 h-6 text-red-700" /></div>
-          <h3 className="text-2xl font-bold text-slate-900">8. Maintenance & Troubleshooting</h3>
+          <h3 className="text-2xl font-bold text-slate-900">9. Maintenance & Troubleshooting</h3>
         </div>
         <div className="text-sm text-slate-800 leading-relaxed space-y-4">
           
@@ -290,7 +317,7 @@ export default function PrintableAdminManual() {
       <section className="space-y-4 break-inside-avoid">
         <div className="flex items-center gap-3 pb-2 border-b border-slate-300">
           <div className="p-2 rounded-lg bg-indigo-50 border border-indigo-100"><FileText className="w-6 h-6 text-indigo-700" /></div>
-          <h3 className="text-2xl font-bold text-slate-900">9. Document Management Internals</h3>
+          <h3 className="text-2xl font-bold text-slate-900">10. Document Management Internals</h3>
         </div>
         <div className="text-sm text-slate-800 leading-relaxed space-y-4">
           <div className="mb-4">
