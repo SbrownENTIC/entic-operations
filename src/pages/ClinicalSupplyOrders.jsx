@@ -103,6 +103,25 @@ export default function ClinicalSupplyOrders() {
     }
   });
 
+  const bulkMarkReceivedMutation = useMutation({
+    mutationFn: async (ids) => {
+      // Filter out orders that are already received to avoid redundant updates
+      const ordersToUpdate = orders.filter(o => ids.includes(o.id) && o.status !== 'received');
+      
+      await Promise.all(ordersToUpdate.map(order => {
+        const updatedItems = (order.items || []).map(item => ({ ...item, received: true }));
+        return base44.entities.SupplyOrder.update(order.id, { 
+          status: 'received',
+          items: updatedItems
+        });
+      }));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['supply-orders'] });
+      setSelectedOrders([]);
+    }
+  });
+
   const handleToggleSelect = (id, checked) => {
     if (id === 'all') {
       if (checked) {
@@ -270,13 +289,25 @@ export default function ClinicalSupplyOrders() {
                 </SelectContent>
               </Select>
               {selectedOrders.length > 0 && (
-                <Button 
-                  variant="destructive" 
-                  size="sm"
-                  onClick={() => setBulkDeleteConfirm(true)}
-                >
-                  Delete Selected ({selectedOrders.length})
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="text-green-600 border-green-200 hover:bg-green-50"
+                    onClick={() => bulkMarkReceivedMutation.mutate(selectedOrders)}
+                    disabled={bulkMarkReceivedMutation.isPending}
+                  >
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                    Mark Received ({selectedOrders.length})
+                  </Button>
+                  <Button 
+                    variant="destructive" 
+                    size="sm"
+                    onClick={() => setBulkDeleteConfirm(true)}
+                  >
+                    Delete Selected ({selectedOrders.length})
+                  </Button>
+                </div>
               )}
             </div>
             </CardHeader>
