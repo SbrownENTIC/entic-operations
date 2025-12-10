@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, FileText, UploadCloud } from "lucide-react";
+import { Search, Plus, FileText, UploadCloud, Loader2, Files } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import VendorInvoiceList from "../components/vendorInvoices/VendorInvoiceList";
 import VendorInvoiceUpload from "../components/vendorInvoices/VendorInvoiceUpload";
@@ -40,6 +40,52 @@ export default function VendorInvoices() {
     queryKey: ['vendor-invoices'],
     queryFn: () => base44.entities.VendorInvoice.list('-created_date')
   });
+
+  const splitInputRef = React.useRef(null);
+
+  const splitMutation = useMutation({
+    mutationFn: async (file) => {
+      toast({
+        title: "Uploading...",
+        description: "Uploading PDF for analysis. This may take a moment.",
+      });
+      // 1. Upload
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      
+      toast({
+        title: "Analyzing & Splitting...",
+        description: "AI is analyzing the document structure. Please wait...",
+      });
+      
+      // 2. Process
+      const res = await base44.functions.invoke('splitAndProcessInvoices', { file_url });
+      return res.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['vendor-invoices'] });
+      toast({
+        title: "Processing Complete",
+        description: `Successfully split and created ${data.processed_count} invoices.`,
+      });
+    },
+    onError: (error) => {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Failed to process file: " + (error.message || "Unknown error"),
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleSplitUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+        splitMutation.mutate(file);
+    }
+    // reset input
+    e.target.value = '';
+  };
 
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
@@ -85,13 +131,35 @@ export default function VendorInvoices() {
             <h1 className="text-3xl font-bold text-slate-900">Vendor Invoices</h1>
             <p className="text-slate-600">Manage and process electronic vendor invoices</p>
           </div>
-          <Button 
-            onClick={() => setShowUpload(true)}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <UploadCloud className="w-4 h-4 mr-2" />
-            Upload Invoice
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+                variant="outline"
+                onClick={() => splitInputRef.current?.click()}
+                disabled={splitMutation.isPending}
+                className="bg-white"
+            >
+                {splitMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                    <Files className="w-4 h-4 mr-2" />
+                )}
+                {splitMutation.isPending ? 'Processing...' : 'Split Multi-Invoice PDF'}
+            </Button>
+            <input 
+                type="file" 
+                ref={splitInputRef}
+                className="hidden" 
+                accept=".pdf"
+                onChange={handleSplitUpload}
+            />
+            <Button 
+                onClick={() => setShowUpload(true)}
+                className="bg-blue-600 hover:bg-blue-700"
+            >
+                <UploadCloud className="w-4 h-4 mr-2" />
+                Upload Invoice
+            </Button>
+          </div>
         </div>
 
         {showUpload && (
