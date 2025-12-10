@@ -71,6 +71,7 @@ Deno.serve(async (req) => {
                                 total_amount: { type: "number" },
                                 start_page: { type: "integer" },
                                 end_page: { type: "integer" },
+                                location_name: { type: "string", enum: ["Glastonbury", "Manchester", "Bloomfield", "Farmington"], description: "The location address/name found on the invoice (shipping address)" },
                                 line_items: {
                                     type: "array",
                                     items: {
@@ -153,16 +154,64 @@ Deno.serve(async (req) => {
 
                 if (!isDuplicate) {
                     // Create the Entity
-                    const record = await base44.asServiceRole.entities.VendorInvoice.create({
+                    const isHenrySchein = (inv.vendor_name?.toLowerCase().includes('henry schein') || inv.vendor_name?.toLowerCase().includes('henry shrine'));
+                    const status = isHenrySchein ? 'approved' : 'pending_review';
+
+                    const invoiceData = {
                         vendor_name: inv.vendor_name || 'Unknown Vendor',
                         invoice_number: inv.invoice_number || `AUTO-${Date.now()}`,
                         invoice_date: inv.invoice_date, // Might need validation/formatting
                         total_amount: inv.total_amount,
-                        status: (inv.vendor_name?.toLowerCase().includes('henry schein') || inv.vendor_name?.toLowerCase().includes('henry shrine')) ? 'approved' : 'pending_review',
+                        status: status,
+                        location: inv.location_name, // Extracted location
                         document_url: uploadRes.file_url,
                         notes: `Auto-split from multi-page PDF. Pages ${inv.start_page}-${inv.end_page}.`,
-                        extracted_data: inv // Save the raw extraction just in case
-                    });
+                        extracted_data: inv
+                    };
+
+                    const record = await base44.asServiceRole.entities.VendorInvoice.create(invoiceData);
+                    
+                    // If Henry Schein, auto-create a Clinical Supply Order
+                    if (isHenrySchein && record) {
+                        try {
+                            const supplyOrderItems = (inv.line_items || []).map(item => ({
+                                supply_name: item.description || 'Unknown Item',
+                                item_number: item.item_code || '',
+                                quantity: item.quantity || 0,
+                                unit_price: item.unit_price || 0,
+                                line_total: item.total_price || 0,
+                                received: true // Auto-mark received since it's an invoice
+                            }));
+
+                            // If we have items, create the order
+                            if (supplyOrderItems.length > 0) {
+                                const supplyOrderData = {
+                                    order_number: inv.invoice_number || `AUTO-CLINICAL-${Date.now()}`,
+                                    vendor: inv.vendor_name || 'Henry Schein',
+                                    location: inv.location_name || 'Glastonbury', // Default if missing, but hopefully extracted
+                                    order_date: inv.invoice_date || new Date().toISOString().split('T')[0],
+                                    status: 'received',
+                                    category: 'clinical',
+                                    items: supplyOrderItems,
+                                    total_amount: inv.total_amount || 0,
+                                    notes: `Auto-created from Vendor Invoice #${inv.invoice_number}`
+                                };
+
+                                const createdOrder = await base44.asServiceRole.entities.SupplyOrder.create(supplyOrderData);
+                                
+                                // Link back to invoice
+                                if (createdOrder) {
+                                    await base44.asServiceRole.entities.VendorInvoice.update(record.id, {
+                                        linked_supply_order_ids: [createdOrder.id]
+                                    });
+                                }
+                            }
+                        } catch (err) {
+                            console.error("Failed to auto-create clinical supply order:", err);
+                            // Don't fail the whole process, just log it
+                        }
+                    }
+
                     results.push(record);
                 }
             }
