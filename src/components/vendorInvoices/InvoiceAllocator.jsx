@@ -82,17 +82,40 @@ export default function InvoiceAllocator({ invoice, onOrderCreated }) {
 
             const createdOrder = await base44.entities.SupplyOrder.create(supplyOrderData);
 
-            // 3. Link to VendorInvoice
-            // We need to fetch current invoice to get latest linked IDs to be safe, but we can just append
-            // Actually, we should probably check if the prop is stale, but appending is usually safer if we use the prop
-            // However, concurrent edits could be an issue. 
-            // The safest way with the SDK is to update.
-            const currentLinkedIds = invoice.linked_supply_order_ids || [];
-            if (!currentLinkedIds.includes(createdOrder.id)) {
-                await base44.entities.VendorInvoice.update(invoice.id, {
-                    linked_supply_order_ids: [...currentLinkedIds, createdOrder.id]
-                });
-            }
+            // 3. Create NEW Vendor Invoice for the allocated amount
+            const newInvoiceData = {
+                vendor_name: invoice.vendor_name,
+                vendor_id: invoice.vendor_id,
+                invoice_number: orderNumber, // Match the order number structure (Invoice-LOC-SEQ)
+                invoice_date: invoice.invoice_date,
+                due_date: invoice.due_date,
+                total_amount: total,
+                status: 'approved',
+                invoice_type: invoice.invoice_type,
+                related_invoice_number: invoice.invoice_number,
+                location: targetLocation,
+                document_url: invoice.document_url,
+                extracted_data: {
+                    ...invoice.extracted_data,
+                    line_items: selectedItems
+                },
+                linked_supply_order_ids: [createdOrder.id],
+                notes: `Split from Invoice #${invoice.invoice_number}. ${notes}`
+            };
+            await base44.entities.VendorInvoice.create(newInvoiceData);
+
+            // 4. Update ORIGINAL Vendor Invoice (Reduce amount and remove items)
+            const remainingItems = lineItems.filter((_, i) => !selectedIndices.has(i));
+            const currentTotal = invoice.total_amount || 0;
+            const newTotal = Math.max(0, currentTotal - total);
+
+            await base44.entities.VendorInvoice.update(invoice.id, {
+                total_amount: newTotal,
+                extracted_data: {
+                    ...invoice.extracted_data,
+                    line_items: remainingItems
+                }
+            });
 
             return createdOrder;
         },

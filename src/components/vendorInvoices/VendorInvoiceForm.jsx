@@ -340,9 +340,8 @@ export default function VendorInvoiceForm({ invoice, onSubmit, onCancel, isLoadi
              <InvoiceAllocator 
                 invoice={invoice}
                 onOrderCreated={(newOrder) => {
-                    handleLinkOrder(newOrder);
-                    // Optionally switch to linking tab to show the new link
-                    // setActiveTab("linking");
+                    // Close the modal because the invoice has been modified/split
+                    onCancel();
                 }}
              />
           ) : null}
