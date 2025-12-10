@@ -154,7 +154,7 @@ function ForceRedactHenryButton() {
       setTestLoading(true);
       toast({ title: "Debug Test Started", description: "Processing one invoice..." });
       try {
-          const res = await base44.functions.invoke('debugRedaction');
+          const res = await base44.functions.invoke('debugRedactionV2');
           if (res.data.new_url) {
               window.open(res.data.new_url, '_blank');
               toast({ title: "Success", description: "Opened redacted PDF in new tab." });
