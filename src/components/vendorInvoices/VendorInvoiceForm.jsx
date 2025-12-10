@@ -46,10 +46,11 @@ export default function VendorInvoiceForm({ invoice, onSubmit, onCancel, isLoadi
   });
 
   const handleLinkOrder = (order) => {
-      if (!formData.linked_supply_order_ids.includes(order.id)) {
+      const currentIds = formData.linked_supply_order_ids || [];
+      if (!currentIds.includes(order.id)) {
           setFormData(prev => ({
               ...prev,
-              linked_supply_order_ids: [...(prev.linked_supply_order_ids || []), order.id]
+              linked_supply_order_ids: [...currentIds, order.id]
           }));
       }
   };
@@ -70,7 +71,8 @@ export default function VendorInvoiceForm({ invoice, onSubmit, onCancel, isLoadi
         total_amount: invoice.total_amount || 0,
         status: invoice.status || "pending_review",
         location: invoice.location || "",
-        notes: invoice.notes || ""
+        notes: invoice.notes || "",
+        linked_supply_order_ids: invoice.linked_supply_order_ids || []
       });
     }
   }, [invoice]);
