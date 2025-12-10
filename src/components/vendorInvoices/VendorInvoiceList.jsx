@@ -2,7 +2,7 @@ import React from "react";
 import { format, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, Eye, ExternalLink, CheckCircle, AlertCircle, Clock, Trash2, ArrowUpDown, ArrowUp, ArrowDown, ListX, PlusCircle, Loader2, Pencil } from "lucide-react";
+import { FileText, Eye, ExternalLink, CheckCircle, AlertCircle, Clock, Trash2, ArrowUpDown, ArrowUp, ArrowDown, ListX, PlusCircle, Loader2, Pencil, RefreshCw } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -43,6 +43,60 @@ export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, 
         description: "Failed to add item: " + error.message,
         variant: "destructive",
       });
+    }
+  });
+
+  const syncToOrderMutation = useMutation({
+    mutationFn: async (invoice) => {
+        // 1. Prepare items
+        const orderItems = (invoice.extracted_data?.line_items || []).map(item => ({
+            supply_name: item.description || "Unknown Item",
+            item_number: item.item_code || "",
+            quantity: item.quantity || 1,
+            unit_price: item.unit_price || 0,
+            line_total: item.total_price || 0,
+            received: true
+        }));
+
+        // 2. Create SupplyOrder
+        const supplyOrderData = {
+            order_number: invoice.invoice_number,
+            vendor: invoice.vendor_name,
+            location: invoice.location || "Farmington", 
+            order_date: invoice.invoice_date,
+            status: 'received',
+            category: 'clinical',
+            order_type: invoice.invoice_type === 'credit_memo' ? 'return' : 'order',
+            items: orderItems,
+            subtotal: invoice.total_amount, 
+            tax: 0,
+            total_amount: invoice.total_amount,
+            notes: `Synced from Invoice #${invoice.invoice_number}`
+        };
+
+        const newOrder = await base44.entities.SupplyOrder.create(supplyOrderData);
+
+        // 3. Link back
+        await base44.entities.VendorInvoice.update(invoice.id, {
+            linked_supply_order_ids: [...(invoice.linked_supply_order_ids || []), newOrder.id],
+            status: 'processed'
+        });
+        
+        return newOrder;
+    },
+    onSuccess: (data) => {
+        toast({
+            title: "Order Synced",
+            description: `Successfully created Supply Order ${data.order_number}`,
+        });
+        queryClient.invalidateQueries({ queryKey: ['vendor-invoices'] });
+    },
+    onError: (error) => {
+        toast({
+            title: "Sync Failed",
+            description: error.message,
+            variant: "destructive"
+        });
     }
   });
 
@@ -271,6 +325,21 @@ export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, 
                         </PopoverContent>
                     </Popover>
                     )}
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => syncToOrderMutation.mutate(invoice)}
+                      disabled={syncToOrderMutation.isPending}
+                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                      title="Sync to Clinical Supply Order"
+                    >
+                      {syncToOrderMutation.isPending && syncToOrderMutation.variables?.id === invoice.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                          <RefreshCw className="w-4 h-4" />
+                      )}
+                    </Button>
 
                     <Button
                       variant="ghost"
