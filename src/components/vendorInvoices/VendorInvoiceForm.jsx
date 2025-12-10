@@ -286,7 +286,7 @@ export default function VendorInvoiceForm({ invoice, onSubmit, onCancel, isLoadi
             />
           </div>
           </>
-          ) : (
+          ) : activeTab === "linking" ? (
              <div className="space-y-6">
                  {/* Linked Orders List */}
                  <div className="space-y-3">
