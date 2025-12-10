@@ -120,7 +120,7 @@ Deno.serve(async (req) => {
                     invoice_number: inv.invoice_number || `AUTO-${Date.now()}`,
                     invoice_date: inv.invoice_date, // Might need validation/formatting
                     total_amount: inv.total_amount,
-                    status: 'pending_review',
+                    status: (inv.vendor_name?.toLowerCase().includes('henry schein') || inv.vendor_name?.toLowerCase().includes('henry shrine')) ? 'approved' : 'pending_review',
                     document_url: uploadRes.file_url,
                     notes: `Auto-split from multi-page PDF. Pages ${inv.start_page}-${inv.end_page}.`,
                     extracted_data: inv // Save the raw extraction just in case

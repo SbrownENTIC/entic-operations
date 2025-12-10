@@ -25,6 +25,8 @@ export default function VendorInvoices() {
   const [showUpload, setShowUpload] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [selectedInvoices, setSelectedInvoices] = useState([]);
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const location = useLocation();
@@ -108,6 +110,28 @@ export default function VendorInvoices() {
     }
   });
 
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (ids) => {
+      await Promise.all(ids.map(id => base44.entities.VendorInvoice.delete(id)));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vendor-invoices'] });
+      toast({
+        title: "Invoices deleted",
+        description: `${selectedInvoices.length} invoices have been deleted.`,
+      });
+      setSelectedInvoices([]);
+      setBulkDeleteConfirm(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete invoices: " + error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
   const filteredInvoices = invoices.filter(inv => 
     inv.vendor_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     inv.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -120,6 +144,22 @@ export default function VendorInvoices() {
       title: "Success",
       description: "Invoice uploaded and processing started.",
     });
+  };
+
+  const handleToggleSelect = (id, checked) => {
+    if (id === 'all') {
+      if (checked) {
+        setSelectedInvoices(filteredInvoices.map(i => i.id));
+      } else {
+        setSelectedInvoices([]);
+      }
+    } else {
+      if (checked) {
+        setSelectedInvoices(prev => [...prev, id]);
+      } else {
+        setSelectedInvoices(prev => prev.filter(i => i !== id));
+      }
+    }
   };
 
   return (
@@ -171,14 +211,30 @@ export default function VendorInvoices() {
 
         <Card className="border-slate-200 shadow-sm">
           <CardHeader className="border-b border-slate-100">
-            <div className="flex items-center gap-4">
-              <Search className="w-5 h-5 text-slate-400" />
-              <Input
-                placeholder="Search by vendor or invoice number..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-md"
-              />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4 flex-1">
+                <Search className="w-5 h-5 text-slate-400" />
+                <Input
+                  placeholder="Search by vendor or invoice number..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="max-w-md"
+                />
+              </div>
+              {selectedInvoices.length > 0 && (
+                <div className="flex items-center gap-4 bg-slate-100 px-4 py-2 rounded-lg">
+                  <span className="text-sm font-medium text-slate-700">
+                    {selectedInvoices.length} selected
+                  </span>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setBulkDeleteConfirm(true)}
+                  >
+                    Delete Selected
+                  </Button>
+                </div>
+              )}
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -186,6 +242,8 @@ export default function VendorInvoices() {
               invoices={filteredInvoices} 
               isLoading={isLoading} 
               onDeleteClick={setDeleteConfirm}
+              selectedIds={selectedInvoices}
+              onToggleSelect={handleToggleSelect}
             />
           </CardContent>
         </Card>
@@ -206,6 +264,26 @@ export default function VendorInvoices() {
               className="bg-red-600 hover:bg-red-700"
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={bulkDeleteConfirm} onOpenChange={setBulkDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Multiple Invoices</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedInvoices.length} selected invoices? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => bulkDeleteMutation.mutate(selectedInvoices)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete All
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

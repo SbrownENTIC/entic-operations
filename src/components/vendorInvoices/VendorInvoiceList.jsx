@@ -7,7 +7,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
-export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick }) {
+export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, selectedIds, onToggleSelect }) {
   if (isLoading) {
     return <div className="p-8 text-center text-slate-500">Loading invoices...</div>;
   }
@@ -41,6 +41,16 @@ export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick }
       <table className="w-full text-sm text-left">
         <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
           <tr>
+            <th className="p-4 w-10">
+              {onToggleSelect && (
+                <input
+                  type="checkbox"
+                  checked={invoices.length > 0 && selectedIds?.length === invoices.length}
+                  onChange={(e) => onToggleSelect('all', e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+              )}
+            </th>
             <th className="p-4">Vendor</th>
             <th className="p-4">Invoice #</th>
             <th className="p-4">Date</th>
@@ -52,6 +62,16 @@ export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick }
         <tbody className="divide-y divide-slate-100">
           {invoices.map((invoice) => (
             <tr key={invoice.id} className="hover:bg-slate-50 transition-colors">
+              <td className="p-4">
+                {onToggleSelect && (
+                  <input
+                    type="checkbox"
+                    checked={selectedIds?.includes(invoice.id)}
+                    onChange={(e) => onToggleSelect(invoice.id, e.target.checked)}
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                )}
+              </td>
               <td className="p-4 font-medium text-slate-900">{invoice.vendor_name || "Unknown Vendor"}</td>
               <td className="p-4 text-slate-600">{invoice.invoice_number || "-"}</td>
               <td className="p-4 text-slate-600">
