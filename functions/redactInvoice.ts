@@ -34,12 +34,12 @@ Deno.serve(async (req) => {
             Return a JSON object:
             - "needs_redaction": boolean (true if you found any footer content to redact, or if you are unsure but it looks like a standard invoice with a footer)
             - "pages": array of integers (1-based page numbers to redact, usually all pages have this footer)
-            - "redaction_start_y_percentage": number (The Y-coordinate where the sensitive footer BEGINS, as a percentage from the TOP of the page (0.0 to 1.0). e.g. 0.85 means the footer starts at 85% down the page.)
+            - "redaction_start_y_percentage": number (The Y-coordinate where the sensitive footer BEGINS, as a percentage from the TOP of the page (0.0 to 1.0). e.g. 0.75 means the footer starts at 75% down the page.)
             
-            If you see "Code Status Key", start redaction JUST ABOVE that line.
-            If you see "Invoice Total", start redaction IMMEDIATELY BELOW that line.
-            If you don't see specific markers but see a footer block at the bottom, redact it.
-            If you are completely unsure, default to 0.75 (redact the bottom 25% to be extremely safe).
+            CRITICAL: The user wants to cut MORE off the bottom.
+            1. Look for the row of boxes containing "Ship To#" / "Bill To#" / "Invoice#". If found, start redaction AT THE TOP EDGE of this row (usually around 75-80% down).
+            2. If you see "Code Status Key", start redaction WELL ABOVE that line.
+            3. If unsure, default to 0.75 (redact the entire bottom 25% of the page to be safe).
             `,
             file_urls: [targetUrl],
             response_json_schema: {
