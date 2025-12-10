@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
         // We ask for specific metadata + page ranges + line items
         const llmResponse = await base44.asServiceRole.integrations.Core.InvokeLLM({
             prompt: `
-            I have a PDF file that contains one or more invoices merged together. 
+            I have a PDF file that contains one or more invoices or credit memos merged together. 
             The file has ${totalPages} pages.
             
             Your task is to identify the start and end page numbers for EACH distinct invoice in this file, AND extract detailed line items for each invoice.
@@ -40,7 +40,9 @@ Deno.serve(async (req) => {
             - vendor_name (string)
             - invoice_number (string)
             - invoice_date (string, YYYY-MM-DD format if possible)
-            - total_amount (number)
+            - total_amount (number) - if it is a credit memo, this should be negative
+            - is_credit_memo (boolean) - true if the document is a credit memo / return
+            - related_invoice_number (string) - if it is a credit memo, try to find the original invoice number it refers to
             - start_page (integer, 1-based index)
             - end_page (integer, 1-based index)
             - line_items (array of objects):
@@ -55,6 +57,7 @@ Deno.serve(async (req) => {
             2. Every page from 1 to ${totalPages} should theoretically be covered, unless there are blank divider pages.
             3. Be precise with page ranges.
             4. Extract line items as accurately as possible.
+            5. If the document is a credit memo, ensure total_amount is negative.
             `,
             file_urls: [file_url],
             response_json_schema: {
@@ -69,6 +72,8 @@ Deno.serve(async (req) => {
                                 invoice_number: { type: "string" },
                                 invoice_date: { type: "string" },
                                 total_amount: { type: "number" },
+                                is_credit_memo: { type: "boolean" },
+                                related_invoice_number: { type: "string" },
                                 start_page: { type: "integer" },
                                 end_page: { type: "integer" },
                                 location_name: { type: "string", enum: ["Glastonbury", "Manchester", "Bloomfield", "Farmington"], description: "The location address/name found on the invoice (shipping address)" },
@@ -157,15 +162,23 @@ Deno.serve(async (req) => {
                     const isHenrySchein = inv.vendor_name?.toLowerCase().includes('henry schein');
                     const status = isHenrySchein ? 'approved' : 'pending_review';
 
+                    // Handle Credit Memo logic
+                    let totalAmount = inv.total_amount;
+                    if (inv.is_credit_memo && totalAmount > 0) {
+                        totalAmount = -totalAmount; // Ensure negative for credit memos
+                    }
+                    
                     const invoiceData = {
                         vendor_name: inv.vendor_name || 'Unknown Vendor',
                         invoice_number: inv.invoice_number || `AUTO-${Date.now()}`,
                         invoice_date: inv.invoice_date, // Might need validation/formatting
-                        total_amount: inv.total_amount,
+                        total_amount: totalAmount,
                         status: status,
+                        invoice_type: inv.is_credit_memo ? 'credit_memo' : 'invoice',
+                        related_invoice_number: inv.related_invoice_number,
                         location: inv.location_name, // Extracted location
                         document_url: uploadRes.file_url,
-                        notes: `Auto-split from multi-page PDF. Pages ${inv.start_page}-${inv.end_page}.`,
+                        notes: `Auto-split from multi-page PDF. Pages ${inv.start_page}-${inv.end_page}.${inv.is_credit_memo ? ' (Credit Memo)' : ''}`,
                         extracted_data: inv
                     };
 
@@ -205,9 +218,10 @@ Deno.serve(async (req) => {
                                         order_date: inv.invoice_date || new Date().toISOString().split('T')[0],
                                         status: 'received',
                                         category: 'clinical',
+                                        order_type: inv.is_credit_memo ? 'return' : 'order',
                                         items: supplyOrderItems,
-                                        total_amount: inv.total_amount || 0,
-                                        notes: `Auto-created from Vendor Invoice #${inv.invoice_number}`
+                                        total_amount: totalAmount || 0,
+                                        notes: `Auto-created from Vendor Invoice #${inv.invoice_number}${inv.is_credit_memo ? ' (Return/Credit Memo)' : ''}`
                                     };
 
                                     const createdOrder = await base44.asServiceRole.entities.SupplyOrder.create(supplyOrderData);

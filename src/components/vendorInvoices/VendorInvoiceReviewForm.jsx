@@ -22,6 +22,8 @@ export default function VendorInvoiceReviewForm({ invoice, supplies = [], onSave
     total_amount: "",
     location: "",
     notes: "",
+    invoice_type: "invoice",
+    related_invoice_number: "",
     extracted_data: { line_items: [] }
   });
 
@@ -150,6 +152,31 @@ export default function VendorInvoiceReviewForm({ invoice, supplies = [], onSave
             onChange={(e) => handleChange('invoice_number', e.target.value)} 
           />
         </div>
+        <div className="space-y-2">
+          <Label>Type</Label>
+          <Select 
+            value={formData.invoice_type} 
+            onValueChange={(value) => handleChange('invoice_type', value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="invoice">Invoice</SelectItem>
+              <SelectItem value="credit_memo">Credit Memo</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {formData.invoice_type === 'credit_memo' && (
+            <div className="space-y-2">
+              <Label>Related Invoice #</Label>
+              <Input 
+                value={formData.related_invoice_number} 
+                onChange={(e) => handleChange('related_invoice_number', e.target.value)} 
+                placeholder="Original Invoice #"
+              />
+            </div>
+        )}
         <div className="space-y-2">
           <Label>Invoice Date</Label>
           <Input 

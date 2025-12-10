@@ -353,7 +353,8 @@ export default function ClinicalSupplyOrders() {
                      <td className="p-4 text-slate-600">
                        {format(parseISO(order.order_date), 'MMM d, yyyy')}
                      </td>
-                     <td className="p-4 font-medium text-green-600">
+                     <td className={`p-4 font-medium ${order.total_amount < 0 || order.order_type === 'return' ? 'text-red-600' : 'text-green-600'}`}>
+                       {order.order_type === 'return' && <span className="text-xs bg-red-100 text-red-800 px-1.5 py-0.5 rounded mr-2">Return</span>}
                        ${formatCurrency(order.total_amount || 0)}
                      </td>
                      <td className="p-4">
