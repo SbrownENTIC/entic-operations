@@ -275,6 +275,39 @@ export default function Documentation() {
                 </Accordion>
               </CardContent>
             </Card>
+
+            {/* DOCUMENT MANAGEMENT SOP */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><FileText className="w-5 h-5 text-indigo-600" /> Document Management</CardTitle>
+                <CardDescription>Vendor Invoices & Processing</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Accordion type="single" collapsible>
+                  <AccordionItem value="upload">
+                    <AccordionTrigger>Uploading & Splitting Invoices</AccordionTrigger>
+                    <AccordionContent className="text-sm text-slate-600 space-y-2">
+                      <p><strong>Upload:</strong> Drag and drop PDF invoices into the <strong>Vendor Invoices</strong> folder.</p>
+                      <p><strong>Split Multi-Invoice PDFs:</strong> Use the "Split Multi-Invoice PDF" button. The system AI analyzes the PDF, detects separate invoices, and splits them into individual records automatically.</p>
+                    </AccordionContent>
+                  </AccordionItem>
+                  <AccordionItem value="processing">
+                    <AccordionTrigger>Processing & Allocations</AccordionTrigger>
+                    <AccordionContent className="text-sm text-slate-600 space-y-2">
+                      <p><strong>AI Extraction:</strong> The system automatically reads Vendor Name, Invoice #, Date, and Total Amount.</p>
+                      <p><strong>Linking:</strong> You can link an invoice to an existing Clinical Supply Order to mark it as "Received".</p>
+                      <p><strong>Allocation (Splitting):</strong> If an invoice covers multiple locations, use the "Allocate" tab to select specific line items and move them to a new invoice/order for a different location. The original invoice total is reduced automatically.</p>
+                    </AccordionContent>
+                  </AccordionItem>
+                  <AccordionItem value="sync">
+                    <AccordionTrigger>Resyncing Deleted Orders</AccordionTrigger>
+                    <AccordionContent className="text-sm text-slate-600 space-y-2">
+                      <p>If you accidentally delete a Clinical Supply Order but still have the Vendor Invoice, you can use the <strong>Sync/Refresh</strong> button on the invoice list to recreate the order.</p>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </CardContent>
+            </Card>
           </div>
           </ScrollArea>
         </TabsContent>
@@ -310,8 +343,18 @@ export default function Documentation() {
                       <p className="mt-2 pt-2 border-t border-slate-200 font-medium text-xs">Auto-Month Calculation:</p>
                       <p className="text-xs">The "Payment Month" field automatically updates to list the months of all linked invoices (e.g., "October 2025, November 2025").</p>
                     </div>
-                  </div>
-                </div>
+
+                    <div className="bg-slate-50 p-4 rounded border">
+                      <p className="font-semibold text-indigo-700">4. Vendor Invoice → Supply Order</p>
+                      <p><strong>AI Processing:</strong> Uploaded PDFs are analyzed by AI to extract data.</p>
+                      <p><strong>Allocation Logic:</strong> When you allocate line items from a main invoice to a location:
+                      <br/>1. A <strong>New Supply Order</strong> is created for that location.
+                      <br/>2. A <strong>New Vendor Invoice</strong> is created for that location.
+                      <br/>3. The <strong>Original Invoice</strong> total is reduced by the allocated amount.
+                      </p>
+                    </div>
+                    </div>
+                    </div>
 
                 <div className="space-y-4">
                   <h3 className="font-bold text-lg text-slate-900 border-b pb-2">Automated Jobs</h3>
@@ -606,6 +649,7 @@ export default function Documentation() {
                       <a href="#supplies" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">6. Supply Management</a>
                       <a href="#compliance" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">7. Compliance & Tracking</a>
                       <a href="#reports" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">8. Reports</a>
+                      <a href="#docs" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">9. Document Management</a>
                     </nav>
                   </div>
                   
@@ -753,6 +797,22 @@ export default function Documentation() {
                             <li><strong>Invoice Aging:</strong> See who owes money and how long it's been outstanding.</li>
                             <li><strong>Payment Tracking:</strong> Detailed audit trail of every dollar received.</li>
                             <li><strong>Supply Analysis:</strong> See which locations are spending the most on supplies.</li>
+                          </ul>
+                        </div>
+                      </section>
+
+                      {/* 9. Document Management */}
+                      <section id="docs" className="space-y-4">
+                        <div className="flex items-center gap-3 pb-2 border-b border-slate-200">
+                          <div className="bg-blue-100 p-2 rounded-lg"><FileText className="w-5 h-5 text-blue-600" /></div>
+                          <h3 className="text-xl font-bold text-slate-900">9. Document Management</h3>
+                        </div>
+                        <div className="prose prose-sm text-slate-600 max-w-none">
+                          <p>Central repository for Vendor Invoices and other documents.</p>
+                          <ul className="list-disc pl-4 space-y-2 mt-2">
+                            <li><strong>Vendor Invoices:</strong> Upload PDF invoices. The system uses AI to extract data automatically.</li>
+                            <li><strong>Split & Process:</strong> Upload a large PDF with multiple invoices, and the system will split it into individual records for you.</li>
+                            <li><strong>Allocations:</strong> Easily split a large invoice by allocating specific items to different locations.</li>
                           </ul>
                         </div>
                       </section>
