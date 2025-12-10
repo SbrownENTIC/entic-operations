@@ -84,13 +84,15 @@ Deno.serve(async (req) => {
         if (vendorName.includes('henry') || vendorName.includes('schein')) {
             // Force redaction for known vendors with footers
             shouldRedact = true;
+            
+            // CRITICAL: User requested to remove the footer "right before distribution name/address".
+            // The "Ship To" box is around 80-85% down. We want to KEEP it.
+            // "Distribution Names" starts around 86-88%.
+            // So we want to keep top 85% (0.85) and redact bottom 15%.
+            // This is approx 1.65 inches from bottom on Letter paper.
+            topPct = 0.85; 
 
-            // CRITICAL: User requested "last inch" to be cut off.
-            // We hardcode this to 0.80 (keeping top 80%, removing bottom 20%)
-            // This is roughly 2.2 inches on a standard letter page, ensuring the footer is covered.
-            topPct = 0.80;
-
-            // CRITICAL: Force redact ALL pages for these vendors as they always have footers
+            // Force redact ALL pages for these vendors as they always have footers
             pagesToRedact = allPages.map((_, i) => i + 1);
         }
 

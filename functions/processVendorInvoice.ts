@@ -93,12 +93,14 @@ Deno.serve(async (req) => {
 
         // Trigger Redaction for single uploads
         try {
-            // We don't await this to keep the response fast, or we can await if we want to ensure it's done.
-            // Since it modifies the file, better to just trigger it. 
-            // But for better UX (seeing the redacted version immediately), let's await it or let the UI handle the update.
-            // We'll fire and forget to keep upload fast, but log it.
-            base44.asServiceRole.functions.invoke('redactInvoice', { invoice_id: invoice.id })
-                .catch(err => console.error("Redaction failed for single upload:", err));
+            // Await redaction so the user sees the redacted file immediately
+            const redactRes = await base44.asServiceRole.functions.invoke('redactInvoice', { invoice_id: invoice.id });
+            
+            // If redaction returned a new URL, update our local invoice object before returning
+            if (redactRes && redactRes.data && redactRes.data.new_url) {
+                invoice.document_url = redactRes.data.new_url;
+                invoice.redacted = true;
+            }
         } catch (err) {
             console.error("Failed to trigger redaction:", err);
         }
