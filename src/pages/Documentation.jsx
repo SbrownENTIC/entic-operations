@@ -123,32 +123,46 @@ function FixVendorDataButton() {
 function ForceRedactHenryButton() {
   const { toast } = useToast();
   const [loading, setLoading] = React.useState(false);
+  const [testLoading, setTestLoading] = React.useState(false);
   const queryClient = useQueryClient();
 
   const handleForce = async () => {
-    if (!confirm("Force re-redact all Henry Schein invoices (DEBUG MODE: Red Box)? This will overwrite current files.")) return;
+    if (!confirm("Force re-redact all Henry Schein invoices? This will overwrite current files.")) return;
 
     setLoading(true);
     toast({ title: "Redaction Started", description: "Processing Henry Schein invoices..." });
 
     try {
       const res = await base44.functions.invoke('forceRedactAll');
-      // Invalidate queries to force refresh of file URLs
       await queryClient.invalidateQueries({ queryKey: ['vendor-invoices'] });
 
       toast({ 
         title: "Completed", 
-        description: `Re-redacted ${res.data.count} Henry Schein invoices. Please refresh the invoice list.`
+        description: `Re-redacted ${res.data.count} invoices.`
       });
     } catch (err) {
-      toast({ 
-        title: "Error", 
-        description: err.message, 
-        variant: "destructive" 
-      });
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleTestDebug = async () => {
+      setTestLoading(true);
+      toast({ title: "Debug Test Started", description: "Processing one invoice..." });
+      try {
+          const res = await base44.functions.invoke('debugRedaction');
+          if (res.data.new_url) {
+              window.open(res.data.new_url, '_blank');
+              toast({ title: "Success", description: "Opened redacted PDF in new tab." });
+          } else {
+              toast({ title: "Failed", description: "No URL returned", variant: "destructive" });
+          }
+      } catch (err) {
+          toast({ title: "Error", description: err.message, variant: "destructive" });
+      } finally {
+          setTestLoading(false);
+      }
   };
 
   return (
