@@ -3,11 +3,19 @@ import { Folder } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
 
 export default function VendorFolderGrid({ invoices, onSelectVendor }) {
-  // Group by vendor
+  // Helper to normalize vendor names (Title Case)
+  const normalizeName = (name) => {
+    if (!name) return 'Unknown Vendor';
+    return name.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  };
+
+  // Group by normalized vendor name
   const vendorGroups = invoices.reduce((acc, inv) => {
-    const name = inv.vendor_name || 'Unknown Vendor';
-    if (!acc[name]) acc[name] = [];
-    acc[name].push(inv);
+    const rawName = inv.vendor_name || 'Unknown Vendor';
+    const normalizedName = normalizeName(rawName);
+    
+    if (!acc[normalizedName]) acc[normalizedName] = [];
+    acc[normalizedName].push({ ...inv, _display_vendor: normalizedName }); // Store normalized name for display consistency
     return acc;
   }, {});
 

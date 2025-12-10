@@ -2,7 +2,7 @@ import React from "react";
 import { format, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, Eye, ExternalLink, CheckCircle, AlertCircle, Clock, Trash2, ArrowUpDown, ArrowUp, ArrowDown, ListX } from "lucide-react";
+import { FileText, Eye, ExternalLink, CheckCircle, AlertCircle, Clock, Trash2, ArrowUpDown, ArrowUp, ArrowDown, ListX, PlusCircle, Loader2 } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -11,8 +11,41 @@ import {
 import EmptyState from "@/components/ui/EmptyState";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { base44 } from "@/api/base44Client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, selectedIds, onToggleSelect, onSort, sortField, sortDirection, supplies = [] }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const addToCatalogMutation = useMutation({
+    mutationFn: async ({ item, vendorName }) => {
+      await base44.entities.Supply.create({
+        product_name: item.description || "Unknown Item",
+        item_number: item.item_code,
+        vendor: vendorName,
+        unit_price: item.unit_price || 0,
+        category: 'clinical', // Defaulting to clinical as requested
+        units: 'each'
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['supplies-catalog'] });
+      toast({
+        title: "Item Added",
+        description: "Item successfully added to clinical catalog.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to add item: " + error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
   if (isLoading) {
     return <div className="p-8 text-center text-slate-500">Loading invoices...</div>;
   }
@@ -183,10 +216,26 @@ export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, 
                                       </div>
                                       <div className="max-h-[300px] overflow-y-auto p-2 space-y-2">
                                           {missingItems.map((item, idx) => (
-                                              <div key={idx} className="bg-white p-2 rounded border border-slate-100 text-xs shadow-sm">
-                                                  <div className="font-medium text-slate-900">{item.item_code}</div>
-                                                  <div className="text-slate-600 truncate" title={item.description}>{item.description}</div>
-                                                  {item.quantity && <div className="text-slate-500 mt-1">Qty: {item.quantity}</div>}
+                                              <div key={idx} className="bg-white p-2 rounded border border-slate-100 text-xs shadow-sm flex justify-between items-center gap-2">
+                                                  <div className="flex-1 min-w-0">
+                                                      <div className="font-medium text-slate-900">{item.item_code}</div>
+                                                      <div className="text-slate-600 truncate" title={item.description}>{item.description}</div>
+                                                      {item.quantity && <div className="text-slate-500 mt-1">Qty: {item.quantity}</div>}
+                                                  </div>
+                                                  <Button
+                                                      size="sm"
+                                                      variant="outline"
+                                                      className="h-7 w-7 p-0 shrink-0"
+                                                      title="Add to Clinical Catalog"
+                                                      onClick={() => addToCatalogMutation.mutate({ item, vendorName: invoice.vendor_name })}
+                                                      disabled={addToCatalogMutation.isPending}
+                                                  >
+                                                      {addToCatalogMutation.isPending ? (
+                                                          <Loader2 className="w-3 h-3 animate-spin" />
+                                                      ) : (
+                                                          <PlusCircle className="w-3.5 h-3.5 text-blue-600" />
+                                                      )}
+                                                  </Button>
                                               </div>
                                           ))}
                                       </div>
@@ -219,13 +268,9 @@ export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, 
                             </div>
                         </PopoverContent>
                     </Popover>
-                  )}
-                  <Link to={`${createPageUrl("VendorInvoiceReview")}?id=${invoice.id}`}>
-                    <Button variant="outline" size="sm">
-                        Edit
-                    </Button>
-                  </Link>
-                  <Button 
+                    )}
+                    {/* Review/Edit button removed as requested */}
+                    <Button 
                     variant="ghost" 
                     size="sm"
                     onClick={() => onDeleteClick(invoice)}

@@ -158,8 +158,15 @@ Deno.serve(async (req) => {
                 }
 
                 if (!isDuplicate) {
+                    // Helper to Title Case vendor name
+                    const normalizeVendor = (name) => {
+                        if (!name) return 'Unknown Vendor';
+                        return name.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                    };
+
                     // Create the Entity
-                    const isHenrySchein = inv.vendor_name?.toLowerCase().includes('henry schein');
+                    const normalizedVendorName = normalizeVendor(inv.vendor_name);
+                    const isHenrySchein = normalizedVendorName.toLowerCase().includes('henry schein');
                     const status = isHenrySchein ? 'approved' : 'pending_review';
 
                     // Handle Credit Memo logic
@@ -169,7 +176,7 @@ Deno.serve(async (req) => {
                     }
                     
                     const invoiceData = {
-                        vendor_name: inv.vendor_name || 'Unknown Vendor',
+                        vendor_name: normalizedVendorName,
                         invoice_number: inv.invoice_number || `AUTO-${Date.now()}`,
                         invoice_date: inv.invoice_date, // Might need validation/formatting
                         total_amount: totalAmount,
@@ -213,7 +220,7 @@ Deno.serve(async (req) => {
                                 if (!isDuplicateOrder) {
                                     const supplyOrderData = {
                                         order_number: orderNumber,
-                                        vendor: inv.vendor_name || 'Henry Schein',
+                                        vendor: normalizedVendorName,
                                         location: inv.location_name || 'Glastonbury', // Default if missing, but hopefully extracted
                                         order_date: inv.invoice_date || new Date().toISOString().split('T')[0],
                                         status: 'received',
