@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
         }
 
         // 1. Fetch Invoice
-        const results = await base44.asServiceRole.entities.VendorInvoice.list(null, 1, { id: invoice_id });
+        const results = await base44.asServiceRole.entities.VendorInvoice.filter({ id: invoice_id });
         const invoice = results[0];
         if (!invoice) return Response.json({ error: "Invoice not found" }, { status: 404 });
         
@@ -95,10 +95,10 @@ Deno.serve(async (req) => {
                 x = 0; y = 0; w = width; h = height * bottomPct;
             }
 
-            // Draw WHITE rectangle (Permanent Redaction)
+            // Draw BLACK rectangle (Permanent Redaction)
             page.drawRectangle({
                 x, y, width: w, height: h,
-                color: rgb(1, 1, 1), // WHITE
+                color: rgb(0, 0, 0), // BLACK
                 opacity: 1,
             });
         }

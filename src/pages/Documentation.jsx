@@ -139,12 +139,23 @@ function ForceRedactHenryButton() {
       await queryClient.resetQueries({ queryKey: ['vendor-invoices'] });
       await queryClient.invalidateQueries({ queryKey: ['vendor-invoices'] });
 
+      console.log("Force Redact Results:", res.data);
       const successCount = res.data.details.filter(d => d.status === 'processed').length;
       const failCount = res.data.details.filter(d => d.status === 'error').length;
-      toast({ 
-        title: "Completed", 
-        description: `Processed: ${successCount} success, ${failCount} failed. Refresh page to see changes.`
-      });
+
+      if (failCount > 0) {
+        const firstError = res.data.details.find(d => d.status === 'error')?.error;
+        toast({ 
+          title: "Completed with Errors", 
+          description: `Success: ${successCount}, Failed: ${failCount}. Error: ${firstError}`,
+          variant: "destructive"
+        });
+      } else {
+        toast({ 
+          title: "Completed Successfully", 
+          description: `Processed ${successCount} invoices. Refresh page to see changes.`
+        });
+      }
     } catch (err) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
