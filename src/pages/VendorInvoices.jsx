@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, FileText, UploadCloud, Loader2, Files, ArrowUpDown, ArrowUp, ArrowDown, ChevronRight, ArrowLeft, Folder, PackagePlus } from "lucide-react";
+import { Search, Plus, FileText, UploadCloud, Loader2, Files, ArrowUpDown, ArrowUp, ArrowDown, ChevronRight, ArrowLeft, Folder, PackagePlus, ChevronLeft } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import VendorInvoiceList from "../components/vendorInvoices/VendorInvoiceList";
 import VendorFolderGrid from "../components/vendorInvoices/VendorFolderGrid";
@@ -191,7 +191,7 @@ export default function VendorInvoices() {
         title: "Invoice updated",
         description: "The vendor invoice has been successfully updated.",
       });
-      setEditingInvoice(null);
+      // setEditingInvoice(null); // Handled manually now
     },
     onError: (error) => {
       toast({
@@ -317,6 +317,37 @@ export default function VendorInvoices() {
       } else {
         setSelectedInvoices(prev => prev.filter(i => i !== id));
       }
+    }
+  };
+
+  // Navigation Logic
+  const currentIndex = editingInvoice ? sortedInvoices.findIndex(inv => inv.id === editingInvoice.id) : -1;
+  const hasNext = currentIndex !== -1 && currentIndex < sortedInvoices.length - 1;
+  const hasPrev = currentIndex > 0;
+  
+  const handleNext = () => {
+    if (hasNext) setEditingInvoice(sortedInvoices[currentIndex + 1]);
+  };
+  
+  const handlePrev = () => {
+    if (hasPrev) setEditingInvoice(sortedInvoices[currentIndex - 1]);
+  };
+
+  const handleSave = async (data, isSaveAndNext) => {
+    try {
+        await updateMutation.mutateAsync({ id: editingInvoice.id, data });
+        if (isSaveAndNext) {
+            if (hasNext) {
+                handleNext();
+            } else {
+                setEditingInvoice(null);
+                toast({ title: "All done!", description: "No more invoices to review." });
+            }
+        } else {
+            setEditingInvoice(null);
+        }
+    } catch (e) {
+        // error handling is in mutation
     }
   };
 
@@ -475,17 +506,44 @@ export default function VendorInvoices() {
 
       <Dialog open={!!editingInvoice} onOpenChange={(open) => !open && setEditingInvoice(null)}>
         <DialogContent className="sm:max-w-[1200px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Vendor Invoice</DialogTitle>
-            <DialogDescription>
-              Update the details for invoice {editingInvoice?.invoice_number}.
-            </DialogDescription>
+          <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div className="space-y-1">
+                <DialogTitle>Edit Vendor Invoice</DialogTitle>
+                <DialogDescription>
+                Update the details for invoice {editingInvoice?.invoice_number}.
+                </DialogDescription>
+            </div>
+            {editingInvoice && currentIndex !== -1 && (
+                <div className="flex items-center gap-2 pr-8">
+                    <span className="text-sm text-slate-500 mr-2">
+                        {currentIndex + 1} of {sortedInvoices.length}
+                    </span>
+                    <Button 
+                        variant="outline" 
+                        size="icon" 
+                        onClick={handlePrev} 
+                        disabled={!hasPrev}
+                        className="h-8 w-8"
+                    >
+                        <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                        variant="outline" 
+                        size="icon" 
+                        onClick={handleNext} 
+                        disabled={!hasNext}
+                        className="h-8 w-8"
+                    >
+                        <ChevronRight className="h-4 w-4" />
+                    </Button>
+                </div>
+            )}
           </DialogHeader>
           {editingInvoice && (
             <VendorInvoiceForm
               invoice={editingInvoice}
               isLoading={updateMutation.isPending}
-              onSubmit={(data) => updateMutation.mutate({ id: editingInvoice.id, data })}
+              onSubmit={handleSave}
               onCancel={() => setEditingInvoice(null)}
             />
           )}
