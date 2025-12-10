@@ -427,12 +427,15 @@ export default function VendorInvoicesView() {
           <CardHeader className="border-b border-slate-100 shrink-0 bg-white">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4 flex-1">
-                {selectedVendor ? (
-                  <div className="flex items-center gap-2">
+                {selectedVendor && (
+                  <div className="flex items-center gap-2 mr-4 shrink-0">
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      onClick={() => setSelectedVendor(null)}
+                      onClick={() => {
+                        setSelectedVendor(null);
+                        setSearchTerm("");
+                      }}
                       className="mr-1"
                     >
                       <ArrowLeft className="w-5 h-5" />
@@ -441,7 +444,10 @@ export default function VendorInvoicesView() {
                       <div className="flex items-center gap-2 text-sm text-slate-500">
                         <span 
                           className="hover:underline cursor-pointer" 
-                          onClick={() => setSelectedVendor(null)}
+                          onClick={() => {
+                            setSelectedVendor(null);
+                            setSearchTerm("");
+                          }}
                         >
                           Invoices
                         </span>
@@ -450,17 +456,16 @@ export default function VendorInvoicesView() {
                       </div>
                     </div>
                   </div>
-                ) : (
-                  <div className="flex items-center gap-4 flex-1">
-                    <Search className="w-5 h-5 text-slate-400" />
-                    <Input
-                      placeholder="Search by vendor or invoice number..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="max-w-md"
-                    />
-                  </div>
                 )}
+                <div className="flex items-center gap-4 flex-1">
+                  <Search className="w-5 h-5 text-slate-400" />
+                  <Input
+                    placeholder={selectedVendor ? `Search in ${selectedVendor}...` : "Search by vendor or invoice number..."}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="max-w-md"
+                  />
+                </div>
               </div>
               {selectedInvoices.length > 0 && selectedVendor && (
                 <div className="flex items-center gap-4 bg-slate-100 px-4 py-2 rounded-lg">
@@ -496,7 +501,10 @@ export default function VendorInvoicesView() {
               <div className="p-6">
                 <VendorFolderGrid 
                   invoices={filteredInvoices}
-                  onSelectVendor={setSelectedVendor}
+                  onSelectVendor={(vendor) => {
+                    setSelectedVendor(vendor);
+                    setSearchTerm(""); // Clear search when entering a folder
+                  }}
                 />
               </div>
             )}

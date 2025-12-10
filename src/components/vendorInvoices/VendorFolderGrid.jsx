@@ -27,7 +27,13 @@ export default function VendorFolderGrid({ invoices, onSelectVendor }) {
         <Card 
           key={vendor} 
           className="hover:shadow-lg transition-all cursor-pointer border-slate-200 bg-white group hover:-translate-y-1"
-          onClick={() => onSelectVendor(vendor)}
+          onClick={() => {
+            onSelectVendor(vendor);
+            // We want to clear the search term when entering a folder so the user sees all invoices
+            // But we can't do that easily from here since setSearchTerm is in the parent
+            // The parent needs to handle this or we accept that the search term persists.
+            // Based on the implementation in VendorInvoicesView, let's update the onSelectVendor prop usage there.
+          }}
         >
           <CardContent className="p-6 flex flex-col items-center text-center gap-4">
             <div className="p-4 bg-blue-50 rounded-full group-hover:bg-blue-100 transition-colors">
