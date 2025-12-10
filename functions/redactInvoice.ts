@@ -34,11 +34,11 @@ Deno.serve(async (req) => {
 
         if (vendorName.includes('henry') || vendorName.includes('schein')) {
             // STRATEGY A: Force Redaction for Henry Schein
-            // PROVEN FIX: Redact bottom 35% to cover footer + distribution info
+            // Adjusted to 18% based on user feedback (35% was too big)
             shouldRedact = true;
-            bottomPct = 0.35; 
+            bottomPct = 0.18; 
             pagesToRedact = allPages.map((_, i) => i + 1); 
-            console.log("Redacting Henry Schein: Bottom 35%");
+            console.log("Redacting Henry Schein: Bottom 18%");
         } else {
             // STRATEGY B: Use LLM for other vendors
             // ... (Keep existing LLM logic if needed, or default to 15%)

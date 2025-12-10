@@ -5,86 +5,71 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         
-        // 1. Find the most recent Henry Schein invoice
+        // Fetch most recent Henry Schein invoice for debugging
         const invoices = await base44.asServiceRole.entities.VendorInvoice.list('-created_date', 50);
-        const targetInvoice = invoices.find(inv => {
-            const name = (inv.vendor_name || '').toLowerCase();
-            return name.includes('henry') || name.includes('schein');
-        });
+        const target = invoices.find(inv => (inv.vendor_name || '').toLowerCase().includes('henry'));
 
-        if (!targetInvoice) {
-            return Response.json({ error: "No Henry Schein invoice found to test." }, { status: 404 });
+        if (!target) {
+            return Response.json({ error: "No Henry Schein invoice found" }, { status: 404 });
         }
+        
+        const targetUrl = target.document_url;
+        if (!targetUrl) return Response.json({ error: "No document URL" }, { status: 400 });
 
-        console.log(`Testing redaction on Invoice: ${targetInvoice.invoice_number} (${targetInvoice.id})`);
-
-        // 2. Download
-        const pdfResponse = await fetch(targetInvoice.document_url);
+        // Download PDF
+        const pdfResponse = await fetch(targetUrl);
         const pdfBytes = await pdfResponse.arrayBuffer();
         const pdfDoc = await PDFDocument.load(pdfBytes);
-        const pages = pdfDoc.getPages();
+        const allPages = pdfDoc.getPages();
 
-        // 3. Draw Debug Boxes
-        for (const page of pages) {
+        // Debug Settings: Red Box, 18% height, NO blue lines
+        const bottomPct = 0.18;
+
+        for (const page of allPages) {
             const { width, height } = page.getSize();
             const rotation = page.getRotation().angle;
-
-            // Normalize coordinates based on rotation
-            // We want to cover the VISUAL bottom 30%
-            let x=0, y=0, w=0, h=0;
-            const pct = 0.30; // Bottom 30%
+            
+            let x = 0, y = 0, w = 0, h = 0;
 
             if (rotation === 0) {
-                x = 0; y = 0; w = width; h = height * pct;
+                x = 0; y = 0; w = width; h = height * bottomPct;
             } else if (rotation === 90) {
-                x = width * (1-pct); y = 0; w = width * pct; h = height;
+                x = width * (1 - bottomPct); y = 0; w = width * bottomPct; h = height;
             } else if (rotation === 180) {
-                x = 0; y = height * (1-pct); w = width; h = height * pct;
-            } else if (rotation === 270) {
-                x = 0; y = 0; w = width * pct; h = height;
+                x = 0; y = height * (1 - bottomPct); w = width; h = height * bottomPct;
+            } else if (rotation === 270 || rotation === -90) {
+                x = 0; y = 0; w = width * bottomPct; h = height;
             } else {
-                // Default
-                x = 0; y = 0; w = width; h = height * pct;
+                x = 0; y = 0; w = width; h = height * bottomPct;
             }
 
-            // Draw RED Box (Solid)
+            // Draw RED rectangle (Transparent-ish to see what's covered?) 
+            // No, user wants to see the box. Opaque Red.
             page.drawRectangle({
                 x, y, width: w, height: h,
-                color: rgb(1, 0, 0),
-                opacity: 1, // 100% opacity
-            });
-
-            // Draw BLUE X across the page to prove we edited it
-            page.drawLine({
-                start: { x: 0, y: 0 },
-                end: { x: width, y: height },
-                color: rgb(0, 0, 1),
-                thickness: 5,
+                color: rgb(1, 0, 0), // RED
+                opacity: 0.5, // 50% opacity so they can see what is being covered
             });
         }
 
-        // 4. Save & Upload
+        // Save and Upload
         const modifiedPdfBytes = await pdfDoc.save();
-        const fileName = `DEBUG_REDACT_${targetInvoice.invoice_number}_${Date.now()}.pdf`;
+        const randomStr = Math.random().toString(36).substring(7);
+        const fileName = `DEBUG_REDACT_${target.invoice_number}_${Date.now()}.pdf`;
         const file = new File([modifiedPdfBytes], fileName, { type: "application/pdf" });
-
-        const uploadRes = await base44.asServiceRole.integrations.Core.UploadFile({ file });
         
-        // 5. Update Entity
-        await base44.asServiceRole.entities.VendorInvoice.update(targetInvoice.id, {
-            document_url: uploadRes.file_url,
-            redacted: true
-        });
+        const uploadRes = await base44.asServiceRole.integrations.Core.UploadFile({ file });
+        const newUrl = uploadRes.file_url;
 
-        return Response.json({
-            success: true,
-            invoice_number: targetInvoice.invoice_number,
-            old_url: targetInvoice.document_url,
-            new_url: uploadRes.file_url
+        return Response.json({ 
+            status: "success", 
+            original_url: targetUrl, 
+            new_url: newUrl,
+            cutoff_percentage: bottomPct
         });
 
     } catch (error) {
-        console.error("Debug Redact Error:", error);
-        return Response.json({ error: error.message, stack: error.stack }, { status: 500 });
+        console.error("Debug Redaction error:", error);
+        return Response.json({ error: error.message }, { status: 500 });
     }
 });
