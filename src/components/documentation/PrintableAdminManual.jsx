@@ -36,6 +36,7 @@ export default function PrintableAdminManual() {
           <li>6. Workflow: Reminders & Closures</li>
           <li>7. Automated Scheduled Tasks</li>
           <li>8. Maintenance & Troubleshooting</li>
+          <li>9. Document Management Internals</li>
         </ul>
       </div>
 
@@ -65,6 +66,7 @@ export default function PrintableAdminManual() {
               <tr><td className="p-2 font-mono">Reminder</td><td className="p-2">Schedule alerts and Office Closures. Synced to Airtable.</td></tr>
               <tr><td className="p-2 font-mono">License</td><td className="p-2">Credential tracking. Fields: `expiration_date`, `reminder_30_sent` flags.</td></tr>
               <tr><td className="p-2 font-mono">ProgramLocation</td><td className="p-2">Facilities. Controls dropdowns and Invoice Auto-Numbering counters.</td></tr>
+              <tr><td className="p-2 font-mono">VendorInvoice</td><td className="p-2">Invoices uploaded via Document Management. Stores AI-extracted JSON data.</td></tr>
             </tbody>
           </table>
         </div>
@@ -93,6 +95,8 @@ export default function PrintableAdminManual() {
               <tr><td className="p-2 font-mono">checkLicenseExpirations</td><td className="p-2">Daily Schedule. Direct email send (via Base44) for expiring licenses.</td></tr>
               <tr><td className="p-2 font-mono">syncPaymentsAndInvoices</td><td className="p-2">Hourly Schedule. Recalculates invoice balances from payments.</td></tr>
               <tr><td className="p-2 font-mono">fixOutsideIncomeAmounts</td><td className="p-2">Utility. Recalculates <code>Days * Rate = Total</code> for income records.</td></tr>
+              <tr><td className="p-2 font-mono">splitAndProcessInvoices</td><td className="p-2">Document Mgmt. Splits PDF and uses LLM to extract data + create entities.</td></tr>
+              <tr><td className="p-2 font-mono">suggestSupplyOrderMatches</td><td className="p-2">Document Mgmt. Fuzzy matching to find Supply Orders for an invoice.</td></tr>
             </tbody>
           </table>
         </div>
@@ -279,6 +283,37 @@ export default function PrintableAdminManual() {
             </p>
           </div>
 
+        </div>
+      </section>
+
+      {/* 9. Document Management Internals */}
+      <section className="space-y-4 break-inside-avoid">
+        <div className="flex items-center gap-3 pb-2 border-b border-slate-300">
+          <div className="p-2 rounded-lg bg-indigo-50 border border-indigo-100"><FileText className="w-6 h-6 text-indigo-700" /></div>
+          <h3 className="text-2xl font-bold text-slate-900">9. Document Management Internals</h3>
+        </div>
+        <div className="text-sm text-slate-800 leading-relaxed space-y-4">
+          <div className="mb-4">
+            <h4 className="font-bold text-slate-900 mb-1">PDF Processing Pipeline</h4>
+            <p className="text-xs">The <code>splitAndProcessInvoices</code> function handles the heavy lifting:</p>
+            <ol className="list-decimal pl-4 text-xs space-y-1">
+              <li><strong>Download:</strong> Fetches the PDF from the provided URL.</li>
+              <li><strong>Analysis:</strong> Sends first/last pages to LLM to determine where one invoice ends and the next begins.</li>
+              <li><strong>Splitting:</strong> Uses <code>pdf-lib</code> to slice the PDF into separate files.</li>
+              <li><strong>Extraction:</strong> LLM extracts JSON data (Vendor, Date, Total, Line Items).</li>
+              <li><strong>Creation:</strong> Creates <code>VendorInvoice</code> records and uploads the new split PDFs.</li>
+            </ol>
+          </div>
+          
+          <div>
+            <h4 className="font-bold text-slate-900 mb-1">Allocation Logic</h4>
+            <p className="text-xs">When allocating items from Invoice A (Total: $1000) to Location B:</p>
+            <ul className="list-disc pl-4 text-xs space-y-1">
+              <li><strong>New Invoice:</strong> Created for Location B (Amount: $200).</li>
+              <li><strong>New Order:</strong> Created for Location B (linked to New Invoice).</li>
+              <li><strong>Update Original:</strong> Invoice A is updated (Amount: $800). Extracted items are removed from JSON to prevent double-counting.</li>
+            </ul>
+          </div>
         </div>
       </section>
 
