@@ -49,44 +49,43 @@ export default function VendorInvoices() {
   const splitInputRef = React.useRef(null);
 
   const splitMutation = useMutation({
-    mutationFn: async (file) => {
+    mutationFn: async (files) => {
+      const fileArray = Array.from(files);
       toast({
-        title: "Uploading...",
-        description: "Uploading PDF for analysis. This may take a moment.",
-      });
-      // 1. Upload
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      
-      toast({
-        title: "Analyzing & Splitting...",
-        description: "AI is analyzing the document structure. Please wait...",
+        title: "Processing...",
+        description: `Uploading and analyzing ${fileArray.length} file(s). This may take a moment.`,
       });
       
-      // 2. Process
-      const res = await base44.functions.invoke('splitAndProcessInvoices', { file_url });
-      return res.data;
+      const results = await Promise.all(fileArray.map(async (file) => {
+         const { file_url } = await base44.integrations.Core.UploadFile({ file });
+         const res = await base44.functions.invoke('splitAndProcessInvoices', { file_url });
+         return res.data;
+      }));
+      
+      return results;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['vendor-invoices'] });
+      const totalProcessed = data.reduce((acc, curr) => acc + (curr.processed_count || 0), 0);
       toast({
         title: "Processing Complete",
-        description: `Successfully split and created ${data.processed_count} invoices.`,
+        description: `Successfully processed ${data.length} files and created ${totalProcessed} invoices.`,
       });
     },
     onError: (error) => {
       console.error(error);
       toast({
         title: "Error",
-        description: "Failed to process file: " + (error.message || "Unknown error"),
+        description: "Failed to process files: " + (error.message || "Unknown error"),
         variant: "destructive",
       });
     }
   });
 
   const handleSplitUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-        splitMutation.mutate(file);
+    const files = e.target.files;
+    if (files && files.length > 0) {
+        splitMutation.mutate(files);
     }
     // reset input
     e.target.value = '';
@@ -225,6 +224,7 @@ export default function VendorInvoices() {
                 ref={splitInputRef}
                 className="hidden" 
                 accept=".pdf"
+                multiple
                 onChange={handleSplitUpload}
             />
             <Button 
