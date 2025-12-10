@@ -235,8 +235,8 @@ export default function PrintableAdminManual() {
         </div>
       </section>
 
-      {/* 7. Automated Scheduled Tasks */}
-      <section className="space-y-4 break-inside-avoid">
+      {/* 8. Automated Scheduled Tasks */}
+      <section id="admin-8" className="space-y-4 break-inside-avoid scroll-mt-4">
         <div className="flex items-center gap-3 pb-2 border-b border-slate-300">
           <div className="p-2 rounded-lg bg-green-50 border border-green-100"><Clock className="w-6 h-6 text-green-700" /></div>
           <h3 className="text-2xl font-bold text-slate-900">8. Automated Scheduled Tasks</h3>
