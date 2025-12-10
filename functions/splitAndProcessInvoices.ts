@@ -185,7 +185,7 @@ Deno.serve(async (req) => {
                         related_invoice_number: inv.related_invoice_number,
                         location: inv.location_name, // Extracted location
                         document_url: uploadRes.file_url,
-                        notes: `Auto-split from multi-page PDF. Pages ${inv.start_page}-${inv.end_page}.${inv.is_credit_memo ? ' (Credit Memo)' : ''}`,
+                        notes: "",
                         extracted_data: inv
                     };
 
