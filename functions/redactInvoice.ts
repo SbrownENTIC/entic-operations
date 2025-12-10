@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
         let pagesToRedact = analysis.pages || [1];
 
         const vendorName = (invoice.vendor_name || '').toLowerCase();
-        if (vendorName.includes('henry') || vendorName.includes('schein') || vendorName.includes('mckesson')) {
+        if (vendorName.includes('henry') || vendorName.includes('schein')) {
              // Force redaction for known vendors with footers
              shouldRedact = true;
              // Ensure we cut at least bottom 25% (max 0.75 from top)
