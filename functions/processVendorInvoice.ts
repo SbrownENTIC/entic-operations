@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
             invoice_date: data.invoice_date,
             due_date: data.due_date,
             total_amount: data.total_amount || 0,
-            status: 'pending_review',
+            status: 'order_placed',
             document_url: file_url,
             extracted_data: data // Store full extraction including line items
         });

@@ -167,7 +167,7 @@ Deno.serve(async (req) => {
                     // Create the Entity
                     const normalizedVendorName = normalizeVendor(inv.vendor_name);
                     const isHenrySchein = normalizedVendorName.toLowerCase().includes('henry schein');
-                    const status = isHenrySchein ? 'approved' : 'pending_review';
+                    const status = 'order_placed';
 
                     // Handle Credit Memo logic
                     let totalAmount = inv.total_amount;
