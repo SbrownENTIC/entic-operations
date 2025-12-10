@@ -36,11 +36,19 @@ Deno.serve(async (req) => {
             - "pages": array of integers (1-based page numbers to redact, usually all pages have this footer)
             - "redaction_start_y_percentage": number (The Y-coordinate where the sensitive footer BEGINS, as a percentage from the TOP of the page (0.0 to 1.0). e.g. 0.75 means the footer starts at 75% down the page.)
             
-            CRITICAL: The user wants to cut MORE off the bottom.
-            1. Look for "Distribution Names" or "Distribution Address" or "Please remit payments to". If found, start redaction WELL ABOVE these lines.
-            2. Look for the row of boxes containing "Ship To#" / "Bill To#" / "Invoice#". If found, start redaction AT THE TOP EDGE of this row (usually around 70% down).
-            3. If you see "Code Status Key", start redaction ABOVE that line.
-            4. If unsure, default to 0.70 (redact the entire bottom 30% of the page to be safe).
+            CRITICAL: The user strictly requested to remove the bottom section of the page ("last inch").
+
+            Detection Rules:
+            1. "Ship To#" / "Bill To#" Row: This is the primary marker. If you see a row of boxes with "Ship To#", "Bill To#", "Invoice#", start redaction IMMEDIATELY ABOVE this row. This is usually around 75% down the page (0.75).
+            2. "Code Status Key": If you see this, redact everything above and below it.
+            3. "Distribution Names/Address": If you see this, redact well above it.
+            4. "Please remit payments to": If you see this, redact well above it.
+
+            Action:
+            - If you see ANY of the above markers, set "needs_redaction" to true.
+            - Set "redaction_start_y_percentage" to 0.75 (redact the bottom 25%) to be safe and cover the whole footer.
+            - If you are unsure but it looks like an invoice, DEFAULT to redacting the bottom 15% (0.85) just to be safe.
+            - Only return false if the page is completely blank at the bottom.
             `,
             file_urls: [targetUrl],
             response_json_schema: {
@@ -51,12 +59,27 @@ Deno.serve(async (req) => {
                     redaction_start_y_percentage: { type: "number" }
                 }
             }
-        });
+            });
 
         // Parse result
         const analysis = typeof analyzeRes === 'string' ? JSON.parse(analyzeRes) : analyzeRes;
 
-        if (!analysis.needs_redaction) {
+        // Force redaction on bottom 15% if analysis was unsure but didn't explicitly say no, 
+        // or if we just want to be super safe as per user request "last inch".
+        // But let's trust the "needs_redaction" for now, assuming the prompt defaults to true often.
+        // Actually, let's override: if it's a Henry Schein invoice (based on vendor name), ALWAYS redact bottom 20%.
+
+        let shouldRedact = analysis.needs_redaction;
+        let topPct = analysis.redaction_start_y_percentage || 0.80; // Default to cutting bottom 20%
+
+        const vendorName = (invoice.vendor_name || '').toLowerCase();
+        if (vendorName.includes('henry') || vendorName.includes('schein') || vendorName.includes('mckesson')) {
+             // Force redaction for known vendors with footers
+             shouldRedact = true;
+             if (topPct > 0.80) topPct = 0.80; // Ensure we cut at least bottom 20%
+        }
+
+        if (!shouldRedact) {
             await base44.asServiceRole.entities.VendorInvoice.update(invoice_id, { redacted: true });
             return Response.json({ status: "skipped", reason: "No target section detected" });
         }
