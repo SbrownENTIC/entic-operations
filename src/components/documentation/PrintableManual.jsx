@@ -38,6 +38,7 @@ export default function PrintableManual() {
           <li>10. Notifications & Closures</li>
           <li>11. Reports</li>
           <li>12. Document Management</li>
+          <li>13. Facility Workflows</li>
         </ul>
       </div>
 
@@ -360,6 +361,59 @@ export default function PrintableManual() {
                 <li><strong>Allocation:</strong> You can split a large invoice by allocating specific items to different locations. This creates new invoices/orders for those locations and reduces the original invoice total.</li>
                 <li><strong>Syncing:</strong> Deleted a Clinical Supply Order by mistake? Use the "Refresh/Sync" button on the invoice list to recreate it from the invoice data.</li>
               </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 13. Facility Workflows */}
+      <section className="space-y-4 break-inside-avoid">
+        <div className="flex items-center gap-3 pb-2 border-b border-slate-300">
+          <div className="p-2 rounded-lg bg-indigo-50 border border-indigo-100"><RefreshCw className="w-6 h-6 text-indigo-700" /></div>
+          <h3 className="text-2xl font-bold text-slate-900">13. Facility Workflows</h3>
+        </div>
+        <div className="text-sm text-slate-800 leading-relaxed space-y-4">
+          <p>Step-by-step guides for the most common billing scenarios.</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="border rounded-lg p-4 bg-slate-50">
+              <h4 className="font-bold text-slate-900 mb-2 border-b pb-1">UConn & Manchester (ECHN)</h4>
+              <ol className="list-decimal pl-5 space-y-2 text-xs">
+                <li><strong>Create Invoice:</strong> Select Provider & Program Group (UConn or Manchester). Link the pending income records.</li>
+                <li><strong>Generate PDF:</strong> Once created, look for the "File Down" (⬇️) icon in the invoice list. Click it to generate the official PDF template.</li>
+                <li><strong>Sync & Send:</strong> Select the approved invoices and click the <strong>Cloud Icon</strong>.
+                  <ul className="list-disc pl-4 mt-1 text-slate-600">
+                    <li>This sends the PDF and data to the Notification system.</li>
+                    <li>An email is automatically drafted/sent to the AP department (e.g., Ann Marie at ECHN).</li>
+                  </ul>
+                </li>
+              </ol>
+            </div>
+
+            <div className="border rounded-lg p-4 bg-slate-50">
+              <h4 className="font-bold text-slate-900 mb-2 border-b pb-1">Hartford Hospital (Directorships)</h4>
+              <ol className="list-decimal pl-5 space-y-2 text-xs">
+                <li><strong>Check Schedule:</strong> Ensure the provider is scheduled for the month.</li>
+                <li><strong>Create RVU Invoice:</strong> Create a standard invoice for their RVU shifts.</li>
+                <li><strong>Auto-Detection:</strong> The system will check if they also have a "Directorship" role.</li>
+                <li><strong>Prompt:</strong> If found, you will be asked to create a <strong>Second Invoice</strong> for the flat Directorship fee (e.g., $3,250). Click Yes.</li>
+                <li><strong>Result:</strong> You now have two invoices: one for RVUs, one for the Directorship.</li>
+              </ol>
+            </div>
+
+            <div className="border rounded-lg p-4 bg-slate-50 md:col-span-2">
+              <h4 className="font-bold text-slate-900 mb-2 border-b pb-1">St. Francis</h4>
+              <div className="grid md:grid-cols-2 gap-4">
+                <ol className="list-decimal pl-5 space-y-2 text-xs">
+                  <li><strong>Schedule First:</strong> Go to On-Call Schedule. Add the provider to the St. Francis location for their shifts.</li>
+                  <li><strong>Auto-Income:</strong> The system automatically creates "Pending" Outside Income records for each scheduled day (calculated as Daily Rate).</li>
+                  <li><strong>Create Invoice:</strong> Go to Invoices -> Create. Select St. Francis.</li>
+                  <li><strong>Link:</strong> You will see the auto-generated income records in the list. Select them to include in the bill.</li>
+                </ol>
+                <div className="bg-blue-50 p-3 rounded text-xs text-blue-800 flex items-center">
+                  <p><strong>Note:</strong> You do not need to manually enter income for St. Francis if the schedule is up to date. The system does the math for you based on the provider's contracted daily rate.</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
