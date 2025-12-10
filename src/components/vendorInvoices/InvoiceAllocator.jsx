@@ -117,6 +117,56 @@ export default function InvoiceAllocator({ invoice, onOrderCreated }) {
                 }
             });
 
+            // 5. Update ORIGINAL Supply Order (if exists)
+            // It might be linked via ID or share the same order number
+            const linkedIds = invoice.linked_supply_order_ids || [];
+            let ordersToUpdate = [];
+
+            // Fetch by IDs
+            if (linkedIds.length > 0) {
+                const byIds = await Promise.all(linkedIds.map(id => 
+                    base44.entities.SupplyOrder.list(null, 1, { id }).then(r => r[0]).catch(() => null)
+                ));
+                ordersToUpdate = [...ordersToUpdate, ...byIds.filter(Boolean)];
+            }
+
+            // Fetch by matching Order Number (common case)
+            if (invoice.invoice_number) {
+                const byNumber = await base44.entities.SupplyOrder.filter({ order_number: invoice.invoice_number });
+                ordersToUpdate = [...ordersToUpdate, ...byNumber];
+            }
+
+            // Deduplicate by ID
+            const uniqueOrders = Array.from(new Map(ordersToUpdate.map(item => [item.id, item])).values());
+
+            // Identify items to remove (using item_code / item_number)
+            const itemsToRemoveCodes = new Set(selectedItems.map(i => i.item_code));
+
+            for (const order of uniqueOrders) {
+                const originalItems = order.items || [];
+                const keptItems = originalItems.filter(item => !itemsToRemoveCodes.has(item.item_number));
+                
+                // Only update if we actually removed something
+                if (keptItems.length < originalItems.length) {
+                    const removedItems = originalItems.filter(item => itemsToRemoveCodes.has(item.item_number));
+                    const removedSubtotal = removedItems.reduce((sum, item) => sum + (item.line_total || 0), 0);
+                    
+                    const oldSubtotal = order.subtotal || 0;
+                    const oldTax = order.tax || 0;
+                    
+                    const newSubtotal = Math.max(0, oldSubtotal - removedSubtotal);
+                    const newTax = Math.max(0, oldTax - tax); // Subtract the allocated tax
+                    const newOrderTotal = newSubtotal + newTax;
+
+                    await base44.entities.SupplyOrder.update(order.id, {
+                        items: keptItems,
+                        subtotal: newSubtotal,
+                        tax: newTax,
+                        total_amount: newOrderTotal
+                    });
+                }
+            }
+
             return createdOrder;
         },
         onSuccess: (data) => {
