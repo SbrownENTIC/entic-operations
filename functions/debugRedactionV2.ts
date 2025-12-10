@@ -59,19 +59,11 @@ Deno.serve(async (req) => {
                 x = 0; y = 0; w = width; h = height * bottomPct;
             }
 
-            // Draw RED rectangle (Semi-transparent to see text behind)
+            // Draw BLACK rectangle (Solid)
             page.drawRectangle({
                 x, y, width: w, height: h,
-                color: rgb(1, 0, 0), // RED
-                opacity: 0.5,
-            });
-            
-            // Draw a GREEN border to prove this is V2
-            page.drawRectangle({
-                x, y, width: w, height: h,
-                borderColor: rgb(0, 1, 0), // GREEN
-                borderWidth: 2,
-                opacity: 0, // Transparent fill
+                color: rgb(0, 0, 0), // BLACK
+                opacity: 1,
             });
         }
 
