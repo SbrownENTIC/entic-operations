@@ -5,8 +5,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { DialogFooter } from "@/components/ui/dialog";
-import { Loader2, ExternalLink, ArrowRight, Save, Link as LinkIcon, Unlink, CheckCircle2 } from "lucide-react";
+import { Loader2, ExternalLink, ArrowRight, Save, Link as LinkIcon, Unlink, CheckCircle2, Split } from "lucide-react";
 import SupplyOrderMatcher from "./SupplyOrderMatcher";
+import InvoiceAllocator from "./InvoiceAllocator";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Badge } from "@/components/ui/badge";
@@ -82,7 +83,7 @@ export default function VendorInvoiceForm({ invoice, onSubmit, onCancel, isLoadi
     }));
   };
 
-  const [activeTab, setActiveTab] = React.useState("details"); // details, linking
+  const [activeTab, setActiveTab] = React.useState("details"); // details, linking, allocate
 
   const handleSelectChange = (name, value) => {
     setFormData(prev => ({
@@ -174,6 +175,15 @@ export default function VendorInvoiceForm({ invoice, onSubmit, onCancel, isLoadi
                             {formData.linked_supply_order_ids.length}
                         </Badge>
                     )}
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setActiveTab("allocate")}
+                    className={`flex-1 flex items-center justify-center gap-2 rounded-md py-1.5 text-sm font-medium transition-all ${
+                        activeTab === "allocate" ? "bg-white shadow text-slate-900" : "text-slate-500 hover:text-slate-900"
+                    }`}
+                >
+                    Allocate Items
                 </button>
             </div>
 
@@ -324,7 +334,16 @@ export default function VendorInvoiceForm({ invoice, onSubmit, onCancel, isLoadi
                      />
                  </div>
              </div>
-          )}
+          ) : activeTab === "allocate" ? (
+             <InvoiceAllocator 
+                invoice={invoice}
+                onOrderCreated={(newOrder) => {
+                    handleLinkOrder(newOrder);
+                    // Optionally switch to linking tab to show the new link
+                    // setActiveTab("linking");
+                }}
+             />
+          ) : null}
 
           <DialogFooter className="pt-4">
             <div className="flex gap-2">
