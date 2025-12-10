@@ -3,6 +3,11 @@ import { format, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileText, Eye, ExternalLink, CheckCircle, AlertCircle, Clock, Trash2 } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import EmptyState from "@/components/ui/EmptyState";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -96,15 +101,32 @@ export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, 
               <td className="p-4 text-right">
                 <div className="flex justify-end gap-2">
                   {invoice.document_url && (
-                    <Button variant="ghost" size="sm" asChild>
-                      <a href={invoice.document_url} target="_blank" rel="noopener noreferrer" title="View Original PDF">
-                        <FileText className="w-4 h-4 text-slate-500" />
-                      </a>
-                    </Button>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="ghost" size="sm" title="Preview PDF">
+                                <Eye className="w-4 h-4 text-blue-500" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[400px] h-[500px] p-0 shadow-xl border-slate-200" align="end">
+                            <iframe 
+                                src={`${invoice.document_url}#toolbar=0&navpanes=0&scrollbar=0`}
+                                className="w-full h-full rounded-md"
+                                title="Invoice Preview"
+                            />
+                            <div className="absolute bottom-2 right-2">
+                                <Button size="sm" variant="secondary" asChild className="opacity-90 hover:opacity-100 shadow-sm">
+                                    <a href={invoice.document_url} target="_blank" rel="noopener noreferrer">
+                                        Open Full
+                                        <ExternalLink className="w-3 h-3 ml-1" />
+                                    </a>
+                                </Button>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
                   )}
                   <Link to={`${createPageUrl("VendorInvoiceReview")}?id=${invoice.id}`}>
                     <Button variant="outline" size="sm">
-                        Review
+                        Edit
                     </Button>
                   </Link>
                   <Button 
