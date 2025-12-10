@@ -178,6 +178,26 @@ export default function OfficeSupplyOrders() {
     return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
 
+  const safeFormatDate = (dateString) => {
+    if (!dateString) return '-';
+    try {
+      // Handle if it's already a JS Date
+      if (dateString instanceof Date) return format(dateString, 'MMM d, yyyy');
+      // Parse ISO
+      const date = parseISO(dateString);
+      if (isNaN(date.getTime())) {
+          // Fallback to simple new Date if parseISO fails
+          const fallbackDate = new Date(dateString);
+          if (isNaN(fallbackDate.getTime())) return dateString; 
+          return format(fallbackDate, 'MMM d, yyyy');
+      }
+      return format(date, 'MMM d, yyyy');
+    } catch (error) {
+      console.warn("Date formatting error:", error);
+      return dateString || '-';
+    }
+  };
+
   if (ordersLoading) {
     return <ListPageSkeleton />;
   }
@@ -306,7 +326,7 @@ export default function OfficeSupplyOrders() {
                      <td className="p-4 text-slate-600">{order.vendor}</td>
                      <td className="p-4 text-slate-600">{order.location}</td>
                      <td className="p-4 text-slate-600">
-                       {format(parseISO(order.order_date), 'MMM d, yyyy')}
+                       {safeFormatDate(order.order_date)}
                      </td>
                      <td className="p-4 font-medium text-green-600">
                        ${formatCurrency(order.total_amount || 0)}

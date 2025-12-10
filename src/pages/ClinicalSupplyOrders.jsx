@@ -221,6 +221,26 @@ export default function ClinicalSupplyOrders() {
     return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
 
+  const safeFormatDate = (dateString) => {
+    if (!dateString) return '-';
+    try {
+      // Handle if it's already a JS Date
+      if (dateString instanceof Date) return format(dateString, 'MMM d, yyyy');
+      // Parse ISO
+      const date = parseISO(dateString);
+      if (isNaN(date.getTime())) {
+          // Fallback to simple new Date if parseISO fails
+          const fallbackDate = new Date(dateString);
+          if (isNaN(fallbackDate.getTime())) return dateString; 
+          return format(fallbackDate, 'MMM d, yyyy');
+      }
+      return format(date, 'MMM d, yyyy');
+    } catch (error) {
+      console.warn("Date formatting error:", error);
+      return dateString || '-';
+    }
+  };
+
   if (ordersLoading) {
     return <ListPageSkeleton />;
   }
@@ -386,7 +406,7 @@ export default function ClinicalSupplyOrders() {
                      <td className="p-4 text-slate-600">{order.vendor}</td>
                      <td className="p-4 text-slate-600">{order.location}</td>
                      <td className="p-4 text-slate-600">
-                       {format(parseISO(order.order_date), 'MMM d, yyyy')}
+                       {safeFormatDate(order.order_date)}
                      </td>
                      <td className={`p-4 font-medium ${order.total_amount < 0 || order.order_type === 'return' ? 'text-red-600' : 'text-green-600'}`}>
                        {order.order_type === 'return' && <span className="text-xs bg-red-100 text-red-800 px-1.5 py-0.5 rounded mr-2">Return</span>}
