@@ -46,6 +46,11 @@ export default function VendorInvoices() {
     queryFn: () => base44.entities.VendorInvoice.list('-created_date')
   });
 
+  const { data: supplies = [] } = useQuery({
+    queryKey: ['supplies-catalog'],
+    queryFn: () => base44.entities.Supply.list(null, 1000)
+  });
+
   const splitInputRef = React.useRef(null);
 
   const splitMutation = useMutation({
@@ -321,6 +326,7 @@ export default function VendorInvoices() {
               onSort={handleSort}
               sortField={sortField}
               sortDirection={sortDirection}
+              supplies={supplies}
             />
           </CardContent>
         </Card>

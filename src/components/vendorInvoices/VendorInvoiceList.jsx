@@ -2,7 +2,7 @@ import React from "react";
 import { format, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, Eye, ExternalLink, CheckCircle, AlertCircle, Clock, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { FileText, Eye, ExternalLink, CheckCircle, AlertCircle, Clock, Trash2, ArrowUpDown, ArrowUp, ArrowDown, ListX } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -12,7 +12,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
-export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, selectedIds, onToggleSelect, onSort, sortField, sortDirection }) {
+export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, selectedIds, onToggleSelect, onSort, sortField, sortDirection, supplies = [] }) {
   if (isLoading) {
     return <div className="p-8 text-center text-slate-500">Loading invoices...</div>;
   }
@@ -47,6 +47,14 @@ export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, 
       default:
         return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-200"><Clock className="w-3 h-3 mr-1"/> Pending Review</Badge>;
     }
+  };
+
+  const getMissingItems = (invoice) => {
+      const lineItems = invoice.extracted_data?.line_items || [];
+      return lineItems.filter(item => {
+          if (!item.item_code) return false;
+          return !supplies.some(s => s.item_number === item.item_code);
+      });
   };
 
   return (
@@ -158,6 +166,36 @@ export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, 
               </td>
               <td className="p-4 text-right">
                 <div className="flex justify-end gap-2">
+                  {(() => {
+                      const missingItems = getMissingItems(invoice);
+                      if (missingItems.length > 0) {
+                          return (
+                              <Popover>
+                                  <PopoverTrigger asChild>
+                                      <Button variant="ghost" size="sm" className="text-amber-600 hover:text-amber-700 hover:bg-amber-50" title={`${missingItems.length} items not in catalog`}>
+                                          <ListX className="w-4 h-4" />
+                                      </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-80 p-0 shadow-xl border-amber-200" align="end">
+                                      <div className="bg-amber-50 p-3 border-b border-amber-100 flex items-center gap-2">
+                                          <AlertCircle className="w-4 h-4 text-amber-600" />
+                                          <h4 className="font-semibold text-amber-900 text-sm">{missingItems.length} Items Not in Catalog</h4>
+                                      </div>
+                                      <div className="max-h-[300px] overflow-y-auto p-2 space-y-2">
+                                          {missingItems.map((item, idx) => (
+                                              <div key={idx} className="bg-white p-2 rounded border border-slate-100 text-xs shadow-sm">
+                                                  <div className="font-medium text-slate-900">{item.item_code}</div>
+                                                  <div className="text-slate-600 truncate" title={item.description}>{item.description}</div>
+                                                  {item.quantity && <div className="text-slate-500 mt-1">Qty: {item.quantity}</div>}
+                                              </div>
+                                          ))}
+                                      </div>
+                                  </PopoverContent>
+                              </Popover>
+                          );
+                      }
+                      return null;
+                  })()}
                   {invoice.document_url && (
                     <Popover>
                         <PopoverTrigger asChild>
