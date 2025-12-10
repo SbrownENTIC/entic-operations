@@ -9,6 +9,45 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CheckCircle2, AlertCircle, FileText, Settings, Users, DollarSign, Calendar, ClipboardList, ShieldAlert, Package, CreditCard, Bell, Printer, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { base44 } from "@/api/base44Client";
+import { useToast } from "@/components/ui/use-toast";
+import { Shield } from "lucide-react";
+
+function RedactButton() {
+  const { toast } = useToast();
+  const [loading, setLoading] = React.useState(false);
+
+  const handleRedact = async () => {
+    if (!confirm("Are you sure? This will scan all invoices and overwrite files to redact sensitive info. This process may take a few minutes.")) return;
+    
+    setLoading(true);
+    toast({ title: "Started", description: "Batch redaction started..." });
+    
+    try {
+      const res = await base44.functions.invoke('batchRedactInvoices');
+      toast({ 
+        title: "Completed", 
+        description: `Processed ${res.data.processed} invoices. Check console for details.` 
+      });
+      console.log("Redaction results:", res.data);
+    } catch (err) {
+      toast({ 
+        title: "Error", 
+        description: err.message, 
+        variant: "destructive" 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Button size="sm" variant="outline" onClick={handleRedact} disabled={loading} className="h-7 text-xs gap-1">
+      <Shield className="w-3 h-3" />
+      {loading ? "Processing..." : "Run Batch Redaction"}
+    </Button>
+  );
+}
 
 export default function Documentation() {
   const [activeTab, setActiveTab] = useState("sops");
@@ -416,11 +455,23 @@ export default function Documentation() {
               
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <h3 className="font-bold text-slate-900">The "Fix" Buttons</h3>
-                  <p className="text-sm text-slate-600">Use these when data looks "off" or out of sync.</p>
-                  
-                  <div className="border rounded-lg p-3 bg-slate-50 mt-2">
-                    <p className="font-medium text-sm">"Fix & Sync Data" (Invoices Page)</p>
+                <h3 className="font-bold text-slate-900">The "Fix" Buttons</h3>
+                <p className="text-sm text-slate-600">Use these when data looks "off" or out of sync.</p>
+
+                <div className="border rounded-lg p-3 bg-slate-50 mt-2">
+                  <div className="flex justify-between items-center mb-1">
+                    <p className="font-medium text-sm">"Redact All Invoices"</p>
+                    <RedactButton />
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    • Scans ALL historical invoices for "Distribution Names/Address" footer.<br/>
+                    • Permanently blocks out DEA & State Registry numbers.<br/>
+                    • Updates the document file automatically.
+                  </p>
+                </div>
+
+                <div className="border rounded-lg p-3 bg-slate-50 mt-2">
+                  <p className="font-medium text-sm">"Fix & Sync Data" (Invoices Page)</p>
                     <p className="text-xs text-slate-500 mt-1">
                       • Recalculates "Amount Received" for all invoices based on payments.<br/>
                       • Updates statuses to "Paid to ENTIC" if fully paid.<br/>

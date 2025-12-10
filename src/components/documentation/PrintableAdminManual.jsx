@@ -303,6 +303,12 @@ export default function PrintableAdminManual() {
             <p className="text-xs text-slate-600">This triggers <code>syncPaymentsAndInvoices</code> manually to force-recalculate all balances.</p>
           </div>
 
+          <div className="border-l-4 border-slate-500 pl-4 py-1 bg-slate-50">
+            <h4 className="font-bold text-slate-900 mb-1">Redact Sensitive Data</h4>
+            <p className="text-xs mb-1">Use the <strong>"Redact All Invoices"</strong> button in the Maintenance tab.</p>
+            <p className="text-xs text-slate-600">This scans all vendor invoices for DEA/Registry numbers and permanently blocks them out.</p>
+          </div>
+
           <div className="mt-6 pt-4 border-t border-slate-200">
             <h4 className="font-bold text-slate-900 mb-1">Questions or Concerns?</h4>
             <p className="text-sm text-slate-700">
