@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
                                 related_invoice_number: { type: "string" },
                                 start_page: { type: "integer" },
                                 end_page: { type: "integer" },
-                                location_name: { type: "string", enum: ["Glastonbury", "Manchester", "Bloomfield", "Farmington"], description: "The location address/name found on the invoice (shipping address)" },
+                                location_name: { type: "string", enum: ["Glastonbury", "Manchester", "Bloomfield", "Farmington"], description: "CRITICAL: Look at the 'Ship To' block. If it says 'Bar, Nose and Throat Institute' or similar, determine which town it is in (Glastonbury, Manchester, Bloomfield, Farmington)." },
                                 line_items: {
                                     type: "array",
                                     items: {

@@ -22,6 +22,7 @@ Deno.serve(async (req) => {
                 invoice_number: { type: "string" },
                 invoice_date: { type: "string", format: "date", description: "YYYY-MM-DD format" },
                 due_date: { type: "string", format: "date", description: "YYYY-MM-DD format" },
+                location: { type: "string", enum: ["Glastonbury", "Manchester", "Bloomfield", "Farmington"], description: "The location/office name found in the Ship To address" },
                 total_amount: { type: "number" },
                 line_items: {
                     type: "array",
@@ -68,9 +69,18 @@ Deno.serve(async (req) => {
             }
         }
 
+        // Helper to Title Case vendor name
+        const normalizeVendor = (name) => {
+            if (!name) return 'Unknown Vendor';
+            return name.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+        };
+
+        const normalizedVendorName = normalizeVendor(data.vendor_name);
+
         // 3. Create the VendorInvoice record
         const invoice = await base44.entities.VendorInvoice.create({
-            vendor_name: data.vendor_name || "Unknown Vendor",
+            vendor_name: normalizedVendorName,
+            location: data.location,
             invoice_number: data.invoice_number,
             invoice_date: data.invoice_date,
             due_date: data.due_date,
