@@ -166,10 +166,16 @@ function ForceRedactHenryButton() {
   };
 
   return (
-    <Button size="sm" variant="outline" onClick={handleForce} disabled={loading} className="h-7 text-xs gap-1 bg-red-50 text-red-700 border-red-200 hover:bg-red-100">
-      <Shield className="w-3 h-3" />
-      {loading ? "Processing..." : "Force Redact (Henry Only)"}
-    </Button>
+    <div className="flex gap-2">
+      <Button size="sm" variant="outline" onClick={handleForce} disabled={loading} className="h-7 text-xs gap-1 bg-red-50 text-red-700 border-red-200 hover:bg-red-100">
+        <Shield className="w-3 h-3" />
+        {loading ? "Processing..." : "Force Redact All"}
+      </Button>
+      <Button size="sm" variant="outline" onClick={handleTestDebug} disabled={testLoading} className="h-7 text-xs gap-1 bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100">
+        <Shield className="w-3 h-3" />
+        {testLoading ? "Testing..." : "Test Debug 1 Invoice"}
+      </Button>
+    </div>
   );
 }
 
