@@ -38,8 +38,8 @@ Deno.serve(async (req) => {
         const pdfDoc = await PDFDocument.load(pdfBytes);
         const allPages = pdfDoc.getPages();
 
-        // Debug Settings: Red Box, 13% height (approx 0.5 inch less than 18%), NO blue lines
-        const bottomPct = 0.13;
+        // Debug Settings: Red Box, 10% height, NO blue lines
+        const bottomPct = 0.10;
 
         for (const page of allPages) {
             const { width, height } = page.getSize();
