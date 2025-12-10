@@ -37,8 +37,9 @@ Deno.serve(async (req) => {
             - "redaction_start_y_percentage": number (The Y-coordinate where the sensitive footer BEGINS, as a percentage from the TOP of the page (0.0 to 1.0). e.g. 0.85 means the footer starts at 85% down the page.)
             
             If you see "Code Status Key", start redaction JUST ABOVE that line.
+            If you see "Invoice Total", start redaction IMMEDIATELY BELOW that line.
             If you don't see specific markers but see a footer block at the bottom, redact it.
-            If you are completely unsure, default to 0.82 (redact the bottom 18% to be safe).
+            If you are completely unsure, default to 0.75 (redact the bottom 25% to be extremely safe).
             `,
             file_urls: [targetUrl],
             response_json_schema: {
@@ -72,7 +73,7 @@ Deno.serve(async (req) => {
         // In pdf-lib Y terms: height * (1 - 0.85) = height * 0.15 is the Y coordinate of the line.
         // We want to cover everything BELOW that line. So from y=0 to y=height * (1 - pct).
         
-        const topPct = analysis.redaction_start_y_percentage || 0.85;
+        const topPct = analysis.redaction_start_y_percentage || 0.75;
 
         for (const pageNum of pagesToRedact) {
             if (pageNum < 1 || pageNum > pages.length) continue;
