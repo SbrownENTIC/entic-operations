@@ -20,24 +20,7 @@ export default function DocumentManagement() {
       color: "text-blue-600",
       bgColor: "bg-blue-100",
     },
-    {
-      id: "hr_documents",
-      name: "HR Documents",
-      description: "Employee contracts, policies, and forms",
-      icon: Briefcase,
-      color: "text-purple-600",
-      bgColor: "bg-purple-100",
-      isPlaceholder: true
-    },
-    {
-        id: "clinical_records",
-        name: "Clinical Records",
-        description: "Patient forms and clinical documentation",
-        icon: FileSearch,
-        color: "text-emerald-600",
-        bgColor: "bg-emerald-100",
-        isPlaceholder: true
-    }
+
   ];
 
   if (currentSection === "vendor_invoices") {
