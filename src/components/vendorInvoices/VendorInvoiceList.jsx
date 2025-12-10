@@ -138,6 +138,26 @@ export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, 
     }
   };
 
+  const safeFormatDate = (dateString) => {
+    if (!dateString) return '-';
+    try {
+      // Handle if it's already a JS Date
+      if (dateString instanceof Date) return format(dateString, 'MMM d, yyyy');
+      // Parse ISO
+      const date = parseISO(dateString);
+      if (isNaN(date.getTime())) {
+          // Fallback to simple new Date if parseISO fails
+          const fallbackDate = new Date(dateString);
+          if (isNaN(fallbackDate.getTime())) return dateString; // Return raw string if all fails
+          return format(fallbackDate, 'MMM d, yyyy');
+      }
+      return format(date, 'MMM d, yyyy');
+    } catch (error) {
+      console.warn("Date formatting error:", error);
+      return dateString || '-';
+    }
+  };
+
   const getMissingItems = (invoice) => {
       const lineItems = invoice.extracted_data?.line_items || [];
       return lineItems.filter(item => {
@@ -245,7 +265,7 @@ export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, 
                   )}
               </td>
               <td className="p-4 text-slate-600">
-                {invoice.invoice_date ? format(parseISO(invoice.invoice_date), 'MMM d, yyyy') : '-'}
+                {safeFormatDate(invoice.invoice_date)}
               </td>
               <td className={`p-4 font-medium ${invoice.total_amount < 0 ? 'text-red-600' : 'text-slate-900'}`}>
                 {invoice.total_amount ? `$${invoice.total_amount.toFixed(2)}` : '-'}
