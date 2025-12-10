@@ -282,7 +282,7 @@ export default function VendorInvoices() {
               )}
             </div>
           </CardHeader>
-          <CardContent className="p-0 flex-1 overflow-y-auto">
+          <CardContent className="p-0 flex-1 overflow-auto relative">
             <VendorInvoiceList 
               invoices={sortedInvoices} 
               isLoading={isLoading} 

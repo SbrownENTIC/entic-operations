@@ -50,11 +50,11 @@ export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, 
   };
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm text-left">
+    <div className="min-w-full inline-block align-middle">
+      <table className="w-full text-sm text-left border-collapse">
         <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
           <tr>
-            <th className="p-4 w-10 bg-slate-50">
+            <th className="p-4 w-10 bg-slate-50 sticky top-0 z-10">
               {onToggleSelect && (
                 <input
                   type="checkbox"
@@ -64,50 +64,50 @@ export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, 
                 />
               )}
             </th>
-            <th className="p-4 w-12 text-slate-400 font-semibold bg-slate-50">#</th>
+            <th className="p-4 w-12 text-slate-400 font-semibold bg-slate-50 sticky top-0 z-10">#</th>
             <th 
-              className="p-4 font-semibold cursor-pointer hover:bg-slate-100 transition-colors bg-slate-50"
+              className="p-4 font-semibold cursor-pointer hover:bg-slate-100 transition-colors bg-slate-50 sticky top-0 z-10"
               onClick={() => onSort && onSort('vendor_name')}
             >
               Vendor <SortIcon field="vendor_name" />
             </th>
             <th 
-              className="p-4 font-semibold cursor-pointer hover:bg-slate-100 transition-colors bg-slate-50"
+              className="p-4 font-semibold cursor-pointer hover:bg-slate-100 transition-colors bg-slate-50 sticky top-0 z-10"
               onClick={() => onSort && onSort('location')}
             >
               Location <SortIcon field="location" />
             </th>
             <th 
-              className="p-4 font-semibold cursor-pointer hover:bg-slate-100 transition-colors bg-slate-50"
+              className="p-4 font-semibold cursor-pointer hover:bg-slate-100 transition-colors bg-slate-50 sticky top-0 z-10"
               onClick={() => onSort && onSort('invoice_number')}
             >
               Invoice # <SortIcon field="invoice_number" />
             </th>
             <th 
-              className="p-4 font-semibold cursor-pointer hover:bg-slate-100 transition-colors bg-slate-50"
+              className="p-4 font-semibold cursor-pointer hover:bg-slate-100 transition-colors bg-slate-50 sticky top-0 z-10"
               onClick={() => onSort && onSort('invoice_type')}
             >
               Type <SortIcon field="invoice_type" />
             </th>
             <th 
-              className="p-4 font-semibold cursor-pointer hover:bg-slate-100 transition-colors bg-slate-50"
+              className="p-4 font-semibold cursor-pointer hover:bg-slate-100 transition-colors bg-slate-50 sticky top-0 z-10"
               onClick={() => onSort && onSort('invoice_date')}
             >
               Date <SortIcon field="invoice_date" />
             </th>
             <th 
-              className="p-4 font-semibold cursor-pointer hover:bg-slate-100 transition-colors bg-slate-50"
+              className="p-4 font-semibold cursor-pointer hover:bg-slate-100 transition-colors bg-slate-50 sticky top-0 z-10"
               onClick={() => onSort && onSort('total_amount')}
             >
               Amount <SortIcon field="total_amount" />
             </th>
             <th 
-              className="p-4 font-semibold cursor-pointer hover:bg-slate-100 transition-colors bg-slate-50"
+              className="p-4 font-semibold cursor-pointer hover:bg-slate-100 transition-colors bg-slate-50 sticky top-0 z-10"
               onClick={() => onSort && onSort('status')}
             >
               Status <SortIcon field="status" />
             </th>
-            <th className="p-4 text-right font-semibold bg-slate-50">Actions</th>
+            <th className="p-4 text-right font-semibold bg-slate-50 sticky top-0 z-10">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
