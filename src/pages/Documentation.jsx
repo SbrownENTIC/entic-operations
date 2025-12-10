@@ -518,6 +518,16 @@ export default function Documentation() {
                 </div>
 
                 <div className="border rounded-lg p-3 bg-slate-50 mt-2">
+                  <div className="flex justify-between items-center mb-1">
+                    <p className="font-medium text-sm">"Fix Catalog Codes"</p>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    • Scans all invoices and updates the Supply Catalog with missing item codes.<br/>
+                    • Ensures future orders use the correct descriptions.
+                  </p>
+                </div>
+
+                <div className="border rounded-lg p-3 bg-slate-50 mt-2">
                   <p className="font-medium text-sm">"Fix & Sync Data" (Invoices Page)</p>
                     <p className="text-xs text-slate-500 mt-1">
                       • Recalculates "Amount Received" for all invoices based on payments.<br/>
