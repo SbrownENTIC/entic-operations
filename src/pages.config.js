@@ -22,7 +22,6 @@ import OfficeSupplyOrders from './pages/OfficeSupplyOrders';
 import ClinicalSupplyOrders from './pages/ClinicalSupplyOrders';
 import Documentation from './pages/Documentation';
 import VendorInvoices from './pages/VendorInvoices';
-import VendorInvoiceReview from './pages/VendorInvoiceReview';
 import __Layout from './Layout.jsx';
 
 
@@ -51,7 +50,6 @@ export const PAGES = {
     "ClinicalSupplyOrders": ClinicalSupplyOrders,
     "Documentation": Documentation,
     "VendorInvoices": VendorInvoices,
-    "VendorInvoiceReview": VendorInvoiceReview,
 }
 
 export const pagesConfig = {
