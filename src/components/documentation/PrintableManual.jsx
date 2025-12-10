@@ -37,6 +37,7 @@ export default function PrintableManual() {
           <li>9. Compliance (Licenses & Privileges)</li>
           <li>10. Notifications & Closures</li>
           <li>11. Reports</li>
+          <li>12. Document Management</li>
         </ul>
       </div>
 
@@ -332,6 +333,34 @@ export default function PrintableManual() {
             <li><strong>Invoice Aging:</strong> See who owes money (30/60/90 days overdue).</li>
             <li><strong>Payment Tracking:</strong> A detailed audit trail of every dollar received and where it was allocated.</li>
           </ul>
+        </div>
+      </section>
+
+      {/* 12. Document Management */}
+      <section className="space-y-4 break-inside-avoid">
+        <div className="flex items-center gap-3 pb-2 border-b border-slate-300">
+          <div className="p-2 rounded-lg bg-blue-50 border border-blue-100"><FileText className="w-6 h-6 text-blue-700" /></div>
+          <h3 className="text-2xl font-bold text-slate-900">12. Document Management</h3>
+        </div>
+        <div className="text-sm text-slate-800 leading-relaxed space-y-4">
+          <p>The <strong>Document Management</strong> module handles Vendor Invoices with AI-powered processing.</p>
+
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <h4 className="font-bold text-slate-900 mb-1">Processing Invoices:</h4>
+              <ul className="list-disc pl-6 space-y-1">
+                <li><strong>Upload:</strong> Drag & drop PDF invoices. The system automatically extracts Vendor, Date, and Total Amount.</li>
+                <li><strong>Split PDF:</strong> If you have one PDF with multiple invoices, use the "Split Multi-Invoice PDF" tool. The AI will separate them into individual records automatically.</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-bold text-slate-900 mb-1">Allocations & Linking:</h4>
+              <ul className="list-disc pl-6 space-y-1">
+                <li><strong>Allocation:</strong> You can split a large invoice by allocating specific items to different locations. This creates new invoices/orders for those locations and reduces the original invoice total.</li>
+                <li><strong>Syncing:</strong> Deleted a Clinical Supply Order by mistake? Use the "Refresh/Sync" button on the invoice list to recreate it from the invoice data.</li>
+              </ul>
+            </div>
+          </div>
         </div>
       </section>
 
