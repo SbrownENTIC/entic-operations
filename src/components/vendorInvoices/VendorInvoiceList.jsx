@@ -322,29 +322,16 @@ export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, 
                       return null;
                   })()}
                   {invoice.document_url && (
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button variant="ghost" size="sm" title="Preview PDF">
-                                <Eye className="w-4 h-4 text-blue-500" />
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[400px] h-[500px] p-0 shadow-xl border-slate-200" align="end">
-                            <iframe 
-                                src={`${invoice.document_url}#toolbar=0&navpanes=0&scrollbar=0`}
-                                className="w-full h-full rounded-md"
-                                title="Invoice Preview"
-                            />
-                            <div className="absolute bottom-2 right-2">
-                                <Button size="sm" variant="secondary" asChild className="opacity-90 hover:opacity-100 shadow-sm">
-                                    <a href={invoice.document_url} target="_blank" rel="noopener noreferrer">
-                                        Open Full
-                                        <ExternalLink className="w-3 h-3 ml-1" />
-                                    </a>
-                                </Button>
-                            </div>
-                        </PopoverContent>
-                    </Popover>
-                    )}
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        title="Open PDF"
+                        onClick={() => window.open(invoice.document_url, '_blank')}
+                        className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                    >
+                        <Eye className="w-4 h-4" />
+                    </Button>
+                  )}
 
                     <Button
                       variant="ghost"
