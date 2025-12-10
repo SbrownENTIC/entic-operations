@@ -4,9 +4,8 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         
-        // Fetch all invoices (assuming < 1000 for now, or just get recent ones)
-        // Using limit 100 which should cover the "4 test invoices"
-        const invoices = await base44.asServiceRole.entities.VendorInvoice.list('-created_date', 100);
+        // Fetch all invoices (increase limit to ensure we catch older ones)
+        const invoices = await base44.asServiceRole.entities.VendorInvoice.list('-created_date', 1000);
         
         const henryInvoices = invoices.filter(inv => {
             const name = (inv.vendor_name || '').toLowerCase();

@@ -139,9 +139,11 @@ function ForceRedactHenryButton() {
       await queryClient.resetQueries({ queryKey: ['vendor-invoices'] });
       await queryClient.invalidateQueries({ queryKey: ['vendor-invoices'] });
 
+      const successCount = res.data.details.filter(d => d.status === 'processed').length;
+      const failCount = res.data.details.filter(d => d.status === 'error').length;
       toast({ 
         title: "Completed", 
-        description: `Successfully redacted ${res.data.count} invoices. Please refresh the page if you don't see changes immediately.`
+        description: `Processed: ${successCount} success, ${failCount} failed. Refresh page to see changes.`
       });
     } catch (err) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
