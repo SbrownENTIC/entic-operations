@@ -76,14 +76,18 @@ Deno.serve(async (req) => {
         const allPages = pdfDoc.getPages();
         
         let shouldRedact = analysis.needs_redaction;
-        let topPct = analysis.redaction_start_y_percentage || 0.80; // Default to cutting bottom 20%
+        // Default to cutting bottom 25% (0.75) if not specified, to be safe.
+        let topPct = analysis.redaction_start_y_percentage || 0.75; 
         let pagesToRedact = analysis.pages || [1];
 
         const vendorName = (invoice.vendor_name || '').toLowerCase();
         if (vendorName.includes('henry') || vendorName.includes('schein') || vendorName.includes('mckesson')) {
              // Force redaction for known vendors with footers
              shouldRedact = true;
-             if (topPct > 0.80) topPct = 0.80; // Ensure we cut at least bottom 20%
+             // Ensure we cut at least bottom 25% (max 0.75 from top)
+             // The user explicitly wants to remove the footer section "right above distribution name and address"
+             // which is typically the bottom quarter of the page.
+             if (topPct > 0.75) topPct = 0.75; 
              
              // CRITICAL: Force redact ALL pages for these vendors as they always have footers
              pagesToRedact = allPages.map((_, i) => i + 1);
@@ -96,11 +100,9 @@ Deno.serve(async (req) => {
         
         // Y-coordinate logic in pdf-lib is from BOTTOM (0,0 is bottom-left)
         // LLM gives us percentage from TOP (0.0 is top, 1.0 is bottom).
-        // So "redaction_start_y_percentage" of 0.85 means 85% down from top.
-        // In pdf-lib Y terms: height * (1 - 0.85) = height * 0.15 is the Y coordinate of the line.
+        // So "redaction_start_y_percentage" of 0.75 means 75% down from top.
+        // In pdf-lib Y terms: height * (1 - 0.75) = height * 0.25 is the Y coordinate of the line.
         // We want to cover everything BELOW that line. So from y=0 to y=height * (1 - pct).
-        
-        const topPct = analysis.redaction_start_y_percentage || 0.70;
 
         for (const pageNum of pagesToRedact) {
             if (pageNum < 1 || pageNum > allPages.length) continue;
