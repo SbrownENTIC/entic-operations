@@ -179,9 +179,15 @@ export default function VendorInvoices() {
     return matchesSearch && matchesTab;
   });
 
+  // Helper to normalize vendor names for consistent grouping/filtering
+  const normalizeVendorName = (name) => {
+    if (!name) return 'Unknown Vendor';
+    return name.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  };
+
   // Filter for the list view if a vendor is selected
   const listInvoices = selectedVendor 
-    ? filteredInvoices.filter(inv => (inv.vendor_name || 'Unknown Vendor') === selectedVendor)
+    ? filteredInvoices.filter(inv => normalizeVendorName(inv.vendor_name) === selectedVendor)
     : filteredInvoices;
 
   const sortedInvoices = [...listInvoices].sort((a, b) => {
@@ -225,7 +231,8 @@ export default function VendorInvoices() {
   const handleToggleSelect = (id, checked) => {
     if (id === 'all') {
       if (checked) {
-        setSelectedInvoices(filteredInvoices.map(i => i.id));
+        // Select only the invoices currently visible in the list (filtered by vendor if selected)
+        setSelectedInvoices(sortedInvoices.map(i => i.id));
       } else {
         setSelectedInvoices([]);
       }
