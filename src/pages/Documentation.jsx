@@ -11,7 +11,7 @@ import { CheckCircle2, AlertCircle, FileText, Settings, Users, DollarSign, Calen
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { useToast } from "@/components/ui/use-toast";
-import { Shield } from "lucide-react";
+import { Shield, PackagePlus } from "lucide-react";
 
 function RedactButton() {
   const { toast } = useToast();
@@ -44,7 +44,42 @@ function RedactButton() {
   return (
     <Button size="sm" variant="outline" onClick={handleRedact} disabled={loading} className="h-7 text-xs gap-1">
       <Shield className="w-3 h-3" />
-      {loading ? "Processing..." : "Run Batch Redaction"}
+      {loading ? "Processing..." : "Redact All Invoices"}
+    </Button>
+  );
+}
+
+function SyncHenryScheinButton() {
+  const { toast } = useToast();
+  const [loading, setLoading] = React.useState(false);
+
+  const handleSync = async () => {
+    if (!confirm("Sync unlinked Henry Schein invoices to Clinical Supply Orders?")) return;
+    
+    setLoading(true);
+    toast({ title: "Sync Started", description: "Finding unlinked invoices..." });
+    
+    try {
+      const res = await base44.functions.invoke('syncHenryScheinToOrders');
+      toast({ 
+        title: "Sync Completed", 
+        description: `Created ${res.data.processed} new supply orders.` 
+      });
+    } catch (err) {
+      toast({ 
+        title: "Error", 
+        description: err.message, 
+        variant: "destructive" 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Button size="sm" variant="outline" onClick={handleSync} disabled={loading} className="h-7 text-xs gap-1 bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100">
+      <PackagePlus className="w-3 h-3" />
+      {loading ? "Syncing..." : "Sync Henry Schein Orders"}
     </Button>
   );
 }
@@ -464,9 +499,21 @@ export default function Documentation() {
                     <RedactButton />
                   </div>
                   <p className="text-xs text-slate-500 mt-1">
-                    • Scans ALL historical invoices for "Distribution Names/Address" footer.<br/>
-                    • Permanently blocks out DEA & State Registry numbers.<br/>
+                    • Scans ALL historical invoices for the "Code Status Key" footer.<br/>
+                    • Permanently blocks out everything below that line (DEA/Registry info).<br/>
                     • Updates the document file automatically.
+                  </p>
+                </div>
+
+                <div className="border rounded-lg p-3 bg-slate-50 mt-2">
+                  <div className="flex justify-between items-center mb-1">
+                    <p className="font-medium text-sm">"Sync Henry Schein"</p>
+                    <SyncHenryScheinButton />
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    • Finds "Henry Schein" invoices that aren't linked to an order.<br/>
+                    • Automatically creates Clinical Supply Orders for them.<br/>
+                    • Links them together.
                   </p>
                 </div>
 
