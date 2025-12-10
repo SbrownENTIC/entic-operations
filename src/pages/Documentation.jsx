@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CheckCircle2, AlertCircle, FileText, Settings, Users, DollarSign, Calendar, ClipboardList, ShieldAlert, Package, CreditCard, Bell, Printer } from "lucide-react";
+import { CheckCircle2, AlertCircle, FileText, Settings, Users, DollarSign, Calendar, ClipboardList, ShieldAlert, Package, CreditCard, Bell, Printer, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function Documentation() {
@@ -662,6 +662,7 @@ export default function Documentation() {
                       <a href="#compliance" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">7. Compliance & Tracking</a>
                       <a href="#reports" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">8. Reports</a>
                       <a href="#docs" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">9. Document Management</a>
+                      <a href="#workflows" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">10. Facility Workflows</a>
                     </nav>
                   </div>
                   
@@ -826,6 +827,58 @@ export default function Documentation() {
                             <li><strong>Split & Process:</strong> Upload a large PDF with multiple invoices, and the system will split it into individual records for you.</li>
                             <li><strong>Allocations:</strong> Easily split a large invoice by allocating specific items to different locations.</li>
                           </ul>
+                        </div>
+                      </section>
+
+                      {/* 10. Facility Workflows */}
+                      <section id="workflows" className="space-y-4">
+                        <div className="flex items-center gap-3 pb-2 border-b border-slate-200">
+                          <div className="bg-indigo-100 p-2 rounded-lg"><RefreshCw className="w-5 h-5 text-indigo-600" /></div>
+                          <h3 className="text-xl font-bold text-slate-900">10. Facility Workflows</h3>
+                        </div>
+                        <div className="prose prose-sm text-slate-600 max-w-none">
+                          <p>Step-by-step guides for the most common billing scenarios.</p>
+
+                          <div className="grid grid-cols-1 gap-6">
+                            <div className="border rounded-lg p-4 bg-slate-50">
+                              <h4 className="font-bold text-slate-900 mb-2 border-b pb-1">UConn & Manchester (ECHN)</h4>
+                              <ol className="list-decimal pl-5 space-y-2 text-xs">
+                                <li><strong>Create Invoice:</strong> Select Provider & Program Group (UConn or Manchester). Link the pending income records.</li>
+                                <li><strong>Generate PDF:</strong> Once created, look for the "File Down" (⬇️) icon in the invoice list. Click it to generate the official PDF template.</li>
+                                <li><strong>Sync & Send:</strong> Select the approved invoices and click the <strong>Cloud Icon</strong>.
+                                  <ul className="list-disc pl-4 mt-1 text-slate-600">
+                                    <li>This sends the PDF and data to the Notification system.</li>
+                                    <li>An email is automatically drafted/sent to the AP department.</li>
+                                  </ul>
+                                </li>
+                              </ol>
+                            </div>
+
+                            <div className="border rounded-lg p-4 bg-slate-50">
+                              <h4 className="font-bold text-slate-900 mb-2 border-b pb-1">Hartford Hospital (Directorships)</h4>
+                              <ol className="list-decimal pl-5 space-y-2 text-xs">
+                                <li><strong>Check Schedule:</strong> Ensure the provider is scheduled for the month.</li>
+                                <li><strong>Create RVU Invoice:</strong> Create a standard invoice for their RVU shifts.</li>
+                                <li><strong>Auto-Detection:</strong> The system will check if they also have a "Directorship" role.</li>
+                                <li><strong>Prompt:</strong> If found, you will be asked to create a <strong>Second Invoice</strong> for the flat Directorship fee (e.g., $3,250). Click Yes.</li>
+                              </ol>
+                            </div>
+
+                            <div className="border rounded-lg p-4 bg-slate-50">
+                              <h4 className="font-bold text-slate-900 mb-2 border-b pb-1">St. Francis</h4>
+                              <div className="grid md:grid-cols-2 gap-4">
+                                <ol className="list-decimal pl-5 space-y-2 text-xs">
+                                  <li><strong>Schedule First:</strong> Go to On-Call Schedule. Add the provider to the St. Francis location for their shifts.</li>
+                                  <li><strong>Auto-Income:</strong> The system automatically creates "Pending" Outside Income records for each scheduled day (calculated as Daily Rate).</li>
+                                  <li><strong>Create Invoice:</strong> Go to Invoices -> Create. Select St. Francis.</li>
+                                  <li><strong>Link:</strong> You will see the auto-generated income records in the list. Select them to include in the bill.</li>
+                                </ol>
+                                <div className="bg-blue-50 p-3 rounded text-xs text-blue-800 flex items-center">
+                                  <p><strong>Note:</strong> You do not need to manually enter income for St. Francis if the schedule is up to date.</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </section>
 
