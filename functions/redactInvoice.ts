@@ -35,8 +35,9 @@ Deno.serve(async (req) => {
         if (vendorName.includes('henry') || vendorName.includes('schein')) {
             // STRATEGY A: Force Redaction for Henry Schein (No LLM)
             shouldRedact = true;
-            topPct = 0.50; // DEBUG MODE: KEEP top 50%, REDACT bottom 50% (Very Aggressive)
+            topPct = 0.50; 
             pagesToRedact = allPages.map((_, i) => i + 1); 
+            console.log("Henry Schein detected. Applying calibration pattern.");
         } else {
             // STRATEGY B: Use LLM for other vendors
             const analyzeRes = await base44.asServiceRole.integrations.Core.InvokeLLM({
@@ -131,7 +132,27 @@ Deno.serve(async (req) => {
                 h = height * (1 - topPct);
             }
 
-            // Draw RED rectangle (DEBUG MODE)
+            // 1. Draw BLUE Box in CENTER (Calibration)
+            page.drawRectangle({
+                x: width / 4,
+                y: height / 4,
+                width: width / 2,
+                height: height / 2,
+                color: rgb(0, 0, 1), // BLUE
+                opacity: 0.5,
+            });
+
+            // 2. Draw GREEN Box at 0,0 (Origin Check)
+            page.drawRectangle({
+                x: 0, 
+                y: 0,
+                width: 50,
+                height: 50,
+                color: rgb(0, 1, 0), // GREEN
+                opacity: 1,
+            });
+
+            // 3. Draw RED rectangle (Calculated Bottom)
             // Add a small buffer (5 units) to overlap cleanly
             if (rotation === 0) h += 5;
             if (rotation === 90) x -= 5; w += 5;
@@ -140,7 +161,7 @@ Deno.serve(async (req) => {
 
             page.drawRectangle({
                 x, y, width: w, height: h,
-                color: rgb(1, 0, 0), // RED COLOR FOR DEBUGGING
+                color: rgb(1, 0, 0), // RED
                 opacity: 0.8,
             });
         }
