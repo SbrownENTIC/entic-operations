@@ -33,6 +33,51 @@ export default function VendorInvoiceForm({ invoice, onSubmit, onCancel, isLoadi
     }));
   };
 
+  const [pdfBlobUrl, setPdfBlobUrl] = React.useState(null);
+  const [pdfLoading, setPdfLoading] = React.useState(false);
+  const [pdfError, setPdfError] = React.useState(false);
+
+  React.useEffect(() => {
+    let active = true;
+    let url = null;
+
+    const fetchPdf = async () => {
+      if (!invoice?.document_url) return;
+      
+      try {
+        setPdfLoading(true);
+        setPdfError(false);
+        const response = await fetch(invoice.document_url);
+        if (!response.ok) throw new Error('Failed to load PDF');
+        
+        const blob = await response.blob();
+        // Create a new blob with explicitly set type to ensure browser treats it as PDF
+        const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+        
+        if (active) {
+          url = URL.createObjectURL(pdfBlob);
+          setPdfBlobUrl(url);
+        }
+      } catch (err) {
+        console.error("Error loading PDF preview:", err);
+        if (active) {
+            setPdfError(true);
+            // Fallback to original URL if fetch fails, though it might still have the original issue
+            setPdfBlobUrl(invoice.document_url);
+        }
+      } finally {
+        if (active) setPdfLoading(false);
+      }
+    };
+
+    fetchPdf();
+
+    return () => {
+      active = false;
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [invoice?.document_url]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit({
@@ -171,11 +216,18 @@ export default function VendorInvoiceForm({ invoice, onSubmit, onCancel, isLoadi
               </Button>
             </div>
             <div className="flex-1 relative bg-white">
-              <iframe
-                src={`${invoice.document_url}#toolbar=0&navpanes=0&scrollbar=0`}
-                className="absolute inset-0 w-full h-full"
-                title="Invoice PDF"
-              />
+              {pdfLoading ? (
+                <div className="absolute inset-0 flex items-center justify-center text-slate-400">
+                   <Loader2 className="w-8 h-8 animate-spin" />
+                   <span className="ml-2">Loading preview...</span>
+                </div>
+              ) : (
+                 <iframe
+                    src={pdfBlobUrl ? `${pdfBlobUrl}#toolbar=0&navpanes=0&scrollbar=0` : ''}
+                    className="absolute inset-0 w-full h-full"
+                    title="Invoice PDF"
+                 />
+              )}
             </div>
           </div>
         )}
