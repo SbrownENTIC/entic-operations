@@ -82,15 +82,16 @@ Deno.serve(async (req) => {
 
         const vendorName = (invoice.vendor_name || '').toLowerCase();
         if (vendorName.includes('henry') || vendorName.includes('schein')) {
-             // Force redaction for known vendors with footers
-             shouldRedact = true;
-             // Ensure we cut at least bottom 25% (max 0.75 from top)
-             // The user explicitly wants to remove the footer section "right above distribution name and address"
-             // which is typically the bottom quarter of the page.
-             if (topPct > 0.75) topPct = 0.75; 
-             
-             // CRITICAL: Force redact ALL pages for these vendors as they always have footers
-             pagesToRedact = allPages.map((_, i) => i + 1);
+            // Force redaction for known vendors with footers
+            shouldRedact = true;
+
+            // CRITICAL: User requested "last inch" to be cut off.
+            // We hardcode this to 0.80 (keeping top 80%, removing bottom 20%)
+            // This is roughly 2.2 inches on a standard letter page, ensuring the footer is covered.
+            topPct = 0.80;
+
+            // CRITICAL: Force redact ALL pages for these vendors as they always have footers
+            pagesToRedact = allPages.map((_, i) => i + 1);
         }
 
         if (!shouldRedact) {
