@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
         // Save and Upload
         const modifiedPdfBytes = await pdfDoc.save();
         const randomStr = Math.random().toString(36).substring(7);
-        const fileName = `DEBUG_V2_${target.invoice_number}_${Date.now()}.pdf`;
+        const fileName = `DEBUG_V2_${activeTarget.invoice_number || 'doc'}_${Date.now()}.pdf`;
         const file = new File([modifiedPdfBytes], fileName, { type: "application/pdf" });
         
         const uploadRes = await base44.asServiceRole.integrations.Core.UploadFile({ file });
