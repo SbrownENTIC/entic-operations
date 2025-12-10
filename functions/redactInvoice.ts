@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
             
             Return a JSON object:
             - "needs_redaction": boolean (true if you found any footer content to redact, or if you are unsure but it looks like a standard invoice with a footer)
-            - "pages": array of integers (1-based page numbers to redact, usually all pages have this footer)
+            - "pages": array of integers (1-based page numbers to redact. Check ALL pages. If the footer appears on every page, list ALL page numbers.)
             - "redaction_start_y_percentage": number (The Y-coordinate where the sensitive footer BEGINS, as a percentage from the TOP of the page (0.0 to 1.0). e.g. 0.75 means the footer starts at 75% down the page.)
             
             CRITICAL: The user strictly requested to remove the bottom section of the page ("last inch").
@@ -69,27 +69,30 @@ Deno.serve(async (req) => {
         // But let's trust the "needs_redaction" for now, assuming the prompt defaults to true often.
         // Actually, let's override: if it's a Henry Schein invoice (based on vendor name), ALWAYS redact bottom 20%.
 
+        // 3. Download the PDF first to know page count for "all pages" logic
+        const pdfResponse = await fetch(targetUrl);
+        const pdfBytes = await pdfResponse.arrayBuffer();
+        const pdfDoc = await PDFDocument.load(pdfBytes);
+        const allPages = pdfDoc.getPages();
+        
         let shouldRedact = analysis.needs_redaction;
         let topPct = analysis.redaction_start_y_percentage || 0.80; // Default to cutting bottom 20%
+        let pagesToRedact = analysis.pages || [1];
 
         const vendorName = (invoice.vendor_name || '').toLowerCase();
         if (vendorName.includes('henry') || vendorName.includes('schein') || vendorName.includes('mckesson')) {
              // Force redaction for known vendors with footers
              shouldRedact = true;
              if (topPct > 0.80) topPct = 0.80; // Ensure we cut at least bottom 20%
+             
+             // CRITICAL: Force redact ALL pages for these vendors as they always have footers
+             pagesToRedact = allPages.map((_, i) => i + 1);
         }
 
         if (!shouldRedact) {
             await base44.asServiceRole.entities.VendorInvoice.update(invoice_id, { redacted: true });
             return Response.json({ status: "skipped", reason: "No target section detected" });
         }
-
-        // 3. Download and Redact
-        const pdfResponse = await fetch(targetUrl);
-        const pdfBytes = await pdfResponse.arrayBuffer();
-        const pdfDoc = await PDFDocument.load(pdfBytes);
-        const pages = pdfDoc.getPages();
-        const pagesToRedact = analysis.pages || [1];
         
         // Y-coordinate logic in pdf-lib is from BOTTOM (0,0 is bottom-left)
         // LLM gives us percentage from TOP (0.0 is top, 1.0 is bottom).
@@ -100,8 +103,8 @@ Deno.serve(async (req) => {
         const topPct = analysis.redaction_start_y_percentage || 0.70;
 
         for (const pageNum of pagesToRedact) {
-            if (pageNum < 1 || pageNum > pages.length) continue;
-            const page = pages[pageNum - 1];
+            if (pageNum < 1 || pageNum > allPages.length) continue;
+            const page = allPages[pageNum - 1];
             const { width, height } = page.getSize();
             
             const cutoffY = height * (1 - topPct); // Convert top-down % to bottom-up Y coordinate
