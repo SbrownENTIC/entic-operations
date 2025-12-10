@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { DialogFooter } from "@/components/ui/dialog";
-import { Loader2, ExternalLink } from "lucide-react";
+import { Loader2, ExternalLink, ArrowRight, Save } from "lucide-react";
 
 export default function VendorInvoiceForm({ invoice, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = React.useState({
@@ -17,6 +17,20 @@ export default function VendorInvoiceForm({ invoice, onSubmit, onCancel, isLoadi
     location: invoice?.location || "",
     notes: invoice?.notes || ""
   });
+
+  React.useEffect(() => {
+    if (invoice) {
+      setFormData({
+        vendor_name: invoice.vendor_name || "",
+        invoice_number: invoice.invoice_number || "",
+        invoice_date: invoice.invoice_date || "",
+        total_amount: invoice.total_amount || 0,
+        status: invoice.status || "pending_review",
+        location: invoice.location || "",
+        notes: invoice.notes || ""
+      });
+    }
+  }, [invoice]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -78,12 +92,14 @@ export default function VendorInvoiceForm({ invoice, onSubmit, onCancel, isLoadi
     };
   }, [invoice?.document_url]);
 
+  const [isNextAction, setIsNextAction] = React.useState(false);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit({
       ...formData,
       total_amount: parseFloat(formData.total_amount)
-    });
+    }, isNextAction);
   };
 
   return (
@@ -188,19 +204,37 @@ export default function VendorInvoiceForm({ invoice, onSubmit, onCancel, isLoadi
           </div>
 
           <DialogFooter className="pt-4">
-            <Button type="button" variant="outline" onClick={onCancel}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
-              {isLoading ? (
-                <>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={onCancel}>
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={isLoading} 
+                onClick={() => setIsNextAction(false)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                {isLoading && !isNextAction ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Save Changes'
-              )}
-            </Button>
+                ) : (
+                  <Save className="mr-2 h-4 w-4" />
+                )}
+                Save & Close
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={isLoading} 
+                onClick={() => setIsNextAction(true)}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {isLoading && isNextAction ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <ArrowRight className="mr-2 h-4 w-4" />
+                )}
+                Save & Next
+              </Button>
+            </div>
           </DialogFooter>
         </div>
 
