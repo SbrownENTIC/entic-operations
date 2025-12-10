@@ -6,9 +6,19 @@ Deno.serve(async (req) => {
         const base44 = createClientFromRequest(req);
         
         // 1. Auth Check
-        const user = await base44.auth.me();
+        let user;
+        try {
+            user = await base44.auth.me();
+        } catch (authError) {
+            console.error("Auth check failed:", authError);
+            return Response.json({ 
+                error: 'Authentication failed', 
+                details: authError.message 
+            }, { status: 401 });
+        }
+
         if (!user) {
-            return Response.json({ error: 'Unauthorized' }, { status: 401 });
+            return Response.json({ error: 'Unauthorized - No user found' }, { status: 401 });
         }
 
         const { file_url } = await req.json();
@@ -178,6 +188,7 @@ Deno.serve(async (req) => {
 
     } catch (error) {
         console.error('Error splitting PDF:', error);
-        return Response.json({ error: error.message }, { status: 500 });
+        const status = error.status || 500;
+        return Response.json({ error: error.message }, { status });
     }
 });
