@@ -158,7 +158,7 @@ export default function Documentation() {
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 h-auto flex-shrink-0 gap-1 bg-slate-100/50 p-1">
           <TabsTrigger value="sops" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm">SOPs (Modules)</TabsTrigger>
           <TabsTrigger value="system" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm">How System Works</TabsTrigger>
-          <TabsTrigger value="maintenance" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm">Maintenance Guide</TabsTrigger>
+          <TabsTrigger value="maintenance" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm">Maintenance</TabsTrigger>
           <TabsTrigger value="checklist" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm">Steve's Checklist</TabsTrigger>
           <TabsTrigger value="manual" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm">User Manual</TabsTrigger>
           <TabsTrigger value="contacts" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm">Contact Sheet</TabsTrigger>
