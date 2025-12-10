@@ -119,6 +119,41 @@ function FixVendorDataButton() {
   );
 }
 
+function ForceRedactHenryButton() {
+  const { toast } = useToast();
+  const [loading, setLoading] = React.useState(false);
+
+  const handleForce = async () => {
+    if (!confirm("Force re-redact all Henry Schein invoices using the new 25% footer cut-off rule? This will overwrite the current files.")) return;
+    
+    setLoading(true);
+    toast({ title: "Redaction Started", description: "Processing Henry Schein invoices..." });
+    
+    try {
+      const res = await base44.functions.invoke('forceRedactAll');
+      toast({ 
+        title: "Completed", 
+        description: `Re-redacted ${res.data.count} Henry Schein invoices.`
+      });
+    } catch (err) {
+      toast({ 
+        title: "Error", 
+        description: err.message, 
+        variant: "destructive" 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Button size="sm" variant="outline" onClick={handleForce} disabled={loading} className="h-7 text-xs gap-1 bg-red-50 text-red-700 border-red-200 hover:bg-red-100">
+      <Shield className="w-3 h-3" />
+      {loading ? "Processing..." : "Force Redact (Henry Only)"}
+    </Button>
+  );
+}
+
 export default function Documentation() {
   const [activeTab, setActiveTab] = useState("sops");
 
@@ -570,6 +605,18 @@ export default function Documentation() {
                   <p className="text-xs text-slate-500 mt-1">
                     • Scans all invoices and updates the Supply Catalog with missing item codes.<br/>
                     • Ensures future orders use the correct descriptions.
+                  </p>
+                </div>
+
+                <div className="border rounded-lg p-3 bg-slate-50 mt-2">
+                  <div className="flex justify-between items-center mb-1">
+                    <p className="font-medium text-sm">"Force Redact Henry"</p>
+                    <ForceRedactHenryButton />
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    • Specifically targets Henry Schein invoices.<br/>
+                    • Applies the new aggressive footer removal (bottom 25%) to existing files.<br/>
+                    • Use this if old invoices still show the footer.
                   </p>
                 </div>
 
