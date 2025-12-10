@@ -22,7 +22,8 @@ Deno.serve(async (req) => {
                 invoice_number: { type: "string" },
                 invoice_date: { type: "string", format: "date", description: "YYYY-MM-DD format" },
                 due_date: { type: "string", format: "date", description: "YYYY-MM-DD format" },
-                location: { type: "string", enum: ["Glastonbury", "Manchester", "Bloomfield", "Farmington"], description: "The location/office name found in the Ship To address" },
+                location: { type: "string", enum: ["Glastonbury", "Manchester", "Bloomfield", "Farmington"], description: "The location/office name found in the Ship To address. Look for keywords: Glastonbury, Manchester, Bloomfield, Farmington." },
+                ship_to_text: { type: "string", description: "The full raw text of the 'Ship To' address block for debugging" },
                 total_amount: { type: "number" },
                 line_items: {
                     type: "array",

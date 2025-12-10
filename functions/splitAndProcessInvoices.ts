@@ -77,6 +77,7 @@ Deno.serve(async (req) => {
                                 start_page: { type: "integer" },
                                 end_page: { type: "integer" },
                                 location_name: { type: "string", enum: ["Glastonbury", "Manchester", "Bloomfield", "Farmington"], description: "CRITICAL: Look at the 'Ship To' block. If it says 'Bar, Nose and Throat Institute' or similar, determine which town it is in (Glastonbury, Manchester, Bloomfield, Farmington)." },
+                                ship_to_text: { type: "string", description: "The full raw text of the 'Ship To' address block" },
                                 line_items: {
                                     type: "array",
                                     items: {
