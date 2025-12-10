@@ -9,8 +9,16 @@ import { useLocation } from "react-router-dom";
 import VendorInvoiceList from "../components/vendorInvoices/VendorInvoiceList";
 import VendorFolderGrid from "../components/vendorInvoices/VendorFolderGrid";
 import VendorInvoiceUpload from "../components/vendorInvoices/VendorInvoiceUpload";
+import VendorInvoiceForm from "../components/vendorInvoices/VendorInvoiceForm";
 import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +34,7 @@ export default function VendorInvoices() {
   const [showUpload, setShowUpload] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [editingInvoice, setEditingInvoice] = useState(null);
   const [selectedInvoices, setSelectedInvoices] = useState([]);
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
@@ -171,6 +180,27 @@ export default function VendorInvoices() {
     // reset input
     e.target.value = '';
   };
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }) => {
+      await base44.entities.VendorInvoice.update(id, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vendor-invoices'] });
+      toast({
+        title: "Invoice updated",
+        description: "The vendor invoice has been successfully updated.",
+      });
+      setEditingInvoice(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update invoice: " + error.message,
+        variant: "destructive",
+      });
+    }
+  });
 
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
@@ -423,6 +453,7 @@ export default function VendorInvoices() {
                 invoices={sortedInvoices} 
                 isLoading={isLoading} 
                 onDeleteClick={setDeleteConfirm}
+                onEditClick={setEditingInvoice}
                 selectedIds={selectedInvoices}
                 onToggleSelect={handleToggleSelect}
                 onSort={handleSort}
@@ -441,6 +472,25 @@ export default function VendorInvoices() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={!!editingInvoice} onOpenChange={(open) => !open && setEditingInvoice(null)}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Edit Vendor Invoice</DialogTitle>
+            <DialogDescription>
+              Update the details for invoice {editingInvoice?.invoice_number}.
+            </DialogDescription>
+          </DialogHeader>
+          {editingInvoice && (
+            <VendorInvoiceForm
+              invoice={editingInvoice}
+              isLoading={updateMutation.isPending}
+              onSubmit={(data) => updateMutation.mutate({ id: editingInvoice.id, data })}
+              onCancel={() => setEditingInvoice(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
         <AlertDialogContent>

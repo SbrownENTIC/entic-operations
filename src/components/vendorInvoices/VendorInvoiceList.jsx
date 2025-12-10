@@ -2,7 +2,7 @@ import React from "react";
 import { format, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, Eye, ExternalLink, CheckCircle, AlertCircle, Clock, Trash2, ArrowUpDown, ArrowUp, ArrowDown, ListX, PlusCircle, Loader2 } from "lucide-react";
+import { FileText, Eye, ExternalLink, CheckCircle, AlertCircle, Clock, Trash2, ArrowUpDown, ArrowUp, ArrowDown, ListX, PlusCircle, Loader2, Pencil } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -15,7 +15,7 @@ import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/use-toast";
 
-export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, selectedIds, onToggleSelect, onSort, sortField, sortDirection, supplies = [] }) {
+export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, onEditClick, selectedIds, onToggleSelect, onSort, sortField, sortDirection, supplies = [] }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -271,6 +271,16 @@ export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, 
                         </PopoverContent>
                     </Popover>
                     )}
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onEditClick(invoice)}
+                      className="text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                      title="Edit Invoice"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
 
                     <Button 
                     variant="ghost" 
