@@ -185,25 +185,39 @@ Deno.serve(async (req) => {
 
                             // If we have items, create the order
                             if (supplyOrderItems.length > 0) {
-                                const supplyOrderData = {
-                                    order_number: inv.invoice_number || `AUTO-CLINICAL-${Date.now()}`,
-                                    vendor: inv.vendor_name || 'Henry Schein',
-                                    location: inv.location_name || 'Glastonbury', // Default if missing, but hopefully extracted
-                                    order_date: inv.invoice_date || new Date().toISOString().split('T')[0],
-                                    status: 'received',
-                                    category: 'clinical',
-                                    items: supplyOrderItems,
-                                    total_amount: inv.total_amount || 0,
-                                    notes: `Auto-created from Vendor Invoice #${inv.invoice_number}`
-                                };
-
-                                const createdOrder = await base44.asServiceRole.entities.SupplyOrder.create(supplyOrderData);
+                                const orderNumber = inv.invoice_number || `AUTO-CLINICAL-${Date.now()}`;
                                 
-                                // Link back to invoice
-                                if (createdOrder) {
-                                    await base44.asServiceRole.entities.VendorInvoice.update(record.id, {
-                                        linked_supply_order_ids: [createdOrder.id]
-                                    });
+                                // Check for duplicate supply order
+                                let isDuplicateOrder = false;
+                                if (inv.invoice_number) {
+                                    const existingOrders = await base44.asServiceRole.entities.SupplyOrder.filter({ order_number: inv.invoice_number });
+                                    if (existingOrders && existingOrders.length > 0) {
+                                        isDuplicateOrder = true;
+                                        console.log(`Skipping duplicate clinical supply order for invoice: ${inv.invoice_number}`);
+                                    }
+                                }
+
+                                if (!isDuplicateOrder) {
+                                    const supplyOrderData = {
+                                        order_number: orderNumber,
+                                        vendor: inv.vendor_name || 'Henry Schein',
+                                        location: inv.location_name || 'Glastonbury', // Default if missing, but hopefully extracted
+                                        order_date: inv.invoice_date || new Date().toISOString().split('T')[0],
+                                        status: 'received',
+                                        category: 'clinical',
+                                        items: supplyOrderItems,
+                                        total_amount: inv.total_amount || 0,
+                                        notes: `Auto-created from Vendor Invoice #${inv.invoice_number}`
+                                    };
+
+                                    const createdOrder = await base44.asServiceRole.entities.SupplyOrder.create(supplyOrderData);
+                                    
+                                    // Link back to invoice
+                                    if (createdOrder) {
+                                        await base44.asServiceRole.entities.VendorInvoice.update(record.id, {
+                                            linked_supply_order_ids: [createdOrder.id]
+                                        });
+                                    }
                                 }
                             }
                         } catch (err) {
