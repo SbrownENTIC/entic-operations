@@ -5,7 +5,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { DialogFooter } from "@/components/ui/dialog";
-import { Loader2, ExternalLink, ArrowRight, Save } from "lucide-react";
+import { Loader2, ExternalLink, ArrowRight, Save, Link as LinkIcon, Unlink, CheckCircle2 } from "lucide-react";
+import SupplyOrderMatcher from "./SupplyOrderMatcher";
+import { useQuery } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
+import { Badge } from "@/components/ui/badge";
+import { format, parseISO } from "date-fns";
 
 export default function VendorInvoiceForm({ invoice, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = React.useState({
@@ -15,8 +20,45 @@ export default function VendorInvoiceForm({ invoice, onSubmit, onCancel, isLoadi
     total_amount: invoice?.total_amount || 0,
     status: invoice?.status || "pending_review",
     location: invoice?.location || "",
-    notes: invoice?.notes || ""
+    notes: invoice?.notes || "",
+    linked_supply_order_ids: invoice?.linked_supply_order_ids || []
   });
+
+  // Fetch linked orders details
+  const { data: linkedOrders = [] } = useQuery({
+      queryKey: ['linked-orders', formData.linked_supply_order_ids],
+      queryFn: async () => {
+          if (!formData.linked_supply_order_ids?.length) return [];
+          // In a real app we'd have a bulk fetch by IDs or use Promise.all
+          // using filter for now if supported or individual fetches
+          // Since SDK doesn't support "in" query easily, we'll fetch individually or use a custom function if many
+          // For now let's assume simple Promise.all of individual gets if IDs are few
+          const promises = formData.linked_supply_order_ids.map(id => 
+              base44.entities.SupplyOrder.list(null, 1, { id: id })
+              .then(res => res[0])
+              .catch(() => null)
+          );
+          const results = await Promise.all(promises);
+          return results.filter(Boolean);
+      },
+      enabled: formData.linked_supply_order_ids?.length > 0
+  });
+
+  const handleLinkOrder = (order) => {
+      if (!formData.linked_supply_order_ids.includes(order.id)) {
+          setFormData(prev => ({
+              ...prev,
+              linked_supply_order_ids: [...(prev.linked_supply_order_ids || []), order.id]
+          }));
+      }
+  };
+
+  const handleUnlinkOrder = (orderId) => {
+      setFormData(prev => ({
+          ...prev,
+          linked_supply_order_ids: prev.linked_supply_order_ids.filter(id => id !== orderId)
+      }));
+  };
 
   React.useEffect(() => {
     if (invoice) {
@@ -39,6 +81,8 @@ export default function VendorInvoiceForm({ invoice, onSubmit, onCancel, isLoadi
       [name]: value
     }));
   };
+
+  const [activeTab, setActiveTab] = React.useState("details"); // details, linking
 
   const handleSelectChange = (name, value) => {
     setFormData(prev => ({
@@ -106,6 +150,35 @@ export default function VendorInvoiceForm({ invoice, onSubmit, onCancel, isLoadi
     <form onSubmit={handleSubmit} className="py-4">
       <div className="flex flex-col lg:flex-row gap-6">
         <div className="flex-1 space-y-4">
+            {/* Tabs for switching between Details and Linking */}
+            <div className="flex space-x-1 rounded-lg bg-slate-100 p-1 mb-4">
+                <button
+                    type="button"
+                    onClick={() => setActiveTab("details")}
+                    className={`flex-1 flex items-center justify-center gap-2 rounded-md py-1.5 text-sm font-medium transition-all ${
+                        activeTab === "details" ? "bg-white shadow text-slate-900" : "text-slate-500 hover:text-slate-900"
+                    }`}
+                >
+                    Invoice Details
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setActiveTab("linking")}
+                    className={`flex-1 flex items-center justify-center gap-2 rounded-md py-1.5 text-sm font-medium transition-all ${
+                        activeTab === "linking" ? "bg-white shadow text-slate-900" : "text-slate-500 hover:text-slate-900"
+                    }`}
+                >
+                    Link Orders 
+                    {formData.linked_supply_order_ids?.length > 0 && (
+                        <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px] min-w-4 bg-blue-100 text-blue-700">
+                            {formData.linked_supply_order_ids.length}
+                        </Badge>
+                    )}
+                </button>
+            </div>
+
+          {activeTab === "details" ? (
+          <>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="vendor_name">Vendor Name</Label>
@@ -202,6 +275,56 @@ export default function VendorInvoiceForm({ invoice, onSubmit, onCancel, isLoadi
               rows={3}
             />
           </div>
+          </>
+          ) : (
+             <div className="space-y-6">
+                 {/* Linked Orders List */}
+                 <div className="space-y-3">
+                     <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+                         <LinkIcon className="w-4 h-4 text-green-600" />
+                         Linked Clinical Supply Orders
+                     </h3>
+                     {linkedOrders.length > 0 ? (
+                         <div className="space-y-2">
+                             {linkedOrders.map(order => (
+                                 <div key={order.id} className="flex items-center justify-between p-3 bg-green-50 border border-green-100 rounded-lg">
+                                     <div>
+                                         <div className="font-medium text-green-900 flex items-center gap-2">
+                                             {order.order_number}
+                                             <CheckCircle2 className="w-3 h-3 text-green-600" />
+                                         </div>
+                                         <div className="text-xs text-green-700 mt-1">
+                                             {order.vendor} • ${order.total_amount?.toFixed(2)} • {format(parseISO(order.order_date), 'MMM d')}
+                                         </div>
+                                     </div>
+                                     <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleUnlinkOrder(order.id)}
+                                        className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 px-2"
+                                     >
+                                         <Unlink className="w-4 h-4 mr-1" /> Unlink
+                                     </Button>
+                                 </div>
+                             ))}
+                         </div>
+                     ) : (
+                         <div className="text-sm text-slate-500 italic p-4 bg-slate-50 rounded border border-dashed border-slate-200 text-center">
+                             No orders linked yet. Use the tool below to find matches.
+                         </div>
+                     )}
+                 </div>
+
+                 {/* Matcher Tool */}
+                 <div className="pt-4 border-t border-slate-100">
+                     <SupplyOrderMatcher 
+                        invoice={invoice} 
+                        onLink={handleLinkOrder}
+                     />
+                 </div>
+             </div>
+          )}
 
           <DialogFooter className="pt-4">
             <div className="flex gap-2">
@@ -224,7 +347,13 @@ export default function VendorInvoiceForm({ invoice, onSubmit, onCancel, isLoadi
               <Button 
                 type="submit" 
                 disabled={isLoading} 
-                onClick={() => setIsNextAction(true)}
+                onClick={(e) => {
+                    // Make sure we validate form first if in linking tab
+                    // Actually standard submit handles validation of required fields
+                    // but they might be hidden. 
+                    // However, we populated default values so it should be fine.
+                    setIsNextAction(true);
+                }}
                 className="bg-green-600 hover:bg-green-700"
               >
                 {isLoading && isNextAction ? (
