@@ -11,7 +11,8 @@ import {
   Bell,
   GraduationCap,
   ShoppingBag,
-  Layout
+  Layout,
+  RefreshCw
 } from "lucide-react";
 
 export default function PrintableManual() {
