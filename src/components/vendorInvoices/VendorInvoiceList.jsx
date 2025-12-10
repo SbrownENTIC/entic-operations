@@ -269,7 +269,11 @@ export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, 
                         </PopoverContent>
                     </Popover>
                     )}
-                    {/* Review/Edit button removed as requested */}
+                    <Link to={`${createPageUrl("VendorInvoiceReview")}?id=${invoice.id}`}>
+                      <Button variant="ghost" size="sm" title="Edit Invoice" className="text-slate-600 hover:text-blue-600 hover:bg-blue-50">
+                          <FileText className="w-4 h-4" />
+                      </Button>
+                    </Link>
                     <Button 
                     variant="ghost" 
                     size="sm"
