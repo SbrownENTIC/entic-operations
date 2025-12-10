@@ -35,8 +35,8 @@ Deno.serve(async (req) => {
         if (vendorName.includes('henry') || vendorName.includes('schein')) {
             // STRATEGY A: Force Redaction for Henry Schein (No LLM)
             shouldRedact = true;
-            topPct = 0.70; // KEEP top 70%, REDACT bottom 30% (Aggressive)
-            pagesToRedact = allPages.map((_, i) => i + 1); // Redact all pages
+            topPct = 0.50; // DEBUG MODE: KEEP top 50%, REDACT bottom 50% (Very Aggressive)
+            pagesToRedact = allPages.map((_, i) => i + 1); 
         } else {
             // STRATEGY B: Use LLM for other vendors
             const analyzeRes = await base44.asServiceRole.integrations.Core.InvokeLLM({
@@ -131,7 +131,7 @@ Deno.serve(async (req) => {
                 h = height * (1 - topPct);
             }
 
-            // Draw white rectangle
+            // Draw RED rectangle (DEBUG MODE)
             // Add a small buffer (5 units) to overlap cleanly
             if (rotation === 0) h += 5;
             if (rotation === 90) x -= 5; w += 5;
@@ -140,13 +140,16 @@ Deno.serve(async (req) => {
 
             page.drawRectangle({
                 x, y, width: w, height: h,
-                color: rgb(1, 1, 1),
+                color: rgb(1, 0, 0), // RED COLOR FOR DEBUGGING
+                opacity: 0.8,
             });
         }
 
         // 4. Save and Upload
         const modifiedPdfBytes = await pdfDoc.save();
-        const fileName = `redacted_${invoice.invoice_number || 'doc'}_${Date.now()}.pdf`;
+        // Add random string to filename to prevent caching
+        const randomStr = Math.random().toString(36).substring(7);
+        const fileName = `redacted_DEBUG_${invoice.invoice_number || 'doc'}_${Date.now()}_${randomStr}.pdf`;
         const file = new File([modifiedPdfBytes], fileName, { type: "application/pdf" });
         
         const uploadRes = await base44.asServiceRole.integrations.Core.UploadFile({ file: file });

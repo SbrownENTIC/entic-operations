@@ -122,18 +122,22 @@ function FixVendorDataButton() {
 function ForceRedactHenryButton() {
   const { toast } = useToast();
   const [loading, setLoading] = React.useState(false);
+  const queryClient = useQueryClient();
 
   const handleForce = async () => {
-    if (!confirm("Force re-redact all Henry Schein invoices using the new 25% footer cut-off rule? This will overwrite the current files.")) return;
-    
+    if (!confirm("Force re-redact all Henry Schein invoices (DEBUG MODE: Red Box)? This will overwrite current files.")) return;
+
     setLoading(true);
     toast({ title: "Redaction Started", description: "Processing Henry Schein invoices..." });
-    
+
     try {
       const res = await base44.functions.invoke('forceRedactAll');
+      // Invalidate queries to force refresh of file URLs
+      await queryClient.invalidateQueries({ queryKey: ['vendor-invoices'] });
+
       toast({ 
         title: "Completed", 
-        description: `Re-redacted ${res.data.count} Henry Schein invoices.`
+        description: `Re-redacted ${res.data.count} Henry Schein invoices. Please refresh the invoice list.`
       });
     } catch (err) {
       toast({ 
