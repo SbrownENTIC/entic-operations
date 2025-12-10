@@ -220,7 +220,6 @@ export default function VendorInvoices() {
                 <TabsTrigger value="Manchester">Manchester</TabsTrigger>
                 <TabsTrigger value="Bloomfield">Bloomfield</TabsTrigger>
                 <TabsTrigger value="Farmington">Farmington</TabsTrigger>
-                <TabsTrigger value="General / Admin">General / Admin</TabsTrigger>
             </TabsList>
         </Tabs>
 

@@ -196,7 +196,6 @@ export default function VendorInvoiceReviewForm({ invoice, supplies = [], onSave
               <SelectItem value="Manchester">Manchester</SelectItem>
               <SelectItem value="Bloomfield">Bloomfield</SelectItem>
               <SelectItem value="Farmington">Farmington</SelectItem>
-              <SelectItem value="General / Admin">General / Admin</SelectItem>
             </SelectContent>
           </Select>
         </div>
