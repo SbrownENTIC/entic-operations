@@ -589,12 +589,16 @@ export default function Documentation() {
                   <div className="p-4 bg-slate-50/50 overflow-y-auto">
                     <h4 className="font-semibold text-sm text-slate-900 mb-3">Admin Sections</h4>
                     <nav className="space-y-1 text-sm">
-                      <div className="px-2 py-1.5 text-slate-600">1. System Architecture</div>
-                      <div className="px-2 py-1.5 text-slate-600">2. Managing System Lists</div>
-                      <div className="px-2 py-1.5 text-slate-600">3. Maintenance Tools</div>
-                      <div className="px-2 py-1.5 text-slate-600">4. Integrations</div>
-                      <div className="px-2 py-1.5 text-slate-600">5. Security</div>
-                      <div className="px-2 py-1.5 text-slate-600">6. Troubleshooting</div>
+                      <a href="#admin-1" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">1. System Architecture</a>
+                      <a href="#admin-2" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">2. Backend Registry</a>
+                      <a href="#admin-3" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">3. Integration (Airtable)</a>
+                      <a href="#admin-4" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">4. UConn Workflow</a>
+                      <a href="#admin-5" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">5. Manchester Workflow</a>
+                      <a href="#admin-6" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">6. Hartford/St. Francis</a>
+                      <a href="#admin-7" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">7. Reminders Workflow</a>
+                      <a href="#admin-8" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">8. Automated Tasks</a>
+                      <a href="#admin-9" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">9. Maintenance</a>
+                      <a href="#admin-10" className="block px-2 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded">10. Doc Management</a>
                     </nav>
                   </div>
                   

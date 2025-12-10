@@ -28,21 +28,21 @@ export default function PrintableAdminManual() {
       <div className="break-after-page">
         <h3 className="text-xl font-bold mb-4">Table of Contents</h3>
         <ul className="grid grid-cols-2 gap-2 text-sm text-slate-700">
-          <li>1. System Architecture & Entities</li>
-          <li>2. Backend Functions Registry</li>
-          <li>3. Integration Deep Dive (Airtable)</li>
-          <li>4. Workflow: UConn Invoices</li>
-          <li>5. Workflow: Manchester Invoices</li>
-          <li>6. Workflow: Hartford & St. Francis</li>
-          <li>7. Workflow: Reminders & Closures</li>
-          <li>7. Automated Scheduled Tasks</li>
-          <li>8. Maintenance & Troubleshooting</li>
-          <li>9. Document Management Internals</li>
+          <li><a href="#admin-1" className="hover:underline">1. System Architecture & Entities</a></li>
+          <li><a href="#admin-2" className="hover:underline">2. Backend Functions Registry</a></li>
+          <li><a href="#admin-3" className="hover:underline">3. Integration Deep Dive (Airtable)</a></li>
+          <li><a href="#admin-4" className="hover:underline">4. Workflow: UConn Invoices</a></li>
+          <li><a href="#admin-5" className="hover:underline">5. Workflow: Manchester Invoices</a></li>
+          <li><a href="#admin-6" className="hover:underline">6. Workflow: Hartford & St. Francis</a></li>
+          <li><a href="#admin-7" className="hover:underline">7. Workflow: Reminders & Closures</a></li>
+          <li><a href="#admin-8" className="hover:underline">8. Automated Scheduled Tasks</a></li>
+          <li><a href="#admin-9" className="hover:underline">9. Maintenance & Troubleshooting</a></li>
+          <li><a href="#admin-10" className="hover:underline">10. Document Management Internals</a></li>
         </ul>
       </div>
 
       {/* 1. Backend Architecture */}
-      <section className="space-y-4 break-inside-avoid">
+      <section id="admin-1" className="space-y-4 break-inside-avoid scroll-mt-4">
         <div className="flex items-center gap-3 pb-2 border-b border-slate-300">
           <div className="p-2 rounded-lg bg-slate-100 border border-slate-200"><Server className="w-6 h-6 text-slate-700" /></div>
           <h3 className="text-2xl font-bold text-slate-900">1. System Architecture & Entities</h3>
@@ -74,7 +74,7 @@ export default function PrintableAdminManual() {
       </section>
 
       {/* 2. Backend Functions Registry */}
-      <section className="space-y-4 break-inside-avoid">
+      <section id="admin-2" className="space-y-4 break-inside-avoid scroll-mt-4">
         <div className="flex items-center gap-3 pb-2 border-b border-slate-300">
           <div className="p-2 rounded-lg bg-blue-100 border border-blue-200"><FileCode className="w-6 h-6 text-blue-700" /></div>
           <h3 className="text-2xl font-bold text-slate-900">2. Backend Functions Registry</h3>
@@ -104,7 +104,7 @@ export default function PrintableAdminManual() {
       </section>
 
       {/* 3. Integration Deep Dive */}
-      <section className="space-y-4 break-inside-avoid">
+      <section id="admin-3" className="space-y-4 break-inside-avoid scroll-mt-4">
         <div className="flex items-center gap-3 pb-2 border-b border-slate-300">
           <div className="p-2 rounded-lg bg-purple-100 border border-purple-200"><Cloud className="w-6 h-6 text-purple-700" /></div>
           <h3 className="text-2xl font-bold text-slate-900">3. Integration Deep Dive (Airtable)</h3>
@@ -136,7 +136,7 @@ export default function PrintableAdminManual() {
       </section>
 
       {/* 4. Workflow: UConn Invoices */}
-      <section className="space-y-4 break-inside-avoid">
+      <section id="admin-4" className="space-y-4 break-inside-avoid scroll-mt-4">
         <div className="flex items-center gap-3 pb-2 border-b border-slate-300">
           <div className="p-2 rounded-lg bg-blue-50 border border-blue-100"><FileText className="w-6 h-6 text-blue-700" /></div>
           <h3 className="text-2xl font-bold text-slate-900">4. Workflow: UConn Invoices</h3>
@@ -168,7 +168,7 @@ export default function PrintableAdminManual() {
       </section>
 
       {/* 5. Workflow: Manchester Invoices */}
-      <section className="space-y-4 break-inside-avoid">
+      <section id="admin-5" className="space-y-4 break-inside-avoid scroll-mt-4">
         <div className="flex items-center gap-3 pb-2 border-b border-slate-300">
           <div className="p-2 rounded-lg bg-indigo-50 border border-indigo-100"><FileText className="w-6 h-6 text-indigo-700" /></div>
           <h3 className="text-2xl font-bold text-slate-900">5. Workflow: Manchester Invoices</h3>
@@ -184,7 +184,7 @@ export default function PrintableAdminManual() {
       </section>
 
       {/* 6. Workflow: Hartford & St. Francis */}
-      <section className="space-y-4 break-inside-avoid">
+      <section id="admin-6" className="space-y-4 break-inside-avoid scroll-mt-4">
         <div className="flex items-center gap-3 pb-2 border-b border-slate-300">
           <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-100"><FileText className="w-6 h-6 text-emerald-700" /></div>
           <h3 className="text-2xl font-bold text-slate-900">6. Workflow: Hartford & St. Francis</h3>
@@ -210,7 +210,7 @@ export default function PrintableAdminManual() {
       </section>
 
       {/* 7. Workflow: Reminders & Closures */}
-      <section className="space-y-4 break-inside-avoid">
+      <section id="admin-7" className="space-y-4 break-inside-avoid scroll-mt-4">
         <div className="flex items-center gap-3 pb-2 border-b border-slate-300">
           <div className="p-2 rounded-lg bg-yellow-50 border border-yellow-100"><Bell className="w-6 h-6 text-yellow-700" /></div>
           <h3 className="text-2xl font-bold text-slate-900">7. Workflow: Reminders & Closures</h3>
@@ -276,8 +276,8 @@ export default function PrintableAdminManual() {
         </div>
       </section>
 
-      {/* 8. Maintenance & Troubleshooting */}
-      <section className="space-y-4 break-inside-avoid">
+      {/* 9. Maintenance & Troubleshooting */}
+      <section id="admin-9" className="space-y-4 break-inside-avoid scroll-mt-4">
         <div className="flex items-center gap-3 pb-2 border-b border-slate-300">
           <div className="p-2 rounded-lg bg-red-50 border border-red-100"><AlertTriangle className="w-6 h-6 text-red-700" /></div>
           <h3 className="text-2xl font-bold text-slate-900">9. Maintenance & Troubleshooting</h3>
@@ -313,8 +313,8 @@ export default function PrintableAdminManual() {
         </div>
       </section>
 
-      {/* 9. Document Management Internals */}
-      <section className="space-y-4 break-inside-avoid">
+      {/* 10. Document Management Internals */}
+      <section id="admin-10" className="space-y-4 break-inside-avoid scroll-mt-4">
         <div className="flex items-center gap-3 pb-2 border-b border-slate-300">
           <div className="p-2 rounded-lg bg-indigo-50 border border-indigo-100"><FileText className="w-6 h-6 text-indigo-700" /></div>
           <h3 className="text-2xl font-bold text-slate-900">10. Document Management Internals</h3>
