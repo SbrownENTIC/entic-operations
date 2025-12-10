@@ -51,32 +51,61 @@ export default function VendorInvoices() {
   const splitMutation = useMutation({
     mutationFn: async (files) => {
       const fileArray = Array.from(files);
-      toast({
-        title: "Processing...",
-        description: `Uploading and analyzing ${fileArray.length} file(s). This may take a moment.`,
-      });
+      const BATCH_SIZE = 3; // Process 3 files at a time to avoid rate limits
+      const results = [];
       
-      const results = await Promise.all(fileArray.map(async (file) => {
-         const { file_url } = await base44.integrations.Core.UploadFile({ file });
-         const res = await base44.functions.invoke('splitAndProcessInvoices', { file_url });
-         return res.data;
-      }));
+      toast({
+        title: "Processing Started",
+        description: `Queueing ${fileArray.length} files. This process runs in batches to ensure reliability.`,
+      });
+
+      // Process in batches
+      for (let i = 0; i < fileArray.length; i += BATCH_SIZE) {
+        const chunk = fileArray.slice(i, i + BATCH_SIZE);
+        
+        // Process current batch
+        const chunkResults = await Promise.all(chunk.map(async (file) => {
+             try {
+                 const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                 const res = await base44.functions.invoke('splitAndProcessInvoices', { file_url });
+                 return { status: 'success', data: res.data };
+             } catch (err) {
+                 console.error("Error processing file:", file.name, err);
+                 return { status: 'error', error: err, fileName: file.name };
+             }
+        }));
+        
+        results.push(...chunkResults);
+        
+        // Optional: slight delay between batches if needed, but await above is usually enough
+      }
       
       return results;
     },
-    onSuccess: (data) => {
+    onSuccess: (results) => {
       queryClient.invalidateQueries({ queryKey: ['vendor-invoices'] });
-      const totalProcessed = data.reduce((acc, curr) => acc + (curr.processed_count || 0), 0);
+      
+      const successes = results.filter(r => r.status === 'success');
+      const failures = results.filter(r => r.status === 'error');
+      
+      const totalProcessed = successes.reduce((acc, curr) => acc + (curr.data?.processed_count || 0), 0);
+      
+      let description = `Successfully processed ${successes.length} files and created ${totalProcessed} invoices.`;
+      if (failures.length > 0) {
+          description += ` Failed to process ${failures.length} files.`;
+      }
+      
       toast({
         title: "Processing Complete",
-        description: `Successfully processed ${data.length} files and created ${totalProcessed} invoices.`,
+        description: description,
+        variant: failures.length > 0 ? "destructive" : "default"
       });
     },
     onError: (error) => {
       console.error(error);
       toast({
         title: "Error",
-        description: "Failed to process files: " + (error.message || "Unknown error"),
+        description: "An unexpected error occurred: " + (error.message || "Unknown error"),
         variant: "destructive",
       });
     }
