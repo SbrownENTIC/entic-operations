@@ -86,11 +86,12 @@ Deno.serve(async (req) => {
             shouldRedact = true;
             
             // CRITICAL: User requested to remove the footer "right before distribution name/address".
-            // The "Ship To" box is around 80-85% down. We want to KEEP it.
-            // "Distribution Names" starts around 86-88%.
-            // So we want to keep top 85% (0.85) and redact bottom 15%.
-            // This is approx 1.65 inches from bottom on Letter paper.
-            topPct = 0.85; 
+            // Previous attempt at 0.85 (15% from bottom) was insufficient ("last 20% is still there").
+            // We need to cut HIGHER up the page to cover the Distribution section.
+            // Setting to 0.75 (keeping top 75%, redacting bottom 25%).
+            // This ensures we definitely catch the Distribution info, even if we risk clipping the bottom edge of the Ship To box slightly.
+            // Safety first for redaction.
+            topPct = 0.75; 
 
             // Force redact ALL pages for these vendors as they always have footers
             pagesToRedact = allPages.map((_, i) => i + 1);
