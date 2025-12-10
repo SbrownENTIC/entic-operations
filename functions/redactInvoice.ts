@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
         let topPct = 1.0; 
         let pagesToRedact = [];
 
-        // Download PDF to get page count
+        // Download PDF
         const pdfResponse = await fetch(targetUrl);
         const pdfBytes = await pdfResponse.arrayBuffer();
         const pdfDoc = await PDFDocument.load(pdfBytes);
@@ -34,9 +34,8 @@ Deno.serve(async (req) => {
 
         if (vendorName.includes('henry') || vendorName.includes('schein')) {
             // STRATEGY A: Force Redaction for Henry Schein (No LLM)
-            // Cut bottom 25% (keep top 75%)
             shouldRedact = true;
-            topPct = 0.75; 
+            topPct = 0.70; // KEEP top 70%, REDACT bottom 30% (Aggressive)
             pagesToRedact = allPages.map((_, i) => i + 1); // Redact all pages
         } else {
             // STRATEGY B: Use LLM for other vendors
@@ -83,24 +82,64 @@ Deno.serve(async (req) => {
             return Response.json({ status: "skipped", reason: "No target section detected" });
         }
         
-        // 3. Apply Redaction
-        // pdf-lib coords: (0,0) is bottom-left.
-        // topPct is from top (0.0). 
-        // cutoffY = height * (1 - topPct)
-        
+        // 3. Apply Redaction with Rotation Support
         for (const pageNum of pagesToRedact) {
             if (pageNum < 1 || pageNum > allPages.length) continue;
             const page = allPages[pageNum - 1];
             const { width, height } = page.getSize();
+            const rotation = page.getRotation().angle;
             
-            const cutoffY = height * (1 - topPct); 
-            
-            // Draw white rectangle from bottom up
+            // Calculate coordinates based on rotation to always cover VISUAL BOTTOM
+            let x = 0, y = 0, w = 0, h = 0;
+
+            if (rotation === 0) {
+                // Standard: Bottom is y=0
+                // Redact from y=0 to y=height*(1-topPct)
+                x = 0;
+                y = 0;
+                w = width;
+                h = height * (1 - topPct);
+            } else if (rotation === 90) {
+                // 90 deg clockwise: Visual Bottom is Physical Right (x=width)
+                // Redact strip on the Right side
+                // From x = width*topPct to x = width
+                x = width * topPct;
+                y = 0;
+                w = width * (1 - topPct);
+                h = height;
+            } else if (rotation === 180) {
+                // 180 deg: Visual Bottom is Physical Top (y=height)
+                // Redact strip at Top
+                // From y = height*topPct to y = height
+                x = 0;
+                y = height * topPct;
+                w = width;
+                h = height * (1 - topPct);
+            } else if (rotation === 270 || rotation === -90) {
+                // 270 deg clockwise: Visual Bottom is Physical Left (x=0)
+                // Redact strip on the Left
+                // From x = 0 to x = width*(1-topPct)
+                x = 0;
+                y = 0;
+                w = width * (1 - topPct);
+                h = height;
+            } else {
+                // Fallback for weird rotations (e.g. 45), treat as 0
+                 x = 0;
+                y = 0;
+                w = width;
+                h = height * (1 - topPct);
+            }
+
+            // Draw white rectangle
+            // Add a small buffer (5 units) to overlap cleanly
+            if (rotation === 0) h += 5;
+            if (rotation === 90) x -= 5; w += 5;
+            if (rotation === 180) y -= 5; h += 5;
+            if (rotation === 270) w += 5;
+
             page.drawRectangle({
-                x: 0,
-                y: 0,
-                width: width,
-                height: cutoffY + 5, // Small buffer
+                x, y, width: w, height: h,
                 color: rgb(1, 1, 1),
             });
         }
@@ -123,7 +162,8 @@ Deno.serve(async (req) => {
             status: "success", 
             original_url: targetUrl, 
             new_url: newUrl,
-            cutoff_percentage: topPct
+            cutoff_percentage: topPct,
+            rotation_handled: true
         });
 
     } catch (error) {
