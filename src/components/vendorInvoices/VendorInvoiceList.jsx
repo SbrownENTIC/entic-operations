@@ -56,6 +56,7 @@ export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, 
                 />
               )}
             </th>
+            <th className="p-4 w-12 text-slate-400">#</th>
             <th className="p-4">Vendor</th>
             <th className="p-4">Location</th>
             <th className="p-4">Invoice #</th>
@@ -66,7 +67,7 @@ export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, 
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
-          {invoices.map((invoice) => (
+          {invoices.map((invoice, index) => (
             <tr key={invoice.id} className="hover:bg-slate-50 transition-colors">
               <td className="p-4">
                 {onToggleSelect && (
@@ -78,6 +79,7 @@ export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, 
                   />
                 )}
               </td>
+              <td className="p-4 text-slate-400 text-xs">{index + 1}</td>
               <td className="p-4 font-medium text-slate-900">{invoice.vendor_name || "Unknown Vendor"}</td>
               <td className="p-4 text-slate-600">
                   {invoice.location ? (
