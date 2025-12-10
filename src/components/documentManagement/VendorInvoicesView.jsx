@@ -54,7 +54,7 @@ export default function VendorInvoicesView() {
 
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ['vendor-invoices'],
-    queryFn: () => base44.entities.VendorInvoice.list('-created_date')
+    queryFn: () => base44.entities.VendorInvoice.list('-created_date', 1000)
   });
 
   const { data: supplies = [] } = useQuery({
@@ -225,7 +225,11 @@ export default function VendorInvoicesView() {
 
   const bulkDeleteMutation = useMutation({
     mutationFn: async (ids) => {
-      await Promise.all(ids.map(id => base44.entities.VendorInvoice.delete(id)));
+      const batchSize = 10;
+      for (let i = 0; i < ids.length; i += batchSize) {
+          const batch = ids.slice(i, i + batchSize);
+          await Promise.all(batch.map(id => base44.entities.VendorInvoice.delete(id)));
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vendor-invoices'] });

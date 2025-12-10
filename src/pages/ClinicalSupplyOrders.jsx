@@ -41,7 +41,7 @@ export default function ClinicalSupplyOrders() {
 
   const { data: orders = [], isLoading: ordersLoading } = useQuery({
     queryKey: ['supply-orders', 'clinical'],
-    queryFn: () => base44.entities.SupplyOrder.filter({ category: 'clinical' }, '-order_date')
+    queryFn: () => base44.entities.SupplyOrder.filter({ category: 'clinical' }, '-order_date', 1000)
   });
 
   const createMutation = useMutation({
@@ -94,7 +94,11 @@ export default function ClinicalSupplyOrders() {
 
   const bulkDeleteMutation = useMutation({
     mutationFn: async (ids) => {
-      await Promise.all(ids.map(id => base44.entities.SupplyOrder.delete(id)));
+      const batchSize = 10;
+      for (let i = 0; i < ids.length; i += batchSize) {
+        const batch = ids.slice(i, i + batchSize);
+        await Promise.all(batch.map(id => base44.entities.SupplyOrder.delete(id)));
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['supply-orders'] });
