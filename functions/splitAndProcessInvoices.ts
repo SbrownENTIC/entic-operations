@@ -29,13 +29,13 @@ Deno.serve(async (req) => {
         const totalPages = pdfDoc.getPageCount();
 
         // 4. Use LLM to analyze the document and find split points
-        // We ask for specific metadata + page ranges
+        // We ask for specific metadata + page ranges + line items
         const llmResponse = await base44.integrations.Core.InvokeLLM({
             prompt: `
             I have a PDF file that contains one or more invoices merged together. 
             The file has ${totalPages} pages.
             
-            Your task is to identify the start and end page numbers for EACH distinct invoice in this file.
+            Your task is to identify the start and end page numbers for EACH distinct invoice in this file, AND extract detailed line items for each invoice.
             
             Please analyze the document and return a JSON object with an 'invoices' array.
             Each item in the array must represent one invoice and contain:
@@ -45,11 +45,18 @@ Deno.serve(async (req) => {
             - total_amount (number)
             - start_page (integer, 1-based index)
             - end_page (integer, 1-based index)
+            - line_items (array of objects):
+              - description (string)
+              - item_code (string, if visible)
+              - quantity (number)
+              - unit_price (number)
+              - total_price (number)
             
             Rules:
             1. The page ranges must be contiguous and non-overlapping.
             2. Every page from 1 to ${totalPages} should theoretically be covered, unless there are blank divider pages.
-            3. Be precise.
+            3. Be precise with page ranges.
+            4. Extract line items as accurately as possible.
             `,
             file_urls: [file_url],
             response_json_schema: {
@@ -65,7 +72,20 @@ Deno.serve(async (req) => {
                                 invoice_date: { type: "string" },
                                 total_amount: { type: "number" },
                                 start_page: { type: "integer" },
-                                end_page: { type: "integer" }
+                                end_page: { type: "integer" },
+                                line_items: {
+                                    type: "array",
+                                    items: {
+                                        type: "object",
+                                        properties: {
+                                            description: { type: "string" },
+                                            item_code: { type: "string" },
+                                            quantity: { type: "number" },
+                                            unit_price: { type: "number" },
+                                            total_price: { type: "number" }
+                                        }
+                                    }
+                                }
                             },
                             required: ["vendor_name", "start_page", "end_page"]
                         }
