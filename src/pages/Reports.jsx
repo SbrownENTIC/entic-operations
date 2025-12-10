@@ -12,6 +12,7 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import PaymentTrackingReport from "../components/reports/PaymentTrackingReport";
 import MonthlyFinancialsReport from "../components/reports/MonthlyFinancialsReport";
+import SupplyOrderReportView from "../components/reports/SupplyOrderReportView";
 import { PaymentTrendChart, InvoiceAgingChart, IncomeDistributionChart, SupplySpendingChart } from "../components/reports/ReportCharts";
 
 export default function Reports() {
@@ -19,7 +20,7 @@ export default function Reports() {
     start: '',
     end: ''
   });
-  const [supplyOrderDetail, setSupplyOrderDetail] = useState(null);
+  // supplyOrderDetail state moved to SupplyOrderReportView component
 
   const { data: payments = [], isLoading: paymentsLoading } = useQuery({
     queryKey: ['payments'],
@@ -434,11 +435,11 @@ export default function Reports() {
   };
 
   // REPORT 5: Supply Orders Report
-  const generateSupplyOrderReport = () => {
-    const filteredOrders = filterByDateRange(supplyOrders, 'order_date');
+  const generateSupplyOrderReport = (ordersToExport, reportTitle, filename) => {
+    const filteredOrders = filterByDateRange(ordersToExport, 'order_date');
 
     const rows = [
-      ['Supply Orders Report', '', '', '', '', '', '', '', ''],
+      [reportTitle, '', '', '', '', '', '', '', ''],
       ['', '', '', '', '', '', '', '', ''],
       ['AVERAGE BY LOCATION', '', '', '', '', '', '', '', ''],
       ['Location', 'Number of Orders', 'Total Spent', 'Average Order Value', '', '', '', '', '']
@@ -521,7 +522,7 @@ export default function Reports() {
     const grandAverage = filteredOrders.length > 0 ? grandTotal / filteredOrders.length : 0;
     rows.push(['All Orders', filteredOrders.length, grandTotal, grandAverage, '', '', '', '', '']);
 
-    exportToCSV(rows, 'supply_orders_report');
+    exportToCSV(rows, filename);
   };
 
   // REPORT 6: Unlinked Invoices Report
