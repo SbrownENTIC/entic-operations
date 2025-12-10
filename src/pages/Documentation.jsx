@@ -163,33 +163,11 @@ function ForceRedactHenryButton() {
     }
   };
 
-  const handleTestDebug = async () => {
-      setTestLoading(true);
-      toast({ title: "Debug Test Started", description: "Processing one invoice..." });
-      try {
-          const res = await base44.functions.invoke('debugRedactionV2');
-          if (res.data.new_url) {
-              window.open(res.data.new_url, '_blank');
-              toast({ title: "Success", description: "Opened redacted PDF in new tab." });
-          } else {
-              toast({ title: "Failed", description: "No URL returned", variant: "destructive" });
-          }
-      } catch (err) {
-          toast({ title: "Error", description: err.message, variant: "destructive" });
-      } finally {
-          setTestLoading(false);
-      }
-  };
-
   return (
     <div className="flex gap-2">
       <Button size="sm" variant="outline" onClick={handleForce} disabled={loading} className="h-7 text-xs gap-1 bg-red-50 text-red-700 border-red-200 hover:bg-red-100">
         <Shield className="w-3 h-3" />
         {loading ? "Processing..." : "Force Redact All"}
-      </Button>
-      <Button size="sm" variant="outline" onClick={handleTestDebug} disabled={testLoading} className="h-7 text-xs gap-1 bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100">
-        <Shield className="w-3 h-3" />
-        {testLoading ? "Testing..." : "Test Debug 1 Invoice"}
       </Button>
     </div>
   );
@@ -656,7 +634,7 @@ export default function Documentation() {
                   </div>
                   <p className="text-xs text-slate-500 mt-1">
                     • Specifically targets Henry Schein invoices.<br/>
-                    • Applies the new aggressive footer removal (bottom 25%) to existing files.<br/>
+                    • Applies the automatic redaction (bottom 10%) to existing files.<br/>
                     • Use this if old invoices still show the footer.
                   </p>
                 </div>
