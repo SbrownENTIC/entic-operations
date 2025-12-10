@@ -40,6 +40,8 @@ export default function VendorInvoiceReviewForm({ invoice, supplies = [], onSave
         total_amount: invoice.total_amount || 0,
         location: invoice.location || "",
         notes: invoice.notes || "",
+        invoice_type: invoice.invoice_type || "invoice",
+        related_invoice_number: invoice.related_invoice_number || "",
         extracted_data: invoice.extracted_data || { line_items: [] }
       });
     }

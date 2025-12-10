@@ -2,7 +2,7 @@ import React from "react";
 import { format, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, Eye, ExternalLink, CheckCircle, AlertCircle, Clock, Trash2 } from "lucide-react";
+import { FileText, Eye, ExternalLink, CheckCircle, AlertCircle, Clock, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -12,10 +12,18 @@ import EmptyState from "@/components/ui/EmptyState";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
-export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, selectedIds, onToggleSelect }) {
+export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, selectedIds, onToggleSelect, onSort, sortField, sortDirection }) {
   if (isLoading) {
     return <div className="p-8 text-center text-slate-500">Loading invoices...</div>;
   }
+
+  const SortIcon = ({ field }) => {
+    if (!onSort) return null;
+    if (sortField !== field) return <ArrowUpDown className="w-4 h-4 ml-1 inline text-slate-300" />;
+    return sortDirection === 'asc' ? 
+      <ArrowUp className="w-4 h-4 ml-1 inline text-blue-600" /> : 
+      <ArrowDown className="w-4 h-4 ml-1 inline text-blue-600" />;
+  };
 
   if (invoices.length === 0) {
     return (
@@ -46,7 +54,7 @@ export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, 
       <table className="w-full text-sm text-left">
         <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
           <tr>
-            <th className="p-4 w-10">
+            <th className="p-4 w-10 bg-slate-50">
               {onToggleSelect && (
                 <input
                   type="checkbox"
@@ -56,15 +64,50 @@ export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, 
                 />
               )}
             </th>
-            <th className="p-4 w-12 text-slate-400">#</th>
-            <th className="p-4">Vendor</th>
-            <th className="p-4">Location</th>
-            <th className="p-4">Invoice #</th>
-            <th className="p-4">Type</th>
-            <th className="p-4">Date</th>
-            <th className="p-4">Amount</th>
-            <th className="p-4">Status</th>
-            <th className="p-4 text-right">Actions</th>
+            <th className="p-4 w-12 text-slate-400 font-semibold bg-slate-50">#</th>
+            <th 
+              className="p-4 font-semibold cursor-pointer hover:bg-slate-100 transition-colors bg-slate-50"
+              onClick={() => onSort && onSort('vendor_name')}
+            >
+              Vendor <SortIcon field="vendor_name" />
+            </th>
+            <th 
+              className="p-4 font-semibold cursor-pointer hover:bg-slate-100 transition-colors bg-slate-50"
+              onClick={() => onSort && onSort('location')}
+            >
+              Location <SortIcon field="location" />
+            </th>
+            <th 
+              className="p-4 font-semibold cursor-pointer hover:bg-slate-100 transition-colors bg-slate-50"
+              onClick={() => onSort && onSort('invoice_number')}
+            >
+              Invoice # <SortIcon field="invoice_number" />
+            </th>
+            <th 
+              className="p-4 font-semibold cursor-pointer hover:bg-slate-100 transition-colors bg-slate-50"
+              onClick={() => onSort && onSort('invoice_type')}
+            >
+              Type <SortIcon field="invoice_type" />
+            </th>
+            <th 
+              className="p-4 font-semibold cursor-pointer hover:bg-slate-100 transition-colors bg-slate-50"
+              onClick={() => onSort && onSort('invoice_date')}
+            >
+              Date <SortIcon field="invoice_date" />
+            </th>
+            <th 
+              className="p-4 font-semibold cursor-pointer hover:bg-slate-100 transition-colors bg-slate-50"
+              onClick={() => onSort && onSort('total_amount')}
+            >
+              Amount <SortIcon field="total_amount" />
+            </th>
+            <th 
+              className="p-4 font-semibold cursor-pointer hover:bg-slate-100 transition-colors bg-slate-50"
+              onClick={() => onSort && onSort('status')}
+            >
+              Status <SortIcon field="status" />
+            </th>
+            <th className="p-4 text-right font-semibold bg-slate-50">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">

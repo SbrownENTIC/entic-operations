@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, FileText, UploadCloud, Loader2, Files } from "lucide-react";
+import { Search, Plus, FileText, UploadCloud, Loader2, Files, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import VendorInvoiceList from "../components/vendorInvoices/VendorInvoiceList";
 import VendorInvoiceUpload from "../components/vendorInvoices/VendorInvoiceUpload";
@@ -28,6 +28,8 @@ export default function VendorInvoices() {
   const [selectedInvoices, setSelectedInvoices] = useState([]);
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
+  const [sortField, setSortField] = useState('created_date');
+  const [sortDirection, setSortDirection] = useState('desc');
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const location = useLocation();
@@ -142,6 +144,35 @@ export default function VendorInvoices() {
     return matchesSearch && matchesTab;
   });
 
+  const sortedInvoices = [...filteredInvoices].sort((a, b) => {
+    let aValue, bValue;
+    
+    if (sortField === 'total_amount') {
+      aValue = a.total_amount || 0;
+      bValue = b.total_amount || 0;
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    } else if (sortField === 'invoice_date' || sortField === 'created_date') {
+      aValue = a[sortField] ? new Date(a[sortField]) : new Date(0);
+      bValue = b[sortField] ? new Date(b[sortField]) : new Date(0);
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    } else {
+      aValue = a[sortField] || '';
+      bValue = b[sortField] || '';
+    }
+    
+    const comparison = aValue.toString().toLowerCase().localeCompare(bValue.toString().toLowerCase());
+    return sortDirection === 'asc' ? comparison : -comparison;
+  });
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
   const handleUploadComplete = () => {
     setShowUpload(false);
     queryClient.invalidateQueries({ queryKey: ['vendor-invoices'] });
@@ -253,11 +284,14 @@ export default function VendorInvoices() {
           </CardHeader>
           <CardContent className="p-0 flex-1 overflow-y-auto">
             <VendorInvoiceList 
-              invoices={filteredInvoices} 
+              invoices={sortedInvoices} 
               isLoading={isLoading} 
               onDeleteClick={setDeleteConfirm}
               selectedIds={selectedInvoices}
               onToggleSelect={handleToggleSelect}
+              onSort={handleSort}
+              sortField={sortField}
+              sortDirection={sortDirection}
             />
           </CardContent>
         </Card>
