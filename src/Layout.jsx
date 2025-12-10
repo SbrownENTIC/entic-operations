@@ -107,11 +107,11 @@ const navigationItems = [
     icon: BarChart3,
   },
   {
-    title: "Vendor Invoices",
-    url: createPageUrl("VendorInvoices"),
+    title: "Document Management",
+    url: createPageUrl("DocumentManagement"),
     icon: FileText,
   },
-];
+  ];
 
 const moreMenuItems = [
   {
