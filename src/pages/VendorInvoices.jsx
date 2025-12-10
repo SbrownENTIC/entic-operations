@@ -168,9 +168,9 @@ export default function VendorInvoices() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div className="h-[calc(100vh-8rem)] bg-slate-50 p-6 flex flex-col">
+      <div className="max-w-7xl mx-auto w-full h-full flex flex-col gap-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Vendor Invoices</h1>
             <p className="text-slate-600">Manage and process electronic vendor invoices</p>
@@ -223,8 +223,8 @@ export default function VendorInvoices() {
             </TabsList>
         </Tabs>
 
-        <Card className="border-slate-200 shadow-sm">
-          <CardHeader className="border-b border-slate-100">
+        <Card className="border-slate-200 shadow-sm flex-1 flex flex-col min-h-0 overflow-hidden">
+          <CardHeader className="border-b border-slate-100 shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4 flex-1">
                 <Search className="w-5 h-5 text-slate-400" />
@@ -251,7 +251,7 @@ export default function VendorInvoices() {
               )}
             </div>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="p-0 flex-1 overflow-y-auto">
             <VendorInvoiceList 
               invoices={filteredInvoices} 
               isLoading={isLoading} 
