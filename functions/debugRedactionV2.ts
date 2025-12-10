@@ -7,13 +7,29 @@ Deno.serve(async (req) => {
         
         // Fetch most recent Henry Schein invoice for debugging
         const invoices = await base44.asServiceRole.entities.VendorInvoice.list('-created_date', 50);
-        const target = invoices.find(inv => (inv.vendor_name || '').toLowerCase().includes('henry'));
+        
+        // Find a "clean" invoice (not already debugged/redacted)
+        const target = invoices.find(inv => {
+            const name = (inv.vendor_name || '').toLowerCase();
+            const url = (inv.document_url || '').toLowerCase();
+            return name.includes('henry') && !url.includes('debug') && !url.includes('redacted');
+        });
 
         if (!target) {
-            return Response.json({ error: "No Henry Schein invoice found" }, { status: 404 });
+            // Fallback: If all are dirty, just take the first Henry one, but warn in console
+            const fallback = invoices.find(inv => (inv.vendor_name || '').toLowerCase().includes('henry'));
+            if (!fallback) return Response.json({ error: "No Henry Schein invoice found" }, { status: 404 });
+            console.log("Warning: Using a potentially dirty invoice as no clean ones were found.");
+            // We'll proceed with fallback, but the user might see previous redactions.
+            // Let's try to get the fallback, but maybe we can upload a clean version if we had the original... impossible.
+            // We will proceed with the fallback.
+            var activeTarget = fallback;
+        } else {
+            var activeTarget = target;
         }
         
-        const targetUrl = target.document_url;
+        const targetUrl = activeTarget.document_url;
+        
         if (!targetUrl) return Response.json({ error: "No document URL" }, { status: 400 });
 
         // Download PDF
