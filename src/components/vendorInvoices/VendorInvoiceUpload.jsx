@@ -26,12 +26,25 @@ export default function VendorInvoiceUpload({ onClose, onUploadComplete }) {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
 
       // 2. Process with AI extraction
-      await base44.functions.invoke('processVendorInvoice', { file_url });
-
+      const response = await base44.functions.invoke('processVendorInvoice', { file_url });
+      
       onUploadComplete();
     } catch (error) {
       console.error("Upload failed:", error);
-      // In a real app, show error toast here
+      let errorMsg = "Upload failed";
+      
+      // Handle specific duplicate error from backend
+      if (error.response && error.response.status === 409) {
+          if (error.response.data && error.response.data.error) {
+              errorMsg = error.response.data.error;
+          } else {
+              errorMsg = "Duplicate invoice detected.";
+          }
+          alert(errorMsg); // Use alert or toast for visibility
+      } else {
+          // General error
+          alert("Failed to upload and process invoice. Please try again.");
+      }
     } finally {
       setIsUploading(false);
     }

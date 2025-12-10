@@ -114,18 +114,39 @@ Deno.serve(async (req) => {
             });
 
             if (uploadRes && uploadRes.file_url) {
-                // Create the Entity
-                const record = await base44.entities.VendorInvoice.create({
-                    vendor_name: inv.vendor_name || 'Unknown Vendor',
-                    invoice_number: inv.invoice_number || `AUTO-${Date.now()}`,
-                    invoice_date: inv.invoice_date, // Might need validation/formatting
-                    total_amount: inv.total_amount,
-                    status: (inv.vendor_name?.toLowerCase().includes('henry schein') || inv.vendor_name?.toLowerCase().includes('henry shrine')) ? 'approved' : 'pending_review',
-                    document_url: uploadRes.file_url,
-                    notes: `Auto-split from multi-page PDF. Pages ${inv.start_page}-${inv.end_page}.`,
-                    extracted_data: inv // Save the raw extraction just in case
-                });
-                results.push(record);
+                // Check for duplicates
+                let isDuplicate = false;
+                if (inv.invoice_number) {
+                    const existing = await base44.entities.VendorInvoice.filter({ invoice_number: inv.invoice_number });
+                    // Simple check: if any existing invoice has this number and similar vendor name
+                    if (existing && existing.length > 0) {
+                         const normalizedNewVendor = (inv.vendor_name || '').toLowerCase();
+                         const duplicateMatch = existing.find(ex => 
+                             (ex.vendor_name || '').toLowerCase().includes(normalizedNewVendor) || 
+                             normalizedNewVendor.includes((ex.vendor_name || '').toLowerCase())
+                         );
+                         
+                         if (duplicateMatch) {
+                             console.log(`Skipping duplicate invoice: ${inv.invoice_number}`);
+                             isDuplicate = true;
+                         }
+                    }
+                }
+
+                if (!isDuplicate) {
+                    // Create the Entity
+                    const record = await base44.entities.VendorInvoice.create({
+                        vendor_name: inv.vendor_name || 'Unknown Vendor',
+                        invoice_number: inv.invoice_number || `AUTO-${Date.now()}`,
+                        invoice_date: inv.invoice_date, // Might need validation/formatting
+                        total_amount: inv.total_amount,
+                        status: (inv.vendor_name?.toLowerCase().includes('henry schein') || inv.vendor_name?.toLowerCase().includes('henry shrine')) ? 'approved' : 'pending_review',
+                        document_url: uploadRes.file_url,
+                        notes: `Auto-split from multi-page PDF. Pages ${inv.start_page}-${inv.end_page}.`,
+                        extracted_data: inv // Save the raw extraction just in case
+                    });
+                    results.push(record);
+                }
             }
         }
 
