@@ -42,10 +42,12 @@ export default function VendorInvoiceForm({ invoice, onSubmit, onCancel, isLoadi
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 py-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="vendor_name">Vendor Name</Label>
+    <form onSubmit={handleSubmit} className="py-4">
+      <div className="flex flex-col lg:flex-row gap-6">
+        <div className="flex-1 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="vendor_name">Vendor Name</Label>
           <Input
             id="vendor_name"
             name="vendor_name"
@@ -129,32 +131,44 @@ export default function VendorInvoiceForm({ invoice, onSubmit, onCancel, isLoadi
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="notes">Notes</Label>
-        <Textarea
-          id="notes"
-          name="notes"
-          value={formData.notes}
-          onChange={handleChange}
-          rows={3}
-        />
-      </div>
+          <div className="space-y-2">
+            <Label htmlFor="notes">Notes</Label>
+            <Textarea
+              id="notes"
+              name="notes"
+              value={formData.notes}
+              onChange={handleChange}
+              rows={3}
+            />
+          </div>
 
-      <DialogFooter className="pt-4">
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            'Save Changes'
-          )}
-        </Button>
-      </DialogFooter>
+          <DialogFooter className="pt-4">
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save Changes'
+              )}
+            </Button>
+          </DialogFooter>
+        </div>
+
+        {invoice?.document_url && (
+          <div className="flex-1 border rounded-lg overflow-hidden bg-slate-50 h-[600px] lg:h-auto">
+            <iframe
+              src={`${invoice.document_url}#toolbar=0&navpanes=0&scrollbar=0`}
+              className="w-full h-full"
+              title="Invoice PDF"
+            />
+          </div>
+        )}
+      </div>
     </form>
   );
 }
