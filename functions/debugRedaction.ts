@@ -43,12 +43,11 @@ Deno.serve(async (req) => {
                 x = 0; y = 0; w = width; h = height * bottomPct;
             }
 
-            // Draw RED rectangle (Transparent-ish to see what's covered?) 
-            // No, user wants to see the box. Opaque Red.
+            // Draw RED rectangle (Semi-transparent to see text behind)
             page.drawRectangle({
                 x, y, width: w, height: h,
                 color: rgb(1, 0, 0), // RED
-                opacity: 0.5, // 50% opacity so they can see what is being covered
+                opacity: 0.5,
             });
         }
 

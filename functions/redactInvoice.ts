@@ -34,14 +34,13 @@ Deno.serve(async (req) => {
 
         if (vendorName.includes('henry') || vendorName.includes('schein')) {
             // STRATEGY A: Force Redaction for Henry Schein
-            // Adjusted to 18% based on user feedback (35% was too big)
+            // FIXED: Redact bottom 18% (was 35%) to cover footer + distribution info
             shouldRedact = true;
             bottomPct = 0.18; 
             pagesToRedact = allPages.map((_, i) => i + 1); 
             console.log("Redacting Henry Schein: Bottom 18%");
         } else {
             // STRATEGY B: Use LLM for other vendors
-            // ... (Keep existing LLM logic if needed, or default to 15%)
              const analyzeRes = await base44.asServiceRole.integrations.Core.InvokeLLM({
                 prompt: `
                 Analyze this invoice PDF page(s).
@@ -61,7 +60,7 @@ Deno.serve(async (req) => {
             const analysis = typeof analyzeRes === 'string' ? JSON.parse(analyzeRes) : analyzeRes;
             shouldRedact = analysis.needs_redaction;
             bottomPct = analysis.redaction_percentage || 0.15; // Default to 15%
-            pagesToRedact = [1]; // Usually just first page for others? Or all? Let's assume 1 for LLM unless specified
+            pagesToRedact = [1]; 
         }
 
         if (!shouldRedact) {
