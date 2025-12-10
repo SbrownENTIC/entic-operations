@@ -52,6 +52,7 @@ export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, 
               )}
             </th>
             <th className="p-4">Vendor</th>
+            <th className="p-4">Location</th>
             <th className="p-4">Invoice #</th>
             <th className="p-4">Date</th>
             <th className="p-4">Amount</th>
@@ -73,6 +74,15 @@ export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, 
                 )}
               </td>
               <td className="p-4 font-medium text-slate-900">{invoice.vendor_name || "Unknown Vendor"}</td>
+              <td className="p-4 text-slate-600">
+                  {invoice.location ? (
+                      <Badge variant="outline" className="font-normal">
+                          {invoice.location}
+                      </Badge>
+                  ) : (
+                      <span className="text-slate-400 text-xs italic">Unassigned</span>
+                  )}
+              </td>
               <td className="p-4 text-slate-600">{invoice.invoice_number || "-"}</td>
               <td className="p-4 text-slate-600">
                 {invoice.invoice_date ? format(parseISO(invoice.invoice_date), 'MMM d, yyyy') : '-'}

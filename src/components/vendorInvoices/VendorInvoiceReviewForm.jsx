@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -19,6 +20,7 @@ export default function VendorInvoiceReviewForm({ invoice, supplies = [], onSave
     invoice_date: "",
     due_date: "",
     total_amount: "",
+    location: "",
     notes: "",
     extracted_data: { line_items: [] }
   });
@@ -34,6 +36,7 @@ export default function VendorInvoiceReviewForm({ invoice, supplies = [], onSave
         invoice_date: invoice.invoice_date || "",
         due_date: invoice.due_date || "",
         total_amount: invoice.total_amount || 0,
+        location: invoice.location || "",
         notes: invoice.notes || "",
         extracted_data: invoice.extracted_data || { line_items: [] }
       });
@@ -177,6 +180,25 @@ export default function VendorInvoiceReviewForm({ invoice, supplies = [], onSave
           <div>
             <Badge variant="outline" className="capitalize">{invoice.status?.replace('_', ' ')}</Badge>
           </div>
+        </div>
+        
+        <div className="space-y-2">
+          <Label>Location</Label>
+          <Select 
+            value={formData.location} 
+            onValueChange={(value) => handleChange('location', value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select location" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Glastonbury">Glastonbury</SelectItem>
+              <SelectItem value="Manchester">Manchester</SelectItem>
+              <SelectItem value="Bloomfield">Bloomfield</SelectItem>
+              <SelectItem value="Farmington">Farmington</SelectItem>
+              <SelectItem value="General / Admin">General / Admin</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

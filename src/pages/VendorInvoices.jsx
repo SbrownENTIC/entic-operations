@@ -9,7 +9,7 @@ import { useLocation } from "react-router-dom";
 import VendorInvoiceList from "../components/vendorInvoices/VendorInvoiceList";
 import VendorInvoiceUpload from "../components/vendorInvoices/VendorInvoiceUpload";
 import { useToast } from "@/components/ui/use-toast";
-import UnderConstruction from "@/components/ui/UnderConstruction";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,6 +27,7 @@ export default function VendorInvoices() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [selectedInvoices, setSelectedInvoices] = useState([]);
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+  const [activeTab, setActiveTab] = useState("all");
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const location = useLocation();
@@ -132,10 +133,14 @@ export default function VendorInvoices() {
     }
   });
 
-  const filteredInvoices = invoices.filter(inv => 
-    inv.vendor_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    inv.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredInvoices = invoices.filter(inv => {
+    const matchesSearch = inv.vendor_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    inv.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesTab = activeTab === "all" || inv.location === activeTab;
+    
+    return matchesSearch && matchesTab;
+  });
 
   const handleUploadComplete = () => {
     setShowUpload(false);
@@ -164,7 +169,6 @@ export default function VendorInvoices() {
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
-      <UnderConstruction pageName="Vendor Invoices" />
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
@@ -208,6 +212,17 @@ export default function VendorInvoices() {
             onUploadComplete={handleUploadComplete}
           />
         )}
+
+        <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="bg-white border shadow-sm p-1 h-auto flex-wrap">
+                <TabsTrigger value="all">All Locations</TabsTrigger>
+                <TabsTrigger value="Glastonbury">Glastonbury</TabsTrigger>
+                <TabsTrigger value="Manchester">Manchester</TabsTrigger>
+                <TabsTrigger value="Bloomfield">Bloomfield</TabsTrigger>
+                <TabsTrigger value="Farmington">Farmington</TabsTrigger>
+                <TabsTrigger value="General / Admin">General / Admin</TabsTrigger>
+            </TabsList>
+        </Tabs>
 
         <Card className="border-slate-200 shadow-sm">
           <CardHeader className="border-b border-slate-100">
