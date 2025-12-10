@@ -35,6 +35,8 @@ export default function ClinicalSupplyOrders() {
   const [sortField, setSortField] = useState('order_date');
   const [sortDirection, setSortDirection] = useState('desc');
   const [summaryOrder, setSummaryOrder] = useState(null);
+  const [selectedOrders, setSelectedOrders] = useState([]);
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: orders = [], isLoading: ordersLoading } = useQuery({
@@ -89,6 +91,33 @@ export default function ClinicalSupplyOrders() {
       setDeletingOrder(null);
     }
   });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (ids) => {
+      await Promise.all(ids.map(id => base44.entities.SupplyOrder.delete(id)));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['supply-orders'] });
+      setSelectedOrders([]);
+      setBulkDeleteConfirm(false);
+    }
+  });
+
+  const handleToggleSelect = (id, checked) => {
+    if (id === 'all') {
+      if (checked) {
+        setSelectedOrders(filteredOrders.map(o => o.id));
+      } else {
+        setSelectedOrders([]);
+      }
+    } else {
+      if (checked) {
+        setSelectedOrders(prev => [...prev, id]);
+      } else {
+        setSelectedOrders(prev => prev.filter(i => i !== id));
+      }
+    }
+  };
 
   const handleSubmit = (data) => {
     if (editingOrder) {
@@ -240,6 +269,15 @@ export default function ClinicalSupplyOrders() {
                   <SelectItem value="received">Received</SelectItem>
                 </SelectContent>
               </Select>
+              {selectedOrders.length > 0 && (
+                <Button 
+                  variant="destructive" 
+                  size="sm"
+                  onClick={() => setBulkDeleteConfirm(true)}
+                >
+                  Delete Selected ({selectedOrders.length})
+                </Button>
+              )}
             </div>
             </CardHeader>
             <CardContent className="p-0">
@@ -247,6 +285,14 @@ export default function ClinicalSupplyOrders() {
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                   <tr>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700 bg-slate-50 w-10">
+                      <input
+                        type="checkbox"
+                        checked={filteredOrders.length > 0 && selectedOrders.length === filteredOrders.length}
+                        onChange={(e) => handleToggleSelect('all', e.target.checked)}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700 bg-slate-50 w-16">
                       #
                     </th>
@@ -292,6 +338,14 @@ export default function ClinicalSupplyOrders() {
                 <tbody>
                   {sortedOrders.map((order, index) => (
                    <tr key={order.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                     <td className="p-4">
+                       <input
+                         type="checkbox"
+                         checked={selectedOrders.includes(order.id)}
+                         onChange={(e) => handleToggleSelect(order.id, e.target.checked)}
+                         className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                       />
+                     </td>
                      <td className="p-4 text-slate-500 font-medium">{index + 1}</td>
                      <td className="p-4 font-medium text-slate-900">{order.order_number || '-'}</td>
                      <td className="p-4 text-slate-600">{order.vendor}</td>
@@ -458,6 +512,26 @@ export default function ClinicalSupplyOrders() {
                 className="bg-red-600 hover:bg-red-700"
               >
                 Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={bulkDeleteConfirm} onOpenChange={setBulkDeleteConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Multiple Orders</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete {selectedOrders.length} selected orders? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => bulkDeleteMutation.mutate(selectedOrders)}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                {bulkDeleteMutation.isPending ? "Deleting..." : "Delete All"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
