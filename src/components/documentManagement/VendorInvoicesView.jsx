@@ -112,7 +112,7 @@ export default function VendorInvoicesView() {
   const splitMutation = useMutation({
     mutationFn: async (files) => {
       const fileArray = Array.from(files);
-      const BATCH_SIZE = 3; // Process 3 files at a time to avoid rate limits
+      const BATCH_SIZE = 50; // Process 50 files at a time
       const results = [];
       
       toast({

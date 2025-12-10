@@ -25,15 +25,20 @@ Deno.serve(async (req) => {
             Analyze this invoice PDF page(s).
             I need to redact everything located BELOW the summary strip to hide the footer containing sensitive distribution info.
             
-            Look for a horizontal section containing the text "Code Status Key" AND "Invoice Total". This is the 'marker'.
+            I need to redact the footer section that contains sensitive distribution information.
+            
+            1. Look for a horizontal strip containing "Code Status Key" OR "Invoice Total".
+            2. Look for "Distribution Names" or "Distribution Address".
+            3. Look for ANY content at the very bottom that looks like internal routing codes or a list of names/addresses.
             
             Return a JSON object:
-            - "needs_redaction": boolean (true if you found this marker or a 'Distribution Names/Address' footer)
-            - "pages": array of integers (1-based page numbers to redact)
-            - "redaction_start_y_percentage": number (The Y-coordinate of the BOTTOM edge of the 'Code Status Key' marker strip, as a percentage from the TOP of the page (0.0 to 1.0). e.g., 0.85 means the strip ends at 85% down the page. Everything below this should be redacted.)
+            - "needs_redaction": boolean (true if you found any footer content to redact, or if you are unsure but it looks like a standard invoice with a footer)
+            - "pages": array of integers (1-based page numbers to redact, usually all pages have this footer)
+            - "redaction_start_y_percentage": number (The Y-coordinate where the sensitive footer BEGINS, as a percentage from the TOP of the page (0.0 to 1.0). e.g. 0.85 means the footer starts at 85% down the page.)
             
-            If you can't find the "Code Status Key" strip but you see "Distribution Names/Address" at the bottom, set redaction_start_y_percentage to where that footer begins (e.g. 0.88).
-            If unsure, default to 0.85 (bottom 15%).
+            If you see "Code Status Key", start redaction JUST ABOVE that line.
+            If you don't see specific markers but see a footer block at the bottom, redact it.
+            If you are completely unsure, default to 0.82 (redact the bottom 18% to be safe).
             `,
             file_urls: [targetUrl],
             response_json_schema: {
