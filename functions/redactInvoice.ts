@@ -34,9 +34,9 @@ Deno.serve(async (req) => {
 
         if (vendorName.includes('henry') || vendorName.includes('schein')) {
             // STRATEGY A: Force Redaction for Henry Schein
-            // FIXED: Redact bottom 18% (was 35%) to cover footer + distribution info
+            // FIXED: Redact bottom 13% (reduced from 18%) to cover footer + distribution info
             shouldRedact = true;
-            bottomPct = 0.18; 
+            bottomPct = 0.13; 
             pagesToRedact = allPages.map((_, i) => i + 1); 
             console.log("Redacting Henry Schein: Bottom 18%");
         } else {
