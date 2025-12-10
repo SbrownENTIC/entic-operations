@@ -5,21 +5,9 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         
-        // 1. Auth Check
-        let user;
-        try {
-            user = await base44.auth.me();
-        } catch (authError) {
-            console.error("Auth check failed:", authError);
-            return Response.json({ 
-                error: 'Authentication failed', 
-                details: authError.message 
-            }, { status: 401 });
-        }
-
-        if (!user) {
-            return Response.json({ error: 'Unauthorized - No user found' }, { status: 401 });
-        }
+        // 1. Auth Check - SKIPPED for public app
+        // We will use service role for operations since there are no logged-in users.
+        // const user = await base44.auth.me();
 
         const { file_url } = await req.json();
 
@@ -40,7 +28,7 @@ Deno.serve(async (req) => {
 
         // 4. Use LLM to analyze the document and find split points
         // We ask for specific metadata + page ranges + line items
-        const llmResponse = await base44.integrations.Core.InvokeLLM({
+        const llmResponse = await base44.asServiceRole.integrations.Core.InvokeLLM({
             prompt: `
             I have a PDF file that contains one or more invoices merged together. 
             The file has ${totalPages} pages.
@@ -139,7 +127,7 @@ Deno.serve(async (req) => {
             const fileName = `split_invoice_${inv.invoice_number || 'unknown'}_${Date.now()}.pdf`;
             const fileObj = new File([pdfBytes], fileName, { type: 'application/pdf' });
 
-            const uploadRes = await base44.integrations.Core.UploadFile({
+            const uploadRes = await base44.asServiceRole.integrations.Core.UploadFile({
                 file: fileObj
             });
 
@@ -147,7 +135,7 @@ Deno.serve(async (req) => {
                 // Check for duplicates
                 let isDuplicate = false;
                 if (inv.invoice_number) {
-                    const existing = await base44.entities.VendorInvoice.filter({ invoice_number: inv.invoice_number });
+                    const existing = await base44.asServiceRole.entities.VendorInvoice.filter({ invoice_number: inv.invoice_number });
                     // Simple check: if any existing invoice has this number and similar vendor name
                     if (existing && existing.length > 0) {
                          const normalizedNewVendor = (inv.vendor_name || '').toLowerCase();
@@ -165,7 +153,7 @@ Deno.serve(async (req) => {
 
                 if (!isDuplicate) {
                     // Create the Entity
-                    const record = await base44.entities.VendorInvoice.create({
+                    const record = await base44.asServiceRole.entities.VendorInvoice.create({
                         vendor_name: inv.vendor_name || 'Unknown Vendor',
                         invoice_number: inv.invoice_number || `AUTO-${Date.now()}`,
                         invoice_date: inv.invoice_date, // Might need validation/formatting
