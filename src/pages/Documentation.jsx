@@ -127,18 +127,21 @@ function ForceRedactHenryButton() {
   const queryClient = useQueryClient();
 
   const handleForce = async () => {
-    if (!confirm("Force re-redact all Henry Schein invoices? This will overwrite current files.")) return;
+    if (!confirm("Force re-redact all Henry Schein invoices with the new Bottom 35% rule? This will overwrite current files.")) return;
 
     setLoading(true);
     toast({ title: "Redaction Started", description: "Processing Henry Schein invoices..." });
 
     try {
       const res = await base44.functions.invoke('forceRedactAll');
+      
+      // Force a hard refresh of the list data
+      await queryClient.resetQueries({ queryKey: ['vendor-invoices'] });
       await queryClient.invalidateQueries({ queryKey: ['vendor-invoices'] });
 
       toast({ 
         title: "Completed", 
-        description: `Re-redacted ${res.data.count} invoices.`
+        description: `Successfully redacted ${res.data.count} invoices. Please refresh the page if you don't see changes immediately.`
       });
     } catch (err) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
