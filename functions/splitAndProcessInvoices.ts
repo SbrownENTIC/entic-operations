@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
 
                 if (!isDuplicate) {
                     // Create the Entity
-                    const isHenrySchein = (inv.vendor_name?.toLowerCase().includes('henry schein') || inv.vendor_name?.toLowerCase().includes('henry shrine'));
+                    const isHenrySchein = inv.vendor_name?.toLowerCase().includes('henry schein');
                     const status = isHenrySchein ? 'approved' : 'pending_review';
 
                     const invoiceData = {
