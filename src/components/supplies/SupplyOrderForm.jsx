@@ -236,11 +236,11 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
             </div>
             <div className="flex justify-between py-2 border-b border-slate-300">
               <span className="font-medium">Tax:</span>
-              <span className="font-semibold">${(formData.tax || 0).toFixed(2)}</span>
+              <span className="font-semibold">TBD</span>
             </div>
             <div className="flex justify-between py-3 border-t-2 border-slate-900">
               <span className="text-lg font-bold">Total:</span>
-              <span className="text-lg font-bold">${total.toFixed(2)}</span>
+              <span className="text-lg font-bold">${subtotal.toFixed(2)} + Tax</span>
             </div>
           </div>
         </div>
@@ -251,21 +251,6 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
             <p className="text-sm text-slate-700 whitespace-pre-wrap">{formData.notes}</p>
           </div>
         )}
-
-        <div className="mt-12 pt-6 border-t-2 border-slate-300">
-          <div className="grid grid-cols-2 gap-12">
-            <div>
-              <p className="text-sm text-slate-600 mb-2">Requested By:</p>
-              <div className="border-b border-slate-400 h-8 mb-1"></div>
-              <p className="text-xs text-slate-500">Signature / Date</p>
-            </div>
-            <div>
-              <p className="text-sm text-slate-600 mb-2">Approved By:</p>
-              <div className="border-b border-slate-400 h-8 mb-1"></div>
-              <p className="text-xs text-slate-500">Signature / Date</p>
-            </div>
-          </div>
-        </div>
       </div>
 
       <Card className="border-slate-200 shadow-sm">
