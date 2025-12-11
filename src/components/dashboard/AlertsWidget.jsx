@@ -14,7 +14,8 @@ export default function AlertsWidget({
   pendingProviderApprovalCount,
   pendingProviderTimeCount,
   privilegesExpiring30Days,
-  partiallyReceivedCount
+  partiallyReceivedCount,
+  updatedOrdersCount
 }) {
   const hasAlerts = approvedInvoicesCount > 0 ||
                     uconnPendingVendorInvoices > 0 || 
@@ -23,7 +24,8 @@ export default function AlertsWidget({
                     pendingProviderApprovalCount > 0 || 
                     pendingProviderTimeCount > 0 || 
                     privilegesExpiring30Days.length > 0 ||
-                    partiallyReceivedCount > 0;
+                    partiallyReceivedCount > 0 ||
+                    updatedOrdersCount > 0;
 
   if (!hasAlerts) return null;
 
@@ -147,6 +149,21 @@ export default function AlertsWidget({
             <CardContent className="pt-3">
               <div className="text-4xl font-bold text-orange-700 mb-1">{partiallyReceivedCount}</div>
               <Link to={`${createPageUrl("OfficeSupplyOrders")}?status=partially_received`} className="text-xs text-orange-700 hover:text-orange-900 font-semibold hover:underline">
+                View orders →
+              </Link>
+            </CardContent>
+          </Card>
+        )}
+
+        {updatedOrdersCount > 0 && (
+          <Card className="border-3 border-red-500 bg-gradient-to-br from-red-100 to-red-50 shadow-xl shadow-red-200/50 hover:scale-105 transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-red-300">
+              <CardTitle className="text-sm font-bold text-slate-900">Orders Updated After Submission</CardTitle>
+              <AlertCircle className="w-5 h-5 text-red-700 animate-pulse" />
+            </CardHeader>
+            <CardContent className="pt-3">
+              <div className="text-4xl font-bold text-red-700 mb-1">{updatedOrdersCount}</div>
+              <Link to={createPageUrl("TodaysOrders")} className="text-xs text-red-700 hover:text-red-900 font-semibold hover:underline">
                 View orders →
               </Link>
             </CardContent>
