@@ -43,8 +43,8 @@ export default function DocumentManagement() {
   const systemFolders = [
     {
       id: "vendor_invoices",
-      name: "All Vendor Invoices",
-      description: "Master list of all invoices from all sources.",
+      name: "Henry Schein Invoices",
+      description: "Manage Henry Schein invoices and orders.",
       icon: Folder,
       color: "text-blue-600",
       bgColor: "bg-blue-100",
