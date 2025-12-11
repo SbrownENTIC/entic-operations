@@ -70,7 +70,13 @@ export default function VendorInvoicesView({ folderId, folderName }) {
     if (!invoices.length || isLoading) return [];
     
     const missing = new Map();
-    const existingCodes = new Set(supplies.map(s => s.item_number));
+    
+    // Determine target category based on folder
+    const targetCategory = folderName?.toLowerCase().includes('henry') ? 'clinical' : 'office';
+    
+    // Filter existing codes to only check the target catalog
+    const targetSupplies = supplies.filter(s => s.category === targetCategory);
+    const existingCodes = new Set(targetSupplies.map(s => s.item_number));
 
     invoices.forEach(inv => {
       const lineItems = inv.extracted_data?.line_items || [];
@@ -81,7 +87,7 @@ export default function VendorInvoicesView({ folderId, folderName }) {
             item_number: item.item_code,
             vendor: inv.vendor_name || "Unknown Vendor",
             unit_price: item.unit_price || 0,
-            category: 'clinical',
+            category: targetCategory,
             units: 'each'
           });
         }
@@ -89,7 +95,7 @@ export default function VendorInvoicesView({ folderId, folderName }) {
     });
     
     return Array.from(missing.values());
-  }, [invoices, supplies, isLoading]);
+  }, [invoices, supplies, isLoading, folderName]);
 
   const bulkAddItemsMutation = useMutation({
     mutationFn: async (items) => {
@@ -99,7 +105,7 @@ export default function VendorInvoicesView({ folderId, folderName }) {
       queryClient.invalidateQueries({ queryKey: ['supplies-catalog'] });
       toast({
         title: "Catalog Updated",
-        description: `Successfully added ${variables.length} items to the clinical catalog.`,
+        description: `Successfully added ${variables.length} items to the catalog.`,
       });
     },
     onError: (error) => {
