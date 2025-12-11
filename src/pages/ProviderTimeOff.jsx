@@ -202,7 +202,18 @@ export default function ProviderTimeOff() {
       ['Provider', 'Type', 'Start Date', 'End Date', 'Days', 'End Time', 'Reason', 'Status', 'Notes']
     ];
     
-    sortedEntries.forEach(entry => {
+    // If in calendar view, only export entries from the current month
+    const entriesToExport = viewMode === 'calendar' 
+      ? sortedEntries.filter(entry => {
+          const start = parseISO(entry.start_date);
+          const end = parseISO(entry.end_date);
+          return isWithinInterval(monthStart, { start, end }) || 
+                 isWithinInterval(monthEnd, { start, end }) ||
+                 isWithinInterval(start, { start: monthStart, end: monthEnd });
+        })
+      : sortedEntries;
+    
+    entriesToExport.forEach(entry => {
       const provider = providers.find(p => p.id === entry.provider_id);
       const days = differenceInDays(parseISO(entry.end_date), parseISO(entry.start_date)) + 1;
       
@@ -233,7 +244,10 @@ export default function ProviderTimeOff() {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `provider_timeoff_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    const filename = viewMode === 'calendar' 
+      ? `provider_timeoff_${format(currentMonth, 'yyyy-MM')}.csv`
+      : `provider_timeoff_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    link.setAttribute('download', filename);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
