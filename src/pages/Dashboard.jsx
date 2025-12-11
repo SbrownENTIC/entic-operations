@@ -189,6 +189,19 @@ export default function Dashboard() {
     staleTime: 30000
   });
 
+  const { data: updatedOrders = [] } = useQuery({
+    queryKey: ['updated-supply-orders'],
+    queryFn: async () => {
+      try {
+        return await base44.entities.SupplyOrder.filter({ updated_after_submission: true });
+      } catch (error) {
+        return handleQueryError(error);
+      }
+    },
+    retry: false,
+    staleTime: 30000
+  });
+
   const { data: outsideIncomes = [] } = useQuery({
     queryKey: ['outside-income'],
     queryFn: async () => {
@@ -773,6 +786,7 @@ export default function Dashboard() {
             pendingProviderTimeCount={pendingProviderTimeCount}
             privilegesExpiring30Days={privilegesExpiring30Days}
             partiallyReceivedCount={partiallyReceivedOrders.length}
+            updatedOrdersCount={updatedOrders.length}
           />
         );
       case 'summary_cards':
