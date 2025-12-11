@@ -28,7 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import VendorInvoicesView from "../components/documentManagement/VendorInvoicesView";
+import SimpleFolderView from "../components/documentManagement/SimpleFolderView";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/use-toast";
@@ -123,9 +123,8 @@ export default function DocumentManagement() {
            <ChevronRight className="w-4 h-4 text-slate-300" />
            <span className="font-medium text-slate-900">{activeFolder?.name || "Folder"}</span>
         </div>
-        <VendorInvoicesView 
-          folderId={activeFolder?.id} 
-          folderName={activeFolder?.name}
+        <SimpleFolderView 
+          folderId={activeFolder?.id}
         />
       </div>
     );
