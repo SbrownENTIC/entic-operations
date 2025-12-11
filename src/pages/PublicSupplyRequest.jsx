@@ -42,23 +42,15 @@ export default function PublicSupplyRequest() {
     queryFn: async () => {
       const allOrders = await base44.entities.SupplyOrder.list('-created_date', 100);
       
-      // Helper function to get YYYY-MM-DD string in EST
-      const getDateStringInEST = (dateInput) => {
-        const date = new Date(dateInput);
-        const parts = date.toLocaleDateString('en-US', { 
-          timeZone: "America/New_York", 
-          year: 'numeric', 
-          month: '2-digit', 
-          day: '2-digit' 
-        }).split('/');
-        return `${parts[2]}-${parts[0]}-${parts[1]}`; // YYYY-MM-DD
-      };
-      
-      const todayEST = getDateStringInEST(new Date());
+      // Get current date in EST
+      const nowInEST = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+      const todayEST = new Date(nowInEST).toISOString().split('T')[0];
 
       return allOrders.filter(order => {
         try {
-          const orderDateEST = getDateStringInEST(order.created_date);
+          // Convert order's created_date (UTC) to EST date string
+          const orderInEST = new Date(order.created_date).toLocaleString('en-US', { timeZone: 'America/New_York' });
+          const orderDateEST = new Date(orderInEST).toISOString().split('T')[0];
           return orderDateEST === todayEST;
         } catch (e) {
           return false;
