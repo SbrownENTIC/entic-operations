@@ -42,25 +42,23 @@ export default function PublicSupplyRequest() {
     queryFn: async () => {
       const allOrders = await base44.entities.SupplyOrder.list('-created_date', 100);
       
-      // Get today's date in EST (YYYY-MM-DD format)
-      const todayEST = new Date().toLocaleDateString("en-US", { 
-        timeZone: "America/New_York",
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      }).split('/').reverse().join('-').replace(/(\d{4})-(\d{2})-(\d{2})/, '$1-$2-$3');
+      // Helper function to get YYYY-MM-DD string in EST
+      const getDateStringInEST = (dateInput) => {
+        const date = new Date(dateInput);
+        const parts = date.toLocaleDateString('en-US', { 
+          timeZone: "America/New_York", 
+          year: 'numeric', 
+          month: '2-digit', 
+          day: '2-digit' 
+        }).split('/');
+        return `${parts[2]}-${parts[0]}-${parts[1]}`; // YYYY-MM-DD
+      };
       
+      const todayEST = getDateStringInEST(new Date());
+
       return allOrders.filter(order => {
         try {
-          // Get order date in EST (YYYY-MM-DD format)
-          const orderDate = new Date(order.created_date);
-          const orderDateEST = orderDate.toLocaleDateString("en-US", { 
-            timeZone: "America/New_York",
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-          }).split('/').reverse().join('-').replace(/(\d{4})-(\d{2})-(\d{2})/, '$1-$2-$3');
-          
+          const orderDateEST = getDateStringInEST(order.created_date);
           return orderDateEST === todayEST;
         } catch (e) {
           return false;
@@ -596,15 +594,12 @@ export default function PublicSupplyRequest() {
                             )}
                           </div>
                           <div className="text-sm text-slate-600">
-                            <span className="font-medium">Submitted:</span> {(() => {
-                              const utcDate = new Date(order.created_date);
-                              return utcDate.toLocaleTimeString('en-US', { 
-                                timeZone: 'America/New_York', 
-                                hour: 'numeric', 
-                                minute: '2-digit', 
-                                hour12: true 
-                              });
-                            })()} EST
+                            <span className="font-medium">Submitted:</span> {new Date(order.created_date).toLocaleTimeString('en-US', { 
+                              timeZone: 'America/New_York', 
+                              hour: 'numeric', 
+                              minute: '2-digit', 
+                              hour12: true 
+                            })} EST
                           </div>
                           {order.notes && (
                             <div className="text-sm text-slate-600">

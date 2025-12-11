@@ -568,7 +568,7 @@ export default function SystemDocumentation() {
                     <FixVendorDataButton />
                   </div>
                   <p className="text-xs text-slate-500 mt-1">
-                    • Fixes ALL CAPS vendor names (e.g. HENRY SCHEIN -> Henry Schein).<br/>
+                    • Fixes ALL CAPS vendor names (e.g. HENRY SCHEIN → Henry Schein).<br/>
                     • Scans invoice data to link missing Locations (Glastonbury, etc).
                   </p>
                 </div>
@@ -1050,7 +1050,7 @@ export default function SystemDocumentation() {
                                 <ol className="list-decimal pl-5 space-y-2 text-xs">
                                   <li><strong>Schedule First:</strong> Go to On-Call Schedule. Add the provider to the St. Francis location for their shifts.</li>
                                   <li><strong>Auto-Income:</strong> The system automatically creates "Pending" Outside Income records for each scheduled day (calculated as Daily Rate).</li>
-                                  <li><strong>Create Invoice:</strong> Go to Invoices -> Create. Select St. Francis.</li>
+                                  <li><strong>Create Invoice:</strong> Go to Invoices → Create. Select St. Francis.</li>
                                   <li><strong>Link:</strong> You will see the auto-generated income records in the list. Select them to include in the bill.</li>
                                 </ol>
                                 <div className="bg-blue-50 p-3 rounded text-xs text-blue-800 flex items-center">
