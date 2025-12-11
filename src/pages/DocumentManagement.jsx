@@ -92,7 +92,7 @@ export default function DocumentManagement() {
     return colors[color] || colors.default;
   };
 
-  const allFolders = customFolders.filter(f => f.name !== "Documentation").map(f => {
+  const allFolders = customFolders.filter(f => f.name.toLowerCase() !== "documentation" && f.name.toLowerCase() !== "system documents").map(f => {
     const colors = getColorClasses(f.color);
     return {
       id: f.id,
