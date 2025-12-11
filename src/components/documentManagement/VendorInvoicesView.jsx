@@ -146,7 +146,7 @@ export default function VendorInvoicesView({ folderId, folderName }) {
         const chunkResults = await Promise.all(chunk.map(async (file) => {
              try {
                  const { file_url } = await base44.integrations.Core.UploadFile({ file });
-                 const res = await base44.functions.invoke('splitAndProcessInvoices', { file_url });
+                 const res = await base44.functions.invoke('splitAndProcessInvoices', { file_url, folder_id: folderId });
                  return { status: 'success', data: res.data };
              } catch (err) {
                  console.error("Error processing file:", file.name, err);
