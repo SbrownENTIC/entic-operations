@@ -304,9 +304,15 @@ export default function PrintableAdminManual() {
           </div>
 
           <div className="border-l-4 border-slate-500 pl-4 py-1 bg-slate-50">
-            <h4 className="font-bold text-slate-900 mb-1">Redact Sensitive Data</h4>
-            <p className="text-xs mb-1">Use the <strong>"Redact All Invoices"</strong> button in the Maintenance tab.</p>
-            <p className="text-xs text-slate-600">This scans all vendor invoices for DEA/Registry numbers and permanently blocks them out.</p>
+            <h4 className="font-bold text-slate-900 mb-1">Force Redact Henry</h4>
+            <p className="text-xs mb-1">Use the <strong>"Force Redact Henry"</strong> button.</p>
+            <p className="text-xs text-slate-600">Specifically targets Henry Schein invoices to redact the bottom 35% (footer) where sensitive distribution info is located.</p>
+          </div>
+
+          <div className="border-l-4 border-emerald-500 pl-4 py-1 bg-slate-50 mt-4">
+            <h4 className="font-bold text-emerald-900 mb-1">Sync Henry Schein</h4>
+            <p className="text-xs mb-1">Use the <strong>"Sync Henry Schein"</strong> button.</p>
+            <p className="text-xs text-slate-600">Scans for unlinked Henry Schein invoices and automatically creates/links Clinical Supply Orders for them.</p>
           </div>
 
           <div className="mt-6 pt-4 border-t border-slate-200">

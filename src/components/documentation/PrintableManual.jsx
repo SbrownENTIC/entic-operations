@@ -364,6 +364,14 @@ export default function PrintableManual() {
               </ul>
             </div>
           </div>
+
+          <div className="mt-4 bg-slate-50 p-4 rounded border border-slate-200">
+             <h4 className="font-bold text-slate-900 mb-2">Special Tools (Maintenance Tab)</h4>
+             <ul className="list-disc pl-6 space-y-1">
+                <li><strong>Sync Henry Schein:</strong> Automatically finds unlinked Henry Schein invoices and creates corresponding supply orders.</li>
+                <li><strong>Force Redact Henry:</strong> Re-applies redaction to Henry Schein invoices if sensitive footer info is still visible.</li>
+             </ul>
+          </div>
         </div>
       </section>
 
