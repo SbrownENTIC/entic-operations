@@ -92,8 +92,10 @@ Deno.serve(async (req) => {
         });
 
         // 4. Auto-Link to Clinical Supply Order
-        try {
-            // A. Search for existing matching order
+        // SKIP if folder_id is present (User manually filing, assumes no auto-sync wanted)
+        if (!folder_id) {
+            try {
+                // A. Search for existing matching order
             const recentOrders = await base44.asServiceRole.entities.SupplyOrder.list('-created_date', 200);
             
             let matchedOrder = recentOrders.find(order => {
@@ -159,9 +161,10 @@ Deno.serve(async (req) => {
                 });
             }
 
-        } catch (linkError) {
-            console.error("Auto-link error:", linkError);
-            // Don't fail the whole request if linking fails
+            } catch (linkError) {
+                console.error("Auto-link error:", linkError);
+                // Don't fail the whole request if linking fails
+            }
         }
 
         // Trigger Redaction for single uploads

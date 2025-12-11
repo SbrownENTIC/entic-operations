@@ -202,7 +202,8 @@ Deno.serve(async (req) => {
                     }
                     
                     // If Henry Schein, auto-create a Clinical Supply Order
-                    if (isHenrySchein && record) {
+                    // SKIP if folder_id is provided
+                    if (isHenrySchein && record && !folder_id) {
                         try {
                             const supplyOrderItems = (inv.line_items || []).map(item => ({
                                 supply_name: item.description || 'Unknown Item',
