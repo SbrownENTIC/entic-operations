@@ -1,7 +1,5 @@
 import React, { useState } from "react";
-import { Folder, ArrowLeft, ChevronRight, Plus, FolderPlus, Loader2, MoreVertical, Pencil, Trash2, Book } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { createPageUrl } from "@/utils";
+import { Folder, ArrowLeft, ChevronRight, Plus, FolderPlus, Loader2, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,7 +43,6 @@ export default function DocumentManagement() {
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   const { data: customFolders = [] } = useQuery({
     queryKey: ['document-folders'],
