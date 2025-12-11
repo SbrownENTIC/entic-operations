@@ -65,8 +65,8 @@ export default function SupplyOrderDetail() {
   }
 
   return (
-    <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
-      <div className="max-w-5xl mx-auto space-y-6">
+    <div className="p-6 md:p-8 bg-slate-50 min-h-screen overflow-auto">
+      <div className="max-w-5xl mx-auto space-y-6 pb-12">
         <div className="flex items-center gap-4">
           <Link to={createPageUrl('Reports')} className="text-blue-600 hover:text-blue-800">
             <ArrowLeft className="w-5 h-5" />
