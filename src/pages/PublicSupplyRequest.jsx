@@ -155,6 +155,15 @@ export default function PublicSupplyRequest() {
 
   const handleEditOrder = (order) => {
     if (!canEdit(order)) return;
+    
+    // Check if order has already been placed
+    if (order.status === 'order_placed' || order.status === 'partially_received' || order.status === 'received') {
+      setSubmitStatus('error');
+      setSubmitMessage('This order has already been placed and cannot be edited. Please submit a new order instead.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    
     setEditingOrder(order);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -162,6 +171,15 @@ export default function PublicSupplyRequest() {
   const handleUpdateOrder = async (e) => {
     e.preventDefault();
     if (!editingOrder) return;
+
+    // Check if order has already been placed
+    if (editingOrder.status === 'order_placed' || editingOrder.status === 'partially_received' || editingOrder.status === 'received') {
+      setSubmitStatus('error');
+      setSubmitMessage('This order has already been placed and cannot be edited. Please submit a new order instead.');
+      cancelEdit();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
 
     const itemsChanged = JSON.stringify(editingOrder.items) !== JSON.stringify(formData.items);
     const notesChanged = editingOrder.notes !== formData.notes;
