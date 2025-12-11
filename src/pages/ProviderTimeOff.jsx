@@ -206,11 +206,28 @@ export default function ProviderTimeOff() {
     
     setIsExporting(true);
     try {
+      // Temporarily store and modify overflow styles
+      const originalOverflow = calendarRef.current.style.overflow;
+      const contentElement = calendarRef.current.querySelector('.calendar-content');
+      const originalContentOverflow = contentElement ? contentElement.style.overflow : null;
+      
+      calendarRef.current.style.overflow = 'visible';
+      if (contentElement) contentElement.style.overflow = 'visible';
+      
+      // Wait for rendering
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const canvas = await html2canvas(calendarRef.current, {
         scale: 2,
         backgroundColor: '#ffffff',
         logging: false,
+        windowWidth: calendarRef.current.scrollWidth,
+        windowHeight: calendarRef.current.scrollHeight,
       });
+      
+      // Restore overflow
+      calendarRef.current.style.overflow = originalOverflow;
+      if (contentElement) contentElement.style.overflow = originalContentOverflow;
       
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
@@ -219,10 +236,19 @@ export default function ProviderTimeOff() {
         format: 'a4'
       });
       
-      const imgWidth = 297; // A4 landscape width in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const pdfWidth = 297; // A4 landscape width in mm
+      const pdfHeight = 210; // A4 landscape height in mm
+      const imgWidth = pdfWidth;
+      const imgHeight = (canvas.height * pdfWidth) / canvas.width;
       
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      // If image is taller than page, fit to page height instead
+      if (imgHeight > pdfHeight) {
+        const ratio = pdfHeight / imgHeight;
+        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth * ratio, pdfHeight);
+      } else {
+        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      }
+      
       pdf.save(`calendar_${format(currentMonth, 'yyyy-MM')}.pdf`);
     } catch (error) {
       console.error('Export failed:', error);
@@ -723,7 +749,7 @@ export default function ProviderTimeOff() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-6 flex-1 overflow-auto">
+            <CardContent className="p-6 flex-1 overflow-auto calendar-content">
               <div className="grid grid-cols-7 gap-2">
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
                   <div key={day} className="text-center font-semibold text-slate-700 text-sm p-2">
