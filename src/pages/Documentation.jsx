@@ -14,41 +14,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/use-toast";
 import { Shield, PackagePlus } from "lucide-react";
 
-function RedactButton() {
-  const { toast } = useToast();
-  const [loading, setLoading] = React.useState(false);
 
-  const handleRedact = async () => {
-    if (!confirm("Are you sure? This will scan all invoices and overwrite files to redact sensitive info. This process may take a few minutes.")) return;
-    
-    setLoading(true);
-    toast({ title: "Started", description: "Batch redaction started..." });
-    
-    try {
-      const res = await base44.functions.invoke('batchRedactInvoices');
-      toast({ 
-        title: "Completed", 
-        description: `Processed ${res.data.processed} invoices. Check console for details.` 
-      });
-      console.log("Redaction results:", res.data);
-    } catch (err) {
-      toast({ 
-        title: "Error", 
-        description: err.message, 
-        variant: "destructive" 
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <Button size="sm" variant="outline" onClick={handleRedact} disabled={loading} className="h-7 text-xs gap-1">
-      <Shield className="w-3 h-3" />
-      {loading ? "Processing..." : "Redact All Invoices"}
-    </Button>
-  );
-}
 
 function SyncHenryScheinButton() {
   const { toast } = useToast();
@@ -582,17 +548,7 @@ export default function Documentation() {
                 <h3 className="font-bold text-slate-900">The "Fix" Buttons</h3>
                 <p className="text-sm text-slate-600">Use these when data looks "off" or out of sync.</p>
 
-                <div className="border rounded-lg p-3 bg-slate-50 mt-2">
-                  <div className="flex justify-between items-center mb-1">
-                    <p className="font-medium text-sm">"Redact All Invoices"</p>
-                    <RedactButton />
-                  </div>
-                  <p className="text-xs text-slate-500 mt-1">
-                    • Scans ALL historical invoices for the "Code Status Key" footer.<br/>
-                    • Permanently blocks out everything below that line (DEA/Registry info).<br/>
-                    • Updates the document file automatically.
-                  </p>
-                </div>
+
 
                 <div className="border rounded-lg p-3 bg-slate-50 mt-2">
                   <div className="flex justify-between items-center mb-1">
