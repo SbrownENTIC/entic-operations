@@ -107,7 +107,7 @@ const navigationItems = [
     icon: BarChart3,
   },
   {
-    title: "Document Management",
+    title: "Documentation",
     url: createPageUrl("DocumentManagement"),
     icon: FileText,
   },
@@ -135,7 +135,7 @@ const moreMenuItems = [
     icon: FileText,
   },
   {
-    title: "Documentation",
+    title: "System Documentation",
     url: createPageUrl("Documentation"),
     icon: HelpCircle,
   },

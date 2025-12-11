@@ -139,8 +139,8 @@ export default function DocumentManagement() {
       <div className="max-w-6xl mx-auto space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Document Management</h1>
-            <p className="text-slate-600 mt-2">Central repository for all organization documents.</p>
+            <h1 className="text-3xl font-bold text-slate-900">Documentation</h1>
+            <p className="text-slate-600 mt-2">Central repository for all organization documents and invoices.</p>
           </div>
           <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
             <FolderPlus className="w-4 h-4" />
@@ -198,25 +198,6 @@ export default function DocumentManagement() {
             </Card>
           ))}
 
-          {/* System Documentation Link */}
-          <Card 
-            className={`hover:shadow-lg transition-all cursor-pointer border-slate-200 group relative`}
-            onClick={() => navigate(createPageUrl("Documentation"))}
-          >
-            <CardContent className="p-6 flex items-start gap-4">
-              <div className={`p-3 rounded-xl bg-purple-100 text-purple-600 group-hover:scale-110 transition-transform`}>
-                <Book className="w-8 h-8" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-1 group-hover:text-purple-600 transition-colors">
-                  System Documentation
-                </h3>
-                <p className="text-sm text-slate-500 line-clamp-2">
-                  View SOPs, Manuals, and Reference Sheets.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
