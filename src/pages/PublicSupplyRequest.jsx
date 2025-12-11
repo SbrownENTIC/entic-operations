@@ -586,12 +586,12 @@ export default function PublicSupplyRequest() {
                             )}
                           </div>
                           <div className="text-sm text-slate-600">
-                            <span className="font-medium">Submitted:</span> {new Date(order.created_date).toLocaleTimeString('en-US', { 
+                            <span className="font-medium">Submitted:</span> {new Date(order.created_date).toLocaleDateString('en-US', { 
                               timeZone: 'America/New_York', 
-                              hour: 'numeric', 
-                              minute: '2-digit', 
-                              hour12: true 
-                            })} EST
+                              month: 'short', 
+                              day: 'numeric', 
+                              year: 'numeric' 
+                            })}
                           </div>
                           {order.notes && (
                             <div className="text-sm text-slate-600">
