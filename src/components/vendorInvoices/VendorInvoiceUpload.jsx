@@ -41,7 +41,9 @@ export default function VendorInvoiceUpload({ onClose, onUploadComplete }) {
             await base44.functions.invoke('processVendorInvoice', { file_url });
           } catch (error) {
              console.error(`Failed to process ${file.name}:`, error);
-             alert(`Failed to process ${file.name}: ${error.message || "Unknown error"}`);
+             // Extract server error message if available
+             const serverMsg = error.response?.data?.error || error.message || "Unknown error";
+             alert(`Failed to process ${file.name}: ${serverMsg}`);
           } finally {
             completed++;
             setProgress(prev => ({ ...prev, current: completed }));

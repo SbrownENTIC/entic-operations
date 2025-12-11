@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
                 invoice_number: { type: "string" },
                 invoice_date: { type: "string", format: "date", description: "YYYY-MM-DD format" },
                 due_date: { type: "string", format: "date", description: "YYYY-MM-DD format" },
-                location: { type: "string", enum: ["Glastonbury", "Manchester", "Bloomfield", "Farmington"], description: "The location/office name found in the Ship To address. Look for keywords: Glastonbury, Manchester, Bloomfield, Farmington." },
+                location: { type: "string", description: "The location/office name found in the Ship To address. Look for keywords: Glastonbury, Manchester, Bloomfield, Farmington." },
                 ship_to_text: { type: "string", description: "The full raw text of the 'Ship To' address block for debugging" },
                 total_amount: { type: "number" },
                 line_items: {
@@ -79,10 +79,18 @@ Deno.serve(async (req) => {
 
         const normalizedVendorName = normalizeVendor(data.vendor_name);
 
+        // Normalize location to match allowed enum values
+        const validLocations = ["Glastonbury", "Manchester", "Bloomfield", "Farmington"];
+        let validLocation = null;
+        if (data.location) {
+            // Find if any valid location is part of the extracted string
+            validLocation = validLocations.find(l => data.location.includes(l));
+        }
+
         // 3. Create the VendorInvoice record
         const invoice = await base44.entities.VendorInvoice.create({
             vendor_name: normalizedVendorName,
-            location: data.location,
+            location: validLocation,
             invoice_number: data.invoice_number,
             invoice_date: data.invoice_date,
             due_date: data.due_date,
