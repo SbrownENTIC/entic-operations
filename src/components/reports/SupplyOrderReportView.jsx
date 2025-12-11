@@ -41,22 +41,79 @@ export default function SupplyOrderReportView({
       <style>
         {`
           @media print {
+            @page {
+              margin: 1cm;
+              size: auto;
+            }
+
+            html, body {
+              height: auto !important;
+              overflow: visible !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              background: white !important;
+            }
+
+            /* Hide everything by default */
             body * {
               visibility: hidden;
             }
-            .printable-report, .printable-report * {
-              visibility: visible;
+
+            /* Reset the main app wrapper to allow full height */
+            #root, main, div {
+              height: auto !important;
+              overflow: visible !important;
             }
+
+            /* The report container */
             .printable-report {
-              position: absolute;
-              left: 0;
-              top: 0;
-              width: 100%;
+              visibility: visible !important;
+              position: absolute !important;
+              left: 0 !important;
+              top: 0 !important;
+              width: 100% !important;
               margin: 0 !important;
-              padding: 0 !important;
-              box-shadow: none !important;
+              padding: 20px !important;
               border: none !important;
+              box-shadow: none !important;
+              background: white !important;
+              z-index: 9999;
+              /* Ensure it expands to fit content */
+              height: auto !important;
+              min-height: 100% !important;
+              overflow: visible !important;
             }
+
+            /* Make all children visible */
+            .printable-report * {
+              visibility: visible !important;
+            }
+
+            /* Force scrollable containers to expand fully */
+            .overflow-auto, 
+            .overflow-x-auto, 
+            .overflow-y-auto {
+              overflow: visible !important;
+              height: auto !important;
+              max-height: none !important;
+              width: 100% !important;
+              display: block !important;
+            }
+
+            /* Improve table printing */
+            table {
+              width: 100% !important;
+              page-break-inside: auto;
+            }
+            thead {
+              display: table-header-group;
+            }
+            tr {
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
+            
+            /* Hide UI elements */
             .no-print {
               display: none !important;
             }
