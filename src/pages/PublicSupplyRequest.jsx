@@ -11,7 +11,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Search, Check, CheckCircle, AlertCircle, HeartPulse, X, Image as ImageIcon, Edit, Clock } from "lucide-react";
-import { format, isToday, parseISO } from "date-fns";
+import { format, isToday, parseISO, toZonedTime } from "date-fns-tz";
 
 export default function PublicSupplyRequest() {
   const queryClient = useQueryClient();
@@ -41,9 +41,14 @@ export default function PublicSupplyRequest() {
     queryKey: ['todays-public-orders'],
     queryFn: async () => {
       const allOrders = await base44.entities.SupplyOrder.list('-created_date', 100);
+      const nowEST = new Date().toLocaleString("en-US", { timeZone: "America/New_York" });
+      const todayEST = new Date(nowEST).toDateString();
+      
       return allOrders.filter(order => {
         try {
-          return isToday(parseISO(order.created_date));
+          const orderDateEST = new Date(order.created_date).toLocaleString("en-US", { timeZone: "America/New_York" });
+          const orderDateString = new Date(orderDateEST).toDateString();
+          return orderDateString === todayEST;
         } catch (e) {
           return false;
         }
@@ -140,14 +145,15 @@ export default function PublicSupplyRequest() {
 
   const canEdit = (order) => {
     try {
-      const now = new Date();
-      const createdDate = parseISO(order.created_date);
+      const nowEST = new Date().toLocaleString("en-US", { timeZone: "America/New_York" });
+      const todayEST = new Date(nowEST).toDateString();
       
-      if (!isToday(createdDate)) return false;
+      const orderDateEST = new Date(order.created_date).toLocaleString("en-US", { timeZone: "America/New_York" });
+      const orderDateString = new Date(orderDateEST).toDateString();
+      
+      if (orderDateString !== todayEST) return false;
 
-      const estTime = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
-      const hour = estTime.getHours();
-      
+      const hour = new Date(nowEST).getHours();
       return hour < 17; // Before 5 PM
     } catch (e) {
       return false;
