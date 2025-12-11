@@ -51,7 +51,7 @@ export default function PublicSupplyRequest() {
           // Convert order's created_date (UTC) to EST date string
           const orderInEST = new Date(order.created_date).toLocaleString('en-US', { timeZone: 'America/New_York' });
           const orderDateEST = new Date(orderInEST).toISOString().split('T')[0];
-          return orderDateEST === todayEST;
+          return orderDateEST === todayEST && order.vendor === 'Staples';
         } catch (e) {
           return false;
         }
