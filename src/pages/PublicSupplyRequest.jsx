@@ -577,7 +577,12 @@ export default function PublicSupplyRequest() {
                             )}
                           </div>
                           <div className="text-sm text-slate-600">
-                            <span className="font-medium">Submitted:</span> {format(parseISO(order.created_date), 'h:mm a')}
+                            <span className="font-medium">Submitted:</span> {new Date(order.created_date).toLocaleString('en-US', { 
+                              timeZone: 'America/New_York', 
+                              hour: 'numeric', 
+                              minute: '2-digit', 
+                              hour12: true 
+                            })} EST
                           </div>
                           {order.notes && (
                             <div className="text-sm text-slate-600">
