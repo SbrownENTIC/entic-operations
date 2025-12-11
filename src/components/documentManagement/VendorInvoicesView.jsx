@@ -30,7 +30,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-export default function VendorInvoicesView() {
+export default function VendorInvoicesView({ folderId, folderName }) {
   const [showUpload, setShowUpload] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -53,8 +53,10 @@ export default function VendorInvoicesView() {
   }, [location.search]);
 
   const { data: invoices = [], isLoading } = useQuery({
-    queryKey: ['vendor-invoices'],
-    queryFn: () => base44.entities.VendorInvoice.list('-created_date', 1000)
+    queryKey: ['vendor-invoices', folderId],
+    queryFn: () => folderId 
+      ? base44.entities.VendorInvoice.filter({ folder_id: folderId }, '-created_date', 1000)
+      : base44.entities.VendorInvoice.list('-created_date', 1000)
   });
 
   const { data: supplies = [] } = useQuery({
@@ -414,6 +416,7 @@ export default function VendorInvoicesView() {
           <VendorInvoiceUpload 
             onClose={() => setShowUpload(false)}
             onUploadComplete={handleUploadComplete}
+            folderId={folderId}
           />
         )}
 
@@ -490,7 +493,7 @@ export default function VendorInvoicesView() {
             </div>
           </CardHeader>
           <CardContent className="p-0 flex-1 overflow-auto relative">
-            {selectedVendor ? (
+            {(selectedVendor || folderId) ? (
               <VendorInvoiceList 
                 invoices={sortedInvoices} 
                 isLoading={isLoading} 
