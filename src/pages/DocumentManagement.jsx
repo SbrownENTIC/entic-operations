@@ -97,7 +97,7 @@ export default function DocumentManagement() {
     return {
       id: f.id,
       name: f.name,
-      description: f.description || "Custom folder",
+      description: f.description || "",
       icon: Folder,
       color: colors.text,
       bgColor: colors.bg,
