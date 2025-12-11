@@ -30,6 +30,7 @@ export default function PublicSupplyRequest() {
   const [submitMessage, setSubmitMessage] = useState('');
   const [submitStatus, setSubmitStatus] = useState(''); // 'success' or 'error'
   const [editingOrder, setEditingOrder] = useState(null);
+  const [orderSearchTerm, setOrderSearchTerm] = useState('');
 
   const { data: supplies = [] } = useQuery({
     queryKey: ['supplies'],
@@ -537,13 +538,32 @@ export default function PublicSupplyRequest() {
                 <Badge variant="outline" className="ml-2">{todaysOrders.length}</Badge>
               </CardTitle>
               <p className="text-sm text-slate-600 mt-1">Orders can be edited until 5 PM EST</p>
+              <div className="mt-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Input
+                    placeholder="Search by location, items, or notes..."
+                    value={orderSearchTerm}
+                    onChange={(e) => setOrderSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="p-0">
               {ordersLoading ? (
                 <div className="p-8 text-center text-slate-500">Loading orders...</div>
               ) : (
-                <div className="divide-y divide-slate-100">
-                  {todaysOrders.map((order) => (
+                <div className="divide-y divide-slate-100 max-h-96 overflow-y-auto">
+                  {todaysOrders.filter(order => {
+                    if (!orderSearchTerm) return true;
+                    const searchLower = orderSearchTerm.toLowerCase();
+                    return (
+                      order.location?.toLowerCase().includes(searchLower) ||
+                      order.notes?.toLowerCase().includes(searchLower) ||
+                      order.items?.some(item => item.supply_name?.toLowerCase().includes(searchLower))
+                    );
+                  }).map((order) => (
                     <div key={order.id} className="p-4 hover:bg-slate-50 transition-colors">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 space-y-2">
