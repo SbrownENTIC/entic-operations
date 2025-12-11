@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -9,11 +9,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { X, Plus, Trash2, Search, Check, CheckSquare } from "lucide-react";
+import { X, Plus, Trash2, Search, Check, CheckSquare, Printer } from "lucide-react";
 import { useFormState } from "@/components/FormContext";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
+import { format as formatDate } from "date-fns";
 
 export default function SupplyOrderForm({ order, category, onSubmit, onCancel, isLoading }) {
   const { setIsDirty } = useFormState();
+  const printRef = useRef(null);
+  const [isPrinting, setIsPrinting] = useState(false);
   const [formData, setFormData] = useState({
     order_number: '',
     vendor: category === 'clinical' ? 'Henry Schein' : 'Staples',
@@ -111,16 +116,168 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
     setIsDirty(true);
   };
 
+  const handlePrintPDF = async () => {
+    if (!printRef.current) return;
+    
+    setIsPrinting(true);
+    try {
+      const element = printRef.current;
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        logging: false,
+        useCORS: true,
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / (imgWidth * 0.264583), pdfHeight / (imgHeight * 0.264583));
+      
+      const finalWidth = imgWidth * 0.264583 * ratio;
+      const finalHeight = imgHeight * 0.264583 * ratio;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, finalWidth, finalHeight);
+      pdf.save(`supply-order-${formData.order_number || 'draft'}.pdf`);
+    } catch (error) {
+      console.error('PDF generation failed:', error);
+      alert('Failed to generate PDF');
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+
+  const subtotal = formData.items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0);
+  const total = subtotal + (formData.tax || 0);
+
   return (
-    <Card className="border-slate-200 shadow-sm">
-      <CardHeader className="border-b border-slate-100">
-        <div className="flex items-center justify-between">
-          <CardTitle>{order ? 'Edit Order' : 'New Supply Order'}</CardTitle>
-          <Button variant="ghost" size="icon" onClick={onCancel}>
-            <X className="w-4 h-4" />
-          </Button>
+    <>
+      <div ref={printRef} className="bg-white" style={{ display: isPrinting ? 'block' : 'none', padding: '40px' }}>
+        <div className="mb-8 text-center border-b-2 border-slate-300 pb-6">
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">Supply Order Request</h1>
+          <p className="text-lg text-slate-600">{category === 'clinical' ? 'Clinical' : 'Office'} Supplies</p>
         </div>
-      </CardHeader>
+        
+        <div className="mb-8 grid grid-cols-2 gap-6">
+          <div>
+            <p className="text-sm text-slate-600 mb-1">Order Number</p>
+            <p className="text-lg font-semibold text-slate-900">{formData.order_number || 'N/A'}</p>
+          </div>
+          <div>
+            <p className="text-sm text-slate-600 mb-1">Vendor</p>
+            <p className="text-lg font-semibold text-slate-900">{formData.vendor}</p>
+          </div>
+          <div>
+            <p className="text-sm text-slate-600 mb-1">Location</p>
+            <p className="text-lg font-semibold text-slate-900">{formData.location}</p>
+          </div>
+          <div>
+            <p className="text-sm text-slate-600 mb-1">Order Date</p>
+            <p className="text-lg font-semibold text-slate-900">
+              {formData.order_date ? formatDate(new Date(formData.order_date), 'MMM d, yyyy') : 'N/A'}
+            </p>
+          </div>
+        </div>
+
+        <div className="mb-8">
+          <h2 className="text-xl font-bold text-slate-900 mb-4 border-b border-slate-300 pb-2">Order Items</h2>
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-slate-100 border-b-2 border-slate-300">
+                <th className="text-left p-3 text-sm font-semibold">Item #</th>
+                <th className="text-left p-3 text-sm font-semibold">Product</th>
+                <th className="text-right p-3 text-sm font-semibold">Qty</th>
+                <th className="text-right p-3 text-sm font-semibold">Unit Price</th>
+                <th className="text-right p-3 text-sm font-semibold">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {formData.items.map((item, idx) => (
+                <tr key={idx} className="border-b border-slate-200">
+                  <td className="p-3 text-sm">{item.item_number || '-'}</td>
+                  <td className="p-3 text-sm">{item.supply_name}</td>
+                  <td className="p-3 text-sm text-right">{item.quantity}</td>
+                  <td className="p-3 text-sm text-right">${(item.unit_price || 0).toFixed(2)}</td>
+                  <td className="p-3 text-sm text-right font-semibold">
+                    ${((item.quantity || 0) * (item.unit_price || 0)).toFixed(2)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="mb-8 flex justify-end">
+          <div className="w-64 space-y-2">
+            <div className="flex justify-between py-2 border-b border-slate-300">
+              <span className="font-medium">Subtotal:</span>
+              <span className="font-semibold">${subtotal.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between py-2 border-b border-slate-300">
+              <span className="font-medium">Tax:</span>
+              <span className="font-semibold">${(formData.tax || 0).toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between py-3 border-t-2 border-slate-900">
+              <span className="text-lg font-bold">Total:</span>
+              <span className="text-lg font-bold">${total.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+
+        {formData.notes && (
+          <div className="mb-8">
+            <h3 className="text-lg font-bold text-slate-900 mb-2 border-b border-slate-300 pb-2">Notes</h3>
+            <p className="text-sm text-slate-700 whitespace-pre-wrap">{formData.notes}</p>
+          </div>
+        )}
+
+        <div className="mt-12 pt-6 border-t-2 border-slate-300">
+          <div className="grid grid-cols-2 gap-12">
+            <div>
+              <p className="text-sm text-slate-600 mb-2">Requested By:</p>
+              <div className="border-b border-slate-400 h-8 mb-1"></div>
+              <p className="text-xs text-slate-500">Signature / Date</p>
+            </div>
+            <div>
+              <p className="text-sm text-slate-600 mb-2">Approved By:</p>
+              <div className="border-b border-slate-400 h-8 mb-1"></div>
+              <p className="text-xs text-slate-500">Signature / Date</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Card className="border-slate-200 shadow-sm">
+        <CardHeader className="border-b border-slate-100">
+          <div className="flex items-center justify-between">
+            <CardTitle>{order ? 'Edit Order' : 'New Supply Order'}</CardTitle>
+            <div className="flex items-center gap-2">
+              {order && (
+                <Button 
+                  type="button"
+                  variant="outline" 
+                  onClick={handlePrintPDF}
+                  disabled={isPrinting}
+                  className="gap-2"
+                >
+                  <Printer className="w-4 h-4" />
+                  {isPrinting ? 'Generating...' : 'Print PDF'}
+                </Button>
+              )}
+              <Button variant="ghost" size="icon" onClick={onCancel}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="p-6 space-y-6">
           <div className="grid md:grid-cols-2 gap-6">
@@ -381,5 +538,6 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
         </CardFooter>
       </form>
     </Card>
+    </>
   );
 }
