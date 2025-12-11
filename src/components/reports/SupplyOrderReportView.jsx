@@ -3,7 +3,7 @@ import { format, parseISO } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, X } from "lucide-react";
+import { Download, X, Printer } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { SupplySpendingChart } from "./ReportCharts";
@@ -32,9 +32,38 @@ export default function SupplyOrderReportView({
     });
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <>
-      <Card className="border-slate-200 shadow-sm">
+      <style>
+        {`
+          @media print {
+            body * {
+              visibility: hidden;
+            }
+            .printable-report, .printable-report * {
+              visibility: visible;
+            }
+            .printable-report {
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 100%;
+              margin: 0 !important;
+              padding: 0 !important;
+              box-shadow: none !important;
+              border: none !important;
+            }
+            .no-print {
+              display: none !important;
+            }
+          }
+        `}
+      </style>
+      <Card className="border-slate-200 shadow-sm printable-report">
         <CardHeader className="border-b border-slate-100">
           <div className="flex items-center justify-between">
             <div>
@@ -43,10 +72,16 @@ export default function SupplyOrderReportView({
                 {subtitle}
               </p>
             </div>
-            <Button onClick={onExport} className="gap-2">
-              <Download className="w-4 h-4" />
-              Export to CSV
-            </Button>
+            <div className="flex gap-2 no-print">
+              <Button onClick={handlePrint} variant="outline" className="gap-2">
+                <Printer className="w-4 h-4" />
+                Print Report
+              </Button>
+              <Button onClick={onExport} className="gap-2">
+                <Download className="w-4 h-4" />
+                Export to CSV
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-6">
