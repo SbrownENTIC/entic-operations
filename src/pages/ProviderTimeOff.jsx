@@ -712,7 +712,7 @@ export default function ProviderTimeOff() {
                             }`}
                             title={`${entry.provider?.full_name} - ${entry.reason || formatType(entry.type)}`}
                           >
-                            <div className="font-medium truncate">{entry.provider?.full_name?.split(' ')[0]}</div>
+                            <div className="font-medium truncate">{entry.provider?.full_name}</div>
                             <div className="text-xs opacity-75">{formatType(entry.type)}</div>
                           </div>
                         ))}
