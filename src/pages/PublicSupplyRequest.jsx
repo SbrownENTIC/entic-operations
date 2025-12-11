@@ -11,7 +11,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Search, Check, CheckCircle, AlertCircle, HeartPulse, X, Image as ImageIcon, Edit, Clock } from "lucide-react";
-import { format, isToday, parseISO, toZonedTime } from "date-fns-tz";
+import { format, isToday, parseISO } from "date-fns";
 
 export default function PublicSupplyRequest() {
   const queryClient = useQueryClient();
