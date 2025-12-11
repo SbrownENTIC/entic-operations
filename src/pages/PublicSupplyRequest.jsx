@@ -577,7 +577,7 @@ export default function PublicSupplyRequest() {
                             )}
                           </div>
                           <div className="text-sm text-slate-600">
-                            <span className="font-medium">Submitted:</span> {parseISO(order.created_date).toLocaleString('en-US', { 
+                            <span className="font-medium">Submitted:</span> {new Date(order.created_date).toLocaleString('en-US', { 
                               timeZone: 'America/New_York', 
                               hour: 'numeric', 
                               minute: '2-digit', 
