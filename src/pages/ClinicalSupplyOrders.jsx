@@ -268,16 +268,18 @@ export default function ClinicalSupplyOrders() {
         </div>
 
         {showForm && (
-          <SupplyOrderForm
-            order={editingOrder}
-            category="clinical"
-            onSubmit={handleSubmit}
-            onCancel={() => {
-              setShowForm(false);
-              setEditingOrder(null);
-            }}
-            isLoading={createMutation.isPending || updateMutation.isPending}
-          />
+          <div className="max-h-[calc(100vh-12rem)] overflow-y-auto">
+            <SupplyOrderForm
+              order={editingOrder}
+              category="clinical"
+              onSubmit={handleSubmit}
+              onCancel={() => {
+                setShowForm(false);
+                setEditingOrder(null);
+              }}
+              isLoading={createMutation.isPending || updateMutation.isPending}
+            />
+          </div>
         )}
         </div>
       </div>
