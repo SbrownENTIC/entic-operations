@@ -1,5 +1,7 @@
 import React, { useState } from "react";
-import { Folder, ArrowLeft, ChevronRight, Plus, FolderPlus, Loader2, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { Folder, ArrowLeft, ChevronRight, Plus, FolderPlus, Loader2, MoreVertical, Pencil, Trash2, Book } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +45,7 @@ export default function DocumentManagement() {
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const { data: customFolders = [] } = useQuery({
     queryKey: ['document-folders'],
@@ -194,6 +197,26 @@ export default function DocumentManagement() {
               </CardContent>
             </Card>
           ))}
+
+          {/* System Documentation Link */}
+          <Card 
+            className={`hover:shadow-lg transition-all cursor-pointer border-slate-200 group relative`}
+            onClick={() => navigate(createPageUrl("Documentation"))}
+          >
+            <CardContent className="p-6 flex items-start gap-4">
+              <div className={`p-3 rounded-xl bg-purple-100 text-purple-600 group-hover:scale-110 transition-transform`}>
+                <Book className="w-8 h-8" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-1 group-hover:text-purple-600 transition-colors">
+                  System Documentation
+                </h3>
+                <p className="text-sm text-slate-500 line-clamp-2">
+                  View SOPs, Manuals, and Reference Sheets.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
