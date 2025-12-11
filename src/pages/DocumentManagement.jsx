@@ -78,31 +78,32 @@ export default function DocumentManagement() {
     }
   });
 
-  // System folders
-  const systemFolders = [
-    {
-      id: "vendor_invoices",
-      name: "Henry Schein Invoices",
-      description: "Manage Henry Schein invoices and orders.",
-      icon: Folder,
-      color: "text-blue-600",
-      bgColor: "bg-blue-100",
-      isSystem: true
-    },
-  ];
+  const getColorClasses = (color) => {
+    const colors = {
+      blue: { text: "text-blue-600", bg: "bg-blue-100" },
+      red: { text: "text-red-600", bg: "bg-red-100" },
+      green: { text: "text-green-600", bg: "bg-green-100" },
+      yellow: { text: "text-yellow-600", bg: "bg-yellow-100" },
+      purple: { text: "text-purple-600", bg: "bg-purple-100" },
+      indigo: { text: "text-indigo-600", bg: "bg-indigo-100" },
+      pink: { text: "text-pink-600", bg: "bg-pink-100" },
+      default: { text: "text-amber-600", bg: "bg-amber-100" }
+    };
+    return colors[color] || colors.default;
+  };
 
-  const allFolders = [
-    ...systemFolders,
-    ...customFolders.map(f => ({
+  const allFolders = customFolders.map(f => {
+    const colors = getColorClasses(f.color);
+    return {
       id: f.id,
       name: f.name,
       description: f.description || "Custom folder",
       icon: Folder,
-      color: "text-amber-600",
-      bgColor: "bg-amber-100",
+      color: colors.text,
+      bgColor: colors.bg,
       isSystem: false
-    }))
-  ];
+    };
+  });
 
   const activeFolder = allFolders.find(f => f.id === currentSection);
 
@@ -123,7 +124,7 @@ export default function DocumentManagement() {
            <span className="font-medium text-slate-900">{activeFolder?.name || "Folder"}</span>
         </div>
         <VendorInvoicesView 
-          folderId={activeFolder?.isSystem ? null : activeFolder?.id} 
+          folderId={activeFolder?.id} 
           folderName={activeFolder?.name}
         />
       </div>
