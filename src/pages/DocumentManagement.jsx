@@ -136,7 +136,7 @@ export default function DocumentManagement() {
       <div className="max-w-6xl mx-auto space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Documentation</h1>
+            <h1 className="text-3xl font-bold text-slate-900">Documentation Database</h1>
             <p className="text-slate-600 mt-2">Central repository for all organization documents and invoices.</p>
           </div>
           <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
