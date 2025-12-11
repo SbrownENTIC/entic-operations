@@ -577,7 +577,15 @@ export default function PublicSupplyRequest() {
                             )}
                           </div>
                           <div className="text-sm text-slate-600">
-                            <span className="font-medium">Submitted:</span> {format(parseISO(order.created_date), 'h:mm a')} EST
+                            <span className="font-medium">Submitted:</span> {(() => {
+                              const utcDate = new Date(order.created_date);
+                              return utcDate.toLocaleTimeString('en-US', { 
+                                timeZone: 'America/New_York', 
+                                hour: 'numeric', 
+                                minute: '2-digit', 
+                                hour12: true 
+                              });
+                            })()} EST
                           </div>
                           {order.notes && (
                             <div className="text-sm text-slate-600">
