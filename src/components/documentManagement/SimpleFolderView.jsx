@@ -1,12 +1,14 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { FileText, Search, Loader2 } from "lucide-react";
+import { FileText, Search, Loader2, ArrowUpDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 
 export default function SimpleFolderView({ folderId }) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortField, setSortField] = useState('created_date');
+  const [sortDirection, setSortDirection] = useState('desc');
 
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ['vendor-invoices', folderId],
@@ -20,6 +22,37 @@ export default function SimpleFolderView({ folderId }) {
     inv.vendor_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const sortedInvoices = [...filteredInvoices].sort((a, b) => {
+    let aValue, bValue;
+    
+    if (sortField === 'created_date') {
+      aValue = a.created_date ? new Date(a.created_date) : new Date(0);
+      bValue = b.created_date ? new Date(b.created_date) : new Date(0);
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    } else {
+      aValue = a[sortField] || '';
+      bValue = b[sortField] || '';
+      const comparison = aValue.toString().toLowerCase().localeCompare(bValue.toString().toLowerCase());
+      return sortDirection === 'asc' ? comparison : -comparison;
+    }
+  });
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const formatFileSize = (bytes) => {
+    if (!bytes) return '-';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
+    return Math.round(bytes / (1024 * 1024)) + ' MB';
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -29,50 +62,82 @@ export default function SimpleFolderView({ folderId }) {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center gap-4">
-        <Search className="w-5 h-5 text-slate-400" />
-        <Input
-          placeholder="Search documents..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-md"
-        />
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-        {filteredInvoices.map((invoice) => (
-          <button
-            key={invoice.id}
-            onClick={() => invoice.document_url && window.open(invoice.document_url, '_blank')}
-            className="flex flex-col items-center gap-3 p-4 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 hover:border-blue-300 transition-all group"
-          >
-            <div className="p-3 rounded-lg bg-red-50 group-hover:bg-red-100 transition-colors">
-              <FileText className="w-8 h-8 text-red-600" />
-            </div>
-            <div className="text-center w-full">
-              <p className="text-sm font-medium text-slate-900 truncate w-full" title={invoice.invoice_number || 'Untitled'}>
-                {invoice.invoice_number || 'Untitled'}
-              </p>
-              <p className="text-xs text-slate-500 truncate w-full" title={invoice.vendor_name}>
-                {invoice.vendor_name}
-              </p>
-              {invoice.invoice_date && (
-                <p className="text-xs text-slate-400 mt-1">
-                  {format(new Date(invoice.invoice_date), 'MMM d, yyyy')}
-                </p>
-              )}
-            </div>
-          </button>
-        ))}
-      </div>
-
-      {filteredInvoices.length === 0 && (
-        <div className="text-center py-12 text-slate-500">
-          <FileText className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-          <p>No documents found</p>
+    <div className="flex flex-col h-full">
+      <div className="p-4 border-b bg-white">
+        <div className="flex items-center gap-4">
+          <Search className="w-5 h-5 text-slate-400" />
+          <Input
+            placeholder="Search documents..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="max-w-md"
+          />
         </div>
-      )}
+      </div>
+
+      <div className="flex-1 overflow-auto bg-white">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 border-b sticky top-0 z-10">
+            <tr>
+              <th 
+                className="text-left p-3 font-medium text-slate-600 cursor-pointer hover:bg-slate-100"
+                onClick={() => handleSort('invoice_number')}
+              >
+                <div className="flex items-center gap-2">
+                  Name
+                  <ArrowUpDown className="w-4 h-4 text-slate-400" />
+                </div>
+              </th>
+              <th 
+                className="text-left p-3 font-medium text-slate-600 cursor-pointer hover:bg-slate-100"
+                onClick={() => handleSort('created_date')}
+              >
+                <div className="flex items-center gap-2">
+                  Date Modified
+                  <ArrowUpDown className="w-4 h-4 text-slate-400" />
+                </div>
+              </th>
+              <th className="text-left p-3 font-medium text-slate-600">Size</th>
+              <th className="text-left p-3 font-medium text-slate-600">Kind</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedInvoices.map((invoice) => (
+              <tr
+                key={invoice.id}
+                onClick={() => invoice.document_url && window.open(invoice.document_url, '_blank')}
+                className="border-b hover:bg-slate-50 cursor-pointer transition-colors"
+              >
+                <td className="p-3">
+                  <div className="flex items-center gap-3">
+                    <FileText className="w-5 h-5 text-red-600 flex-shrink-0" />
+                    <span className="font-medium text-slate-900">
+                      {invoice.invoice_number || 'Untitled'}.pdf
+                    </span>
+                  </div>
+                </td>
+                <td className="p-3 text-slate-600">
+                  {invoice.created_date 
+                    ? format(new Date(invoice.created_date), 'MMM d, yyyy \'at\' h:mma')
+                    : '-'
+                  }
+                </td>
+                <td className="p-3 text-slate-600">
+                  {formatFileSize(invoice.file_size)}
+                </td>
+                <td className="p-3 text-slate-600">PDF Document</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {sortedInvoices.length === 0 && (
+          <div className="text-center py-12 text-slate-500">
+            <FileText className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+            <p>No documents found</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
