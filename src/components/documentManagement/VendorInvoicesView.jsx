@@ -435,7 +435,6 @@ export default function VendorInvoicesView({ folderId, folderName }) {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4 flex-1">
                 {selectedVendor && (
-                  <>
                     <div className="flex items-center gap-2 mr-4 shrink-0">
                       <Button 
                         variant="ghost" 
@@ -464,19 +463,22 @@ export default function VendorInvoicesView({ folderId, folderName }) {
                         </div>
                       </div>
                     </div>
+                )}
+                
+                {(selectedVendor || folderId) && (
                     <div className="flex items-center gap-4 flex-1">
                       <Search className="w-5 h-5 text-slate-400" />
                       <Input
-                        placeholder={`Search in ${selectedVendor}...`}
+                        placeholder={selectedVendor ? `Search in ${selectedVendor}...` : `Search in ${folderName || 'folder'}...`}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="max-w-md"
                       />
                     </div>
-                  </>
                 )}
               </div>
-              {selectedInvoices.length > 0 && selectedVendor && (
+              
+              {selectedInvoices.length > 0 && (selectedVendor || folderId) && (
                 <div className="flex items-center gap-4 bg-slate-100 px-4 py-2 rounded-lg">
                   <span className="text-sm font-medium text-slate-700">
                     {selectedInvoices.length} selected
