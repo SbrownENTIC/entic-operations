@@ -25,9 +25,9 @@ export default function SimpleFolderView({ folderId }) {
   const sortedInvoices = [...filteredInvoices].sort((a, b) => {
     let aValue, bValue;
     
-    if (sortField === 'created_date') {
-      aValue = a.created_date ? new Date(a.created_date) : new Date(0);
-      bValue = b.created_date ? new Date(b.created_date) : new Date(0);
+    if (sortField === 'created_date' || sortField === 'invoice_date') {
+      aValue = a[sortField] ? new Date(a[sortField]) : new Date(0);
+      bValue = b[sortField] ? new Date(b[sortField]) : new Date(0);
       return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
     } else {
       aValue = a[sortField] || '';
@@ -90,6 +90,15 @@ export default function SimpleFolderView({ folderId }) {
               </th>
               <th 
                 className="text-left p-3 font-medium text-slate-600 cursor-pointer hover:bg-slate-100"
+                onClick={() => handleSort('invoice_date')}
+              >
+                <div className="flex items-center gap-2">
+                  Invoice Date
+                  <ArrowUpDown className="w-4 h-4 text-slate-400" />
+                </div>
+              </th>
+              <th 
+                className="text-left p-3 font-medium text-slate-600 cursor-pointer hover:bg-slate-100"
                 onClick={() => handleSort('created_date')}
               >
                 <div className="flex items-center gap-2">
@@ -115,6 +124,12 @@ export default function SimpleFolderView({ folderId }) {
                       {invoice.invoice_number || 'Untitled'}.pdf
                     </span>
                   </div>
+                </td>
+                <td className="p-3 text-slate-600">
+                  {invoice.invoice_date 
+                    ? format(new Date(invoice.invoice_date), 'MMM d, yyyy')
+                    : '-'
+                  }
                 </td>
                 <td className="p-3 text-slate-600">
                   {invoice.created_date 
