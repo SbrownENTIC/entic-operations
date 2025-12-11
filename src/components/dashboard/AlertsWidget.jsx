@@ -30,7 +30,7 @@ export default function AlertsWidget({
   return (
     <div>
       <h2 className="text-lg font-semibold text-slate-900 mb-3">Alerts</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {approvedInvoicesCount > 0 && (
           <Card className={`bg-gradient-to-br from-green-100 to-green-50 transition-all duration-300 ${approvedInvoicesCount > 0 ? 'border-[5px] border-green-600 animate-alert-glow' : 'border-3 border-green-300 shadow-xl shadow-green-200/50 hover:scale-105'}`}>
             <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-green-300">
