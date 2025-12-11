@@ -206,28 +206,54 @@ export default function ProviderTimeOff() {
     
     setIsExporting(true);
     try {
-      // Temporarily store and modify overflow styles
-      const originalOverflow = calendarRef.current.style.overflow;
+      // Store original styles
       const contentElement = calendarRef.current.querySelector('.calendar-content');
-      const originalContentOverflow = contentElement ? contentElement.style.overflow : null;
+      const truncateElements = calendarRef.current.querySelectorAll('.truncate');
       
+      const originalStyles = {
+        cardOverflow: calendarRef.current.style.overflow,
+        cardHeight: calendarRef.current.style.height,
+        contentOverflow: contentElement ? contentElement.style.overflow : null,
+        contentHeight: contentElement ? contentElement.style.height : null,
+      };
+      
+      // Remove truncation from all elements
+      truncateElements.forEach(el => {
+        el.classList.remove('truncate');
+        el.style.whiteSpace = 'normal';
+        el.style.wordBreak = 'break-word';
+      });
+      
+      // Make everything visible
       calendarRef.current.style.overflow = 'visible';
-      if (contentElement) contentElement.style.overflow = 'visible';
+      calendarRef.current.style.height = 'auto';
+      if (contentElement) {
+        contentElement.style.overflow = 'visible';
+        contentElement.style.height = 'auto';
+      }
       
-      // Wait for rendering
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Wait for layout to settle
+      await new Promise(resolve => setTimeout(resolve, 200));
       
       const canvas = await html2canvas(calendarRef.current, {
         scale: 2,
         backgroundColor: '#ffffff',
         logging: false,
-        windowWidth: calendarRef.current.scrollWidth,
-        windowHeight: calendarRef.current.scrollHeight,
+        useCORS: true,
       });
       
-      // Restore overflow
-      calendarRef.current.style.overflow = originalOverflow;
-      if (contentElement) contentElement.style.overflow = originalContentOverflow;
+      // Restore original styles
+      calendarRef.current.style.overflow = originalStyles.cardOverflow;
+      calendarRef.current.style.height = originalStyles.cardHeight;
+      if (contentElement) {
+        contentElement.style.overflow = originalStyles.contentOverflow;
+        contentElement.style.height = originalStyles.contentHeight;
+      }
+      truncateElements.forEach(el => {
+        el.classList.add('truncate');
+        el.style.whiteSpace = '';
+        el.style.wordBreak = '';
+      });
       
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
@@ -236,19 +262,19 @@ export default function ProviderTimeOff() {
         format: 'a4'
       });
       
-      const pdfWidth = 297; // A4 landscape width in mm
-      const pdfHeight = 210; // A4 landscape height in mm
-      const imgWidth = pdfWidth;
-      const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+      const pdfWidth = 297;
+      const pdfHeight = 210;
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / (imgWidth * 0.264583), pdfHeight / (imgHeight * 0.264583));
       
-      // If image is taller than page, fit to page height instead
-      if (imgHeight > pdfHeight) {
-        const ratio = pdfHeight / imgHeight;
-        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth * ratio, pdfHeight);
-      } else {
-        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-      }
+      const finalWidth = imgWidth * 0.264583 * ratio;
+      const finalHeight = imgHeight * 0.264583 * ratio;
       
+      const xOffset = (pdfWidth - finalWidth) / 2;
+      const yOffset = (pdfHeight - finalHeight) / 2;
+      
+      pdf.addImage(imgData, 'PNG', xOffset, yOffset, finalWidth, finalHeight);
       pdf.save(`calendar_${format(currentMonth, 'yyyy-MM')}.pdf`);
     } catch (error) {
       console.error('Export failed:', error);
