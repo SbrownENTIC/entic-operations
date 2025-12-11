@@ -12,6 +12,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format, parseISO, differenceInDays, isWithinInterval, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getDay } from "date-fns";
 import TimeOffForm from "../components/timeoff/TimeOffForm";
 import BulkSyncModal from "../components/timeoff/BulkSyncModal";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,6 +48,8 @@ export default function ProviderTimeOff() {
   const [viewingDayEntries, setViewingDayEntries] = useState(null); // New state for day entries modal
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const calendarRef = React.useRef(null);
   const queryClient = useQueryClient();
 
   const { data: timeOffEntries = [], isLoading: timeOffLoading } = useQuery({
@@ -194,6 +198,37 @@ export default function ProviderTimeOff() {
       alert("Sync failed: " + error.message);
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  const exportCalendarToPDF = async () => {
+    if (!calendarRef.current) return;
+    
+    setIsExporting(true);
+    try {
+      const canvas = await html2canvas(calendarRef.current, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        logging: false,
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      const imgWidth = 297; // A4 landscape width in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.save(`calendar_${format(currentMonth, 'yyyy-MM')}.pdf`);
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Failed to export calendar');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -370,12 +405,13 @@ export default function ProviderTimeOff() {
               {viewMode === 'list' ? 'Calendar View' : 'List View'}
             </Button>
             <Button
-              onClick={exportToCSV}
+              onClick={viewMode === 'calendar' ? exportCalendarToPDF : exportToCSV}
               variant="outline"
               className="border-blue-600 text-blue-600 hover:bg-blue-50 gap-2"
+              disabled={isExporting}
             >
               <Download className="w-4 h-4" />
-              Export
+              {isExporting ? 'Exporting...' : 'Export'}
             </Button>
             <Button
               onClick={() => setShowSyncModal(true)}
@@ -656,7 +692,7 @@ export default function ProviderTimeOff() {
             </CardContent>
           </Card>
         ) : (
-          <Card className="border-slate-200 shadow-sm h-full flex flex-col">
+          <Card className="border-slate-200 shadow-sm h-full flex flex-col" ref={calendarRef}>
             <CardHeader className="border-b border-slate-100 flex-shrink-0">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold">
