@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Folder, ArrowLeft, ChevronRight, Plus, FolderPlus, Loader2 } from "lucide-react";
+import { Folder, ArrowLeft, ChevronRight, Plus, FolderPlus, Loader2, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,22 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import VendorInvoicesView from "../components/documentManagement/VendorInvoicesView";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -21,6 +37,10 @@ export default function DocumentManagement() {
   const [currentSection, setCurrentSection] = useState(null); // 'vendor_invoices' or folderId
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newFolder, setNewFolder] = useState({ name: "", description: "" });
+  
+  const [editingFolder, setEditingFolder] = useState(null); // Object of folder being edited
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // ID of folder to delete
+
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -36,6 +56,25 @@ export default function DocumentManagement() {
       setIsCreateOpen(false);
       setNewFolder({ name: "", description: "" });
       toast({ title: "Folder Created", description: "New folder added successfully." });
+    }
+  });
+
+  const updateFolderMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.DocumentFolder.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['document-folders'] });
+      setEditingFolder(null);
+      toast({ title: "Folder Updated", description: "Folder details updated successfully." });
+    }
+  });
+
+  const deleteFolderMutation = useMutation({
+    mutationFn: (id) => base44.entities.DocumentFolder.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['document-folders'] });
+      setDeleteConfirm(null);
+      if (currentSection === deleteConfirm) setCurrentSection(null);
+      toast({ title: "Folder Deleted", description: "Folder removed successfully." });
     }
   });
 
@@ -120,10 +159,37 @@ export default function DocumentManagement() {
                   <h3 className="text-lg font-semibold text-slate-900 mb-1 group-hover:text-blue-600 transition-colors">
                     {folder.name}
                   </h3>
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-slate-500 line-clamp-2">
                     {folder.description}
                   </p>
                 </div>
+                {!folder.isSystem && (
+                  <div className="ml-auto -mr-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-slate-400 hover:text-slate-600"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenuItem onClick={() => setEditingFolder(folder)}>
+                          <Pencil className="w-4 h-4 mr-2" /> Edit Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className="text-red-600 focus:text-red-600"
+                          onClick={() => setDeleteConfirm(folder.id)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" /> Delete Folder
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
@@ -164,6 +230,63 @@ export default function DocumentManagement() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <Dialog open={!!editingFolder} onOpenChange={(open) => !open && setEditingFolder(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Folder</DialogTitle>
+            </DialogHeader>
+            {editingFolder && (
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Folder Name</Label>
+                  <Input 
+                    value={editingFolder.name}
+                    onChange={(e) => setEditingFolder({...editingFolder, name: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Description</Label>
+                  <Textarea 
+                    value={editingFolder.description || ""}
+                    onChange={(e) => setEditingFolder({...editingFolder, description: e.target.value})}
+                  />
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditingFolder(null)}>Cancel</Button>
+              <Button 
+                onClick={() => updateFolderMutation.mutate({ id: editingFolder.id, data: { name: editingFolder.name, description: editingFolder.description } })}
+                disabled={!editingFolder?.name || updateFolderMutation.isPending}
+              >
+                {updateFolderMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <AlertDialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Folder</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this folder? This action cannot be undone. 
+                Invoices inside this folder will not be deleted, but they will be unassigned.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deleteFolderMutation.mutate(deleteConfirm)}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Delete Folder
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
