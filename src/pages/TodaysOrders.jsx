@@ -25,10 +25,17 @@ export default function TodaysOrders() {
     queryKey: ['todays-orders'],
     queryFn: async () => {
       const allOrders = await base44.entities.SupplyOrder.list('-created_date', 100);
-      // Filter to only show orders created today
+      
+      // Get current date in EST
+      const nowInEST = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+      const todayEST = new Date(nowInEST).toISOString().split('T')[0];
+
       return allOrders.filter(order => {
         try {
-          return isToday(parseISO(order.created_date));
+          // Convert order's created_date (UTC) to EST date string
+          const orderInEST = new Date(order.created_date).toLocaleString('en-US', { timeZone: 'America/New_York' });
+          const orderDateEST = new Date(orderInEST).toISOString().split('T')[0];
+          return orderDateEST === todayEST;
         } catch (e) {
           return false;
         }
@@ -182,7 +189,12 @@ export default function TodaysOrders() {
                           </Badge>
                         </td>
                         <td className="p-4 text-sm text-slate-600">
-                          {format(parseISO(order.created_date), 'h:mm a')}
+                          {new Date(order.created_date).toLocaleTimeString('en-US', { 
+                            timeZone: 'America/New_York', 
+                            hour: 'numeric', 
+                            minute: '2-digit', 
+                            hour12: true 
+                          })}
                         </td>
                         <td className="p-4 text-center">
                           <Button
