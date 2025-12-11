@@ -329,7 +329,7 @@ export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, 
                         onClick={() => window.open(invoice.document_url, '_blank')}
                         className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
                     >
-                        <Eye className="w-4 h-4" />
+                        <FileText className="w-4 h-4" />
                     </Button>
                   )}
 
