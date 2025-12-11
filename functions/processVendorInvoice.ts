@@ -3,7 +3,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
-        const { file_url } = await req.json();
+        const { file_url, folder_id } = await req.json();
 
         if (!file_url) {
             return Response.json({ error: 'file_url is required' }, { status: 400 });
@@ -87,7 +87,8 @@ Deno.serve(async (req) => {
             total_amount: data.total_amount || 0,
             status: 'approved', // Auto-approve as requested
             document_url: file_url,
-            extracted_data: data // Store full extraction including line items
+            extracted_data: data, // Store full extraction including line items
+            folder_id: folder_id || null
         });
 
         // 4. Auto-Link to Clinical Supply Order

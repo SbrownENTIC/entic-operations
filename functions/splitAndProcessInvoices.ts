@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
         // We will use service role for operations since there are no logged-in users.
         // const user = await base44.auth.me();
 
-        const { file_url } = await req.json();
+        const { file_url, folder_id } = await req.json();
 
         if (!file_url) {
             return Response.json({ error: 'file_url is required' }, { status: 400 });
@@ -188,7 +188,8 @@ Deno.serve(async (req) => {
                         document_url: uploadRes.file_url,
                         notes: "",
                         extracted_data: inv,
-                        redacted: false
+                        redacted: false,
+                        folder_id: folder_id || null
                     };
 
                     const record = await base44.asServiceRole.entities.VendorInvoice.create(invoiceData);
