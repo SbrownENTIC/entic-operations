@@ -59,7 +59,15 @@ export default function Reports() {
   };
 
   const exportToCSV = (data, filename) => {
-    const csvContent = data.map(row => 
+    // Add export date at the top
+    const exportDate = format(new Date(), 'MMMM dd, yyyy');
+    const dataWithDate = [
+      [`Exported: ${exportDate}`, '', '', '', '', '', '', '', ''],
+      ['', '', '', '', '', '', '', '', ''],
+      ...data
+    ];
+    
+    const csvContent = dataWithDate.map(row => 
       row.map(cell => {
         const cellStr = String(cell);
         if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
