@@ -20,8 +20,8 @@ import ClinicalSupplyCatalog from './pages/ClinicalSupplyCatalog';
 import OfficeSupplyCatalog from './pages/OfficeSupplyCatalog';
 import OfficeSupplyOrders from './pages/OfficeSupplyOrders';
 import ClinicalSupplyOrders from './pages/ClinicalSupplyOrders';
-import Documentation from './pages/Documentation';
 import DocumentManagement from './pages/DocumentManagement';
+import SystemDocumentation from './pages/SystemDocumentation';
 import __Layout from './Layout.jsx';
 
 
@@ -48,8 +48,8 @@ export const PAGES = {
     "OfficeSupplyCatalog": OfficeSupplyCatalog,
     "OfficeSupplyOrders": OfficeSupplyOrders,
     "ClinicalSupplyOrders": ClinicalSupplyOrders,
-    "Documentation": Documentation,
     "DocumentManagement": DocumentManagement,
+    "SystemDocumentation": SystemDocumentation,
 }
 
 export const pagesConfig = {
