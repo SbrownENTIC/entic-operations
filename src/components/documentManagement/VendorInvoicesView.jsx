@@ -72,7 +72,17 @@ export default function VendorInvoicesView({ folderId, folderName }) {
     const missing = new Map();
     
     // Determine target category based on folder
-    const targetCategory = folderName?.toLowerCase().includes('henry') ? 'clinical' : 'office';
+    let targetCategory = null;
+    const lowerName = folderName?.toLowerCase() || "";
+    
+    if (lowerName.includes('henry')) {
+        targetCategory = 'clinical';
+    } else if (lowerName.includes('staples')) {
+        targetCategory = 'office';
+    }
+    
+    // If not Henry Schein or Staples, don't show missing items import
+    if (!targetCategory) return [];
     
     // Filter existing codes to only check the target catalog
     const targetSupplies = supplies.filter(s => s.category === targetCategory);
