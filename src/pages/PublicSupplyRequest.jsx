@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,9 +9,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Trash2, Search, Check, CheckCircle, AlertCircle, HeartPulse, X, Image as ImageIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Trash2, Search, Check, CheckCircle, AlertCircle, HeartPulse, X, Image as ImageIcon, Edit, Clock } from "lucide-react";
+import { format, isToday, parseISO } from "date-fns";
 
 export default function PublicSupplyRequest() {
+  const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     location: '', // No default location - user must select
     requester_name: 'Jalisa Henry',
@@ -26,10 +29,42 @@ export default function PublicSupplyRequest() {
   const [isNewEmail, setIsNewEmail] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
   const [submitStatus, setSubmitStatus] = useState(''); // 'success' or 'error'
+  const [editingOrder, setEditingOrder] = useState(null);
 
   const { data: supplies = [] } = useQuery({
     queryKey: ['supplies'],
     queryFn: () => base44.entities.Supply.list()
+  });
+
+  const { data: todaysOrders = [], isLoading: ordersLoading } = useQuery({
+    queryKey: ['todays-public-orders'],
+    queryFn: async () => {
+      const allOrders = await base44.entities.SupplyOrder.list('-created_date', 100);
+      return allOrders.filter(order => {
+        try {
+          return isToday(parseISO(order.created_date));
+        } catch (e) {
+          return false;
+        }
+      });
+    },
+    refetchInterval: 30000
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }) => {
+      await base44.entities.SupplyOrder.update(id, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['todays-public-orders'] });
+      setEditingOrder(null);
+      setSubmitStatus('success');
+      setSubmitMessage('Order updated successfully!');
+      setTimeout(() => {
+        setSubmitMessage('');
+        setSubmitStatus('');
+      }, 3000);
+    }
   });
 
   // Ensure defaults are set (fixes issues with hot reload or state persistence)
@@ -102,6 +137,73 @@ export default function PublicSupplyRequest() {
     setFormData({ ...formData, items: newItems });
   };
 
+  const canEdit = (order) => {
+    try {
+      const now = new Date();
+      const createdDate = parseISO(order.created_date);
+      
+      if (!isToday(createdDate)) return false;
+
+      const estTime = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+      const hour = estTime.getHours();
+      
+      return hour < 17; // Before 5 PM
+    } catch (e) {
+      return false;
+    }
+  };
+
+  const handleEditOrder = (order) => {
+    if (!canEdit(order)) return;
+    setEditingOrder(order);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleUpdateOrder = async (e) => {
+    e.preventDefault();
+    if (!editingOrder) return;
+
+    const itemsChanged = JSON.stringify(editingOrder.items) !== JSON.stringify(formData.items);
+    const notesChanged = editingOrder.notes !== formData.notes;
+
+    const dataToSubmit = {
+      ...formData,
+      order_date: editingOrder.order_date,
+      status: editingOrder.status,
+      category: editingOrder.category,
+      vendor: editingOrder.vendor,
+      updated_after_submission: itemsChanged || notesChanged ? true : editingOrder.updated_after_submission
+    };
+
+    await updateMutation.mutateAsync({ id: editingOrder.id, data: dataToSubmit });
+  };
+
+  const cancelEdit = () => {
+    setEditingOrder(null);
+    setFormData({
+      location: '',
+      requester_name: 'Jalisa Henry',
+      requester_email: 'JHenry@enticmd.com',
+      requested_date: new Date().toISOString().split('T')[0],
+      items: [],
+      notes: ''
+    });
+  };
+
+  // When editing, populate form with order data
+  useEffect(() => {
+    if (editingOrder) {
+      setFormData({
+        location: editingOrder.location,
+        requester_name: 'Jalisa Henry',
+        requester_email: 'JHenry@enticmd.com',
+        requested_date: new Date().toISOString().split('T')[0],
+        items: editingOrder.items || [],
+        notes: editingOrder.notes || ''
+      });
+    }
+  }, [editingOrder]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6 md:p-8">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -134,9 +236,17 @@ export default function PublicSupplyRequest() {
 
         <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
           <CardHeader className="border-b border-slate-100">
-            <CardTitle>Request Details</CardTitle>
+            <CardTitle className="flex items-center justify-between">
+              <span>{editingOrder ? 'Edit Order' : 'Request Details'}</span>
+              {editingOrder && (
+                <Button type="button" variant="ghost" size="sm" onClick={cancelEdit}>
+                  <X className="w-4 h-4 mr-2" />
+                  Cancel Edit
+                </Button>
+              )}
+            </CardTitle>
           </CardHeader>
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={editingOrder ? handleUpdateOrder : handleSubmit}>
             <CardContent className="p-6 space-y-6">
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -391,14 +501,82 @@ export default function PublicSupplyRequest() {
             <CardFooter className="border-t border-slate-100 p-6 flex justify-end">
               <Button 
                 type="submit" 
-                disabled={submitting || formData.items.length === 0} 
+                disabled={submitting || formData.items.length === 0 || updateMutation.isPending} 
                 className="bg-blue-600 hover:bg-blue-700"
               >
-                {submitting ? 'Submitting...' : 'Submit Request'}
+                {updateMutation.isPending ? 'Updating...' : submitting ? 'Submitting...' : editingOrder ? 'Update Order' : 'Submit Request'}
               </Button>
             </CardFooter>
           </form>
         </Card>
+
+        {todaysOrders.length > 0 && (
+          <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
+            <CardHeader className="border-b border-slate-100">
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="w-5 h-5" />
+                Today's Orders
+                <Badge variant="outline" className="ml-2">{todaysOrders.length}</Badge>
+              </CardTitle>
+              <p className="text-sm text-slate-600 mt-1">Orders can be edited until 5 PM EST</p>
+            </CardHeader>
+            <CardContent className="p-0">
+              {ordersLoading ? (
+                <div className="p-8 text-center text-slate-500">Loading orders...</div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {todaysOrders.map((order) => (
+                    <div key={order.id} className="p-4 hover:bg-slate-50 transition-colors">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-slate-900">{order.location}</span>
+                            <Badge variant="outline" className="text-xs">
+                              {order.items?.length || 0} items
+                            </Badge>
+                            {order.updated_after_submission && (
+                              <Badge className="bg-orange-100 text-orange-800 text-xs">Updated</Badge>
+                            )}
+                          </div>
+                          <div className="text-sm text-slate-600">
+                            <span className="font-medium">Submitted:</span> {format(parseISO(order.created_date), 'h:mm a')}
+                          </div>
+                          {order.notes && (
+                            <div className="text-sm text-slate-600">
+                              <span className="font-medium">Notes:</span> {order.notes}
+                            </div>
+                          )}
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {order.items?.slice(0, 3).map((item, idx) => (
+                              <Badge key={idx} variant="secondary" className="text-xs">
+                                {item.supply_name} (x{item.quantity})
+                              </Badge>
+                            ))}
+                            {order.items?.length > 3 && (
+                              <Badge variant="secondary" className="text-xs">
+                                +{order.items.length - 3} more
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        <Button
+                          onClick={() => handleEditOrder(order)}
+                          disabled={!canEdit(order)}
+                          size="sm"
+                          variant={canEdit(order) ? "default" : "ghost"}
+                          className={canEdit(order) ? "" : "opacity-50 cursor-not-allowed"}
+                        >
+                          <Edit className="w-4 h-4 mr-1" />
+                          {canEdit(order) ? 'Edit' : 'Locked'}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
