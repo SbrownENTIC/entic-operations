@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { X, Upload, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 
-export default function VendorInvoiceUpload({ onClose, onUploadComplete }) {
+export default function VendorInvoiceUpload({ onClose, onUploadComplete, folderId }) {
   const [files, setFiles] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
@@ -38,7 +38,7 @@ export default function VendorInvoiceUpload({ onClose, onUploadComplete }) {
             const { file_url } = await base44.integrations.Core.UploadFile({ file });
             
             // 2. Process with AI extraction
-            await base44.functions.invoke('processVendorInvoice', { file_url });
+            await base44.functions.invoke('processVendorInvoice', { file_url, folder_id: folderId });
           } catch (error) {
              console.error(`Failed to process ${file.name}:`, error);
              // Extract server error message if available
