@@ -49,7 +49,8 @@ Deno.serve(async (req) => {
         });
 
         if (extractionResult.status === 'error') {
-            throw new Error(extractionResult.details || 'Failed to extract data');
+            console.error("Extraction failed:", extractionResult.details);
+            return Response.json({ error: `Extraction failed: ${extractionResult.details || 'Unknown error'}` }, { status: 400 });
         }
 
         const data = extractionResult.output;
@@ -109,6 +110,7 @@ Deno.serve(async (req) => {
 
     } catch (error) {
         console.error('Error processing invoice:', error);
-        return Response.json({ error: error.message }, { status: 500 });
+        // Return 400 for known errors to avoid "Internal Server Error"
+        return Response.json({ error: error.message }, { status: 400 });
     }
 });

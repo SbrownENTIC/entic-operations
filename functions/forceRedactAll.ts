@@ -16,26 +16,32 @@ Deno.serve(async (req) => {
         
         const results = [];
         
-        for (const invoice of henryInvoices) {
-            try {
-                // Call redactInvoice for each
-                // This uses the UPDATED logic in redactInvoice (0.75 cut-off)
-                const res = await base44.asServiceRole.functions.invoke('redactInvoice', { invoice_id: invoice.id });
-                results.push({ 
-                    id: invoice.id, 
-                    number: invoice.invoice_number, 
-                    status: 'processed',
-                    result: res.data 
-                });
-            } catch (err) {
-                console.error(`Failed to redact ${invoice.id}:`, err);
-                results.push({ 
-                    id: invoice.id, 
-                    number: invoice.invoice_number, 
-                    status: 'error',
-                    error: err.message 
-                });
-            }
+        // Process in batches of 5 to avoid timeouts but speed up processing
+        const batchSize = 5;
+        for (let i = 0; i < henryInvoices.length; i += batchSize) {
+            const batch = henryInvoices.slice(i, i + batchSize);
+            const batchPromises = batch.map(async (invoice) => {
+                try {
+                    const res = await base44.asServiceRole.functions.invoke('redactInvoice', { invoice_id: invoice.id });
+                    return { 
+                        id: invoice.id, 
+                        number: invoice.invoice_number, 
+                        status: 'processed',
+                        result: res.data 
+                    };
+                } catch (err) {
+                    console.error(`Failed to redact ${invoice.id}:`, err);
+                    return { 
+                        id: invoice.id, 
+                        number: invoice.invoice_number, 
+                        status: 'error',
+                        error: err.message 
+                    };
+                }
+            });
+            
+            const batchResults = await Promise.all(batchPromises);
+            results.push(...batchResults);
         }
 
         return Response.json({ 
