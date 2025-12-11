@@ -85,10 +85,83 @@ Deno.serve(async (req) => {
             invoice_date: data.invoice_date,
             due_date: data.due_date,
             total_amount: data.total_amount || 0,
-            status: 'order_placed',
+            status: 'approved', // Auto-approve as requested
             document_url: file_url,
             extracted_data: data // Store full extraction including line items
         });
+
+        // 4. Auto-Link to Clinical Supply Order
+        try {
+            // A. Search for existing matching order
+            const recentOrders = await base44.asServiceRole.entities.SupplyOrder.list('-created_date', 200);
+            
+            let matchedOrder = recentOrders.find(order => {
+                // Ignore already received/linked orders if we want to be strict, but user might be re-uploading.
+                // Best match: Same Vendor AND (Same Amount OR Same PO Number/Invoice Number)
+                const vendorMatch = (order.vendor || '').toLowerCase().includes(normalizedVendorName.toLowerCase()) || 
+                                    normalizedVendorName.toLowerCase().includes((order.vendor || '').toLowerCase());
+                
+                if (!vendorMatch) return false;
+
+                const amountMatch = Math.abs((order.total_amount || 0) - (data.total_amount || 0)) < 0.1;
+                // Some vendors might put PO number in invoice number field or vice versa
+                const numberMatch = order.order_number && (order.order_number === data.invoice_number);
+
+                return amountMatch || numberMatch;
+            });
+
+            if (matchedOrder) {
+                console.log(`Matched existing order ${matchedOrder.order_number} for invoice ${invoice.invoice_number}`);
+                
+                // Update existing order
+                await base44.asServiceRole.entities.SupplyOrder.update(matchedOrder.id, {
+                    status: 'received',
+                    // Append items if needed? For now, just mark received.
+                });
+
+                // Link invoice
+                await base44.asServiceRole.entities.VendorInvoice.update(invoice.id, {
+                    linked_supply_order_ids: [matchedOrder.id]
+                });
+
+            } else {
+                console.log(`No match found. Creating new Clinical Supply Order for ${invoice.invoice_number}`);
+                
+                // B. Create new Supply Order
+                const supplyOrderItems = (data.line_items || []).map(item => ({
+                    supply_name: item.description || 'Unknown Item',
+                    item_number: item.item_code || '',
+                    quantity: item.quantity || 0,
+                    unit_price: item.unit_price || 0,
+                    line_total: item.total_price || 0,
+                    received: true
+                }));
+
+                const newOrderData = {
+                    order_number: data.invoice_number || `AUTO-${Date.now()}`,
+                    vendor: normalizedVendorName,
+                    location: data.location || 'Glastonbury', // Default if unknown
+                    order_date: data.invoice_date || new Date().toISOString().split('T')[0],
+                    status: 'received',
+                    category: 'clinical', // Default to clinical as requested
+                    order_type: 'order',
+                    items: supplyOrderItems,
+                    total_amount: data.total_amount || 0,
+                    notes: `Auto-generated from Import of Invoice #${data.invoice_number}`
+                };
+
+                const newOrder = await base44.asServiceRole.entities.SupplyOrder.create(newOrderData);
+
+                // Link invoice
+                await base44.asServiceRole.entities.VendorInvoice.update(invoice.id, {
+                    linked_supply_order_ids: [newOrder.id]
+                });
+            }
+
+        } catch (linkError) {
+            console.error("Auto-link error:", linkError);
+            // Don't fail the whole request if linking fails
+        }
 
         // Trigger Redaction for single uploads
         try {
