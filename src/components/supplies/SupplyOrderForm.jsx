@@ -120,6 +120,10 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
     if (!printRef.current) return;
     
     setIsPrinting(true);
+    
+    // Wait a moment for the DOM to update
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     try {
       const element = printRef.current;
       const canvas = await html2canvas(element, {
@@ -127,6 +131,8 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
         backgroundColor: '#ffffff',
         logging: false,
         useCORS: true,
+        windowWidth: 800,
+        windowHeight: element.scrollHeight
       });
       
       const imgData = canvas.toDataURL('image/png');
@@ -149,7 +155,7 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
       pdf.save(`supply-order-${formData.order_number || 'draft'}.pdf`);
     } catch (error) {
       console.error('PDF generation failed:', error);
-      alert('Failed to generate PDF');
+      alert('Failed to generate PDF: ' + error.message);
     } finally {
       setIsPrinting(false);
     }
@@ -160,7 +166,14 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
 
   return (
     <>
-      <div ref={printRef} className="bg-white" style={{ display: isPrinting ? 'block' : 'none', padding: '40px' }}>
+      <div ref={printRef} className="bg-white" style={{ 
+        position: isPrinting ? 'absolute' : 'fixed',
+        left: isPrinting ? '0' : '-9999px',
+        top: '0',
+        width: '800px',
+        padding: '40px',
+        zIndex: isPrinting ? 9999 : -1
+      }}>
         <div className="mb-8 text-center border-b-2 border-slate-300 pb-6">
           <h1 className="text-3xl font-bold text-slate-900 mb-2">Supply Order Request</h1>
           <p className="text-lg text-slate-600">{category === 'clinical' ? 'Clinical' : 'Office'} Supplies</p>
