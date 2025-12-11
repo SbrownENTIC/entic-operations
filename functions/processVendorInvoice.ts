@@ -9,10 +9,8 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'file_url is required' }, { status: 400 });
         }
 
-        const user = await base44.auth.me();
-        if (!user) {
-            return Response.json({ error: 'Unauthorized' }, { status: 401 });
-        }
+        // Auth check removed for public app
+        // const user = await base44.auth.me();
 
         // 1. Define schema for extraction
         const extractionSchema = {
@@ -22,7 +20,7 @@ Deno.serve(async (req) => {
                 invoice_number: { type: "string" },
                 invoice_date: { type: "string", format: "date", description: "YYYY-MM-DD format" },
                 due_date: { type: "string", format: "date", description: "YYYY-MM-DD format" },
-                location: { type: "string", description: "The location/office name found in the Ship To address. Look for keywords: Glastonbury, Manchester, Bloomfield, Farmington." },
+                location: { type: "string", enum: ["Glastonbury", "Manchester", "Bloomfield", "Farmington"], description: "The location/office name found in the Ship To address. Look for keywords: Glastonbury, Manchester, Bloomfield, Farmington." },
                 ship_to_text: { type: "string", description: "The full raw text of the 'Ship To' address block for debugging" },
                 total_amount: { type: "number" },
                 line_items: {
@@ -43,7 +41,7 @@ Deno.serve(async (req) => {
         };
 
         // 2. Extract data using AI
-        const extractionResult = await base44.integrations.Core.ExtractDataFromUploadedFile({
+        const extractionResult = await base44.asServiceRole.integrations.Core.ExtractDataFromUploadedFile({
             file_url: file_url,
             json_schema: extractionSchema
         });
@@ -57,7 +55,7 @@ Deno.serve(async (req) => {
 
         // Check for duplicates
         if (data.invoice_number) {
-            const existing = await base44.entities.VendorInvoice.filter({ invoice_number: data.invoice_number });
+            const existing = await base44.asServiceRole.entities.VendorInvoice.filter({ invoice_number: data.invoice_number });
             if (existing && existing.length > 0) {
                 const normalizedNewVendor = (data.vendor_name || '').toLowerCase();
                 const duplicateMatch = existing.find(ex => 
@@ -79,18 +77,10 @@ Deno.serve(async (req) => {
 
         const normalizedVendorName = normalizeVendor(data.vendor_name);
 
-        // Normalize location to match allowed enum values
-        const validLocations = ["Glastonbury", "Manchester", "Bloomfield", "Farmington"];
-        let validLocation = null;
-        if (data.location) {
-            // Find if any valid location is part of the extracted string
-            validLocation = validLocations.find(l => data.location.includes(l));
-        }
-
         // 3. Create the VendorInvoice record
-        const invoice = await base44.entities.VendorInvoice.create({
+        const invoice = await base44.asServiceRole.entities.VendorInvoice.create({
             vendor_name: normalizedVendorName,
-            location: validLocation,
+            location: data.location,
             invoice_number: data.invoice_number,
             invoice_date: data.invoice_date,
             due_date: data.due_date,
