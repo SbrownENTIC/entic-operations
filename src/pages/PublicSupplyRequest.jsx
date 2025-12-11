@@ -41,14 +41,27 @@ export default function PublicSupplyRequest() {
     queryKey: ['todays-public-orders'],
     queryFn: async () => {
       const allOrders = await base44.entities.SupplyOrder.list('-created_date', 100);
-      const nowEST = new Date().toLocaleString("en-US", { timeZone: "America/New_York" });
-      const todayEST = new Date(nowEST).toDateString();
+      
+      // Get today's date in EST (YYYY-MM-DD format)
+      const todayEST = new Date().toLocaleDateString("en-US", { 
+        timeZone: "America/New_York",
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).split('/').reverse().join('-').replace(/(\d{4})-(\d{2})-(\d{2})/, '$1-$2-$3');
       
       return allOrders.filter(order => {
         try {
-          const orderDateEST = new Date(order.created_date).toLocaleString("en-US", { timeZone: "America/New_York" });
-          const orderDateString = new Date(orderDateEST).toDateString();
-          return orderDateString === todayEST;
+          // Get order date in EST (YYYY-MM-DD format)
+          const orderDate = new Date(order.created_date);
+          const orderDateEST = orderDate.toLocaleDateString("en-US", { 
+            timeZone: "America/New_York",
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+          }).split('/').reverse().join('-').replace(/(\d{4})-(\d{2})-(\d{2})/, '$1-$2-$3');
+          
+          return orderDateEST === todayEST;
         } catch (e) {
           return false;
         }
