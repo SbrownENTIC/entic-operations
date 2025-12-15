@@ -71,21 +71,21 @@ export default function SimpleFolderView({ folderId }) {
         
         // Process invoice with AI to extract data
         const result = await base44.functions.invoke('processVendorInvoice', {
-          fileUrl: file_url,
-          folderId: folderId
+          file_url: file_url,
+          folder_id: folderId
         });
         
-        if (result.data.status === 'success') {
+        if (result.data.success) {
           toast({ title: "Document Added", description: `Processed: ${result.data.invoice.invoice_number || 'Invoice'}` });
         } else {
-          toast({ title: "Processing Error", description: result.data.message, variant: "destructive" });
+          toast({ title: "Processing Error", description: result.data.error, variant: "destructive" });
         }
       }
       
       queryClient.invalidateQueries({ queryKey: ['vendor-invoices', folderId] });
       toast({ title: "Upload Complete", description: `${files.length} document(s) processed` });
     } catch (error) {
-      toast({ title: "Upload Failed", description: error.message, variant: "destructive" });
+      toast({ title: "Upload Failed", description: error.response?.data?.error || error.message, variant: "destructive" });
     } finally {
       setUploading(false);
       e.target.value = '';
