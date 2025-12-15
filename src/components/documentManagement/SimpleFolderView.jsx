@@ -1,14 +1,20 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
-import { FileText, Search, Loader2, ArrowUpDown } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { FileText, Search, Loader2, ArrowUpDown, Upload, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
 import { format } from "date-fns";
 
 export default function SimpleFolderView({ folderId }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState('created_date');
   const [sortDirection, setSortDirection] = useState('desc');
+  const [uploading, setUploading] = useState(false);
+  
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ['vendor-invoices', folderId],
@@ -53,6 +59,34 @@ export default function SimpleFolderView({ folderId }) {
     return Math.round(bytes / (1024 * 1024)) + ' MB';
   };
 
+  const handleFileUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    setUploading(true);
+    try {
+      for (const file of files) {
+        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        
+        await base44.entities.VendorInvoice.create({
+          vendor_name: file.name.replace('.pdf', ''),
+          folder_id: folderId,
+          document_url: file_url,
+          total_amount: 0,
+          status: 'order_placed'
+        });
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ['vendor-invoices', folderId] });
+      toast({ title: "Upload Successful", description: `${files.length} document(s) uploaded` });
+    } catch (error) {
+      toast({ title: "Upload Failed", description: error.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -64,14 +98,43 @@ export default function SimpleFolderView({ folderId }) {
   return (
     <div className="flex flex-col h-full">
       <div className="p-4 border-b bg-white">
-        <div className="flex items-center gap-4">
-          <Search className="w-5 h-5 text-slate-400" />
-          <Input
-            placeholder="Search documents..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-md"
-          />
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 flex-1">
+            <Search className="w-5 h-5 text-slate-400" />
+            <Input
+              placeholder="Search documents..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-md"
+            />
+          </div>
+          <div>
+            <input
+              type="file"
+              accept=".pdf"
+              multiple
+              onChange={handleFileUpload}
+              className="hidden"
+              id="document-upload"
+            />
+            <Button
+              onClick={() => document.getElementById('document-upload').click()}
+              disabled={uploading}
+              className="gap-2"
+            >
+              {uploading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4" />
+                  Add Documents
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
 
