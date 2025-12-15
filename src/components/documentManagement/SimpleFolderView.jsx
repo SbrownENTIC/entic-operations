@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { FileText, Search, Loader2, ArrowUpDown, Upload, Plus } from "lucide-react";
+import { FileText, Search, Loader2, ArrowUpDown, Upload, Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -12,6 +12,7 @@ export default function SimpleFolderView({ folderId }) {
   const [sortField, setSortField] = useState('created_date');
   const [sortDirection, setSortDirection] = useState('desc');
   const [uploading, setUploading] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -68,22 +69,56 @@ export default function SimpleFolderView({ folderId }) {
       for (const file of files) {
         const { file_url } = await base44.integrations.Core.UploadFile({ file });
         
-        await base44.entities.VendorInvoice.create({
-          vendor_name: file.name.replace('.pdf', ''),
-          folder_id: folderId,
-          document_url: file_url,
-          total_amount: 0,
-          status: 'order_placed'
+        // Process invoice with AI to extract data
+        const result = await base44.functions.invoke('processVendorInvoice', {
+          fileUrl: file_url,
+          folderId: folderId
         });
+        
+        if (result.data.status === 'success') {
+          toast({ title: "Document Added", description: `Processed: ${result.data.invoice.invoice_number || 'Invoice'}` });
+        } else {
+          toast({ title: "Processing Error", description: result.data.message, variant: "destructive" });
+        }
       }
       
       queryClient.invalidateQueries({ queryKey: ['vendor-invoices', folderId] });
-      toast({ title: "Upload Successful", description: `${files.length} document(s) uploaded` });
+      toast({ title: "Upload Complete", description: `${files.length} document(s) processed` });
     } catch (error) {
       toast({ title: "Upload Failed", description: error.message, variant: "destructive" });
     } finally {
       setUploading(false);
       e.target.value = '';
+    }
+  };
+
+  const handleDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(`Delete ${selectedIds.length} document(s)?`)) return;
+
+    try {
+      for (const id of selectedIds) {
+        await base44.entities.VendorInvoice.delete(id);
+      }
+      queryClient.invalidateQueries({ queryKey: ['vendor-invoices', folderId] });
+      setSelectedIds([]);
+      toast({ title: "Deleted", description: `${selectedIds.length} document(s) removed` });
+    } catch (error) {
+      toast({ title: "Delete Failed", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === sortedInvoices.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(sortedInvoices.map(inv => inv.id));
     }
   };
 
@@ -107,8 +142,24 @@ export default function SimpleFolderView({ folderId }) {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-md"
             />
+            {selectedIds.length > 0 && (
+              <span className="text-sm text-slate-600">
+                {selectedIds.length} selected
+              </span>
+            )}
           </div>
-          <div>
+          <div className="flex gap-2">
+            {selectedIds.length > 0 && (
+              <Button
+                onClick={handleDelete}
+                variant="destructive"
+                size="sm"
+                className="gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete ({selectedIds.length})
+              </Button>
+            )}
             <input
               type="file"
               accept=".pdf"
@@ -142,6 +193,14 @@ export default function SimpleFolderView({ folderId }) {
         <table className="w-full text-sm">
           <thead className="bg-slate-50 border-b sticky top-0 z-10">
             <tr>
+              <th className="w-12 p-3">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.length === sortedInvoices.length && sortedInvoices.length > 0}
+                  onChange={toggleSelectAll}
+                  className="w-4 h-4 rounded border-slate-300"
+                />
+              </th>
               <th 
                 className="text-left p-3 font-medium text-slate-600 cursor-pointer hover:bg-slate-100"
                 onClick={() => handleSort('invoice_number')}
@@ -177,10 +236,17 @@ export default function SimpleFolderView({ folderId }) {
             {sortedInvoices.map((invoice) => (
               <tr
                 key={invoice.id}
-                onClick={() => invoice.document_url && window.open(invoice.document_url, '_blank')}
-                className="border-b hover:bg-slate-50 cursor-pointer transition-colors"
+                className="border-b hover:bg-slate-50 transition-colors"
               >
-                <td className="p-3">
+                <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(invoice.id)}
+                    onChange={() => toggleSelect(invoice.id)}
+                    className="w-4 h-4 rounded border-slate-300"
+                  />
+                </td>
+                <td className="p-3 cursor-pointer" onClick={() => invoice.document_url && window.open(invoice.document_url, '_blank')}>
                   <div className="flex items-center gap-3">
                     <FileText className="w-5 h-5 text-red-600 flex-shrink-0" />
                     <span className="font-medium text-slate-900">
@@ -188,22 +254,22 @@ export default function SimpleFolderView({ folderId }) {
                     </span>
                   </div>
                 </td>
-                <td className="p-3 text-slate-600">
+                <td className="p-3 text-slate-600 cursor-pointer" onClick={() => invoice.document_url && window.open(invoice.document_url, '_blank')}>
                   {invoice.invoice_date 
                     ? format(new Date(invoice.invoice_date), 'MMM d, yyyy')
                     : '-'
                   }
                 </td>
-                <td className="p-3 text-slate-600">
+                <td className="p-3 text-slate-600 cursor-pointer" onClick={() => invoice.document_url && window.open(invoice.document_url, '_blank')}>
                   {invoice.created_date 
                     ? format(new Date(invoice.created_date), 'MMM d, yyyy \'at\' h:mma')
                     : '-'
                   }
                 </td>
-                <td className="p-3 text-slate-600">
+                <td className="p-3 text-slate-600 cursor-pointer" onClick={() => invoice.document_url && window.open(invoice.document_url, '_blank')}>
                   {formatFileSize(invoice.file_size)}
                 </td>
-                <td className="p-3 text-slate-600">PDF Document</td>
+                <td className="p-3 text-slate-600 cursor-pointer" onClick={() => invoice.document_url && window.open(invoice.document_url, '_blank')}>PDF Document</td>
               </tr>
             ))}
           </tbody>
