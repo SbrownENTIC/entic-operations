@@ -776,65 +776,124 @@ export default function Reports() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {[
-                      { label: '0-30 days', color: 'blue', count: invoices.filter(inv => {
-                        const balance = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
-                        const days = differenceInDays(new Date(), parseISO(inv.invoice_date));
-                        return balance > 0 && days <= 30;
-                      }).length },
-                      { label: '31-60 days', color: 'yellow', count: invoices.filter(inv => {
-                        const balance = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
-                        const days = differenceInDays(new Date(), parseISO(inv.invoice_date));
-                        return balance > 0 && days > 30 && days <= 60;
-                      }).length },
-                      { label: '61-90 days', color: 'orange', count: invoices.filter(inv => {
-                        const balance = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
-                        const days = differenceInDays(new Date(), parseISO(inv.invoice_date));
-                        return balance > 0 && days > 60 && days <= 90;
-                      }).length },
-                      { label: '90+ days', color: 'red', count: invoices.filter(inv => {
-                        const balance = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
-                        const days = differenceInDays(new Date(), parseISO(inv.invoice_date));
-                        return balance > 0 && days > 90;
-                      }).length }
-                    ].map(({ label, color, count }) => (
-                      <div key={label} className={`bg-${color}-50 p-4 rounded-lg`}>
-                        <p className="text-sm text-slate-600">{label}</p>
-                        <p className={`text-2xl font-bold text-${color}-700`}>{count}</p>
-                      </div>
-                    ))}
+                      { label: '0-30 days', key: 'current', color: 'blue' },
+                      { label: '31-60 days', key: '60days', color: 'yellow' },
+                      { label: '61-90 days', key: '90days', color: 'orange' },
+                      { label: '90+ days', key: '90plus', color: 'red' }
+                    ].map(({ label, key, color }) => {
+                      const count = invoices.filter(inv => {
+                         const balance = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
+                         return balance > 0 && getAgingCategory(inv) === key;
+                      }).length;
+                      
+                      return (
+                        <div 
+                          key={key} 
+                          onClick={() => setSelectedAgingCategory(selectedAgingCategory === key ? null : key)}
+                          className={`bg-${color}-50 p-4 rounded-lg cursor-pointer transition-all border-2 ${selectedAgingCategory === key ? `border-${color}-500 ring-2 ring-${color}-200` : 'border-transparent hover:scale-105'}`}
+                        >
+                          <p className="text-sm text-slate-600">{label}</p>
+                          <p className={`text-2xl font-bold text-${color}-700`}>{count}</p>
+                        </div>
+                      );
+                    })}
                   </div>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div>
                       <p className="text-sm text-slate-600 mb-4">
                         This report categorizes outstanding invoices by age, helping you prioritize 
-                        collections and identify problematic accounts.
+                        collections and identify problematic accounts. Click on a category above to filter the list below.
                       </p>
                     </div>
                     <InvoiceAgingChart 
                       agingData={{
                         current: invoices.filter(inv => {
                             const balance = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
-                            const days = differenceInDays(new Date(), parseISO(inv.invoice_date));
-                            return balance > 0 && days <= 30;
+                            return balance > 0 && getAgingCategory(inv) === 'current';
                         }).reduce((sum, inv) => sum + ((inv.amount_expected || inv.total || 0) - (inv.amount_received || 0)), 0),
                         '30days': invoices.filter(inv => {
                             const balance = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
-                            const days = differenceInDays(new Date(), parseISO(inv.invoice_date));
-                            return balance > 0 && days > 30 && days <= 60;
+                            return balance > 0 && getAgingCategory(inv) === '60days';
                         }).reduce((sum, inv) => sum + ((inv.amount_expected || inv.total || 0) - (inv.amount_received || 0)), 0),
                         '60days': invoices.filter(inv => {
                             const balance = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
-                            const days = differenceInDays(new Date(), parseISO(inv.invoice_date));
-                            return balance > 0 && days > 60 && days <= 90;
+                            return balance > 0 && getAgingCategory(inv) === '90days';
                         }).reduce((sum, inv) => sum + ((inv.amount_expected || inv.total || 0) - (inv.amount_received || 0)), 0),
                         '90plus': invoices.filter(inv => {
                             const balance = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
-                            const days = differenceInDays(new Date(), parseISO(inv.invoice_date));
-                            return balance > 0 && days > 90;
+                            return balance > 0 && getAgingCategory(inv) === '90plus';
                         }).reduce((sum, inv) => sum + ((inv.amount_expected || inv.total || 0) - (inv.amount_received || 0)), 0)
                       }} 
                     />
                   </div>
+                  
+                  {/* Filtered List Section */}
+                  {selectedAgingCategory && (
+                    <div className="mt-8 border-t border-slate-100 pt-6">
+                       <div className="flex items-center justify-between mb-4">
+                         <h3 className="text-lg font-semibold text-slate-900">
+                           Invoices: {[
+                             { label: '0-30 days', key: 'current' },
+                             { label: '31-60 days', key: '60days' },
+                             { label: '61-90 days', key: '90days' },
+                             { label: '90+ days', key: '90plus' }
+                           ].find(c => c.key === selectedAgingCategory)?.label}
+                         </h3>
+                         <Button variant="ghost" size="sm" onClick={() => setSelectedAgingCategory(null)}>
+                           <X className="w-4 h-4 mr-2" /> Clear Filter
+                         </Button>
+                       </div>
+                       
+                       <div className="overflow-auto max-h-96 border rounded-lg">
+                          <table className="w-full text-sm">
+                            <thead className="bg-slate-100 border-b border-slate-200 sticky top-0">
+                              <tr>
+                                <th className="text-left p-3 font-semibold text-slate-700">Invoice #</th>
+                                <th className="text-left p-3 font-semibold text-slate-700">Date</th>
+                                <th className="text-left p-3 font-semibold text-slate-700">Provider</th>
+                                <th className="text-left p-3 font-semibold text-slate-700">Location</th>
+                                <th className="text-right p-3 font-semibold text-slate-700">Balance</th>
+                                <th className="text-right p-3 font-semibold text-slate-700">Days</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {invoices.filter(inv => {
+                                const balance = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
+                                return balance > 0 && getAgingCategory(inv) === selectedAgingCategory;
+                              }).map(inv => {
+                                const provider = providers.find(p => p.id === inv.staff_member_id);
+                                const balance = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
+                                const days = differenceInDays(new Date(), parseISO(inv.invoice_date));
+                                return (
+                                  <tr key={inv.id} className="border-b border-slate-100 hover:bg-slate-50">
+                                    <td className="p-3 font-medium">
+                                      <Link to={`${createPageUrl("Invoices")}?edit=${inv.id}`} className="text-blue-600 hover:underline">
+                                        {inv.invoice_number || '(No Number)'}
+                                      </Link>
+                                    </td>
+                                    <td className="p-3 text-slate-600">
+                                      {format(parseISO(inv.invoice_date), 'MMM d, yyyy')}
+                                    </td>
+                                    <td className="p-3 text-slate-900">{provider?.full_name || '-'}</td>
+                                    <td className="p-3 text-slate-600">{inv.program_group || '-'}</td>
+                                    <td className="p-3 text-right font-medium text-red-600">{formatCurrency(balance)}</td>
+                                    <td className="p-3 text-right text-slate-600">{days}</td>
+                                  </tr>
+                                );
+                              })}
+                              {invoices.filter(inv => {
+                                const balance = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
+                                return balance > 0 && getAgingCategory(inv) === selectedAgingCategory;
+                              }).length === 0 && (
+                                <tr>
+                                  <td colSpan="6" className="p-8 text-center text-slate-500">No invoices found in this category.</td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                       </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
