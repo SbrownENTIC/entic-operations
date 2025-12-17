@@ -20,6 +20,7 @@ export default function Reports() {
     start: '',
     end: ''
   });
+  const [selectedAgingCategory, setSelectedAgingCategory] = useState(null);
   // supplyOrderDetail state moved to SupplyOrderReportView component
 
   const { data: payments = [], isLoading: paymentsLoading } = useQuery({
