@@ -59,6 +59,14 @@ export default function Reports() {
     return '$' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
+  const getAgingCategory = (invoice) => {
+    const days = differenceInDays(new Date(), parseISO(invoice.invoice_date));
+    if (days > 90) return '90plus';
+    if (days > 60) return '90days'; // 61-90
+    if (days > 30) return '60days'; // 31-60
+    return 'current'; // 0-30
+  };
+
   const exportToCSV = (data, filename) => {
     // Add export date at the top
     const exportDate = format(new Date(), 'MMMM dd, yyyy');
