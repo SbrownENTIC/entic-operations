@@ -688,6 +688,10 @@ export default function Reports() {
               <AlertCircle className="w-4 h-4" />
               Unlinked Invoices
             </TabsTrigger>
+            <TabsTrigger value="credentialing" className="gap-2 py-3 flex-1 min-w-[150px]">
+              <Users className="w-4 h-4" />
+              Credentialing Matrix
+            </TabsTrigger>
             <TabsTrigger value="monthly-financials" className="gap-2 py-3 flex-1 min-w-[150px]">
               <Calendar className="w-4 h-4" />
               Monthly Financials
