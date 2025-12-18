@@ -1132,6 +1132,10 @@ export default function Reports() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="credentialing">
+            <ProviderCredentialingReport />
+          </TabsContent>
+
           <TabsContent value="monthly-financials">
             <MonthlyFinancialsReport 
               payments={payments}
