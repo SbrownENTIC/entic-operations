@@ -37,7 +37,12 @@ export default function ProviderCredentialingReport() {
   const processedData = useMemo(() => {
     // Filter active providers only for the report generally, or maybe all? 
     // Usually reports want active providers. Let's include active and pending.
-    const activeProviders = providers.filter(p => p.status !== 'inactive');
+    // Also filtering for MD in role as requested.
+    const activeProviders = providers.filter(p => 
+      p.status !== 'inactive' && 
+      p.role && 
+      p.role.toUpperCase().includes('MD')
+    );
 
     return activeProviders.map(provider => {
       const providerPrivileges = privileges.filter(p => p.provider_id === provider.id);
