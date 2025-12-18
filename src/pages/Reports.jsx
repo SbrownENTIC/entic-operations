@@ -13,6 +13,7 @@ import { createPageUrl } from "@/utils";
 import PaymentTrackingReport from "../components/reports/PaymentTrackingReport";
 import MonthlyFinancialsReport from "../components/reports/MonthlyFinancialsReport";
 import SupplyOrderReportView from "../components/reports/SupplyOrderReportView";
+import ProviderCredentialingReport from "../components/reports/ProviderCredentialingReport";
 import { PaymentTrendChart, InvoiceAgingChart, IncomeDistributionChart, SupplySpendingChart } from "../components/reports/ReportCharts";
 
 export default function Reports() {
