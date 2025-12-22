@@ -278,13 +278,7 @@ export default function Dashboard() {
     }));
 
     // Add standalone Outside Income items (direct payers) that are not linked to an invoice
-    // Only include known direct payers to avoid double-counting invoiced programs (like Hartford/St. Francis)
-    const directPayers = ['Quinnipiac University', 'Nations Hearing'];
-    const directIncomeItems = outsideIncomes.filter(inc => 
-      !inc.invoice_id && 
-      inc.facility_name && 
-      directPayers.includes(inc.facility_name)
-    );
+    const directIncomeItems = outsideIncomes.filter(inc => !inc.invoice_id && inc.facility_name);
     
     directIncomeItems.forEach(inc => {
        const received = incomeAllocations[inc.id] || 0;
