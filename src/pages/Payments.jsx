@@ -214,18 +214,22 @@ export default function Payments() {
       const totalAllocated = data.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
       const unallocated = roundToTwo(data.total_amount - totalAllocated);
 
-      const months = new Set();
-      if (data.allocations) {
-        data.allocations.forEach(allocation => {
-          if (allocation.invoice_id) {
-            const invoice = invoices.find(inv => inv.id === allocation.invoice_id);
-            if (invoice && invoice.month) {
-              months.add(invoice.month);
+      let paymentMonth = data.payment_month;
+
+      if (!paymentMonth) {
+        const months = new Set();
+        if (data.allocations) {
+          data.allocations.forEach(allocation => {
+            if (allocation.invoice_id) {
+              const invoice = invoices.find(inv => inv.id === allocation.invoice_id);
+              if (invoice && invoice.month) {
+                months.add(invoice.month);
+              }
             }
-          }
-        });
+          });
+        }
+        paymentMonth = Array.from(months).sort().join(', ');
       }
-      const paymentMonth = Array.from(months).sort().join(', ');
 
       let status = data.status;
       if (Math.abs(unallocated) < 0.01 && totalAllocated > 0 && status === 'pending') {
@@ -258,18 +262,22 @@ export default function Payments() {
       const totalAllocated = data.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
       const unallocated = roundToTwo(data.total_amount - totalAllocated);
 
-      const months = new Set();
-      if (data.allocations) {
-        data.allocations.forEach(allocation => {
-          if (allocation.invoice_id) {
-            const invoice = invoices.find(inv => inv.id === allocation.invoice_id);
-            if (invoice && invoice.month) {
-              months.add(invoice.month);
+      let paymentMonth = data.payment_month;
+
+      if (!paymentMonth) {
+        const months = new Set();
+        if (data.allocations) {
+          data.allocations.forEach(allocation => {
+            if (allocation.invoice_id) {
+              const invoice = invoices.find(inv => inv.id === allocation.invoice_id);
+              if (invoice && invoice.month) {
+                months.add(invoice.month);
+              }
             }
-          }
-        });
+          });
+        }
+        paymentMonth = Array.from(months).sort().join(', ');
       }
-      const paymentMonth = Array.from(months).sort().join(', ');
 
       let status = data.status;
       if (Math.abs(unallocated) < 0.01 && totalAllocated > 0 && status === 'pending') {
