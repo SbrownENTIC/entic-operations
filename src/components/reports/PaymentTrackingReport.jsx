@@ -78,65 +78,71 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
       const isDirectPayer = directPayers.includes(programGroup);
 
       if (isDirectPayer) {
-        rows.push([`${programGroup} - TRACKING`, '', '', '', '', '', '', '']);
-        rows.push(['', '', '', '', '', '', '', '']);
-        rows.push(['Description', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', '', 'Notes']);
+      rows.push([`${programGroup} - TRACKING`, '', '', '', '', '', '', '']);
+      rows.push(['', '', '', '', '', '', '', '']);
+      rows.push(['Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', '', 'Notes']);
 
-        let groupTotal = { expected: 0, received: 0 };
+      let groupTotal = { expected: 0, received: 0 };
 
-        // Process Direct Income Items
-        const processedItems = groupDirectIncome.map(item => {
-           const dateStr = item.work_dates?.[0] || item.created_date;
-           const dateObj = parseISO(dateStr);
-           const monthStr = format(dateObj, 'MMMM yyyy');
-           return { ...item, month: monthStr };
-        });
+      // Process Direct Income Items
+      const processedItems = groupDirectIncome.map(item => {
+         const dateStr = item.work_dates?.[0] || item.created_date;
+         const dateObj = parseISO(dateStr);
+         const monthStr = format(dateObj, 'MMMM yyyy');
+         return { ...item, month: monthStr };
+      });
 
-        // Sort using existing helper
-        sortByMonth(processedItems);
+      // Sort using existing helper
+      sortByMonth(processedItems);
 
-        processedItems.forEach(item => {
-           // Find payment info
-           let paymentDate = '';
-           let voucherNumber = '';
-           let paymentQuarter = '';
-           let amountReceived = 0;
+      processedItems.forEach(item => {
+         // Find payment info
+         let paymentDate = '';
+         let voucherNumber = '';
+         let paymentQuarter = '';
+         let amountReceived = 0;
 
-           payments.forEach(payment => {
-             payment.allocations?.forEach(allocation => {
-               if (allocation.outside_income_id === item.id) {
-                 amountReceived += (allocation.amount || 0);
-                 const pDate = parseISO(payment.payment_date);
-                 paymentDate = format(pDate, 'MM/dd/yyyy');
-                 const q = Math.floor(pDate.getMonth() / 3) + 1;
-                 paymentQuarter = `Q${q} ${pDate.getFullYear()}`;
-                 voucherNumber = payment.reference_number || '';
-               }
-             });
+         payments.forEach(payment => {
+           payment.allocations?.forEach(allocation => {
+             if (allocation.outside_income_id === item.id) {
+               amountReceived += (allocation.amount || 0);
+               const pDate = parseISO(payment.payment_date);
+               paymentDate = format(pDate, 'MM/dd/yyyy');
+               const q = Math.floor(pDate.getMonth() / 3) + 1;
+               paymentQuarter = `Q${q} ${pDate.getFullYear()}`;
+               voucherNumber = payment.reference_number || '';
+             }
            });
+         });
 
-           const expectedAmount = item.amount_due || item.total_amount || 0;
-           
-           groupTotal.expected += expectedAmount;
-           groupTotal.received += amountReceived;
+         const expectedAmount = item.amount_due || item.total_amount || 0;
 
-           rows.push([
-             item.description || '-',
-             item.external_invoice_number || '-',
-             item.month,
-             formatCurrency(expectedAmount),
-             formatCurrency(amountReceived),
-             paymentDate,
-             paymentQuarter,
-             voucherNumber,
-             '', // Date Paid Provider (N/A)
-             item.notes || ''
-           ]);
-        });
+         groupTotal.expected += expectedAmount;
+         groupTotal.received += amountReceived;
 
-        rows.push(['TOTAL', '', '', formatCurrency(groupTotal.expected), formatCurrency(groupTotal.received), '', '', '', '', '']);
-        rows.push(['', '', '', '', '', '', '', '', '', '']);
-        rows.push(['', '', '', '', '', '', '', '']);
+         const cleanNotes = (notes) => {
+           if (!notes) return '';
+           const lower = notes.toLowerCase();
+           if (lower.includes('auto-generated') || lower.includes('auto-created')) return '';
+           return notes;
+         };
+
+         rows.push([
+           item.external_invoice_number || '-',
+           item.month,
+           formatCurrency(expectedAmount),
+           formatCurrency(amountReceived),
+           paymentDate,
+           paymentQuarter,
+           voucherNumber,
+           '', // Date Paid Provider (N/A)
+           cleanNotes(item.notes)
+         ]);
+      });
+
+      rows.push(['TOTAL', '', formatCurrency(groupTotal.expected), formatCurrency(groupTotal.received), '', '', '', '', '']);
+      rows.push(['', '', '', '', '', '', '', '', '', '']);
+      rows.push(['', '', '', '', '', '', '', '']);
 
       } else if (needsSeparation) {
         // Separate by program type
