@@ -122,7 +122,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
                   const q = Math.floor(pDate.getMonth() / 3) + 1;
                   paymentQuarter = `Q${q} ${pDate.getFullYear()}`;
                   voucherNumber = payment.reference_number || '';
-                  paymentNotes = payment.notes || '';
+                  paymentNotes = (payment.notes && payment.notes.toLowerCase().includes('auto-generated')) ? '' : (payment.notes || '');
                 }
               });
             });
@@ -212,7 +212,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
                   const q = Math.floor(pDate.getMonth() / 3) + 1;
                   paymentQuarter = `Q${q} ${pDate.getFullYear()}`;
                   voucherNumber = payment.reference_number || '';
-                  paymentNotes = payment.notes || '';
+                  paymentNotes = (payment.notes && payment.notes.toLowerCase().includes('auto-generated')) ? '' : (payment.notes || '');
                 }
               });
             });
