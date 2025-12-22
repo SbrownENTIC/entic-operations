@@ -132,12 +132,18 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
   const handleChange = (field, value) => {
     if (field === 'payer') {
        if (['Quinnipiac University', 'Nations Hearing'].includes(value)) {
+          // Auto set status to entic_paid if selecting a direct payer
+          setFormData(prev => ({ ...prev, status: 'entic_paid', [field]: value }));
+          
           if (!['Quinnipiac University', 'Nations Hearing'].includes(formData.payer)) {
              setDirectIncomeItems([{ amount: 0, amount_due: 0, service_date: format(new Date(), 'yyyy-MM-dd'), external_invoice_number: '', external_po_number: '', description: '' }]);
           }
+       } else {
+          setFormData(prev => ({ ...prev, [field]: value }));
        }
+    } else {
+      setFormData(prev => ({ ...prev, [field]: value }));
     }
-    setFormData(prev => ({ ...prev, [field]: value }));
     setIsDirty(true);
   };
 
@@ -182,6 +188,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
     setIsDirty(false);
     
     let finalAllocations = formData.allocations;
+    let paymentStatus = formData.status;
     
     if (isDirectPayer) {
       // Create/Update Outside Income records
@@ -223,9 +230,14 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
       }
       
       finalAllocations = newAllocations;
+      
+      // Auto-set payment status to entic_paid for direct payers
+      if (formData.status === 'pending' || !formData.status) {
+         paymentStatus = 'entic_paid';
+      }
     }
     
-    onSubmit({ ...formData, allocations: finalAllocations });
+    onSubmit({ ...formData, status: paymentStatus, allocations: finalAllocations });
   };
 
   const addDirectItem = () => {
