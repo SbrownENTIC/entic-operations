@@ -45,6 +45,8 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
   // Direct Income State
   const [directIncomeItems, setDirectIncomeItems] = useState([]);
   const isDirectPayer = ['Quinnipiac University', 'Nations Hearing'].includes(formData.payer);
+  const isQuinnipiac = formData.payer === 'Quinnipiac University';
+  const isNations = formData.payer === 'Nations Hearing';
 
   const queryClient = useQueryClient();
 
@@ -108,8 +110,8 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
              const income = incomes.find(i => i.id === a.outside_income_id);
              return {
                id: a.outside_income_id, 
-               provider_id: a.provider_id,
                amount: a.amount,
+               amount_due: income?.amount_due || a.amount,
                service_date: income?.work_dates?.[0] || format(new Date(), 'yyyy-MM-dd'),
                external_invoice_number: income?.external_invoice_number || '',
                external_po_number: income?.external_po_number || '',
@@ -120,7 +122,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
         }).filter(Boolean);
         if (items.length > 0) setDirectIncomeItems(items);
         else if (payment.allocations.length === 0) {
-             setDirectIncomeItems([{ provider_id: '', amount: 0, service_date: format(new Date(), 'yyyy-MM-dd'), external_invoice_number: '', external_po_number: '', description: '' }]);
+             setDirectIncomeItems([{ amount: 0, amount_due: 0, service_date: format(new Date(), 'yyyy-MM-dd'), external_invoice_number: '', external_po_number: '', description: '' }]);
         }
       }
     }
@@ -130,7 +132,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
     if (field === 'payer') {
        if (['Quinnipiac University', 'Nations Hearing'].includes(value)) {
           if (!['Quinnipiac University', 'Nations Hearing'].includes(formData.payer)) {
-             setDirectIncomeItems([{ provider_id: '', amount: 0, service_date: format(new Date(), 'yyyy-MM-dd'), external_invoice_number: '', external_po_number: '', description: '' }]);
+             setDirectIncomeItems([{ amount: 0, amount_due: 0, service_date: format(new Date(), 'yyyy-MM-dd'), external_invoice_number: '', external_po_number: '', description: '' }]);
           }
        }
     }
@@ -170,14 +172,14 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
       const newAllocations = [];
       
       for (const item of directIncomeItems) {
-         if (!item.provider_id || !item.amount) continue;
+         if (!item.amount) continue;
 
          const incomeData = {
-           provider_id: item.provider_id,
            facility_name: formData.payer,
-           program_location_id: null, // Can be inferred or linked later if needed
-           total_amount: item.amount,
-           rate: item.amount, // Assume flat rate
+           program_location_id: null,
+           total_amount: item.amount_due || item.amount, // Total amount billed
+           amount_due: item.amount_due,
+           rate: item.amount, 
            days_worked: 1,
            status: 'paid',
            work_dates: [item.service_date],
@@ -198,7 +200,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
          
          newAllocations.push({
            outside_income_id: incomeId,
-           provider_id: item.provider_id,
+           provider_id: null, // No provider for these
            amount: item.amount,
            notes: item.description
          });
@@ -211,7 +213,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
   };
 
   const addDirectItem = () => {
-    setDirectIncomeItems([...directIncomeItems, { provider_id: '', amount: 0, service_date: format(new Date(), 'yyyy-MM-dd'), external_invoice_number: '', external_po_number: '', description: '' }]);
+    setDirectIncomeItems([...directIncomeItems, { amount: 0, amount_due: 0, service_date: format(new Date(), 'yyyy-MM-dd'), external_invoice_number: '', external_po_number: '', description: '' }]);
   };
 
   const removeDirectItem = (index) => {
@@ -582,83 +584,130 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                   <div className="space-y-4">
                     {directIncomeItems.map((item, index) => (
                       <div key={index} className="p-4 bg-blue-50/50 rounded-lg border border-blue-100 space-y-3">
-                        <div className="grid grid-cols-12 gap-3">
-                          <div className="col-span-4">
-                            <Label className="text-xs">Provider *</Label>
-                            <Select
-                              value={item.provider_id}
-                              onValueChange={(value) => updateDirectItem(index, 'provider_id', value)}
-                            >
-                              <SelectTrigger className="mt-1">
-                                <SelectValue placeholder="Select provider" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {providers.map(p => (
-                                  <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          
-                          <div className="col-span-4">
-                            <Label className="text-xs">Service/Invoice Date</Label>
-                            <Input
-                              type="date"
-                              className="mt-1"
-                              value={item.service_date}
-                              onChange={(e) => updateDirectItem(index, 'service_date', e.target.value)}
-                            />
-                          </div>
-
-                          <div className="col-span-4">
-                             <Label className="text-xs">Amount *</Label>
-                             <Input
-                               type="number"
-                               step="0.01"
-                               className="mt-1"
-                               value={item.amount || 0}
-                               onChange={(e) => updateDirectItem(index, 'amount', parseFloat(e.target.value) || 0)}
-                             />
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-12 gap-3">
-                          <div className="col-span-4">
-                            <Label className="text-xs">Ext. Invoice / Bill #</Label>
-                            <Input
-                              className="mt-1"
-                              value={item.external_invoice_number}
-                              onChange={(e) => updateDirectItem(index, 'external_invoice_number', e.target.value)}
-                              placeholder="Bill No."
-                            />
-                          </div>
-                          
-                          <div className="col-span-4">
-                            <Label className="text-xs">Ext. PO Number</Label>
-                            <Input
-                              className="mt-1"
-                              value={item.external_po_number}
-                              onChange={(e) => updateDirectItem(index, 'external_po_number', e.target.value)}
-                              placeholder="PO No. (if any)"
-                            />
-                          </div>
-
-                           <div className="col-span-3">
-                            <Label className="text-xs">Description / Memo</Label>
-                            <Input
-                              className="mt-1"
-                              value={item.description}
-                              onChange={(e) => updateDirectItem(index, 'description', e.target.value)}
-                              placeholder="Memo..."
-                            />
-                          </div>
-                          
-                          <div className="col-span-1 flex items-end justify-end">
-                            <Button type="button" variant="ghost" size="icon" onClick={() => removeDirectItem(index)}>
-                              <Trash2 className="w-4 h-4 text-red-500" />
-                            </Button>
-                          </div>
-                        </div>
+                        {isQuinnipiac && (
+                          <>
+                            <div className="grid grid-cols-12 gap-3">
+                               <div className="col-span-4">
+                                <Label className="text-xs">Invoice Date *</Label>
+                                <Input
+                                  type="date"
+                                  className="mt-1"
+                                  value={item.service_date}
+                                  onChange={(e) => updateDirectItem(index, 'service_date', e.target.value)}
+                                  required
+                                />
+                              </div>
+                              <div className="col-span-4">
+                                <Label className="text-xs">Invoice No. *</Label>
+                                <Input
+                                  className="mt-1"
+                                  value={item.external_invoice_number}
+                                  onChange={(e) => updateDirectItem(index, 'external_invoice_number', e.target.value)}
+                                  placeholder="Inv #"
+                                  required
+                                />
+                              </div>
+                               <div className="col-span-4">
+                                <Label className="text-xs">P.O. Number *</Label>
+                                <Input
+                                  className="mt-1"
+                                  value={item.external_po_number}
+                                  onChange={(e) => updateDirectItem(index, 'external_po_number', e.target.value)}
+                                  placeholder="PO #"
+                                  required
+                                />
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-12 gap-3">
+                              <div className="col-span-8">
+                                <Label className="text-xs">Invoice Description *</Label>
+                                <Input
+                                  className="mt-1"
+                                  value={item.description}
+                                  onChange={(e) => updateDirectItem(index, 'description', e.target.value)}
+                                  placeholder="Description..."
+                                  required
+                                />
+                              </div>
+                              <div className="col-span-3">
+                                 <Label className="text-xs">Invoice Amount *</Label>
+                                 <Input
+                                   type="number"
+                                   step="0.01"
+                                   className="mt-1"
+                                   value={item.amount || 0}
+                                   onChange={(e) => updateDirectItem(index, 'amount', parseFloat(e.target.value) || 0)}
+                                   required
+                                 />
+                              </div>
+                              <div className="col-span-1 flex items-end justify-end">
+                                <Button type="button" variant="ghost" size="icon" onClick={() => removeDirectItem(index)}>
+                                  <Trash2 className="w-4 h-4 text-red-500" />
+                                </Button>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                        
+                        {isNations && (
+                          <>
+                             <div className="grid grid-cols-12 gap-3">
+                               <div className="col-span-4">
+                                <Label className="text-xs">Date *</Label>
+                                <Input
+                                  type="date"
+                                  className="mt-1"
+                                  value={item.service_date}
+                                  onChange={(e) => updateDirectItem(index, 'service_date', e.target.value)}
+                                  required
+                                />
+                              </div>
+                              <div className="col-span-8">
+                                <Label className="text-xs">Bill Memo *</Label>
+                                <Input
+                                  className="mt-1"
+                                  value={item.description}
+                                  onChange={(e) => updateDirectItem(index, 'description', e.target.value)}
+                                  placeholder="Bill Memo..."
+                                  required
+                                />
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-12 gap-3">
+                               <div className="col-span-4">
+                                <Label className="text-xs">Amount Due *</Label>
+                                <Input
+                                   type="number"
+                                   step="0.01"
+                                   className="mt-1"
+                                   value={item.amount_due || 0}
+                                   onChange={(e) => updateDirectItem(index, 'amount_due', parseFloat(e.target.value) || 0)}
+                                   required
+                                 />
+                              </div>
+                              <div className="col-span-4">
+                                 <Label className="text-xs">Amount Paid *</Label>
+                                 <Input
+                                   type="number"
+                                   step="0.01"
+                                   className="mt-1"
+                                   value={item.amount || 0}
+                                   onChange={(e) => updateDirectItem(index, 'amount', parseFloat(e.target.value) || 0)}
+                                   required
+                                 />
+                              </div>
+                              <div className="col-span-3">
+                                {/* Spacer or other fields if needed */}
+                              </div>
+                              <div className="col-span-1 flex items-end justify-end">
+                                <Button type="button" variant="ghost" size="icon" onClick={() => removeDirectItem(index)}>
+                                  <Trash2 className="w-4 h-4 text-red-500" />
+                                </Button>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                        
                       </div>
                     ))}
                   </div>
