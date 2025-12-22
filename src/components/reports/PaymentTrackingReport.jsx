@@ -80,7 +80,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
       if (isDirectPayer) {
         rows.push([`${programGroup} - TRACKING`, '', '', '', '', '', '', '']);
         rows.push(['', '', '', '', '', '', '', '']);
-        rows.push(['Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', '', 'Notes']);
+        rows.push(['Description', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', '', 'Notes']);
 
         let groupTotal = { expected: 0, received: 0 };
 
@@ -121,6 +121,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
            groupTotal.received += amountReceived;
 
            rows.push([
+             item.description || '-',
              item.external_invoice_number || '-',
              item.month,
              formatCurrency(expectedAmount),
@@ -133,7 +134,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
            ]);
         });
 
-        rows.push(['TOTAL', '', formatCurrency(groupTotal.expected), formatCurrency(groupTotal.received), '', '', '', '', '']);
+        rows.push(['TOTAL', '', '', formatCurrency(groupTotal.expected), formatCurrency(groupTotal.received), '', '', '', '', '']);
         rows.push(['', '', '', '', '', '', '', '', '', '']);
         rows.push(['', '', '', '', '', '', '', '']);
 
@@ -378,7 +379,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
           ]);
         });
 
-        rows.push(['TOTAL', '', formatCurrency(groupTotal.expected), formatCurrency(groupTotal.received), '', '', '', '', '']);
+        rows.push(['TOTAL', '', '', formatCurrency(groupTotal.expected), formatCurrency(groupTotal.received), '', '', '', '', '']);
         rows.push(['', '', '', '', '', '', '', '', '', '']);
         rows.push(['', '', '', '', '', '', '', '']);
       }
