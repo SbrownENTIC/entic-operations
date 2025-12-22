@@ -255,22 +255,61 @@ export default function Dashboard() {
   }
   });
 
-  // Calculate up-to-date invoice amounts based on payments
-  const processedInvoices = React.useMemo(() => {
+  // Calculate up-to-date financial items (invoices + direct outside income) based on payments
+  const processedFinancialItems = React.useMemo(() => {
     const invoiceAllocations = {};
+    const incomeAllocations = {};
+
     payments.forEach(payment => {
       payment.allocations?.forEach(allocation => {
         if (allocation.invoice_id) {
           invoiceAllocations[allocation.invoice_id] = (invoiceAllocations[allocation.invoice_id] || 0) + (allocation.amount || 0);
         }
+        if (allocation.outside_income_id) {
+          incomeAllocations[allocation.outside_income_id] = (incomeAllocations[allocation.outside_income_id] || 0) + (allocation.amount || 0);
+        }
       });
     });
 
-    return invoices.map(inv => ({
+    const items = invoices.map(inv => ({
       ...inv,
+      type: 'invoice',
       amount_received: invoiceAllocations[inv.id] || 0
     }));
-  }, [invoices, payments]);
+
+    // Add standalone Outside Income items (direct payers) that are not linked to an invoice
+    const directIncomeItems = outsideIncomes.filter(inc => !inc.invoice_id && inc.facility_name);
+    
+    directIncomeItems.forEach(inc => {
+       const received = incomeAllocations[inc.id] || 0;
+       
+       // Map status equivalent for dashboard logic
+       let mappedStatus = 'draft';
+       if (inc.status === 'entic_paid') mappedStatus = 'paid_to_entic';
+       else if (inc.status === 'paid') mappedStatus = 'paid_to_entic'; 
+       else if (inc.status === 'invoiced') mappedStatus = 'sent_to_vendor'; 
+       else if (received >= (inc.total_amount || 0) && (inc.total_amount || 0) > 0) mappedStatus = 'paid_to_entic';
+       else if (received > 0) mappedStatus = 'sent_to_vendor'; // Partial payment usually means active
+       else mappedStatus = 'sent_to_vendor'; // Default direct income to active/sent state so it shows as outstanding
+       
+       items.push({
+         id: inc.id,
+         invoice_number: inc.external_invoice_number || 'Direct',
+         program_group: inc.facility_name, 
+         amount_expected: inc.amount_due || inc.total_amount || 0,
+         total: inc.amount_due || inc.total_amount || 0,
+         amount_received: received,
+         status: mappedStatus,
+         provider_paid: false, 
+         invoice_date: inc.work_dates?.[0] || inc.created_date,
+         staff_member_id: inc.provider_id,
+         type: 'direct_income',
+         original_status: inc.status
+       });
+    });
+
+    return items;
+  }, [invoices, payments, outsideIncomes]);
 
   // Missing Prior Month Invoices Tracking
   const targetProviderNames = [
@@ -420,14 +459,14 @@ export default function Dashboard() {
     return days > 0 && days <= 30;
   });
 
-  // Financial metrics - Total using processedInvoices for consistency
-  const totalPaidToENTIC = processedInvoices.reduce((sum, inv) => sum + (inv.amount_received || 0), 0);
+  // Financial metrics - Total using processedFinancialItems for consistency
+  const totalPaidToENTIC = processedFinancialItems.reduce((sum, inv) => sum + (inv.amount_received || 0), 0);
 
-  const totalOwedToProviders = processedInvoices
+  const totalOwedToProviders = processedFinancialItems
     .filter(inv => (inv.amount_received > 0) && !inv.provider_paid)
     .reduce((sum, inv) => sum + (inv.amount_received || 0), 0);
 
-  const outstandingToENTIC = processedInvoices
+  const outstandingToENTIC = processedFinancialItems
     .filter(inv => inv.status !== 'paid_to_entic' && inv.status !== 'provider_paid')
     .reduce((sum, inv) => {
       const outstanding = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
@@ -438,7 +477,7 @@ export default function Dashboard() {
 
   // Financial metrics by Program/Location
   const financialsByProgram = {};
-  processedInvoices.forEach(inv => {
+  processedFinancialItems.forEach(inv => {
     const program = inv.program_group || 'Unassigned';
     
     if (!financialsByProgram[program]) {
@@ -458,7 +497,7 @@ export default function Dashboard() {
     }
     
     const outstanding = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
-    if (outstanding > 0) {
+    if (outstanding > 0 && inv.status !== 'paid_to_entic' && inv.status !== 'provider_paid') {
       financialsByProgram[program].outstanding += outstanding;
     }
   });
@@ -528,7 +567,7 @@ export default function Dashboard() {
     let title = '';
 
     if (type === 'paidToENTIC') {
-      filteredInvoices = processedInvoices.filter(inv => 
+      filteredInvoices = processedFinancialItems.filter(inv => 
         inv.amount_received > 0
       );
       if (programGroup) {
@@ -538,7 +577,7 @@ export default function Dashboard() {
         title = 'Total Paid to ENTIC';
       }
     } else if (type === 'owedToProviders') {
-      filteredInvoices = processedInvoices.filter(inv => 
+      filteredInvoices = processedFinancialItems.filter(inv => 
         (inv.amount_received > 0) && !inv.provider_paid
       );
       if (programGroup) {
@@ -548,7 +587,7 @@ export default function Dashboard() {
         title = 'Total Owed to Providers';
       }
     } else if (type === 'outstanding') {
-      filteredInvoices = processedInvoices.filter(inv => 
+      filteredInvoices = processedFinancialItems.filter(inv => 
         inv.status !== 'paid_to_entic' && inv.status !== 'provider_paid' && (inv.amount_expected > (inv.amount_received || 0))
       );
       if (programGroup) {
