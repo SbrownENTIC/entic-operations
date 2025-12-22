@@ -476,10 +476,12 @@ export default function Dashboard() {
   });
 
   // Financial metrics - Total using processedFinancialItems for consistency
+  const programsExcludedFromProviderPay = ['Nations Hearing', 'Quinnipiac University'];
+
   const totalPaidToENTIC = processedFinancialItems.reduce((sum, inv) => sum + (inv.amount_received || 0), 0);
 
   const totalOwedToProviders = processedFinancialItems
-    .filter(inv => (inv.amount_received > 0) && !inv.provider_paid)
+    .filter(inv => (inv.amount_received > 0) && !inv.provider_paid && !programsExcludedFromProviderPay.includes(inv.program_group))
     .reduce((sum, inv) => sum + (inv.amount_received || 0), 0);
 
   const outstandingToENTIC = processedFinancialItems
@@ -507,7 +509,7 @@ export default function Dashboard() {
     if (inv.amount_received > 0) {
       financialsByProgram[program].paidToENTIC += (inv.amount_received || 0);
       
-      if (!inv.provider_paid) {
+      if (!inv.provider_paid && !programsExcludedFromProviderPay.includes(program)) {
         financialsByProgram[program].owedToProviders += (inv.amount_received || 0);
       }
     }
