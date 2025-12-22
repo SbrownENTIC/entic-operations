@@ -213,7 +213,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
                   const q = Math.floor(pDate.getMonth() / 3) + 1;
                   paymentQuarter = `Q${q} ${pDate.getFullYear()}`;
                   voucherNumber = payment.reference_number || '';
-                  paymentNotes = (payment.notes && payment.notes.toLowerCase().includes('auto-generated')) ? '' : (payment.notes || '');
+                  paymentNotes = (payment.notes && (payment.notes.toLowerCase().includes('auto-generated') || payment.notes.toLowerCase().includes('auto-created'))) ? '' : (payment.notes || '');
                 }
               });
             });
@@ -224,7 +224,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
             directorshipTotal.expected += expectedAmount;
             directorshipTotal.received += receivedAmount;
 
-            const shouldHideNotes = invoice.auto_generated || (invoice.notes && invoice.notes.toLowerCase().includes('auto-generated'));
+            const shouldHideNotes = invoice.auto_generated || (invoice.notes && (invoice.notes.toLowerCase().includes('auto-generated') || invoice.notes.toLowerCase().includes('auto-created')));
             rows.push([
               providerName,
               invoice.invoice_number || '',
@@ -303,7 +303,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
                   const q = Math.floor(pDate.getMonth() / 3) + 1;
                   paymentQuarter = `Q${q} ${pDate.getFullYear()}`;
                   voucherNumber = payment.reference_number || '';
-                  paymentNotes = (payment.notes && payment.notes.toLowerCase().includes('auto-generated')) ? '' : (payment.notes || '');
+                  paymentNotes = (payment.notes && (payment.notes.toLowerCase().includes('auto-generated') || payment.notes.toLowerCase().includes('auto-created'))) ? '' : (payment.notes || '');
                 }
               });
             });
@@ -314,7 +314,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
             onCallTotal.expected += expectedAmount;
             onCallTotal.received += receivedAmount;
 
-            const shouldHideNotes = invoice.auto_generated || (invoice.notes && invoice.notes.toLowerCase().includes('auto-generated'));
+            const shouldHideNotes = invoice.auto_generated || (invoice.notes && (invoice.notes.toLowerCase().includes('auto-generated') || invoice.notes.toLowerCase().includes('auto-created')));
             rows.push([
               providerName,
               invoice.invoice_number || '',
@@ -370,7 +370,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
           groupTotal.expected += expectedAmount;
           groupTotal.received += receivedAmount;
 
-          const shouldHideNotes = invoice.auto_generated || (invoice.notes && invoice.notes.toLowerCase().includes('auto-generated'));
+          const shouldHideNotes = invoice.auto_generated || (invoice.notes && (invoice.notes.toLowerCase().includes('auto-generated') || invoice.notes.toLowerCase().includes('auto-created')));
           rows.push([
             providerName,
             invoice.invoice_number || '',
