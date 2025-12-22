@@ -182,7 +182,7 @@ export default function ClinicalSupplyOrders() {
   const sortedOrders = [...filteredOrders].sort((a, b) => {
     let aValue, bValue;
     
-    if (sortField === 'order_date') {
+    if (sortField === 'order_date' || sortField === 'updated_date') {
       aValue = a[sortField] ? new Date(a[sortField]) : new Date(0);
       bValue = b[sortField] ? new Date(b[sortField]) : new Date(0);
       return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
@@ -379,6 +379,12 @@ export default function ClinicalSupplyOrders() {
                     </th>
                     <th 
                       className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 bg-slate-50"
+                      onClick={() => handleSort('updated_date')}
+                    >
+                      Date Modified <SortIcon field="updated_date" />
+                    </th>
+                    <th 
+                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 bg-slate-50"
                       onClick={() => handleSort('total_amount')}
                     >
                       Total <SortIcon field="total_amount" />
@@ -409,6 +415,9 @@ export default function ClinicalSupplyOrders() {
                      <td className="p-4 text-slate-600">{order.location}</td>
                      <td className="p-4 text-slate-600">
                        {safeFormatDate(order.order_date)}
+                     </td>
+                     <td className="p-4 text-slate-600">
+                       {safeFormatDate(order.updated_date)}
                      </td>
                      <td className={`p-4 font-medium ${order.total_amount < 0 || order.order_type === 'return' ? 'text-red-600' : 'text-green-600'}`}>
                        {order.order_type === 'return' && <span className="text-xs bg-red-100 text-red-800 px-1.5 py-0.5 rounded mr-2">Return</span>}
