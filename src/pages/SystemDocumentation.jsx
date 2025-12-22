@@ -4,6 +4,7 @@ import PrintableManual from "@/components/documentation/PrintableManual";
 import PrintableAdminManual from "@/components/documentation/PrintableAdminManual";
 import ContactReferenceSheet from "@/components/documentation/ContactReferenceSheet";
 import StandardOperatingProcedures from "@/components/documentation/StandardOperatingProcedures";
+import PrintableSOPs from "@/components/documentation/PrintableSOPs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -200,7 +201,10 @@ export default function SystemDocumentation() {
       {/* Render the print-optimized manual into the body based on active tab */}
       {createPortal(
         <div className="print-portal">
-          {activeTab === 'admin' ? <PrintableAdminManual /> : activeTab === 'contacts' ? <ContactReferenceSheet /> : <PrintableManual />}
+          {activeTab === 'admin' ? <PrintableAdminManual /> : 
+           activeTab === 'contacts' ? <ContactReferenceSheet /> : 
+           activeTab === 'sops' ? <PrintableSOPs /> :
+           <PrintableManual />}
         </div>,
         document.body
       )}
@@ -223,7 +227,15 @@ export default function SystemDocumentation() {
 
         {/* SOPs Content */}
         <TabsContent value="sops" className="flex-1 overflow-hidden mt-4">
-          <StandardOperatingProcedures />
+          <div className="h-full flex flex-col">
+            <div className="flex justify-end mb-2 no-print">
+              <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-2">
+                <Printer className="w-4 h-4" />
+                Print SOPs
+              </Button>
+            </div>
+            <StandardOperatingProcedures />
+          </div>
         </TabsContent>
 
         {/* SYSTEM LOGIC */}
