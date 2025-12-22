@@ -434,7 +434,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
       }
     });
 
-    exportToCSV(rows, 'payment_tracking_report');
+    exportToExcel(rows, 'payment_tracking_report');
   };
 
   const directPayerOptions = ['Quinnipiac University', 'Nations Hearing'];
