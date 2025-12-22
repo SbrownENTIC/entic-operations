@@ -133,7 +133,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
            ]);
         });
 
-        rows.push(['TOTAL', '', '', formatCurrency(groupTotal.expected), formatCurrency(groupTotal.received), '', '', '', '', '']);
+        rows.push(['TOTAL', '', formatCurrency(groupTotal.expected), formatCurrency(groupTotal.received), '', '', '', '', '']);
         rows.push(['', '', '', '', '', '', '', '', '', '']);
         rows.push(['', '', '', '', '', '', '', '']);
 
