@@ -45,9 +45,9 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
   
   // Direct Income State
   const [directIncomeItems, setDirectIncomeItems] = useState([]);
-  const isDirectPayer = ['Quinnipiac University', 'Nations Hearing', 'NationsBenefits'].includes(formData.payer);
+  const isDirectPayer = ['Quinnipiac University', 'Nations Hearing'].includes(formData.payer);
   const isQuinnipiac = formData.payer === 'Quinnipiac University';
-  const isNations = ['Nations Hearing', 'NationsBenefits'].includes(formData.payer);
+  const isNations = formData.payer === 'Nations Hearing';
 
   const queryClient = useQueryClient();
 
@@ -60,8 +60,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
     'CTSC- CT Surgery Center',
     'Hartford Hospital',
     'Quinnipiac University',
-    'Nations Hearing',
-    'NationsBenefits'
+    'Nations Hearing'
   ];
 
   // Fetch outside income for the invoice form
@@ -106,7 +105,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
       setFormData(payment);
       
       // Populate direct income items if applicable
-      if (['Quinnipiac University', 'Nations Hearing', 'NationsBenefits'].includes(payment.payer) && payment.allocations) {
+      if (['Quinnipiac University', 'Nations Hearing'].includes(payment.payer) && payment.allocations) {
         const items = payment.allocations.map(a => {
            if (a.outside_income_id) {
              const income = incomes.find(i => i.id === a.outside_income_id);
@@ -132,8 +131,8 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
 
   const handleChange = (field, value) => {
     if (field === 'payer') {
-       if (['Quinnipiac University', 'Nations Hearing', 'NationsBenefits'].includes(value)) {
-          if (!['Quinnipiac University', 'Nations Hearing', 'NationsBenefits'].includes(formData.payer)) {
+       if (['Quinnipiac University', 'Nations Hearing'].includes(value)) {
+          if (!['Quinnipiac University', 'Nations Hearing'].includes(formData.payer)) {
              setDirectIncomeItems([{ amount: 0, amount_due: 0, service_date: format(new Date(), 'yyyy-MM-dd'), external_invoice_number: '', external_po_number: '', description: '' }]);
           }
        }
