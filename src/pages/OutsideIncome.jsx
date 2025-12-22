@@ -38,6 +38,7 @@ export default function OutsideIncome() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [selectedIncomes, setSelectedIncomes] = useState([]);
   const [bulkProviderId, setBulkProviderId] = useState("");
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [sortField, setSortField] = useState('created_date');
   const [sortDirection, setSortDirection] = useState('desc');
   const [linkingOnCall, setLinkingOnCall] = useState(false);
@@ -143,6 +144,18 @@ export default function OutsideIncome() {
       queryClient.invalidateQueries({ queryKey: ['outside-income'] });
       setSelectedIncomes([]);
       setBulkProviderId("");
+    }
+  });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (ids) => {
+      const deletions = ids.map(id => base44.entities.OutsideIncome.delete(id));
+      return Promise.all(deletions);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['outside-income'] });
+      setSelectedIncomes([]);
+      setShowBulkDeleteConfirm(false);
     }
   });
 
@@ -563,6 +576,16 @@ export default function OutsideIncome() {
                       {bulkUpdateProviderMutation.isPending ? 'Updating...' : 'Update Selected'}
                     </Button>
                   </div>
+                  <div className="flex justify-end mt-2 pt-2 border-t border-blue-200">
+                     <Button
+                      onClick={() => setShowBulkDeleteConfirm(true)}
+                      variant="outline"
+                      className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 gap-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete Selected ({selectedIncomes.length})
+                    </Button>
+                  </div>
                 </div>
               )}
             </CardHeader>
@@ -748,6 +771,26 @@ export default function OutsideIncome() {
               className="bg-red-600 hover:bg-red-700"
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showBulkDeleteConfirm} onOpenChange={setShowBulkDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Multiple Records</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedIncomes.length} outside income records? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => bulkDeleteMutation.mutate(selectedIncomes)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {bulkDeleteMutation.isPending ? 'Deleting...' : 'Delete All Selected'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
