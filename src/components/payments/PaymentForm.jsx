@@ -140,10 +140,22 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
     setIsDirty(true);
   };
 
-  // Auto-calculate payment_month from allocations
+  // Auto-calculate payment_month from allocations or direct income details
   useEffect(() => {
-    if (formData.allocations && formData.allocations.length > 0) {
-      const months = new Set();
+    const months = new Set();
+
+    if (isDirectPayer) {
+      directIncomeItems.forEach(item => {
+        if (item.service_date) {
+           // Parse YYYY-MM-DD safely
+           const [year, month] = item.service_date.split('-');
+           if (year && month) {
+              const dateObj = new Date(parseInt(year), parseInt(month) - 1);
+              months.add(format(dateObj, 'MMMM yyyy'));
+           }
+        }
+      });
+    } else if (formData.allocations && formData.allocations.length > 0) {
       formData.allocations.forEach(allocation => {
         if (allocation.invoice_id) {
           const invoice = invoices.find(inv => inv.id === allocation.invoice_id);
@@ -152,14 +164,17 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
           }
         }
       });
-      const paymentMonth = Array.from(months).sort().join(', ');
-      if (paymentMonth !== formData.payment_month) {
-        setFormData(prev => ({ ...prev, payment_month: paymentMonth }));
-      }
-    } else if (formData.payment_month !== '') {
-        setFormData(prev => ({ ...prev, payment_month: '' }));
     }
-  }, [formData.allocations, invoices, formData.payment_month]);
+
+    const paymentMonth = Array.from(months).sort().join(', ');
+    
+    if (paymentMonth !== formData.payment_month) {
+       // Only clear if we are in a mode that should be auto-populating
+       if ((isDirectPayer && directIncomeItems.length > 0) || (!isDirectPayer && formData.allocations.length > 0) || paymentMonth === '') {
+          setFormData(prev => ({ ...prev, payment_month: paymentMonth }));
+       }
+    }
+  }, [formData.allocations, invoices, directIncomeItems, isDirectPayer, formData.payment_month]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
