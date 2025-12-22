@@ -278,7 +278,18 @@ export default function Dashboard() {
     }));
 
     // Add standalone Outside Income items (direct payers) that are not linked to an invoice
-    const directIncomeItems = outsideIncomes.filter(inc => !inc.invoice_id && inc.facility_name);
+    // Only include known direct payers and Hartford/St. Francis (for directorships etc) to avoid double-counting invoiced programs
+    const directPayers = ['Quinnipiac University', 'Nations Hearing'];
+    
+    const directIncomeItems = outsideIncomes.filter(inc => 
+      !inc.invoice_id && 
+      inc.facility_name && 
+      (
+        directPayers.includes(inc.facility_name) ||
+        inc.facility_name.includes('Hartford Hospital') || 
+        inc.facility_name.includes('St. Francis')
+      )
+    );
     
     directIncomeItems.forEach(inc => {
        const received = incomeAllocations[inc.id] || 0;
@@ -292,10 +303,15 @@ export default function Dashboard() {
        else if (received > 0) mappedStatus = 'sent_to_vendor'; // Partial payment usually means active
        else mappedStatus = 'sent_to_vendor'; // Default direct income to active/sent state so it shows as outstanding
        
+       // Normalize program group name for Hartford and St. Francis to ensure aggregation
+       let programGroup = inc.facility_name;
+       if (programGroup.includes('Hartford Hospital')) programGroup = 'Hartford Hospital';
+       if (programGroup.includes('St. Francis')) programGroup = 'St. Francis';
+
        items.push({
          id: inc.id,
          invoice_number: inc.external_invoice_number || 'Direct',
-         program_group: inc.facility_name, 
+         program_group: programGroup, 
          amount_expected: inc.amount_due || inc.total_amount || 0,
          total: inc.amount_due || inc.total_amount || 0,
          amount_received: received,
