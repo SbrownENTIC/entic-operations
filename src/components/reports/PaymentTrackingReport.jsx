@@ -42,18 +42,103 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
       return true;
     });
 
+    const directPayers = ['Quinnipiac University', 'Nations Hearing'];
+    const filteredDirectIncome = outsideIncome.filter(inc => {
+      if (!directPayers.includes(inc.facility_name)) return false;
+      
+      const dateStr = inc.work_dates?.[0] || inc.created_date; 
+      if (!dateStr) return false;
+      
+      const incDate = parseISO(dateStr);
+      const start = dateRange.start ? parseISO(dateRange.start) : null;
+      const end = dateRange.end ? parseISO(dateRange.end) : null;
+
+      if (start && incDate < start) return false;
+      if (end && incDate > end) return false;
+      
+      if (selectedProgramGroup !== 'all' && inc.facility_name !== selectedProgramGroup) {
+        return false;
+      }
+      return true;
+    });
+
     const rows = [];
 
     // Get unique program groups
-    const programGroups = [...new Set(filteredInvoices.map(inv => inv.program_group).filter(Boolean))].sort();
+    const invoiceGroups = [...new Set(filteredInvoices.map(inv => inv.program_group).filter(Boolean))];
+    const directGroups = [...new Set(filteredDirectIncome.map(inc => inc.facility_name).filter(Boolean))];
+    const programGroups = [...new Set([...invoiceGroups, ...directGroups])].sort();
 
     programGroups.forEach(programGroup => {
       const groupInvoices = filteredInvoices.filter(inv => inv.program_group === programGroup);
+      const groupDirectIncome = filteredDirectIncome.filter(inc => inc.facility_name === programGroup);
 
       // Hartford Hospital and St. Francis need Directorship/On-Call separation
       const needsSeparation = programGroup === 'Hartford Hospital' || programGroup === 'St. Francis';
-      
-      if (needsSeparation) {
+      const isDirectPayer = directPayers.includes(programGroup);
+
+      if (isDirectPayer) {
+        rows.push([`${programGroup} - TRACKING`, '', '', '', '', '', '', '']);
+        rows.push(['', '', '', '', '', '', '', '']);
+        rows.push(['Description', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', '', 'Notes']);
+
+        let groupTotal = { expected: 0, received: 0 };
+
+        // Process Direct Income Items
+        const processedItems = groupDirectIncome.map(item => {
+           const dateStr = item.work_dates?.[0] || item.created_date;
+           const dateObj = parseISO(dateStr);
+           const monthStr = format(dateObj, 'MMMM yyyy');
+           return { ...item, month: monthStr };
+        });
+
+        // Sort using existing helper
+        sortByMonth(processedItems);
+
+        processedItems.forEach(item => {
+           // Find payment info
+           let paymentDate = '';
+           let voucherNumber = '';
+           let paymentQuarter = '';
+           let amountReceived = 0;
+
+           payments.forEach(payment => {
+             payment.allocations?.forEach(allocation => {
+               if (allocation.outside_income_id === item.id) {
+                 amountReceived += (allocation.amount || 0);
+                 const pDate = parseISO(payment.payment_date);
+                 paymentDate = format(pDate, 'MM/dd/yyyy');
+                 const q = Math.floor(pDate.getMonth() / 3) + 1;
+                 paymentQuarter = `Q${q} ${pDate.getFullYear()}`;
+                 voucherNumber = payment.reference_number || '';
+               }
+             });
+           });
+
+           const expectedAmount = item.amount_due || item.total_amount || 0;
+           
+           groupTotal.expected += expectedAmount;
+           groupTotal.received += amountReceived;
+
+           rows.push([
+             item.description || '-',
+             item.external_invoice_number || '-',
+             item.month,
+             formatCurrency(expectedAmount),
+             formatCurrency(amountReceived),
+             paymentDate,
+             paymentQuarter,
+             voucherNumber,
+             '', // Date Paid Provider (N/A)
+             item.notes || ''
+           ]);
+        });
+
+        rows.push(['TOTAL', '', '', formatCurrency(groupTotal.expected), formatCurrency(groupTotal.received), '', '', '', '', '']);
+        rows.push(['', '', '', '', '', '', '', '', '', '']);
+        rows.push(['', '', '', '', '', '', '', '']);
+
+      } else if (needsSeparation) {
         // Separate by program type
         const directorshipLocation = programLocations.find(pl => 
           pl.program_group === programGroup && pl.program_type === 'Directorship'
@@ -303,7 +388,14 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
     exportToCSV(rows, 'payment_tracking_report');
   };
 
-  const programGroupOptions = ['all', ...new Set(invoices.map(inv => inv.program_group).filter(Boolean))].sort();
+  const directPayerOptions = ['Quinnipiac University', 'Nations Hearing'];
+  const relevantDirectIncome = outsideIncome.filter(inc => directPayerOptions.includes(inc.facility_name));
+  const directGroups = relevantDirectIncome.map(inc => inc.facility_name);
+  
+  const programGroupOptions = ['all', ...new Set([
+    ...invoices.map(inv => inv.program_group).filter(Boolean),
+    ...directGroups
+  ])].sort();
 
   return (
     <Card className="border-slate-200 shadow-sm">
