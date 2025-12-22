@@ -66,7 +66,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
         if (directorshipLocation) {
           rows.push([`${programGroup} - DIRECTORSHIP TRACKING`, '', '', '', '', '', '', '']);
           rows.push(['', '', '', '', '', '', '', '']);
-          rows.push(['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', 'Date Paid Provider', 'Invoice Notes', 'Payment Notes']);
+          rows.push(['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', 'Date Paid Provider', 'Notes']);
 
           const directorshipRate = programGroup === 'Hartford Hospital' ? 3250 : 1750;
           
@@ -113,7 +113,6 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
             let paymentDate = '';
             let voucherNumber = '';
             let paymentQuarter = '';
-            let paymentNotes = '';
             payments.forEach(payment => {
               payment.allocations?.forEach(allocation => {
                 if (allocation.invoice_id === invoice.id) {
@@ -122,7 +121,6 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
                   const q = Math.floor(pDate.getMonth() / 3) + 1;
                   paymentQuarter = `Q${q} ${pDate.getFullYear()}`;
                   voucherNumber = payment.reference_number || '';
-                  paymentNotes = payment.notes || '';
                 }
               });
             });
@@ -144,8 +142,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
               paymentQuarter,
               voucherNumber,
               invoice.date_provider_paid ? format(parseISO(invoice.date_provider_paid), 'MM/dd/yyyy') : '',
-              shouldHideNotes ? '' : (invoice.notes || ''),
-              paymentNotes
+              shouldHideNotes ? '' : (invoice.notes || '')
             ]);
           });
 
@@ -157,7 +154,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
         if (onCallLocation) {
           rows.push([`${programGroup} - ON-CALL TRACKING`, '', '', '', '', '', '', '']);
           rows.push(['', '', '', '', '', '', '', '']);
-          rows.push(['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', 'Date Paid Provider', 'Invoice Notes', 'Payment Notes']);
+          rows.push(['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', 'Date Paid Provider', 'Notes']);
 
           const onCallInvoices = groupInvoices.filter(inv => {
             // For Hartford Hospital, ONLY use invoice number
@@ -204,7 +201,6 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
             let paymentDate = '';
             let voucherNumber = '';
             let paymentQuarter = '';
-            let paymentNotes = '';
             payments.forEach(payment => {
               payment.allocations?.forEach(allocation => {
                 if (allocation.invoice_id === invoice.id) {
@@ -213,7 +209,6 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
                   const q = Math.floor(pDate.getMonth() / 3) + 1;
                   paymentQuarter = `Q${q} ${pDate.getFullYear()}`;
                   voucherNumber = payment.reference_number || '';
-                  paymentNotes = payment.notes || '';
                 }
               });
             });
@@ -235,8 +230,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
               paymentQuarter,
               voucherNumber,
               invoice.date_provider_paid ? format(parseISO(invoice.date_provider_paid), 'MM/dd/yyyy') : '',
-              shouldHideNotes ? '' : (invoice.notes || ''),
-              paymentNotes
+              shouldHideNotes ? '' : (invoice.notes || '')
             ]);
           });
 
