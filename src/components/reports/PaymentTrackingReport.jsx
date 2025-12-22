@@ -80,7 +80,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
       if (isDirectPayer) {
         rows.push([`${programGroup} - TRACKING`, '', '', '', '', '', '', '']);
         rows.push(['', '', '', '', '', '', '', '']);
-        rows.push(['Description', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', '', 'Notes']);
+        rows.push(['Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', '', 'Notes']);
 
         let groupTotal = { expected: 0, received: 0 };
 
@@ -121,7 +121,6 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
            groupTotal.received += amountReceived;
 
            rows.push([
-             item.description || '-',
              item.external_invoice_number || '-',
              item.month,
              formatCurrency(expectedAmount),
