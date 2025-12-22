@@ -263,21 +263,12 @@ export default function FinancialDetailModal({ isOpen, onClose, title, invoices,
                           </Badge>
                         </td>
                         <td className="p-3 text-center">
-                          {invoice.is_direct ? (
-                            <Link 
-                              to={`${createPageUrl("OutsideIncome")}?edit=${invoice.original_id}`}
-                              className="text-blue-600 hover:text-blue-800 inline-flex items-center gap-1"
-                            >
-                              <ExternalLink className="w-3 h-3" />
-                            </Link>
-                          ) : (
-                            <Link 
-                              to={`${createPageUrl("Invoices")}?edit=${invoice.id}`}
-                              className="text-blue-600 hover:text-blue-800 inline-flex items-center gap-1"
-                            >
-                              <ExternalLink className="w-3 h-3" />
-                            </Link>
-                          )}
+                          <Link 
+                            to={`${createPageUrl("Invoices")}?edit=${invoice.id}`}
+                            className="text-blue-600 hover:text-blue-800 inline-flex items-center gap-1"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                          </Link>
                         </td>
                       </tr>
                     );

@@ -421,13 +421,13 @@ export default function Dashboard() {
   });
 
   // Financial metrics - Total using processedInvoices for consistency
-  let totalPaidToENTIC = processedInvoices.reduce((sum, inv) => sum + (inv.amount_received || 0), 0);
-  
-  let totalOwedToProviders = processedInvoices
+  const totalPaidToENTIC = processedInvoices.reduce((sum, inv) => sum + (inv.amount_received || 0), 0);
+
+  const totalOwedToProviders = processedInvoices
     .filter(inv => (inv.amount_received > 0) && !inv.provider_paid)
     .reduce((sum, inv) => sum + (inv.amount_received || 0), 0);
 
-  let outstandingToENTIC = processedInvoices
+  const outstandingToENTIC = processedInvoices
     .filter(inv => inv.status !== 'paid_to_entic' && inv.status !== 'provider_paid')
     .reduce((sum, inv) => {
       const outstanding = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
@@ -438,8 +438,6 @@ export default function Dashboard() {
 
   // Financial metrics by Program/Location
   const financialsByProgram = {};
-  
-  // Process Invoices
   processedInvoices.forEach(inv => {
     const program = inv.program_group || 'Unassigned';
     
@@ -463,35 +461,6 @@ export default function Dashboard() {
     if (outstanding > 0) {
       financialsByProgram[program].outstanding += outstanding;
     }
-  });
-
-  // Process Direct Income (add to financials)
-  processedDirectIncome.forEach(inc => {
-     const program = inc.program_group || 'Direct Income';
-     
-     if (!financialsByProgram[program]) {
-       financialsByProgram[program] = {
-         paidToENTIC: 0,
-         owedToProviders: 0,
-         outstanding: 0
-       };
-     }
-
-     if (inc.amount_received > 0) {
-       financialsByProgram[program].paidToENTIC += inc.amount_received;
-       totalPaidToENTIC += inc.amount_received;
-       
-       if (!inc.provider_paid && inc.staff_member_id) { // Only owe to provider if provider exists
-         financialsByProgram[program].owedToProviders += inc.amount_received;
-         totalOwedToProviders += inc.amount_received;
-       }
-     }
-
-     const outstanding = (inc.amount_expected || inc.total || 0) - (inc.amount_received || 0);
-     if (outstanding > 0.01) { // 0.01 tolerance
-       financialsByProgram[program].outstanding += outstanding;
-       outstandingToENTIC += outstanding;
-     }
   });
 
   const programsSorted = Object.keys(financialsByProgram).sort();
@@ -554,57 +523,12 @@ export default function Dashboard() {
     return credits < 3 && !isWaived;
   });
 
-  // Process Direct Income
-  const processedDirectIncome = React.useMemo(() => {
-    const outsideIncomeAllocations = {};
-    payments.forEach(payment => {
-      payment.allocations?.forEach(allocation => {
-        if (allocation.outside_income_id) {
-          outsideIncomeAllocations[allocation.outside_income_id] = (outsideIncomeAllocations[allocation.outside_income_id] || 0) + (allocation.amount || 0);
-        }
-      });
-    });
-
-    return outsideIncomes
-      .filter(income => !income.invoice_id) // Only process income NOT linked to invoices
-      .map(income => {
-        const received = outsideIncomeAllocations[income.id] || 0;
-        // Determine "month" similar to OutsideIncome page logic
-        let month = income.invoice_month;
-        if (!month && income.work_dates && income.work_dates.length > 0) {
-           try {
-             const date = parseISO(income.work_dates[0]);
-             month = format(date, 'MMMM yyyy');
-           } catch (e) {}
-        }
-
-        return {
-          id: `direct-${income.id}`,
-          original_id: income.id,
-          invoice_number: income.external_invoice_number || 'Direct Income',
-          program_group: income.facility_name || 'Unassigned',
-          staff_member_id: income.provider_id,
-          month: month || '-',
-          invoice_date: income.work_dates?.[0] || income.created_date,
-          total: income.total_amount || 0,
-          amount_received: received,
-          amount_expected: income.total_amount || 0, // Assuming total is expected
-          status: income.status,
-          provider_paid: income.status === 'paid', // Assuming 'paid' means paid to provider? Or just completed.
-          is_direct: true
-        };
-      });
-  }, [outsideIncomes, payments]);
-
   const openFinancialDetail = (type, programGroup = null) => {
     let filteredInvoices = [];
     let title = '';
 
-    // Combine standard invoices and direct income for filtering
-    const allRecords = [...processedInvoices, ...processedDirectIncome];
-
     if (type === 'paidToENTIC') {
-      filteredInvoices = allRecords.filter(inv => 
+      filteredInvoices = processedInvoices.filter(inv => 
         inv.amount_received > 0
       );
       if (programGroup) {
@@ -614,13 +538,9 @@ export default function Dashboard() {
         title = 'Total Paid to ENTIC';
       }
     } else if (type === 'owedToProviders') {
-      filteredInvoices = allRecords.filter(inv => 
+      filteredInvoices = processedInvoices.filter(inv => 
         (inv.amount_received > 0) && !inv.provider_paid
       );
-      // Filter out direct income that doesn't imply provider payment liability (like organizational income)
-      // Usually direct income with no provider ID is org income
-      filteredInvoices = filteredInvoices.filter(inv => !inv.is_direct || inv.staff_member_id);
-
       if (programGroup) {
         filteredInvoices = filteredInvoices.filter(inv => inv.program_group === programGroup);
         title = `Owed to Providers - ${programGroup}`;
@@ -628,7 +548,7 @@ export default function Dashboard() {
         title = 'Total Owed to Providers';
       }
     } else if (type === 'outstanding') {
-      filteredInvoices = allRecords.filter(inv => 
+      filteredInvoices = processedInvoices.filter(inv => 
         inv.status !== 'paid_to_entic' && inv.status !== 'provider_paid' && (inv.amount_expected > (inv.amount_received || 0))
       );
       if (programGroup) {
