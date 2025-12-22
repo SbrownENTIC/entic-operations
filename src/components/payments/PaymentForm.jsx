@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Plus, Trash2, Search, Upload, FileText } from "lucide-react";
+import { X, Plus, Trash2, Search, Upload, FileText, Loader2 } from "lucide-react";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -32,6 +32,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
   });
 
   const [isUploading, setIsUploading] = useState(false);
+  const [isExtracting, setIsExtracting] = useState(false);
   const fileInputRef = React.useRef(null);
   const [openComboboxes, setOpenComboboxes] = useState({});
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
@@ -332,11 +333,68 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       handleChange('remittance_url', file_url);
+
+      // AI Extraction
+      setIsExtracting(true);
+      try {
+        const extraction = await base44.integrations.Core.ExtractDataFromUploadedFile({
+          file_url,
+          json_schema: {
+            type: "object",
+            properties: {
+              check_number: { type: "string", description: "Check number or reference number" },
+              payment_amount: { type: "number", description: "Total payment amount" },
+              payment_date: { type: "string", format: "date", description: "Payment date" },
+              items: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    invoice_date: { type: "string", format: "date", description: "Invoice date" },
+                    invoice_number: { type: "string", description: "Invoice number" },
+                    po_number: { type: "string", description: "PO Number" },
+                    description: { type: "string", description: "Description or Memo" },
+                    amount: { type: "number", description: "Amount paid" },
+                    amount_due: { type: "number", description: "Total amount due" }
+                  }
+                }
+              }
+            }
+          }
+        });
+
+        if (extraction.status === 'success' && extraction.output) {
+          const data = extraction.output;
+          
+          setFormData(prev => ({
+            ...prev,
+            reference_number: data.check_number || prev.reference_number,
+            total_amount: data.payment_amount || prev.total_amount,
+            payment_date: data.payment_date || prev.payment_date,
+          }));
+
+          if (isDirectPayer && data.items && data.items.length > 0) {
+            const newItems = data.items.map(item => ({
+              amount: item.amount || 0,
+              amount_due: item.amount_due || item.amount || 0,
+              service_date: item.invoice_date || format(new Date(), 'yyyy-MM-dd'),
+              external_invoice_number: item.invoice_number || '',
+              external_po_number: item.po_number || '',
+              description: item.description || ''
+            }));
+            setDirectIncomeItems(newItems);
+          }
+        }
+      } catch (extractError) {
+        console.error("Extraction failed:", extractError);
+      }
+
     } catch (error) {
       console.error("Upload failed:", error);
       alert("Failed to upload file");
     } finally {
       setIsUploading(false);
+      setIsExtracting(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -571,8 +629,8 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                       onClick={() => fileInputRef.current?.click()} 
                       disabled={isUploading}
                     >
-                      <Upload className="w-4 h-4 mr-2" />
-                      {isUploading ? 'Uploading...' : 'Attach Remittance'}
+                      {isUploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                      {isUploading ? (isExtracting ? 'Analyzing...' : 'Uploading...') : 'Attach Remittance'}
                     </Button>
                   </div>
                 )}
