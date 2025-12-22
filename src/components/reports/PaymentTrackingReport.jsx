@@ -26,6 +26,49 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
     });
   };
 
+  const exportToExcel = (data, filename) => {
+    // Add export date
+    const exportDate = format(new Date(), 'MMMM dd, yyyy');
+    const fullData = [
+      [`Exported: ${exportDate}`, '', '', '', '', '', '', '', ''],
+      ['', '', '', '', '', '', '', '', ''],
+      ...data
+    ];
+
+    let html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
+    html += '<head><meta charset="UTF-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Payment Tracking</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>';
+    html += '<table border="1" cellspacing="0" cellpadding="5">';
+
+    fullData.forEach(row => {
+      // Check for location header row to apply style
+      const isHeaderRow = row[0] && typeof row[0] === 'string' && (
+        row[0].endsWith(' - TRACKING') || 
+        row[0].endsWith(' - DIRECTORSHIP TRACKING') || 
+        row[0].endsWith(' - ON-CALL TRACKING')
+      );
+      
+      const style = isHeaderRow ? 'style="background-color: #E0F7FA; font-weight: bold;"' : '';
+      
+      html += `<tr ${style}>`;
+      row.forEach(cell => {
+        html += `<td>${cell !== null && cell !== undefined ? cell : ''}</td>`;
+      });
+      html += '</tr>';
+    });
+
+    html += '</table></body></html>';
+
+    const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${filename}_${format(new Date(), 'yyyy-MM-dd')}.xls`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const generateReport = () => {
     const filteredInvoices = invoices.filter(inv => {
       if (!inv.invoice_date) return false;
