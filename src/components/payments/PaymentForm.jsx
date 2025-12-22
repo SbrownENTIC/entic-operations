@@ -197,7 +197,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
            amount_due: item.amount_due,
            rate: item.amount, 
            days_worked: 1,
-           status: 'paid',
+           status: 'entic_paid',
            work_dates: [item.service_date],
            external_invoice_number: item.external_invoice_number,
            external_po_number: item.external_po_number,
