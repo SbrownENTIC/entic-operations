@@ -42,6 +42,10 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
   const [bulkSearchTerm, setBulkSearchTerm] = useState("");
   const [selectedBulkInvoices, setSelectedBulkInvoices] = useState(new Set());
   
+  // Direct Income State
+  const [directIncomeItems, setDirectIncomeItems] = useState([]);
+  const isDirectPayer = ['Quinnipiac University', 'Nations Hearing'].includes(formData.payer);
+
   const queryClient = useQueryClient();
 
   const payerOptions = [
@@ -51,7 +55,9 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
     'CCMC',
     'Bloomfield',
     'CTSC- CT Surgery Center',
-    'Hartford Hospital'
+    'Hartford Hospital',
+    'Quinnipiac University',
+    'Nations Hearing'
   ];
 
   // Fetch outside income for the invoice form
@@ -94,10 +100,40 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
   useEffect(() => {
     if (payment) {
       setFormData(payment);
+      
+      // Populate direct income items if applicable
+      if (['Quinnipiac University', 'Nations Hearing'].includes(payment.payer) && payment.allocations) {
+        const items = payment.allocations.map(a => {
+           if (a.outside_income_id) {
+             const income = incomes.find(i => i.id === a.outside_income_id);
+             return {
+               id: a.outside_income_id, 
+               provider_id: a.provider_id,
+               amount: a.amount,
+               service_date: income?.work_dates?.[0] || format(new Date(), 'yyyy-MM-dd'),
+               external_invoice_number: income?.external_invoice_number || '',
+               external_po_number: income?.external_po_number || '',
+               description: income?.description || '',
+             };
+           }
+           return null;
+        }).filter(Boolean);
+        if (items.length > 0) setDirectIncomeItems(items);
+        else if (payment.allocations.length === 0) {
+             setDirectIncomeItems([{ provider_id: '', amount: 0, service_date: format(new Date(), 'yyyy-MM-dd'), external_invoice_number: '', external_po_number: '', description: '' }]);
+        }
+      }
     }
-  }, [payment]);
+  }, [payment, incomes]);
 
   const handleChange = (field, value) => {
+    if (field === 'payer') {
+       if (['Quinnipiac University', 'Nations Hearing'].includes(value)) {
+          if (!['Quinnipiac University', 'Nations Hearing'].includes(formData.payer)) {
+             setDirectIncomeItems([{ provider_id: '', amount: 0, service_date: format(new Date(), 'yyyy-MM-dd'), external_invoice_number: '', external_po_number: '', description: '' }]);
+          }
+       }
+    }
     setFormData(prev => ({ ...prev, [field]: value }));
     setIsDirty(true);
   };
@@ -123,10 +159,73 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
     }
   }, [formData.allocations, invoices, formData.payment_month]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsDirty(false);
-    onSubmit(formData);
+    
+    let finalAllocations = formData.allocations;
+    
+    if (isDirectPayer) {
+      // Create/Update Outside Income records
+      const newAllocations = [];
+      
+      for (const item of directIncomeItems) {
+         if (!item.provider_id || !item.amount) continue;
+
+         const incomeData = {
+           provider_id: item.provider_id,
+           facility_name: formData.payer,
+           program_location_id: null, // Can be inferred or linked later if needed
+           total_amount: item.amount,
+           rate: item.amount, // Assume flat rate
+           days_worked: 1,
+           status: 'paid',
+           work_dates: [item.service_date],
+           external_invoice_number: item.external_invoice_number,
+           external_po_number: item.external_po_number,
+           description: item.description,
+           notes: `Auto-created from payment ref ${formData.reference_number}`
+         };
+         
+         let incomeId = item.id;
+         
+         if (incomeId) {
+            await base44.entities.OutsideIncome.update(incomeId, incomeData);
+         } else {
+            const newIncome = await base44.entities.OutsideIncome.create(incomeData);
+            incomeId = newIncome.id;
+         }
+         
+         newAllocations.push({
+           outside_income_id: incomeId,
+           provider_id: item.provider_id,
+           amount: item.amount,
+           notes: item.description
+         });
+      }
+      
+      finalAllocations = newAllocations;
+    }
+    
+    onSubmit({ ...formData, allocations: finalAllocations });
+  };
+
+  const addDirectItem = () => {
+    setDirectIncomeItems([...directIncomeItems, { provider_id: '', amount: 0, service_date: format(new Date(), 'yyyy-MM-dd'), external_invoice_number: '', external_po_number: '', description: '' }]);
+  };
+
+  const removeDirectItem = (index) => {
+    setDirectIncomeItems(directIncomeItems.filter((_, i) => i !== index));
+  };
+
+  const updateDirectItem = (index, field, value) => {
+    const newItems = [...directIncomeItems];
+    newItems[index] = { ...newItems[index], [field]: value };
+    setDirectIncomeItems(newItems);
+    
+    // Auto update total amount
+    const total = newItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+    setFormData(prev => ({ ...prev, total_amount: total }));
   };
 
   const addAllocation = () => {
@@ -464,165 +563,270 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-4 mt-6">
+              {isDirectPayer ? (
+                // Direct Income Mode
                 <div>
-                  <Label>Payment Allocations</Label>
-                  <p className="text-sm text-slate-500 mt-1">
-                    Unallocated: <span className={unallocated < 0 ? "text-red-600 font-medium" : unallocated === 0 ? "text-green-600 font-medium" : "text-orange-600 font-medium"}>
-                      ${unallocated.toFixed(2)}
-                    </span>
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Button type="button" variant="outline" size="sm" onClick={handleBulkSelectOpen} className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 hover:text-blue-700">
-                    <Search className="w-4 h-4 mr-2" />
-                    Bulk Add
-                  </Button>
-                  <Button type="button" variant="outline" size="sm" onClick={addAllocation}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Allocation
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="space-y-3">
-                {formData.allocations.map((allocation, index) => {
-                  const selectedInvoice = invoices.find(inv => inv.id === allocation.invoice_id);
-                  const selectedProvider = providers.find(p => p.id === allocation.provider_id);
-                  
-                  return (
-                    <div key={index} className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-3">
-                      <div className="grid grid-cols-12 gap-3 items-end">
-                        <div className="col-span-5">
-                          <Label className="text-xs">Invoice</Label>
-                          <Popover open={openComboboxes[index]} onOpenChange={(open) => toggleCombobox(index, open)}>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                role="combobox"
-                                className="w-full justify-between mt-1 h-10 text-left font-normal"
-                              >
-                                {selectedInvoice ? (
-                                  <span className="truncate">
-                                    {selectedInvoice.invoice_number || 'N/A'} - {selectedInvoice.program_group || 'N/A'}
-                                  </span>
-                                ) : (
-                                  <span className="text-slate-500">Search invoice...</span>
-                                )}
-                                <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[400px] p-0" align="start">
-                              <Command>
-                                <CommandInput placeholder="Search by invoice #, program, provider..." className="h-9" />
-                                <CommandEmpty>
-                                  <div className="p-4 text-center">
-                                    <p className="text-sm text-slate-500 mb-3">No invoice found.</p>
-                                    <Button
-                                      type="button"
-                                      onClick={() => handleCreateNewInvoice(index)}
-                                      className="bg-blue-600 hover:bg-blue-700"
-                                      size="sm"
-                                    >
-                                      <Plus className="w-4 h-4 mr-2" />
-                                      Create New Invoice
-                                    </Button>
-                                  </div>
-                                </CommandEmpty>
-                                <CommandGroup className="max-h-64 overflow-auto">
-                                  {invoices.map(invoice => {
-                                    const provider = providers.find(p => p.id === invoice.staff_member_id);
-                                    const providerName = provider?.full_name || 'Unknown';
-                                    const balance = (invoice.amount_expected || invoice.total || 0) - (invoice.amount_received || 0);
-                                    const displayText = `${invoice.invoice_number || 'N/A'} - ${invoice.program_group || 'N/A'}${invoice.month ? ` (${invoice.month})` : ''} - ${providerName}`;
-                                    
-                                    return (
-                                      <CommandItem
-                                        key={invoice.id}
-                                        value={`${invoice.invoice_number} ${invoice.program_group} ${invoice.month} ${providerName}`}
-                                        onSelect={() => {
-                                          updateAllocation(index, 'invoice_id', invoice.id);
-                                          toggleCombobox(index, false);
-                                        }}
-                                        className="cursor-pointer"
-                                      >
-                                        <div className="flex flex-col w-full">
-                                          <div className="flex items-center justify-between">
-                                            <span className="font-medium">{displayText}</span>
-                                            <span className="text-xs text-slate-500 ml-2">Balance: ${balance.toFixed(2)}</span>
-                                          </div>
-                                          {invoice.status && (
-                                            <span className="text-xs text-slate-500 capitalize">{invoice.status.replace(/_/g, ' ')}</span>
-                                          )}
-                                        </div>
-                                      </CommandItem>
-                                    );
-                                  })}
-                                </CommandGroup>
-                                {invoices.length > 0 && (
-                                  <div className="border-t p-2">
-                                    <Button
-                                      type="button"
-                                      onClick={() => handleCreateNewInvoice(index)}
-                                      variant="ghost"
-                                      className="w-full justify-start text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                      size="sm"
-                                    >
-                                      <Plus className="w-4 h-4 mr-2" />
-                                      Create New Invoice
-                                    </Button>
-                                  </div>
-                                )}
-                              </Command>
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-                        
-                        <div className="col-span-3">
-                          <Label className="text-xs">Provider</Label>
-                          <Input
-                            className="mt-1 bg-slate-100"
-                            value={selectedProvider?.full_name || 'Select invoice first'}
-                            readOnly
-                          />
-                        </div>
-                        
-                        <div className="col-span-3">
-                          <Label className="text-xs">Amount</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            className="mt-1"
-                            value={allocation.amount || 0}
-                            onChange={(e) => updateAllocation(index, 'amount', parseFloat(e.target.value) || 0)}
-                          />
-                          {selectedInvoice && (
-                            <p className="text-xs text-slate-500 mt-1">
-                              Invoice balance: ${((selectedInvoice.amount_expected || selectedInvoice.total || 0) - (selectedInvoice.amount_received || 0)).toFixed(2)}
-                            </p>
-                          )}
-                        </div>
-                        
-                        <div className="col-span-1">
-                          <Button type="button" variant="ghost" size="icon" onClick={() => removeAllocation(index)}>
-                            <Trash2 className="w-4 h-4 text-red-500" />
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <Label className="text-xs">Allocation Notes</Label>
-                        <Input
-                          className="mt-1"
-                          placeholder="Optional notes for this allocation"
-                          value={allocation.notes || ''}
-                          onChange={(e) => updateAllocation(index, 'notes', e.target.value)}
-                        />
-                      </div>
+                  <div className="flex items-center justify-between mb-4 mt-6">
+                    <div>
+                      <Label className="text-blue-700">Direct Income Details</Label>
+                      <p className="text-sm text-slate-500 mt-1">
+                        Enter details to auto-generate Outside Income records
+                      </p>
                     </div>
-                  );
-                })}
-              </div>
+                    <Button type="button" variant="outline" size="sm" onClick={addDirectItem}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Item
+                    </Button>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    {directIncomeItems.map((item, index) => (
+                      <div key={index} className="p-4 bg-blue-50/50 rounded-lg border border-blue-100 space-y-3">
+                        <div className="grid grid-cols-12 gap-3">
+                          <div className="col-span-4">
+                            <Label className="text-xs">Provider *</Label>
+                            <Select
+                              value={item.provider_id}
+                              onValueChange={(value) => updateDirectItem(index, 'provider_id', value)}
+                            >
+                              <SelectTrigger className="mt-1">
+                                <SelectValue placeholder="Select provider" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {providers.map(p => (
+                                  <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <div className="col-span-4">
+                            <Label className="text-xs">Service/Invoice Date</Label>
+                            <Input
+                              type="date"
+                              className="mt-1"
+                              value={item.service_date}
+                              onChange={(e) => updateDirectItem(index, 'service_date', e.target.value)}
+                            />
+                          </div>
+
+                          <div className="col-span-4">
+                             <Label className="text-xs">Amount *</Label>
+                             <Input
+                               type="number"
+                               step="0.01"
+                               className="mt-1"
+                               value={item.amount || 0}
+                               onChange={(e) => updateDirectItem(index, 'amount', parseFloat(e.target.value) || 0)}
+                             />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-12 gap-3">
+                          <div className="col-span-4">
+                            <Label className="text-xs">Ext. Invoice / Bill #</Label>
+                            <Input
+                              className="mt-1"
+                              value={item.external_invoice_number}
+                              onChange={(e) => updateDirectItem(index, 'external_invoice_number', e.target.value)}
+                              placeholder="Bill No."
+                            />
+                          </div>
+                          
+                          <div className="col-span-4">
+                            <Label className="text-xs">Ext. PO Number</Label>
+                            <Input
+                              className="mt-1"
+                              value={item.external_po_number}
+                              onChange={(e) => updateDirectItem(index, 'external_po_number', e.target.value)}
+                              placeholder="PO No. (if any)"
+                            />
+                          </div>
+
+                           <div className="col-span-3">
+                            <Label className="text-xs">Description / Memo</Label>
+                            <Input
+                              className="mt-1"
+                              value={item.description}
+                              onChange={(e) => updateDirectItem(index, 'description', e.target.value)}
+                              placeholder="Memo..."
+                            />
+                          </div>
+                          
+                          <div className="col-span-1 flex items-end justify-end">
+                            <Button type="button" variant="ghost" size="icon" onClick={() => removeDirectItem(index)}>
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                // Standard Invoice Allocation Mode
+                <div>
+                  <div className="flex items-center justify-between mb-4 mt-6">
+                    <div>
+                      <Label>Payment Allocations</Label>
+                      <p className="text-sm text-slate-500 mt-1">
+                        Unallocated: <span className={unallocated < 0 ? "text-red-600 font-medium" : unallocated === 0 ? "text-green-600 font-medium" : "text-orange-600 font-medium"}>
+                          ${unallocated.toFixed(2)}
+                        </span>
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button type="button" variant="outline" size="sm" onClick={handleBulkSelectOpen} className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 hover:text-blue-700">
+                        <Search className="w-4 h-4 mr-2" />
+                        Bulk Add
+                      </Button>
+                      <Button type="button" variant="outline" size="sm" onClick={addAllocation}>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Allocation
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {formData.allocations.map((allocation, index) => {
+                      const selectedInvoice = invoices.find(inv => inv.id === allocation.invoice_id);
+                      const selectedProvider = providers.find(p => p.id === allocation.provider_id);
+                      
+                      return (
+                        <div key={index} className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-3">
+                          <div className="grid grid-cols-12 gap-3 items-end">
+                            <div className="col-span-5">
+                              <Label className="text-xs">Invoice</Label>
+                              <Popover open={openComboboxes[index]} onOpenChange={(open) => toggleCombobox(index, open)}>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    className="w-full justify-between mt-1 h-10 text-left font-normal"
+                                  >
+                                    {selectedInvoice ? (
+                                      <span className="truncate">
+                                        {selectedInvoice.invoice_number || 'N/A'} - {selectedInvoice.program_group || 'N/A'}
+                                      </span>
+                                    ) : (
+                                      <span className="text-slate-500">Search invoice...</span>
+                                    )}
+                                    <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[400px] p-0" align="start">
+                                  <Command>
+                                    <CommandInput placeholder="Search by invoice #, program, provider..." className="h-9" />
+                                    <CommandEmpty>
+                                      <div className="p-4 text-center">
+                                        <p className="text-sm text-slate-500 mb-3">No invoice found.</p>
+                                        <Button
+                                          type="button"
+                                          onClick={() => handleCreateNewInvoice(index)}
+                                          className="bg-blue-600 hover:bg-blue-700"
+                                          size="sm"
+                                        >
+                                          <Plus className="w-4 h-4 mr-2" />
+                                          Create New Invoice
+                                        </Button>
+                                      </div>
+                                    </CommandEmpty>
+                                    <CommandGroup className="max-h-64 overflow-auto">
+                                      {invoices.map(invoice => {
+                                        const provider = providers.find(p => p.id === invoice.staff_member_id);
+                                        const providerName = provider?.full_name || 'Unknown';
+                                        const balance = (invoice.amount_expected || invoice.total || 0) - (invoice.amount_received || 0);
+                                        const displayText = `${invoice.invoice_number || 'N/A'} - ${invoice.program_group || 'N/A'}${invoice.month ? ` (${invoice.month})` : ''} - ${providerName}`;
+                                        
+                                        return (
+                                          <CommandItem
+                                            key={invoice.id}
+                                            value={`${invoice.invoice_number} ${invoice.program_group} ${invoice.month} ${providerName}`}
+                                            onSelect={() => {
+                                              updateAllocation(index, 'invoice_id', invoice.id);
+                                              toggleCombobox(index, false);
+                                            }}
+                                            className="cursor-pointer"
+                                          >
+                                            <div className="flex flex-col w-full">
+                                              <div className="flex items-center justify-between">
+                                                <span className="font-medium">{displayText}</span>
+                                                <span className="text-xs text-slate-500 ml-2">Balance: ${balance.toFixed(2)}</span>
+                                              </div>
+                                              {invoice.status && (
+                                                <span className="text-xs text-slate-500 capitalize">{invoice.status.replace(/_/g, ' ')}</span>
+                                              )}
+                                            </div>
+                                          </CommandItem>
+                                        );
+                                      })}
+                                    </CommandGroup>
+                                    {invoices.length > 0 && (
+                                      <div className="border-t p-2">
+                                        <Button
+                                          type="button"
+                                          onClick={() => handleCreateNewInvoice(index)}
+                                          variant="ghost"
+                                          className="w-full justify-start text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                          size="sm"
+                                        >
+                                          <Plus className="w-4 h-4 mr-2" />
+                                          Create New Invoice
+                                        </Button>
+                                      </div>
+                                    )}
+                                  </Command>
+                                </PopoverContent>
+                              </Popover>
+                            </div>
+                            
+                            <div className="col-span-3">
+                              <Label className="text-xs">Provider</Label>
+                              <Input
+                                className="mt-1 bg-slate-100"
+                                value={selectedProvider?.full_name || 'Select invoice first'}
+                                readOnly
+                              />
+                            </div>
+                            
+                            <div className="col-span-3">
+                              <Label className="text-xs">Amount</Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                className="mt-1"
+                                value={allocation.amount || 0}
+                                onChange={(e) => updateAllocation(index, 'amount', parseFloat(e.target.value) || 0)}
+                              />
+                              {selectedInvoice && (
+                                <p className="text-xs text-slate-500 mt-1">
+                                  Invoice balance: ${((selectedInvoice.amount_expected || selectedInvoice.total || 0) - (selectedInvoice.amount_received || 0)).toFixed(2)}
+                                </p>
+                              )}
+                            </div>
+                            
+                            <div className="col-span-1">
+                              <Button type="button" variant="ghost" size="icon" onClick={() => removeAllocation(index)}>
+                                <Trash2 className="w-4 h-4 text-red-500" />
+                              </Button>
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <Label className="text-xs">Allocation Notes</Label>
+                            <Input
+                              className="mt-1"
+                              placeholder="Optional notes for this allocation"
+                              value={allocation.notes || ''}
+                              onChange={(e) => updateAllocation(index, 'notes', e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2 mt-6">
