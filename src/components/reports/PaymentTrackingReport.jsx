@@ -66,7 +66,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
         if (directorshipLocation) {
           rows.push([`${programGroup} - DIRECTORSHIP TRACKING`, '', '', '', '', '', '', '']);
           rows.push(['', '', '', '', '', '', '', '']);
-          rows.push(['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', 'Date Paid Provider', 'Invoice Notes', 'Payment Notes']);
+          rows.push(['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', 'Date Paid Provider', 'Notes']);
 
           const directorshipRate = programGroup === 'Hartford Hospital' ? 3250 : 1750;
           
@@ -144,12 +144,11 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
               paymentQuarter,
               voucherNumber,
               invoice.date_provider_paid ? format(parseISO(invoice.date_provider_paid), 'MM/dd/yyyy') : '',
-              shouldHideNotes ? '' : (invoice.notes || ''),
-              paymentNotes
+              [shouldHideNotes ? '' : (invoice.notes || ''), paymentNotes].filter(Boolean).join('; ')
             ]);
           });
 
-          rows.push(['TOTAL', '', '', formatCurrency(directorshipTotal.expected), formatCurrency(directorshipTotal.received), '', '', '', '', '', '']);
+          rows.push(['TOTAL', '', '', formatCurrency(directorshipTotal.expected), formatCurrency(directorshipTotal.received), '', '', '', '', '']);
           rows.push(['', '', '', '', '', '', '', '', '', '']);
         }
 
@@ -157,7 +156,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
         if (onCallLocation) {
           rows.push([`${programGroup} - ON-CALL TRACKING`, '', '', '', '', '', '', '']);
           rows.push(['', '', '', '', '', '', '', '']);
-          rows.push(['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', 'Date Paid Provider', 'Invoice Notes', 'Payment Notes']);
+          rows.push(['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', 'Date Paid Provider', 'Notes']);
 
           const onCallInvoices = groupInvoices.filter(inv => {
             // For Hartford Hospital, ONLY use invoice number
@@ -235,12 +234,11 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
               paymentQuarter,
               voucherNumber,
               invoice.date_provider_paid ? format(parseISO(invoice.date_provider_paid), 'MM/dd/yyyy') : '',
-              shouldHideNotes ? '' : (invoice.notes || ''),
-              paymentNotes
+              [shouldHideNotes ? '' : (invoice.notes || ''), paymentNotes].filter(Boolean).join('; ')
             ]);
           });
 
-          rows.push(['TOTAL', '', '', formatCurrency(onCallTotal.expected), formatCurrency(onCallTotal.received), '', '', '', '', '', '']);
+          rows.push(['TOTAL', '', '', formatCurrency(onCallTotal.expected), formatCurrency(onCallTotal.received), '', '', '', '', '']);
           rows.push(['', '', '', '', '', '', '', '', '', '']);
           rows.push(['', '', '', '', '', '', '', '']);
         }
@@ -249,7 +247,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
         // Standard tracking for other locations
         rows.push([`${programGroup} - TRACKING`, '', '', '', '', '', '', '']);
         rows.push(['', '', '', '', '', '', '', '']);
-        rows.push(['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', 'Date Paid Provider', 'Invoice Notes', 'Payment Notes']);
+        rows.push(['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', 'Date Paid Provider', 'Notes']);
 
         sortByMonth(groupInvoices);
 
@@ -296,7 +294,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
           ]);
         });
 
-        rows.push(['TOTAL', '', '', formatCurrency(groupTotal.expected), formatCurrency(groupTotal.received), '', '', '', '', '', '']);
+        rows.push(['TOTAL', '', '', formatCurrency(groupTotal.expected), formatCurrency(groupTotal.received), '', '', '', '', '']);
         rows.push(['', '', '', '', '', '', '', '', '', '']);
         rows.push(['', '', '', '', '', '', '', '']);
       }
