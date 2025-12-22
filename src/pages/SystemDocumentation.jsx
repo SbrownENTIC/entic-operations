@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import PrintableManual from "@/components/documentation/PrintableManual";
 import PrintableAdminManual from "@/components/documentation/PrintableAdminManual";
 import ContactReferenceSheet from "@/components/documentation/ContactReferenceSheet";
+import StandardOperatingProcedures from "@/components/documentation/StandardOperatingProcedures";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
