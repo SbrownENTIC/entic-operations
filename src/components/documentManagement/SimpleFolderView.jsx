@@ -12,6 +12,7 @@ export default function SimpleFolderView({ folderId }) {
   const [sortField, setSortField] = useState('created_date');
   const [sortDirection, setSortDirection] = useState('desc');
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
   const [selectedIds, setSelectedIds] = useState([]);
   
   const queryClient = useQueryClient();
@@ -65,8 +66,13 @@ export default function SimpleFolderView({ folderId }) {
     if (files.length === 0) return;
 
     setUploading(true);
+    setUploadProgress({ current: 0, total: files.length });
+
     try {
-      for (const file of files) {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        setUploadProgress({ current: i + 1, total: files.length });
+
         const { file_url } = await base44.integrations.Core.UploadFile({ file });
         
         // Process invoice with AI to extract data
@@ -88,6 +94,7 @@ export default function SimpleFolderView({ folderId }) {
       toast({ title: "Upload Failed", description: error.response?.data?.error || error.message, variant: "destructive" });
     } finally {
       setUploading(false);
+      setUploadProgress({ current: 0, total: 0 });
       e.target.value = '';
     }
   };
@@ -176,7 +183,7 @@ export default function SimpleFolderView({ folderId }) {
               {uploading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Uploading...
+                  Uploading... {uploadProgress.total > 0 && `(${uploadProgress.total - uploadProgress.current + 1} pending)`}
                 </>
               ) : (
                 <>
