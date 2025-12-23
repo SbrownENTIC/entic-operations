@@ -129,6 +129,10 @@ export default function StandardOperatingProcedures() {
                   <li>Click <strong>Save</strong>. The status will be "Pending".</li>
                 </ol>
               </Step>
+
+              <InfoBox>
+                <strong>Dashboard Note:</strong> Income from <strong>Nations Hearing</strong> and <strong>Quinnipiac University</strong> is tracked for revenue purposes but is <strong>excluded</strong> from the "Owed to Providers" calculation on the Dashboard, as these are direct facility payments.
+              </InfoBox>
             </Section>
 
             {/* 4. Processing Invoices */}
@@ -148,7 +152,7 @@ export default function StandardOperatingProcedures() {
               <Step title="Facility-Specific Logic">
                 <ul className="list-disc pl-5 space-y-2">
                   <li><strong>UConn / Manchester:</strong> After creating, click the <strong>File Down (⬇️)</strong> icon to generate the PDF using the official template. Then select the invoice and click the <strong>Cloud Icon</strong> to sync/email it.</li>
-                  <li><strong>Hartford Hospital:</strong> If the provider has a "Directorship" role, the system will ask to auto-create a second flat-fee invoice for $3,250.</li>
+                  <li><strong>Hartford Hospital & St. Francis:</strong> Directorship income is sourced from invoices to prevent double-counting on the dashboard. The system ensures income is counted accurately without duplication from standalone entries.</li>
                 </ul>
               </Step>
             </Section>
@@ -276,7 +280,7 @@ export default function StandardOperatingProcedures() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 <ReportCard title="Monthly Financials" desc="The 'Payout Bible'. Shows payments received per provider for a specific month. Used for payroll." />
                 <ReportCard title="Invoice Aging" desc="Shows unpaid invoices categorized by age (30/60/90 days). Use for collections." />
-                <ReportCard title="Payment Tracking" desc="Detailed audit trail of every payment and its specific allocation." />
+                <ReportCard title="Payment Tracking" desc="Detailed audit trail. Exports to Excel with color-coded location rows. Automatically filters out system-generated notes." />
                 <ReportCard title="Supply Orders" desc="Spending analysis by location or category over time." />
                 <ReportCard title="Credentialing Matrix" desc="Status of hospital privileges for all providers." />
                 <ReportCard title="Unlinked Invoices" desc="Finds invoices with $0 Received to identify billing gaps." />

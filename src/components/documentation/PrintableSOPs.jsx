@@ -67,6 +67,9 @@ export default function PrintableSOPs() {
               <li>Click <strong>Save</strong>.</li>
             </ol>
           </div>
+          <div className="text-xs bg-slate-100 p-2 rounded">
+            <strong>Note:</strong> Nations Hearing & Quinnipiac income is excluded from "Owed to Providers" calculations.
+          </div>
         </PrintSection>
 
         {/* 4. Processing Invoices */}
@@ -90,10 +93,10 @@ export default function PrintableSOPs() {
               </ul>
             </div>
             <div className="bg-slate-50 p-3 rounded text-sm">
-              <strong className="block mb-1">Hartford Hospital</strong>
+              <strong className="block mb-1">Hartford Hospital & St. Francis</strong>
               <ul className="list-disc pl-4 text-xs">
-                <li>System detects "Directorship" roles.</li>
-                <li>Prompts to auto-create separate flat-fee invoice.</li>
+                <li>Directorship income is sourced from invoices.</li>
+                <li>Prevents double-counting on the dashboard.</li>
               </ul>
             </div>
           </div>
@@ -170,7 +173,7 @@ export default function PrintableSOPs() {
               <strong>Invoice Aging:</strong> Collections tracking.
             </div>
             <div>
-              <strong>Payment Tracking:</strong> Audit trail of deposits.
+              <strong>Payment Tracking:</strong> Excel export with color-coding. Filters auto-notes.
             </div>
             <div>
               <strong>Supply Analysis:</strong> Spending trends.
