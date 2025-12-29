@@ -106,6 +106,58 @@ export default function OutsideIncome() {
           });
         }
       }
+
+      // Check if this is St. Francis On-Call income - auto-create Directorship income
+      const isStFrancisOnCall = location?.program_group === 'St. Francis' && !location?.program_location?.includes('Directorship');
+      
+      if (isStFrancisOnCall && data.work_dates && data.work_dates.length > 0) {
+        // Find the St. Francis Directorship program location
+        const directorshipLocation = programLocations.find(pl => 
+          pl.program_location?.includes('St. Francis (Directorship)')
+        );
+        
+        if (directorshipLocation) {
+          // Get the first day of the month from the first work date
+          const [year, month] = data.work_dates[0].split('-');
+          const firstDayString = `${year}-${month}-01`;
+          const targetMonthYear = format(parseISO(firstDayString), 'MMMM yyyy');
+          
+          // Check if directorship record already exists for this provider and month
+          const allIncomes = await base44.entities.OutsideIncome.list();
+          const existingDirectorship = allIncomes.find(inc => {
+            const isSameProvider = inc.provider_id === data.provider_id;
+            const isSameLocation = inc.program_location_id === directorshipLocation.id;
+            let isSameMonth = false;
+            
+            if (inc.work_dates && inc.work_dates.length > 0) {
+              try {
+                const incMonth = format(parseISO(inc.work_dates[0]), 'MMMM yyyy');
+                isSameMonth = incMonth === targetMonthYear;
+              } catch (e) {
+                isSameMonth = false;
+              }
+            }
+            
+            return isSameProvider && isSameLocation && isSameMonth;
+          });
+
+          if (!existingDirectorship) {
+            // Create the directorship income record
+            await base44.entities.OutsideIncome.create({
+              provider_id: data.provider_id,
+              program_location_id: directorshipLocation.id,
+              facility_name: 'St. Francis (Directorship)',
+              work_dates: [firstDayString],
+              days_worked: 0,
+              total_rvus: 0,
+              rate: 1750,
+              total_amount: 1750,
+              status: 'pending',
+              description: 'Auto-generated St. Francis Directorship Income'
+            });
+          }
+        }
+      }
       
       return income;
     },
