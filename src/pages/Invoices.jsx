@@ -181,7 +181,7 @@ export default function Invoices() {
         const allIncomes = await base44.entities.OutsideIncome.list();
         
         // Find the matching directorship outside income for this provider and month
-        const directorshipIncome = allIncomes.find(inc => {
+        let directorshipIncome = allIncomes.find(inc => {
           const facilityMatch = inc.facility_name?.toLowerCase().includes('directorship');
           const providerMatch = inc.provider_id === data.staff_member_id;
           
@@ -199,6 +199,38 @@ export default function Invoices() {
           
           return facilityMatch && providerMatch && monthMatch && !inc.invoice_id;
         });
+
+        // If no income record exists, create one (Sourced from Invoice)
+        if (!directorshipIncome) {
+           let workDate = data.invoice_date;
+           // Try to derive work date from invoice month (use 1st of month)
+           if (data.month) {
+               try {
+                   const parts = data.month.split(' ');
+                   if (parts.length === 2) {
+                       const monthName = parts[0];
+                       const year = parseInt(parts[1]);
+                       const monthIndex = new Date(Date.parse(monthName + " 1, 2012")).getMonth();
+                       const d = new Date(year, monthIndex, 1);
+                       workDate = format(d, 'yyyy-MM-dd');
+                   }
+               } catch (e) {
+                   console.warn("Could not parse month for date", e);
+               }
+           }
+
+           directorshipIncome = await base44.entities.OutsideIncome.create({
+               provider_id: data.staff_member_id,
+               program_location_id: '691527907bf4ee75e9738b32', // Hartford Hospital (Directorship)
+               facility_name: 'Hartford Hospital (Directorship)',
+               total_amount: 3250,
+               rate: 3250,
+               days_worked: 0,
+               status: 'pending',
+               work_dates: [workDate],
+               description: 'Auto-generated Directorship Income from Invoice'
+           });
+        }
         
         const directorshipIncomeIds = directorshipIncome ? [directorshipIncome.id] : [];
         
