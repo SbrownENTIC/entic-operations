@@ -259,6 +259,91 @@ export default function Invoices() {
           });
         }
       }
+
+      // Auto-create St. Francis Directorship invoice if this is an On-Call invoice (not directorship)
+      if (data.program_group === 'St. Francis' && data.invoice_number && !data.invoice_number.includes('Directorship')) {
+        // Fetch fresh list of incomes
+        const allIncomes = await base44.entities.OutsideIncome.list();
+        
+        // Find the matching directorship outside income for this provider and month
+        let directorshipIncome = allIncomes.find(inc => {
+          const facilityMatch = inc.facility_name?.toLowerCase().includes('directorship') && inc.facility_name?.toLowerCase().includes('francis');
+          const providerMatch = inc.provider_id === data.staff_member_id;
+          
+          // Match month by comparing the date's month/year with invoice month
+          let monthMatch = false;
+          if (inc.work_dates && inc.work_dates.length > 0 && data.month) {
+            try {
+              const incomeDate = parseISO(inc.work_dates[0]);
+              const incomeMonthYear = format(incomeDate, 'MMMM yyyy');
+              monthMatch = incomeMonthYear === data.month;
+            } catch (e) {
+              monthMatch = false;
+            }
+          }
+          
+          return facilityMatch && providerMatch && monthMatch && !inc.invoice_id;
+        });
+        
+        // If no income record exists, create one (Sourced from Invoice)
+        if (!directorshipIncome) {
+           let workDate = data.invoice_date;
+           // Try to derive work date from invoice month (use 1st of month)
+           if (data.month) {
+               try {
+                   const parts = data.month.split(' ');
+                   if (parts.length === 2) {
+                       const monthName = parts[0];
+                       const year = parseInt(parts[1]);
+                       const monthIndex = new Date(Date.parse(monthName + " 1, 2012")).getMonth();
+                       const d = new Date(year, monthIndex, 1);
+                       workDate = format(d, 'yyyy-MM-dd');
+                   }
+               } catch (e) {
+                   console.warn("Could not parse month for date", e);
+               }
+           }
+
+           directorshipIncome = await base44.entities.OutsideIncome.create({
+               provider_id: data.staff_member_id,
+               program_location_id: '691527907bf4ee75e9738b2e', // St. Francis (Directorship)
+               facility_name: 'St. Francis (Directorship)',
+               total_amount: 1750,
+               rate: 1750,
+               days_worked: 0,
+               status: 'pending',
+               work_dates: [workDate],
+               description: 'Auto-generated Directorship Income from Invoice'
+           });
+        }
+        
+        const directorshipIncomeIds = directorshipIncome ? [directorshipIncome.id] : [];
+        
+        const directorshipInvoice = await base44.entities.Invoice.create({
+          invoice_number: `${data.invoice_number} (Directorship)`,
+          program_group: 'St. Francis',
+          staff_member_id: data.staff_member_id,
+          work_email: data.work_email,
+          invoice_date: data.invoice_date,
+          month: data.month,
+          status: data.status || 'not_started',
+          subtotal: 1750,
+          total: 1750,
+          amount_expected: 1750,
+          outside_income_ids: directorshipIncomeIds,
+          days_worked: 0,
+          auto_generated: true
+        });
+        
+        // Link the directorship income to the new invoice
+        if (directorshipIncome) {
+          await base44.entities.OutsideIncome.update(directorshipIncome.id, {
+            invoice_id: directorshipInvoice.id,
+            invoice_month: data.month || '',
+            status: 'invoiced'
+          });
+        }
+      }
       
       return invoice;
     },
