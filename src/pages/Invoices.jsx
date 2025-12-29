@@ -316,33 +316,6 @@ export default function Invoices() {
                description: 'Auto-generated Directorship Income from Invoice'
            });
         }
-        
-        const directorshipIncomeIds = directorshipIncome ? [directorshipIncome.id] : [];
-        
-        const directorshipInvoice = await base44.entities.Invoice.create({
-          invoice_number: `${data.invoice_number} (Directorship)`,
-          program_group: 'St. Francis',
-          staff_member_id: data.staff_member_id,
-          work_email: data.work_email,
-          invoice_date: data.invoice_date,
-          month: data.month,
-          status: data.status || 'not_started',
-          subtotal: 1750,
-          total: 1750,
-          amount_expected: 1750,
-          outside_income_ids: directorshipIncomeIds,
-          days_worked: 0,
-          auto_generated: true
-        });
-        
-        // Link the directorship income to the new invoice
-        if (directorshipIncome) {
-          await base44.entities.OutsideIncome.update(directorshipIncome.id, {
-            invoice_id: directorshipInvoice.id,
-            invoice_month: data.month || '',
-            status: 'invoiced'
-          });
-        }
       }
       
       return invoice;
