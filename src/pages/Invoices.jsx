@@ -286,10 +286,12 @@ export default function Invoices() {
             }
           }
           
-          return facilityMatch && providerMatch && monthMatch && !inc.invoice_id;
+          // Check if it's unlinked OR already linked to this invoice (user selected it manually)
+          const isPendingOrLinkedToCurrent = !inc.invoice_id || inc.invoice_id === invoice.id;
+          return facilityMatch && providerMatch && monthMatch && isPendingOrLinkedToCurrent;
         });
         
-        // If no income record exists, create one (Sourced from Invoice)
+        // If no income record exists (neither pending nor already selected), create one
         if (!directorshipIncome) {
            let workDate = data.invoice_date;
            // Try to derive work date from invoice month (use 1st of month)
@@ -321,28 +323,31 @@ export default function Invoices() {
            });
         }
 
-        // Link the directorship income to the current invoice
+        // Link the directorship income to the current invoice if not already linked
         if (directorshipIncome) {
-          // 1. Link Income to Invoice
-          await base44.entities.OutsideIncome.update(directorshipIncome.id, {
-            invoice_id: invoice.id,
-            invoice_month: data.month || '',
-            status: 'invoiced'
-          });
+           // Get the latest invoice state to be safe
+           const currentInvoice = await base44.entities.Invoice.get(invoice.id);
+           const currentIncomeIds = currentInvoice.outside_income_ids || [];
+           
+           if (!currentIncomeIds.includes(directorshipIncome.id)) {
+              // 1. Link Income to Invoice
+              await base44.entities.OutsideIncome.update(directorshipIncome.id, {
+                invoice_id: invoice.id,
+                invoice_month: data.month || '',
+                status: 'invoiced'
+              });
 
-          // 2. Add Income to Invoice and Update Totals
-          const currentIncomeIds = invoice.outside_income_ids || [];
-          if (!currentIncomeIds.includes(directorshipIncome.id)) {
-             const newIncomeIds = [...currentIncomeIds, directorshipIncome.id];
-             const addedAmount = directorshipIncome.total_amount || 1750;
-             
-             await base44.entities.Invoice.update(invoice.id, {
-               outside_income_ids: newIncomeIds,
-               subtotal: (invoice.subtotal || 0) + addedAmount,
-               total: (invoice.total || 0) + addedAmount,
-               amount_expected: (invoice.amount_expected || 0) + addedAmount
-             });
-          }
+              // 2. Add Income to Invoice and Update Totals
+              const newIncomeIds = [...currentIncomeIds, directorshipIncome.id];
+              const addedAmount = directorshipIncome.total_amount || 1750;
+              
+              await base44.entities.Invoice.update(invoice.id, {
+                outside_income_ids: newIncomeIds,
+                subtotal: (currentInvoice.subtotal || 0) + addedAmount,
+                total: (currentInvoice.total || 0) + addedAmount,
+                amount_expected: (currentInvoice.amount_expected || 0) + addedAmount
+              });
+           }
         }
       }
       
