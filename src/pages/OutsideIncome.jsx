@@ -110,7 +110,11 @@ export default function OutsideIncome() {
       // Check if this is St. Francis On-Call income - auto-create Directorship income
       const isStFrancisOnCall = location?.program_group === 'St. Francis' && !location?.program_location?.includes('Directorship');
       
-      if (isStFrancisOnCall && data.work_dates && data.work_dates.length > 0) {
+      // Only apply to Seth Brown
+      const provider = providers.find(p => p.id === data.provider_id);
+      const isSethBrown = provider?.full_name?.toLowerCase().includes('seth brown');
+
+      if (isStFrancisOnCall && isSethBrown && data.work_dates && data.work_dates.length > 0) {
         // Find the St. Francis Directorship program location
         const directorshipLocation = programLocations.find(pl => 
           pl.program_location?.includes('St. Francis (Directorship)')

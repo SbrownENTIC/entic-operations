@@ -261,7 +261,11 @@ export default function Invoices() {
       }
 
       // Auto-create St. Francis Directorship invoice if this is an On-Call invoice (not directorship)
-      if (data.program_group === 'St. Francis' && data.invoice_number && !data.invoice_number.includes('Directorship')) {
+      // Only for Seth Brown
+      const provider = providers.find(p => p.id === data.staff_member_id);
+      const isSethBrown = provider?.full_name?.toLowerCase().includes('seth brown');
+
+      if (isSethBrown && data.program_group === 'St. Francis' && data.invoice_number && !data.invoice_number.includes('Directorship')) {
         // Fetch fresh list of incomes
         const allIncomes = await base44.entities.OutsideIncome.list();
         
