@@ -92,18 +92,66 @@ export default function OutsideIncome() {
           const [year, month] = data.work_dates[0].split('-');
           const firstDayString = `${year}-${month}-01`;
           
-          // Create the directorship income record
-          await base44.entities.OutsideIncome.create({
-            provider_id: data.provider_id,
-            program_location_id: directorshipLocation.id,
-            facility_name: 'Hartford Hospital (Directorship)',
-            work_dates: [firstDayString],
-            days_worked: 0,
-            total_rvus: 0,
-            rate: 3250,
-            total_amount: 3250,
-            status: 'pending'
-          });
+          // Check if already exists
+          const allIncomes = await base44.entities.OutsideIncome.list();
+          const exists = allIncomes.some(inc => 
+             inc.provider_id === data.provider_id &&
+             inc.program_location_id === directorshipLocation.id &&
+             inc.work_dates?.some(d => d.startsWith(`${year}-${month}`))
+          );
+
+          if (!exists) {
+            // Create the directorship income record
+            await base44.entities.OutsideIncome.create({
+              provider_id: data.provider_id,
+              program_location_id: directorshipLocation.id,
+              facility_name: 'Hartford Hospital (Directorship)',
+              work_dates: [firstDayString],
+              days_worked: 0,
+              total_rvus: 0,
+              rate: 3250,
+              total_amount: 3250,
+              status: 'pending'
+            });
+          }
+        }
+      }
+
+      // Check if this is St. Francis On-Call income for Seth Brown - auto-create Directorship income
+      const isStFrancisOnCall = location?.program_location?.includes('St. Francis (On-Call)');
+      const isSethBrown = data.provider_id === '69152424b571bac7d076ff5b';
+
+      if (isStFrancisOnCall && isSethBrown && data.work_dates && data.work_dates.length > 0) {
+        // Find the St. Francis Directorship program location
+        const directorshipLocation = programLocations.find(pl => 
+          pl.program_location?.includes('St. Francis (Directorship)')
+        );
+        
+        if (directorshipLocation) {
+          const [year, month] = data.work_dates[0].split('-');
+          const firstDayString = `${year}-${month}-01`;
+
+          // Check if already exists
+          const allIncomes = await base44.entities.OutsideIncome.list();
+          const exists = allIncomes.some(inc => 
+             inc.provider_id === data.provider_id &&
+             inc.program_location_id === directorshipLocation.id &&
+             inc.work_dates?.some(d => d.startsWith(`${year}-${month}`))
+          );
+
+          if (!exists) {
+             await base44.entities.OutsideIncome.create({
+                provider_id: data.provider_id,
+                program_location_id: directorshipLocation.id,
+                facility_name: 'St. Francis (Directorship)',
+                work_dates: [firstDayString],
+                days_worked: 0,
+                total_rvus: 0,
+                rate: 1750,
+                total_amount: 1750,
+                status: 'pending'
+             });
+          }
         }
       }
       
