@@ -40,13 +40,26 @@ export default function PublicSupplyRequest() {
   const { data: todaysOrders = [], isLoading: ordersLoading } = useQuery({
     queryKey: ['todays-public-orders'],
     queryFn: async () => {
-      const allOrders = await base44.entities.SupplyOrder.list('-created_date', 100);
+      const allOrders = await base44.entities.SupplyOrder.list('-created_date', 200);
       
       // Get current date in EST as YYYY-MM-DD
       const todayEST = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 
       return allOrders.filter(order => {
-        return order.order_date === todayEST;
+        // Match if order_date is today
+        if (order.order_date === todayEST) return true;
+
+        // OR Match if created_date (in EST) is today
+        if (order.created_date) {
+          try {
+            const createdEST = new Date(order.created_date).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+            if (createdEST === todayEST) return true;
+          } catch (e) {
+            console.warn('Date parsing error', e);
+          }
+        }
+        
+        return false;
       });
     },
     refetchInterval: 30000
