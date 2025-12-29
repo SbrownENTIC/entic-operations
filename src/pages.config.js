@@ -2,6 +2,7 @@ import CMETracking from './pages/CMETracking';
 import ClinicalPrivileges from './pages/ClinicalPrivileges';
 import ClinicalSupplyCatalog from './pages/ClinicalSupplyCatalog';
 import ClinicalSupplyOrders from './pages/ClinicalSupplyOrders';
+import Dashboard from './pages/Dashboard';
 import DocumentManagement from './pages/DocumentManagement';
 import Home from './pages/Home';
 import Invoices from './pages/Invoices';
@@ -23,7 +24,6 @@ import SupplyOrderDetail from './pages/SupplyOrderDetail';
 import SupplyRequest from './pages/SupplyRequest';
 import SystemDocumentation from './pages/SystemDocumentation';
 import TodaysOrders from './pages/TodaysOrders';
-import Dashboard from './pages/Dashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -32,6 +32,7 @@ export const PAGES = {
     "ClinicalPrivileges": ClinicalPrivileges,
     "ClinicalSupplyCatalog": ClinicalSupplyCatalog,
     "ClinicalSupplyOrders": ClinicalSupplyOrders,
+    "Dashboard": Dashboard,
     "DocumentManagement": DocumentManagement,
     "Home": Home,
     "Invoices": Invoices,
@@ -53,7 +54,6 @@ export const PAGES = {
     "SupplyRequest": SupplyRequest,
     "SystemDocumentation": SystemDocumentation,
     "TodaysOrders": TodaysOrders,
-    "Dashboard": Dashboard,
 }
 
 export const pagesConfig = {

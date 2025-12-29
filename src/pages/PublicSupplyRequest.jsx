@@ -42,19 +42,11 @@ export default function PublicSupplyRequest() {
     queryFn: async () => {
       const allOrders = await base44.entities.SupplyOrder.list('-created_date', 100);
       
-      // Get current date in EST
-      const nowInEST = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
-      const todayEST = new Date(nowInEST).toISOString().split('T')[0];
+      // Get current date in EST as YYYY-MM-DD
+      const todayEST = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 
       return allOrders.filter(order => {
-        try {
-          // Convert order's created_date (UTC) to EST date string
-          const orderInEST = new Date(order.created_date).toLocaleString('en-US', { timeZone: 'America/New_York' });
-          const orderDateEST = new Date(orderInEST).toISOString().split('T')[0];
-          return orderDateEST === todayEST && order.vendor === 'Staples';
-        } catch (e) {
-          return false;
-        }
+        return order.order_date === todayEST;
       });
     },
     refetchInterval: 30000
@@ -148,16 +140,16 @@ export default function PublicSupplyRequest() {
 
   const canEdit = (order) => {
     try {
-      const nowEST = new Date().toLocaleString("en-US", { timeZone: "America/New_York" });
-      const todayEST = new Date(nowEST).toDateString();
+      const now = new Date();
+      const nowESTString = now.toLocaleDateString('en-CA', { timeZone: 'America/New_York' }); // YYYY-MM-DD
       
-      const orderDateEST = new Date(order.created_date).toLocaleString("en-US", { timeZone: "America/New_York" });
-      const orderDateString = new Date(orderDateEST).toDateString();
-      
-      if (orderDateString !== todayEST) return false;
+      // Compare order_date to today in EST
+      if (order.order_date !== nowESTString) return false;
 
-      const hour = new Date(nowEST).getHours();
-      return hour < 17; // Before 5 PM
+      // Check time (5 PM EST cutoff)
+      // Get current hour in EST
+      const hourEST = parseInt(now.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour12: false, hour: '2-digit' }), 10);
+      return hourEST < 17; // Before 5 PM
     } catch (e) {
       return false;
     }
