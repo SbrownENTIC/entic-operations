@@ -193,7 +193,8 @@ export default function Dashboard() {
     queryKey: ['updated-supply-orders'],
     queryFn: async () => {
       try {
-        return await base44.entities.SupplyOrder.filter({ updated_after_submission: true });
+        const orders = await base44.entities.SupplyOrder.filter({ updated_after_submission: true });
+        return orders.filter(order => order.status !== 'order_placed');
       } catch (error) {
         return handleQueryError(error);
       }
