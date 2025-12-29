@@ -10,6 +10,15 @@ import { differenceInDays, parseISO } from "date-fns";
 import { DatePicker } from "@/components/ui/date-picker";
 import { useFormState } from "@/components/FormContext";
 
+const STANDARD_LICENSE_TYPES = [
+  "Medical License",
+  "Physician Assistant-Certified",
+  "Audiologist License",
+  "APRN License",
+  "DEA License",
+  "Controlled Substance Practitioner License"
+];
+
 export default function LicenseForm({ license, providers, onSubmit, onCancel, isLoading }) {
   const { setIsDirty } = useFormState();
   const [formData, setFormData] = useState({
@@ -22,15 +31,44 @@ export default function LicenseForm({ license, providers, onSubmit, onCancel, is
     notes: ''
   });
 
+  const [selectValue, setSelectValue] = useState("");
+  const [customTypeValue, setCustomTypeValue] = useState("");
+
   useEffect(() => {
     if (license) {
       setFormData(license);
+      
+      // Determine if it's a standard type or custom
+      if (license.license_type && !STANDARD_LICENSE_TYPES.includes(license.license_type)) {
+        setSelectValue("Other");
+        setCustomTypeValue(license.license_type);
+      } else {
+        setSelectValue(license.license_type || "");
+        setCustomTypeValue("");
+      }
     }
   }, [license]);
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setIsDirty(true);
+  };
+
+  const handleSelectChange = (value) => {
+    setSelectValue(value);
+    if (value === "Other") {
+      setCustomTypeValue("");
+      handleChange('license_type', "");
+    } else {
+      setCustomTypeValue("");
+      handleChange('license_type', value);
+    }
+  };
+
+  const handleCustomTypeChange = (e) => {
+    const value = e.target.value;
+    setCustomTypeValue(value);
+    handleChange('license_type', value);
   };
 
   const handleSubmit = (e) => {
@@ -84,19 +122,31 @@ export default function LicenseForm({ license, providers, onSubmit, onCancel, is
 
             <div className="space-y-2">
               <Label htmlFor="license_type">License Type *</Label>
-              <Select value={formData.license_type} onValueChange={(value) => handleChange('license_type', value)}>
+              <Select value={selectValue} onValueChange={handleSelectChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select license type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Medical License">Medical License (MED)</SelectItem>
-                  <SelectItem value="Physician Assistant-Certified">Physician Assistant-Certified (PA)</SelectItem>
-                  <SelectItem value="Audiologist License">Audiologist License (AUD)</SelectItem>
-                  <SelectItem value="APRN License">APRN License (APRN)</SelectItem>
-                  <SelectItem value="DEA License">DEA License (DEA)</SelectItem>
-                  <SelectItem value="Controlled Substance Practitioner License">Controlled Substance Practitioner License (CSP)</SelectItem>
+                  {STANDARD_LICENSE_TYPES.map(type => (
+                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                  ))}
+                  <SelectItem value="Other">Other (Enter Custom)</SelectItem>
                 </SelectContent>
               </Select>
+              
+              {selectValue === "Other" && (
+                <div className="mt-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <Label htmlFor="custom_license_type" className="text-xs text-slate-500">Custom License Name</Label>
+                  <Input 
+                    id="custom_license_type"
+                    value={customTypeValue}
+                    onChange={handleCustomTypeChange}
+                    placeholder="Enter custom license name"
+                    className="mt-1"
+                    required={selectValue === "Other"}
+                  />
+                </div>
+              )}
             </div>
 
             {license && (
