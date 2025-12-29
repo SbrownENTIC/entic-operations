@@ -316,6 +316,30 @@ export default function Invoices() {
                description: 'Auto-generated Directorship Income from Invoice'
            });
         }
+
+        // Link the directorship income to the current invoice
+        if (directorshipIncome) {
+          // 1. Link Income to Invoice
+          await base44.entities.OutsideIncome.update(directorshipIncome.id, {
+            invoice_id: invoice.id,
+            invoice_month: data.month || '',
+            status: 'invoiced'
+          });
+
+          // 2. Add Income to Invoice and Update Totals
+          const currentIncomeIds = invoice.outside_income_ids || [];
+          if (!currentIncomeIds.includes(directorshipIncome.id)) {
+             const newIncomeIds = [...currentIncomeIds, directorshipIncome.id];
+             const addedAmount = directorshipIncome.total_amount || 1750;
+             
+             await base44.entities.Invoice.update(invoice.id, {
+               outside_income_ids: newIncomeIds,
+               subtotal: (invoice.subtotal || 0) + addedAmount,
+               total: (invoice.total || 0) + addedAmount,
+               amount_expected: (invoice.amount_expected || 0) + addedAmount
+             });
+          }
+        }
       }
       
       return invoice;
