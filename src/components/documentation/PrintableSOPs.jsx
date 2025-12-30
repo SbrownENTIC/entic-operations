@@ -19,8 +19,11 @@ export default function PrintableSOPs() {
       <div className="mx-auto bg-white text-slate-900 font-sans print-container shadow-2xl print:shadow-none max-w-[21cm] min-h-[29.7cm]">
       <style>{`
         @media print {
-          /* Use smaller page margins to define the Border position */
-          @page { margin: 15mm; size: auto; }
+          /* 
+             Increase page margins to 25mm to create 'safe area' for content.
+             This ensures content is pushed away from the border on ALL pages.
+          */
+          @page { margin: 25mm; size: auto; }
           
           body { 
             margin: 0; 
@@ -40,24 +43,28 @@ export default function PrintableSOPs() {
             z-index: 10;
           }
 
-          /* The Border Frame matches the @page margin */
+          /* 
+             The Border Frame - Positioned NEGATIVELY relative to the 25mm margin.
+             We want the border at 15mm from the paper edge.
+             25mm (margin) - 10mm (offset) = 15mm from edge.
+             This leaves a 10mm whitespace gap between the border and the content.
+          */
           .page-frame {
             position: fixed;
-            top: 0; 
-            left: 0; 
-            right: 0; 
-            bottom: 0;
+            top: -10mm; 
+            left: -10mm; 
+            right: -10mm; 
+            bottom: -10mm;
             border: 4px double #94a3b8;
             pointer-events: none;
             z-index: 50;
           }
 
-          /* Content wrapper adds internal padding for text */
+          /* Content wrapper */
           .content-wrapper {
             width: 100% !important;
             margin: 0 !important;
-            /* Add side padding to keep text away from border */
-            padding: 0 10mm !important; 
+            padding: 0 !important; /* Spacing is now handled by @page margin */
             position: relative;
             z-index: 10;
           }
@@ -614,8 +621,8 @@ export default function PrintableSOPs() {
 
 function PrintSection({ title, icon: Icon, children }) {
   return (
-    <div className="mb-10">
-      <div className="flex items-center gap-3 mb-6 border-b-2 border-slate-800 pb-2 break-inside-avoid">
+    <div className="mb-10 break-inside-avoid">
+      <div className="flex items-center gap-3 mb-6 border-b-2 border-slate-800 pb-2">
         <h2 className="text-xl font-bold text-slate-900 uppercase tracking-widest">{title}</h2>
       </div>
       <div className="text-sm text-slate-700 leading-relaxed space-y-6 pl-1">
