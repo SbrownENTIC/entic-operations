@@ -159,6 +159,7 @@ export default function PrintableSOPs() {
             </div>
           </div>
         </div>
+        </div>
 
         {/* CONTENT */}
         <div className="space-y-8 mt-8">
