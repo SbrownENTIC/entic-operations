@@ -26,18 +26,19 @@ export default function PrintableSOPs() {
           /* Fixed Page Frame - Repeats on every page */
           .page-frame {
             position: fixed;
-            top: 5mm; left: 5mm; right: 5mm; bottom: 5mm;
+            top: 0; left: 0; right: 0; bottom: 0;
             border: 4px double #94a3b8;
+            margin: 5mm;
             border-radius: 8px;
             pointer-events: none;
-            z-index: 50;
+            z-index: 9999;
           }
 
           /* Fixed Footer - Repeats on every page */
           .page-footer {
             position: fixed;
-            bottom: 10mm;
-            left: 10mm; right: 10mm;
+            bottom: 8mm;
+            left: 8mm; right: 8mm;
             text-align: center;
             font-size: 9px;
             color: #64748b;
@@ -45,27 +46,22 @@ export default function PrintableSOPs() {
             justify-content: space-between;
             align-items: center;
             padding: 0 20px;
-            z-index: 60;
-            background-color: #ffffff; /* Hide content behind footer */
-          }
-          
-          /* Page Numbering */
-          .page-number::after {
-            content: counter(page);
+            z-index: 10000;
+            background-color: white;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 4px;
           }
           
           /* Page Content Padding to fit inside frame */
           .content-wrapper {
-            /* Frame is at 5mm + border. We need safe margin inside */
             margin: 15mm;
-            /* Extra padding for content spacing */
             padding: 10px;
             position: relative;
             z-index: 10;
           }
 
           @page {
-            margin: 10mm;
+            margin: 0;
             size: auto;
           }
 
@@ -103,7 +99,7 @@ export default function PrintableSOPs() {
       <div className="page-footer">
         <span className="text-slate-400">ENTIC Operations Center SOP</span>
         <span className="text-slate-400">{currentDate}</span>
-        <span className="page-number font-medium text-slate-500">Page </span>
+        <span className="font-medium text-slate-500">Confidential</span>
       </div>
 
       <div className="content-wrapper">

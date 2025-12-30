@@ -54,8 +54,8 @@ export default function StandardOperatingProcedures() {
             <NavButton onClick={() => scrollToSection('office-catalog')} icon={BookOpen} label="16. Office Catalog" />
             <NavButton onClick={() => scrollToSection('clinical-catalog')} icon={Settings} label="17. Clinical Catalog" />
             <NavButton onClick={() => scrollToSection('system-logic')} icon={Settings} label="18. How System Works" />
-            <NavButton onClick={() => scrollToSection('maintenance')} icon={RefreshCw} label="19. Maintenance" />
-            <NavButton onClick={() => scrollToSection('checklist')} icon={ClipboardList} label="20. Coverage Checklist" />
+            <NavButton onClick={() => scrollToSection('checklist')} icon={ClipboardList} label="19. Coverage Checklist" />
+            <NavButton onClick={() => scrollToSection('maintenance')} icon={RefreshCw} label="20. Maintenance" />
           </nav>
         </ScrollArea>
       </div>
@@ -433,8 +433,46 @@ export default function StandardOperatingProcedures() {
               </InfoBox>
             </Section>
 
-            {/* 19. Maintenance */}
-            <Section id="maintenance" title="19. Maintenance Tools" icon={RefreshCw}>
+            {/* 19. Coverage Checklist */}
+            <Section id="checklist" title="19. Coverage Checklist" icon={ClipboardList}>
+              <p>Essential tasks to ensure zero downtime when the administrator is out.</p>
+
+              <div className="space-y-6 mt-4">
+                <div className="bg-slate-50 p-4 rounded border border-slate-200">
+                  <h4 className="font-bold text-slate-900 flex items-center gap-2 mb-2">
+                    <CheckCircle2 className="w-4 h-4 text-blue-600" /> Daily (Morning)
+                  </h4>
+                  <ul className="list-disc pl-6 text-sm space-y-1">
+                    <li><strong>Office Orders:</strong> Check "Pending Review". Approve urgent requests.</li>
+                    <li><strong>Dashboard Alerts:</strong> Check "Expiring Licenses" or "Pending Invoices".</li>
+                  </ul>
+                </div>
+
+                <div className="bg-slate-50 p-4 rounded border border-slate-200">
+                  <h4 className="font-bold text-slate-900 flex items-center gap-2 mb-2">
+                    <CheckCircle2 className="w-4 h-4 text-orange-600" /> Weekly (Friday)
+                  </h4>
+                  <ul className="list-disc pl-6 text-sm space-y-1">
+                    <li><strong>Log Income:</strong> Enter shifts into Outside Income from provider texts/emails.</li>
+                    <li><strong>Draft Invoices:</strong> Create invoices for completed work so they are ready for review.</li>
+                  </ul>
+                </div>
+
+                <div className="bg-slate-50 p-4 rounded border border-slate-200">
+                  <h4 className="font-bold text-slate-900 flex items-center gap-2 mb-2">
+                    <CheckCircle2 className="w-4 h-4 text-purple-600" /> Monthly (1st - 5th)
+                  </h4>
+                  <ul className="list-disc pl-6 text-sm space-y-1">
+                    <li><strong>The "Big Send":</strong> Review drafts, generate PDFs, and Sync to Vendor.</li>
+                    <li><strong>Reconcile Payments:</strong> Enter deposit slips into Payments and Allocate them.</li>
+                    <li><strong>Provider Payouts:</strong> Export "Monthly Financials" report for payroll.</li>
+                  </ul>
+                </div>
+              </div>
+            </Section>
+
+            {/* 20. Maintenance */}
+            <Section id="maintenance" title="20. Maintenance Tools" icon={RefreshCw}>
               <p>Tools to keep data clean and accurate.</p>
 
               <div className="grid md:grid-cols-2 gap-6 mt-4">
@@ -480,44 +518,6 @@ export default function StandardOperatingProcedures() {
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>
-              </div>
-            </Section>
-
-            {/* 20. Coverage Checklist */}
-            <Section id="checklist" title="20. Coverage Checklist" icon={ClipboardList}>
-              <p>Essential tasks to ensure zero downtime when the administrator is out.</p>
-
-              <div className="space-y-6 mt-4">
-                <div className="bg-slate-50 p-4 rounded border border-slate-200">
-                  <h4 className="font-bold text-slate-900 flex items-center gap-2 mb-2">
-                    <CheckCircle2 className="w-4 h-4 text-blue-600" /> Daily (Morning)
-                  </h4>
-                  <ul className="list-disc pl-6 text-sm space-y-1">
-                    <li><strong>Office Orders:</strong> Check "Pending Review". Approve urgent requests.</li>
-                    <li><strong>Dashboard Alerts:</strong> Check "Expiring Licenses" or "Pending Invoices".</li>
-                  </ul>
-                </div>
-
-                <div className="bg-slate-50 p-4 rounded border border-slate-200">
-                  <h4 className="font-bold text-slate-900 flex items-center gap-2 mb-2">
-                    <CheckCircle2 className="w-4 h-4 text-orange-600" /> Weekly (Friday)
-                  </h4>
-                  <ul className="list-disc pl-6 text-sm space-y-1">
-                    <li><strong>Log Income:</strong> Enter shifts into Outside Income from provider texts/emails.</li>
-                    <li><strong>Draft Invoices:</strong> Create invoices for completed work so they are ready for review.</li>
-                  </ul>
-                </div>
-
-                <div className="bg-slate-50 p-4 rounded border border-slate-200">
-                  <h4 className="font-bold text-slate-900 flex items-center gap-2 mb-2">
-                    <CheckCircle2 className="w-4 h-4 text-purple-600" /> Monthly (1st - 5th)
-                  </h4>
-                  <ul className="list-disc pl-6 text-sm space-y-1">
-                    <li><strong>The "Big Send":</strong> Review drafts, generate PDFs, and Sync to Vendor.</li>
-                    <li><strong>Reconcile Payments:</strong> Enter deposit slips into Payments and Allocate them.</li>
-                    <li><strong>Provider Payouts:</strong> Export "Monthly Financials" report for payroll.</li>
-                  </ul>
-                </div>
               </div>
             </Section>
 
