@@ -56,7 +56,7 @@ export default function AlertsWidget({
             </CardHeader>
             <CardContent className="pt-3">
               <div className="text-4xl font-bold text-blue-700 mb-1">{uconnPendingVendorInvoices}</div>
-              <Link to={`${createPageUrl("Invoices")}?status=approved`} className="text-xs text-blue-700 hover:text-blue-900 font-semibold hover:underline">
+              <Link to={`${createPageUrl("Invoices")}?status=approved&search=UConn`} className="text-xs text-blue-700 hover:text-blue-900 font-semibold hover:underline">
                 View invoices →
               </Link>
             </CardContent>
