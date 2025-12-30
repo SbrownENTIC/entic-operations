@@ -28,9 +28,9 @@ export default function PrintableSOPs() {
       `}</style>
 
       {/* TITLE PAGE */}
-      <div className="page-break flex flex-col items-center justify-center min-h-[95vh] text-center border-8 border-double border-slate-100 p-12 m-4 rounded-xl">
+      <div className="page-break flex flex-col items-center justify-center min-h-[85vh] text-center border-8 border-double border-slate-100 p-8 rounded-xl relative">
         <div className="flex-1 flex flex-col items-center justify-center w-full">
-          <div className="mb-8">
+          <div className="mb-6">
              <img 
                 src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/691521cbabed77e5043c7037/267bf0119_thumbnail_ENTIC_horizontal_BKGD.png" 
                 alt="ENTIC Logo" 
