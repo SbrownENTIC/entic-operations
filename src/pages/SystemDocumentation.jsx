@@ -24,7 +24,7 @@ export default function SystemDocumentation() {
       <style>{`
         @media print {
           @page { 
-            margin: 25mm; 
+            margin: 15mm; 
             size: auto; 
           }
 

@@ -20,10 +20,10 @@ export default function PrintableSOPs() {
       <style>{`
         @media print {
           /* 
-             Increase page margins to 25mm to create 'safe area' for content.
-             This ensures content is pushed away from the border on ALL pages.
+             1. Set @page margin to 15mm. This is where the BORDER will live.
+             This ensures the border is within the printable area and not clipped.
           */
-          @page { margin: 25mm; size: auto; }
+          @page { margin: 15mm; size: auto; }
           
           body { 
             margin: 0; 
@@ -44,27 +44,29 @@ export default function PrintableSOPs() {
           }
 
           /* 
-             The Border Frame - Positioned NEGATIVELY relative to the 25mm margin.
-             We want the border at 15mm from the paper edge.
-             25mm (margin) - 10mm (offset) = 15mm from edge.
-             This leaves a 10mm whitespace gap between the border and the content.
+             2. Position the Border Frame at 0 relative to the 15mm margin.
+             This places the border exactly 15mm from the paper edge.
           */
           .page-frame {
             position: fixed;
-            top: -10mm; 
-            left: -10mm; 
-            right: -10mm; 
-            bottom: -10mm;
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            bottom: 0;
             border: 4px double #94a3b8;
             pointer-events: none;
             z-index: 50;
           }
 
-          /* Content wrapper */
+          /* 
+             3. Add padding to the Content Wrapper.
+             We want content 25mm from edge. Border is at 15mm.
+             So we need 10mm of padding inside the border.
+          */
           .content-wrapper {
             width: 100% !important;
             margin: 0 !important;
-            padding: 0 !important; /* Spacing is now handled by @page margin */
+            padding: 10mm !important;
             position: relative;
             z-index: 10;
           }
