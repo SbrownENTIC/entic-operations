@@ -26,50 +26,47 @@ export default function PrintableSOPs() {
           /* Fixed Page Frame - Repeats on every page */
           .page-frame {
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            margin: 10mm;
-            border: 6px double #94a3b8; /* slate-400 */
-            border-radius: 12px;
+            top: 5mm; left: 5mm; right: 5mm; bottom: 5mm;
+            border: 4px double #94a3b8;
+            border-radius: 8px;
             pointer-events: none;
-            z-index: 9999; /* Ensure on top */
+            z-index: 50;
           }
 
           /* Fixed Footer - Repeats on every page */
           .page-footer {
             position: fixed;
-            bottom: 14mm;
-            left: 15mm; right: 15mm;
+            bottom: 10mm;
+            left: 10mm; right: 10mm;
             text-align: center;
-            font-size: 10px;
+            font-size: 9px;
             color: #64748b;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0 10px;
-            z-index: 10000; /* Above frame */
-            font-family: ui-monospace, monospace;
-            background-color: transparent;
+            padding: 0 20px;
+            z-index: 60;
+            background-color: #ffffff; /* Hide content behind footer */
           }
           
           /* Page Numbering */
-          .page-number:after {
+          .page-number::after {
             content: counter(page);
           }
           
           /* Page Content Padding to fit inside frame */
           .content-wrapper {
-            padding: 25mm; 
-            padding-top: 20mm;
+            /* Frame is at 5mm + border. We need safe margin inside */
+            margin: 15mm;
+            /* Extra padding for content spacing */
+            padding: 10px;
             position: relative;
             z-index: 10;
           }
 
-          /* Force background white to cover overlap if any, but keep frame visible */
-          /* Actually in print, background usually defaults to transparent or white paper */
-          
-          /* Ensure title page starts at 1 */
           @page {
-             counter-reset: page 1;
+            margin: 10mm;
+            size: auto;
           }
 
           .page-break { page-break-after: always; }
