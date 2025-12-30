@@ -132,10 +132,9 @@ export default function PrintableSOPs() {
                 "CME Tracking", "Office Catalog", "Clinical Catalog", "How System Works",
                 "Coverage Checklist", "Maintenance Tools"
                 ].map((item, idx) => (
-                <div key={idx} className="flex items-baseline justify-between group">
-                  <span className="font-medium text-slate-700 flex-shrink-0">
-                    <span className="text-slate-400 mr-2 text-xs font-normal">{idx}.</span>{item}
-                  </span>
+                <div key={idx} className="flex items-baseline gap-3 border-b border-slate-100 py-1">
+                  <span className="text-slate-400 font-mono text-xs w-6 text-right">{idx === 0 ? 'I' : idx}.</span>
+                  <span className="uppercase tracking-wide">{item}</span>
                 </div>
               ))}
             </div>
@@ -615,14 +614,11 @@ export default function PrintableSOPs() {
 
 function PrintSection({ title, icon: Icon, children }) {
   return (
-    <div className="break-inside-avoid mb-8 p-6 border border-slate-200 rounded-xl bg-white shadow-sm print:shadow-none print:border-slate-300">
-      <div className="flex items-center gap-3 mb-4 pb-2 border-b border-slate-200">
-        <div className="p-2 bg-slate-50 rounded-lg border border-slate-100 print:bg-transparent print:border-slate-200">
-          <Icon className="w-5 h-5 text-slate-700" />
-        </div>
-        <h2 className="text-lg font-bold text-slate-900 uppercase tracking-wide">{title}</h2>
+    <div className="break-inside-avoid mb-10">
+      <div className="flex items-center gap-3 mb-6 border-b-2 border-slate-800 pb-2">
+        <h2 className="text-xl font-bold text-slate-900 uppercase tracking-widest">{title}</h2>
       </div>
-      <div className="text-sm text-slate-600 leading-relaxed space-y-4">
+      <div className="text-sm text-slate-700 leading-relaxed space-y-6 pl-1">
         {children}
       </div>
     </div>
