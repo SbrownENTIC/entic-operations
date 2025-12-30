@@ -51,8 +51,8 @@ export default function PrintableSOPs() {
                 "Clinical Supply Orders", "Time Off & CME", "Notifications & Closures",
                 "Licenses", "Reports", "Document Management", "Clinical Privileges",
                 "CME Tracking", "Office Catalog", "Clinical Catalog", "How System Works",
-                "Maintenance Tools", "Coverage Checklist"
-              ].map((item, idx) => (
+                "Coverage Checklist", "Maintenance Tools"
+                ].map((item, idx) => (
                 <div key={idx} className="flex items-baseline justify-between group">
                   <span className="font-medium text-slate-700 flex-shrink-0">
                     <span className="text-slate-400 mr-2 text-xs font-normal">{idx}.</span>{item}
@@ -465,27 +465,8 @@ export default function PrintableSOPs() {
           </div>
         </PrintSection>
 
-        {/* 19. Maintenance Tools */}
-        <PrintSection title="19. Maintenance Tools" icon={RefreshCw}>
-          <p>Tools to keep data clean and accurate. <span className="font-bold text-red-600 ml-2">⚠️ For System Admin ONLY</span></p>
-          <div className="grid grid-cols-3 gap-4 mt-4">
-            <div className="border rounded-lg p-3 bg-slate-50">
-              <strong className="block text-sm font-bold text-slate-900 mb-1">Sync Henry Schein</strong>
-              <p className="text-xs text-slate-600">Finds "Henry Schein" invoices not linked to orders and automatically creates Clinical Supply Orders.</p>
-            </div>
-            <div className="border rounded-lg p-3 bg-slate-50">
-              <strong className="block text-sm font-bold text-slate-900 mb-1">Fix Vendor Data</strong>
-              <p className="text-xs text-slate-600">Fixes ALL CAPS vendor names and scans invoice data to link missing Locations.</p>
-            </div>
-            <div className="border rounded-lg p-3 bg-slate-50">
-              <strong className="block text-sm font-bold text-slate-900 mb-1">Force Redact Henry</strong>
-              <p className="text-xs text-slate-600">Re-applies redaction to Henry Schein invoices (bottom 35%) to hide sensitive footer info.</p>
-            </div>
-          </div>
-        </PrintSection>
-
-        {/* 20. Coverage Checklist */}
-        <PrintSection title="20. Coverage Checklist" icon={ClipboardList}>
+        {/* 19. Coverage Checklist */}
+        <PrintSection title="19. Coverage Checklist" icon={ClipboardList}>
           <p>Essential tasks to ensure zero downtime when the administrator is out.</p>
 
           <div className="space-y-4 mt-4">
@@ -518,6 +499,25 @@ export default function PrintableSOPs() {
                 <li><strong>Reconcile Payments:</strong> Enter deposit slips into Payments and Allocate them.</li>
                 <li><strong>Provider Payouts:</strong> Export "Monthly Financials" report for payroll.</li>
               </ul>
+            </div>
+          </div>
+        </PrintSection>
+
+        {/* 20. Maintenance Tools */}
+        <PrintSection title="20. Maintenance Tools" icon={RefreshCw}>
+          <p>Tools to keep data clean and accurate. <span className="font-bold text-red-600 ml-2">⚠️ For System Admin ONLY</span></p>
+          <div className="grid grid-cols-3 gap-4 mt-4">
+            <div className="border rounded-lg p-3 bg-slate-50">
+              <strong className="block text-sm font-bold text-slate-900 mb-1">Sync Henry Schein</strong>
+              <p className="text-xs text-slate-600">Finds "Henry Schein" invoices not linked to orders and automatically creates Clinical Supply Orders.</p>
+            </div>
+            <div className="border rounded-lg p-3 bg-slate-50">
+              <strong className="block text-sm font-bold text-slate-900 mb-1">Fix Vendor Data</strong>
+              <p className="text-xs text-slate-600">Fixes ALL CAPS vendor names and scans invoice data to link missing Locations.</p>
+            </div>
+            <div className="border rounded-lg p-3 bg-slate-50">
+              <strong className="block text-sm font-bold text-slate-900 mb-1">Force Redact Henry</strong>
+              <p className="text-xs text-slate-600">Re-applies redaction to Henry Schein invoices (bottom 35%) to hide sensitive footer info.</p>
             </div>
           </div>
         </PrintSection>
