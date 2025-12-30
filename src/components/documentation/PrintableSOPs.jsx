@@ -26,26 +26,29 @@ export default function PrintableSOPs() {
           /* Fixed Page Frame - Repeats on every page */
           .page-frame {
             position: fixed;
-            top: 10mm; left: 10mm; right: 10mm; bottom: 10mm;
-            border: 8px double #cbd5e1; /* slate-300 */
-            border-radius: 16px;
+            top: 0; left: 0; right: 0; bottom: 0;
+            margin: 10mm;
+            border: 6px double #94a3b8; /* slate-400 */
+            border-radius: 12px;
             pointer-events: none;
-            z-index: 50;
+            z-index: 9999; /* Ensure on top */
           }
 
           /* Fixed Footer - Repeats on every page */
           .page-footer {
             position: fixed;
-            bottom: 15mm;
+            bottom: 14mm;
             left: 15mm; right: 15mm;
             text-align: center;
-            font-size: 9px;
+            font-size: 10px;
             color: #64748b;
             display: flex;
             justify-content: space-between;
+            align-items: center;
             padding: 0 10px;
-            z-index: 51;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            z-index: 10000; /* Above frame */
+            font-family: ui-monospace, monospace;
+            background-color: transparent;
           }
           
           /* Page Numbering */
@@ -57,6 +60,16 @@ export default function PrintableSOPs() {
           .content-wrapper {
             padding: 25mm; 
             padding-top: 20mm;
+            position: relative;
+            z-index: 10;
+          }
+
+          /* Force background white to cover overlap if any, but keep frame visible */
+          /* Actually in print, background usually defaults to transparent or white paper */
+          
+          /* Ensure title page starts at 1 */
+          @page {
+             counter-reset: page 1;
           }
 
           .page-break { page-break-after: always; }
@@ -88,12 +101,12 @@ export default function PrintableSOPs() {
         }
       `}</style>
 
-      {/* Repeating Elements */}
+      {/* Repeating Elements - Must be outside flow for fixed positioning to work in print */}
       <div className="page-frame"></div>
       <div className="page-footer">
-        <span>ENTIC Operations Center SOP</span>
-        <span>{currentDate}</span>
-        <span className="page-number">Page </span>
+        <span className="text-slate-400">ENTIC Operations Center SOP</span>
+        <span className="text-slate-400">{currentDate}</span>
+        <span className="page-number font-medium text-slate-500">Page </span>
       </div>
 
       <div className="content-wrapper">
