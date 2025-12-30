@@ -19,42 +19,40 @@ export default function PrintableSOPs() {
       <div className="mx-auto bg-white text-slate-900 font-sans print-container shadow-2xl print:shadow-none max-w-[21cm] min-h-[29.7cm]">
       <style>{`
         @media print {
-          @page { margin: 0; size: auto; }
+          @page { margin: 20mm; size: auto; }
           body { margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .print-container { max-width: 100% !important; width: 100%; margin: 0 !important; }
-          
-          /* Fixed Page Frame - Repeats on every page */
+
+          /* Fixed Page Frame - Placed inside the page margins using negative positioning */
           .page-frame {
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
+            /* @page margin is 20mm. We want border at ~8mm from edge. 
+               So we move -12mm out from the 20mm margin start. */
+            top: -12mm; left: -12mm; right: -12mm; bottom: -12mm;
             border: 4px double #94a3b8;
-            margin: 5mm;
             pointer-events: none;
             z-index: 9999;
           }
 
-          /* Fixed Footer - Repeats on every page */
+          /* Fixed Footer */
           .page-footer {
             position: fixed;
-            bottom: 12mm;
-            left: 12mm; right: 12mm;
+            bottom: -15mm; /* Move into bottom margin */
+            left: 0; right: 0;
             text-align: right;
             font-size: 10px;
             color: #64748b;
             display: flex;
             justify-content: flex-end;
             align-items: center;
-            padding: 0 20px;
             z-index: 10000;
             background-color: transparent;
           }
 
-          /* Page Numbering Removed */
-          
-          /* Page Content Padding to fit inside frame */
+          /* Page Content */
           .content-wrapper {
-            margin: 15mm;
-            padding: 10px;
+            margin: 0;
+            padding: 0;
             position: relative;
             z-index: 10;
           }
@@ -111,7 +109,7 @@ export default function PrintableSOPs() {
              <img 
                 src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/691521cbabed77e5043c7037/267bf0119_thumbnail_ENTIC_horizontal_BKGD.png" 
                 alt="ENTIC Logo" 
-                className="h-24 w-auto object-contain mx-auto grayscale"
+                className="h-24 w-auto object-contain mx-auto"
               />
           </div>
           
