@@ -70,252 +70,454 @@ export default function PrintableSOPs() {
       <div className="space-y-10 px-4">
         
         {/* System Access */}
-        <PrintSection title="0. System Access" icon={LinkIcon} color="bg-gray-100">
-          <div className="grid grid-cols-2 gap-6">
-            <div className="p-4 border border-slate-200 rounded-lg bg-slate-50 shadow-sm">
-              <strong className="block text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">Operations Center (Admin)</strong>
+        <PrintSection title="System Access" icon={LinkIcon}>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+              <strong className="block font-semibold text-blue-900 mb-2">Operations Center (Admin)</strong>
               <div className="text-xs text-blue-700 font-mono break-all">https://enticmd-operations-team.base44.app</div>
             </div>
-            <div className="p-4 border border-slate-200 rounded-lg bg-slate-50 shadow-sm">
-              <strong className="block text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">Public Supply Request</strong>
+            <div className="p-4 bg-green-50 rounded-lg border border-green-100">
+              <strong className="block font-semibold text-green-900 mb-2">Public Supply Request</strong>
               <div className="text-xs text-green-700 font-mono break-all">https://enticmd-operations-team.base44.app/PublicSupplyRequest</div>
             </div>
           </div>
         </PrintSection>
 
         {/* 1. Dashboard */}
-        <PrintSection title="1. Dashboard" icon={LayoutDashboard} color="bg-blue-50">
-          <p className="mb-3">The Dashboard is the central hub for monitoring the practice's health.</p>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white border border-slate-100 p-3 rounded">
-              <strong className="text-slate-900">Alerts Panel</strong>
-              <p className="text-xs text-slate-500 mt-1">Red/Yellow indicators for critical tasks like expiring licenses.</p>
-            </div>
-            <div className="bg-white border border-slate-100 p-3 rounded">
-              <strong className="text-slate-900">Financial Overview</strong>
-              <p className="text-xs text-slate-500 mt-1">Real-time outstanding vs. paid tracking.</p>
+        <PrintSection title="1. Dashboard" icon={LayoutDashboard}>
+          <p className="mb-3">The Dashboard is the central hub for monitoring the practice's health and pending tasks.</p>
+          <div className="space-y-2">
+            <h4 className="font-semibold text-slate-800 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>Overview
+            </h4>
+            <div className="ml-4">
+              <ul className="list-disc pl-5 space-y-2">
+                <li><strong>Alerts:</strong> Critical items (Expiring Licenses, Pending Invoices) appear at the top in red or yellow.</li>
+                <li><strong>Summary Cards:</strong> Quick access to Draft Invoices, Supply Orders, and other counts.</li>
+                <li><strong>Financial Overview:</strong> Real-time view of Outstanding vs. Paid amounts.</li>
+                <li><strong>Customization:</strong> Use the "Customize Dashboard" button (top right) to personalize your view.</li>
+              </ul>
             </div>
           </div>
         </PrintSection>
 
         {/* 2. Providers */}
-        <PrintSection title="2. Providers" icon={Users} color="bg-purple-50">
-          <div className="flex gap-6">
-            <div className="flex-1">
-              <p className="mb-3 font-medium">Adding a New Provider:</p>
-              <ol className="list-decimal pl-5 space-y-2 text-sm text-slate-700 marker:font-bold marker:text-slate-400">
-                <li>Navigate to <strong>Providers</strong> &gt; <strong>Add Provider</strong>.</li>
-                <li>Enter Personal Info (Name, Email, Phone) and Role.</li>
-                <li><strong>CRITICAL:</strong> Select all applicable <strong>Program Locations</strong>.</li>
-                <li>Set Status to "Active" and click <strong>Create</strong>.</li>
+        <PrintSection title="2. Providers" icon={Users}>
+          <p>Manage staff profiles, contact info, and employment details.</p>
+          <div className="space-y-2 mt-4">
+            <h4 className="font-semibold text-slate-800 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>Adding a Provider
+            </h4>
+            <div className="ml-4">
+              <ol className="list-decimal pl-5 space-y-2">
+                <li>Navigate to <strong>Providers</strong>.</li>
+                <li>Click <strong>Add Provider</strong>.</li>
+                <li>Enter Full Name, Email, Phone, Role, and select <strong>Program Locations</strong> (crucial for income logging).</li>
+                <li>Set Status to "Active".</li>
+                <li>Click <strong>Create Provider</strong>.</li>
               </ol>
             </div>
-            <div className="w-1/3 bg-slate-50 p-4 rounded-lg border border-slate-100 text-xs">
-              <strong className="block text-slate-900 mb-2">💡 Pro Tip</strong>
-              To deactivate a provider, simply change their status to <strong>Inactive</strong>. Never delete a provider who has historical data attached.
-            </div>
+          </div>
+          <div className="mt-4 bg-blue-50 border border-blue-100 rounded-lg p-4 flex gap-3 text-sm text-blue-800">
+            <span className="font-bold">i</span>
+            <div>To deactivate a provider, edit their profile and change Status to <strong>Inactive</strong>. Do not delete providers with historical data.</div>
           </div>
         </PrintSection>
 
         {/* 3. On-Call Schedule */}
-        <PrintSection title="3. On-Call Schedule" icon={Calendar} color="bg-indigo-50">
-          <p className="mb-3">Manages provider rotation and drives income automation.</p>
-          <div className="border-l-4 border-indigo-200 pl-4 py-1">
-            <h4 className="font-bold text-sm text-indigo-900">Adding Shifts</h4>
-            <p className="text-sm mt-1">Navigate to <strong>On-Call Schedule</strong> &gt; <strong>Add Schedule</strong>. Select Provider, Location, and Dates.</p>
-            <div className="mt-2 bg-indigo-100/50 p-2 rounded text-xs text-indigo-800 font-medium">
-              ✨ Automation: For <strong>St. Francis</strong> shifts, the system will offer to auto-create income records. Always select "Yes".
+        <PrintSection title="3. On-Call Schedule" icon={Calendar}>
+          <p>Manage provider rotation and drive automated income generation.</p>
+          <div className="space-y-2 mt-4">
+            <h4 className="font-semibold text-slate-800 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>Adding Shifts
+            </h4>
+            <div className="ml-4">
+              <ol className="list-decimal pl-5 space-y-2">
+                <li>Navigate to <strong>On-Call Schedule</strong>.</li>
+                <li>Click <strong>Add Schedule</strong>.</li>
+                <li>Select Provider, Location, and Dates.</li>
+                <li>Click <strong>Save</strong>.</li>
+              </ol>
             </div>
+          </div>
+          <div className="mt-4 bg-blue-50 border border-blue-100 rounded-lg p-4 flex gap-3 text-sm text-blue-800">
+            <span className="font-bold">i</span>
+            <div><strong>Automation:</strong> Scheduling shifts for <strong>St. Francis</strong> automatically creates "Pending" Outside Income records for those dates.</div>
           </div>
         </PrintSection>
 
         {/* 4. Outside Income */}
-        <PrintSection title="4. Outside Income" icon={DollarSign} color="bg-green-50">
-          <p className="mb-3">Log every billable shift or service here <strong>before</strong> invoicing.</p>
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div className="p-3 border rounded bg-white">
-              <div className="text-xs text-slate-400 uppercase font-bold">Step 1</div>
-              <div className="font-medium text-sm">Add Income</div>
-            </div>
-            <div className="p-3 border rounded bg-white">
-              <div className="text-xs text-slate-400 uppercase font-bold">Step 2</div>
-              <div className="font-medium text-sm">Enter Details</div>
-            </div>
-            <div className="p-3 border rounded bg-white">
-              <div className="text-xs text-slate-400 uppercase font-bold">Step 3</div>
-              <div className="font-medium text-sm">Save (Pending)</div>
+        <PrintSection title="4. Outside Income" icon={DollarSign}>
+          <p>Log every billable shift or service here before invoicing.</p>
+          <div className="space-y-2 mt-4">
+            <h4 className="font-semibold text-slate-800 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>Logging Income
+            </h4>
+            <div className="ml-4">
+              <ol className="list-decimal pl-5 space-y-2">
+                <li>Navigate to <strong>Outside Income</strong>.</li>
+                <li>Click <strong>Add Income</strong>.</li>
+                <li>Select Provider and Location.</li>
+                <li><strong>Dates:</strong> Select the dates worked.</li>
+                <li><strong>Amount:</strong> Enter Days/Rate or RVUs depending on the facility type.</li>
+                <li>Click <strong>Save</strong>. Status defaults to "Pending".</li>
+              </ol>
             </div>
           </div>
         </PrintSection>
 
         {/* 5. Invoices */}
-        <PrintSection title="5. Invoices" icon={FileText} color="bg-emerald-50">
-          <div className="space-y-4">
-            <div>
-              <h4 className="font-bold text-sm mb-2 text-emerald-900">The 3-Step Process</h4>
-              <ol className="list-decimal pl-5 space-y-1 text-sm marker:text-emerald-500 marker:font-bold">
-                <li><strong>Create:</strong> Select Program & Staff. Link pending income records.</li>
-                <li><strong>PDF:</strong> Click "File Down" (⬇️) to generate official PDF (UConn/Manchester).</li>
-                <li><strong>Sync:</strong> Click "Cloud" (☁️) to email to Vendor AP Dept.</li>
+        <PrintSection title="5. Invoices" icon={FileText}>
+          <p>Group income records into invoices for billing facilities.</p>
+          
+          <div className="space-y-2 mt-4">
+            <h4 className="font-semibold text-slate-800 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>Creating an Invoice
+            </h4>
+            <div className="ml-4">
+              <ol className="list-decimal pl-5 space-y-2">
+                <li>Navigate to <strong>Invoices</strong>.</li>
+                <li>Click <strong>Create Invoice</strong>.</li>
+                <li>Select <strong>Program Group</strong> (e.g., UConn, Hartford Hospital).</li>
+                <li>Select <strong>Staff Member</strong>.</li>
+                <li>Check the boxes for the <strong>Pending Income</strong> records to include.</li>
+                <li>Click <strong>Create Invoice</strong>.</li>
               </ol>
             </div>
-            <div className="bg-white border border-emerald-100 p-3 rounded-lg text-xs flex items-center gap-3">
-              <div className="bg-emerald-100 p-2 rounded-full font-bold text-emerald-700">!</div>
-              <div>
-                <strong>Hartford/St. Francis Directorships:</strong> These invoices are often auto-created alongside standard RVU invoices.
-              </div>
+          </div>
+
+          <div className="space-y-2 mt-4">
+            <h4 className="font-semibold text-slate-800 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>Syncing to Vendor (Airtable)
+            </h4>
+            <div className="ml-4">
+              <p className="mb-2">To send the invoice to the vendor (AP Department):</p>
+              <ol className="list-decimal pl-5 space-y-2">
+                <li>Ensure the <strong>Approved Invoice</strong> PDF is uploaded.</li>
+                <li>Click the <strong>Cloud Upload (Sync)</strong> button on the invoice row.</li>
+                <li>Confirm the sync. This sends the data and PDF to Airtable/Notification system which triggers the email to the vendor.</li>
+                <li>The status will automatically update to <strong>Sent to Vendor</strong>.</li>
+              </ol>
             </div>
           </div>
         </PrintSection>
 
         {/* 6. Payments */}
-        <PrintSection title="6. Payments" icon={CreditCard} color="bg-teal-50">
-          <p className="mb-3">Record payments and allocate them to close out invoices.</p>
-          <div className="flex items-center gap-4 text-sm border p-4 rounded-lg bg-white">
-            <div className="flex-1">
-              <strong>1. Add Payment</strong>
-              <p className="text-slate-500 text-xs">Total Amount & Date</p>
+        <PrintSection title="6. Payments" icon={CreditCard}>
+          <p>Record and allocate payments received from facilities.</p>
+          
+          <div className="space-y-2 mt-4">
+            <h4 className="font-semibold text-slate-800 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>Processing a Payment
+            </h4>
+            <div className="ml-4">
+              <ol className="list-decimal pl-5 space-y-2">
+                <li>Navigate to <strong>Payments</strong>.</li>
+                <li>Click <strong>Add Payment</strong>.</li>
+                <li>Enter Amount, Date, Payer, and Reference Number.</li>
+                <li><strong>Allocate:</strong> Click "Add Allocation" to link the payment to specific Invoices.</li>
+                <li>Click <strong>Save</strong>.</li>
+              </ol>
             </div>
-            <div className="text-slate-300">→</div>
-            <div className="flex-1">
-              <strong>2. Allocate</strong>
-              <p className="text-slate-500 text-xs">Link to Invoices</p>
-            </div>
-            <div className="text-slate-300">→</div>
-            <div className="flex-1">
-              <strong>3. Complete</strong>
-              <p className="text-slate-500 text-xs">Status: Paid to ENTIC</p>
+          </div>
+          <div className="mt-4 bg-blue-50 border border-blue-100 rounded-lg p-4 flex gap-3 text-sm text-blue-800">
+            <span className="font-bold">i</span>
+            <div>Fully allocated invoices automatically update their status to <strong>Paid to ENTIC</strong>.</div>
+          </div>
+        </PrintSection>
+
+        {/* 7. Office Supply Orders */}
+        <PrintSection title="7. Office Supply Orders" icon={Package}>
+          <p>Manage internal requests for office supplies.</p>
+          <div className="space-y-2 mt-4">
+            <h4 className="font-semibold text-slate-800 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>Fulfillment Workflow
+            </h4>
+            <div className="ml-4">
+              <ol className="list-decimal pl-5 space-y-2">
+                <li>Navigate to <strong>Office Supply Orders</strong>.</li>
+                <li>Filter by "Pending Review".</li>
+                <li><strong>Approve/Reject</strong> requests.</li>
+                <li>When purchasing, mark as "Order Placed".</li>
+                <li>When items arrive, mark as "Received".</li>
+              </ol>
             </div>
           </div>
         </PrintSection>
 
-        {/* 7 & 8. Supplies */}
-        <PrintSection title="7 & 8. Supply Orders" icon={ShoppingCart} color="bg-orange-50">
-          <div className="grid grid-cols-2 gap-8">
-            <div>
-              <h4 className="font-bold text-sm mb-2 text-orange-900 border-b border-orange-200 pb-1">Office Supplies</h4>
-              <ul className="list-disc pl-4 space-y-1 text-sm text-slate-700">
-                <li>Filter by "Pending Review"</li>
-                <li>Approve/Reject requests</li>
-                <li>Mark "Order Placed" -> "Received"</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold text-sm mb-2 text-orange-900 border-b border-orange-200 pb-1">Clinical Supplies</h4>
-              <ul className="list-disc pl-4 space-y-1 text-sm text-slate-700">
-                <li>Same workflow as Office</li>
-                <li>Use <strong>"Sync Henry Schein"</strong> tool to auto-create from invoices</li>
+        {/* 8. Clinical Supply Orders */}
+        <PrintSection title="8. Clinical Supply Orders" icon={ShoppingCart}>
+          <p>Procurement for clinical and medical supplies.</p>
+          <div className="space-y-2 mt-4">
+            <h4 className="font-semibold text-slate-800 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>Workflow
+            </h4>
+            <div className="ml-4">
+              <ul className="list-disc pl-5 space-y-2">
+                <li>Similar to Office Supplies (Review → Order → Receive).</li>
+                <li><strong>Linking:</strong> Can be linked to Vendor Invoices in Document Management for reconciliation.</li>
+                <li><strong>Sync:</strong> Use "Sync Henry Schein" to auto-create orders from uploaded invoices.</li>
               </ul>
             </div>
           </div>
         </PrintSection>
 
-        {/* 9. Time Off */}
-        <PrintSection title="9. Time Off & CME" icon={Clock} color="bg-rose-50">
-          <p className="text-sm">Track provider absences. Log Vacation, CME, or Partial Days. Dates sync to the master calendar.</p>
+        {/* 9. Time Off & CME */}
+        <PrintSection title="9. Time Off & CME" icon={Clock}>
+          <p>Track provider absences and education days.</p>
+          <div className="space-y-2 mt-4">
+            <h4 className="font-semibold text-slate-800 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>Logging Time Off
+            </h4>
+            <div className="ml-4">
+              <ol className="list-decimal pl-5 space-y-2">
+                <li>Navigate to <strong>Time Off & CME</strong>.</li>
+                <li>Click <strong>Add Time Off</strong>.</li>
+                <li>Select Provider, Type (Time Off, CME, etc.), and Dates.</li>
+                <li>Click <strong>Save</strong>.</li>
+              </ol>
+            </div>
+          </div>
         </PrintSection>
 
-        {/* 10. Notifications */}
-        <PrintSection title="10. Notifications" icon={Bell} color="bg-yellow-50">
-          <div className="flex justify-between items-center text-sm">
-            <p>Manage automated email reminders and holiday closures.</p>
-            <div className="bg-white px-3 py-1 rounded border border-yellow-200 text-yellow-800 text-xs font-bold uppercase">
-              Action: Sync to Airtable
+        {/* 10. Notifications & Closures */}
+        <PrintSection title="10. Notifications & Closures" icon={Bell}>
+          <p>Manage automated email reminders and holiday closures.</p>
+          <div className="space-y-2 mt-4">
+            <h4 className="font-semibold text-slate-800 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>Creating Reminders
+            </h4>
+            <div className="ml-4">
+              <ol className="list-decimal pl-5 space-y-2">
+                <li>Navigate to <strong>Notifications & Closures</strong>.</li>
+                <li>Click <strong>Create Reminder</strong>.</li>
+                <li>Set Type (e.g., Holiday Closure).</li>
+                <li>Set Dates and Send Date.</li>
+                <li>Enter Recipients and Message.</li>
+                <li>Click <strong>Save</strong>.</li>
+              </ol>
             </div>
           </div>
         </PrintSection>
 
         {/* 11. Licenses */}
-        <PrintSection title="11. Licenses" icon={Shield} color="bg-red-50">
-          <p className="text-sm">Track expirations. System auto-alerts at:</p>
-          <div className="flex gap-2 mt-2">
-            {[90, 60, 30, 14, 7].map(day => (
-              <span key={day} className="bg-white border border-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold shadow-sm">{day} Days</span>
-            ))}
+        <PrintSection title="11. Licenses" icon={Shield}>
+          <p>Track professional license expirations.</p>
+          <div className="space-y-2 mt-4">
+            <h4 className="font-semibold text-slate-800 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>Adding Licenses
+            </h4>
+            <div className="ml-4">
+              <ol className="list-decimal pl-5 space-y-2">
+                <li>Navigate to <strong>Licenses</strong>.</li>
+                <li>Click <strong>Add License</strong>.</li>
+                <li>Select Provider and License Type.</li>
+                <li>Enter <strong>Expiration Date</strong>.</li>
+                <li>Click <strong>Save</strong>.</li>
+              </ol>
+            </div>
+          </div>
+          <div className="mt-4 bg-blue-50 border border-blue-100 rounded-lg p-4 flex gap-3 text-sm text-blue-800">
+            <span className="font-bold">i</span>
+            <div>The system automatically alerts you 90, 60, and 30 days before expiration. Use the <strong>Sync to Airtable</strong> button to update the central credentialing database.</div>
           </div>
         </PrintSection>
 
         {/* 12. Reports */}
-        <PrintSection title="12. Reports" icon={BarChart3} color="bg-slate-100">
-          <div className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
-            <div className="flex justify-between border-b border-slate-200 pb-1">
-              <span>Monthly Financials</span>
-              <span className="text-slate-500">For Payroll</span>
-            </div>
-            <div className="flex justify-between border-b border-slate-200 pb-1">
-              <span>Invoice Aging</span>
-              <span className="text-slate-500">Collections</span>
-            </div>
-            <div className="flex justify-between border-b border-slate-200 pb-1">
-              <span>Payment Tracking</span>
-              <span className="text-slate-500">Audit Trail</span>
-            </div>
-            <div className="flex justify-between border-b border-slate-200 pb-1">
-              <span>Supply Analysis</span>
-              <span className="text-slate-500">Spending</span>
+        <PrintSection title="12. Reports" icon={BarChart3}>
+          <p>Access financial and operational analytics.</p>
+          <div className="space-y-2 mt-4">
+            <h4 className="font-semibold text-slate-800 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>Available Reports
+            </h4>
+            <div className="ml-4">
+              <ul className="list-disc pl-5 space-y-2">
+                <li><strong>Monthly Financials:</strong> Provider payout calculations.</li>
+                <li><strong>Invoice Aging:</strong> Outstanding balances by age.</li>
+                <li><strong>Payment Tracking:</strong> Audit trail of received payments.</li>
+                <li><strong>Supply Analysis:</strong> Spending breakdown by location/category.</li>
+                <li><strong>Credentialing Matrix:</strong> Privilege status overview.</li>
+              </ul>
             </div>
           </div>
         </PrintSection>
 
-        {/* 13. Doc Management */}
-        <PrintSection title="13. Document Management" icon={FolderOpen} color="bg-blue-50">
-          <p className="text-sm mb-2">AI-powered processing for Vendor Invoices.</p>
-          <div className="flex gap-2 text-xs">
-            <span className="bg-white border px-2 py-1 rounded">Drag & Drop Upload</span>
-            <span className="bg-white border px-2 py-1 rounded">Auto-Extract Data</span>
-            <span className="bg-white border px-2 py-1 rounded">Split Multi-Page PDFs</span>
-          </div>
-        </PrintSection>
-
-        {/* 14-17. Misc */}
-        <PrintSection title="14-17. Catalogs & Tracking" icon={BookOpen} color="bg-slate-50">
-          <ul className="list-disc pl-5 space-y-1 text-sm text-slate-700">
-            <li><strong>Clinical Privileges:</strong> Track hospital privileges per provider.</li>
-            <li><strong>CME Tracking:</strong> Monitor progress toward 3-credit annual goal.</li>
-            <li><strong>Catalogs:</strong> Manage standard items for faster ordering.</li>
-          </ul>
-        </PrintSection>
-
-        {/* 18. Logic */}
-        <PrintSection title="18. System Logic" icon={Settings} color="bg-gray-100">
-          <div className="text-sm space-y-2">
-            <p><strong>Automation:</strong> License Checker (Daily), Invoice Status Sync (Hourly).</p>
-            <p><strong>Manual Override:</strong> Manually changing an invoice status sets a lock (🔒) preventing auto-updates. Click the lock to reset.</p>
-          </div>
-        </PrintSection>
-
-        {/* 19. Maintenance */}
-        <PrintSection title="19. Maintenance Tools" icon={RefreshCw} color="bg-slate-50">
-          <div className="grid grid-cols-3 gap-4 text-sm text-center">
-            <div className="border p-3 rounded bg-white">
-              <div className="font-bold text-slate-900">Sync Henry</div>
-              <div className="text-xs text-slate-500 mt-1">Invoices → Orders</div>
-            </div>
-            <div className="border p-3 rounded bg-white">
-              <div className="font-bold text-slate-900">Fix Data</div>
-              <div className="text-xs text-slate-500 mt-1">Normalize Vendors</div>
-            </div>
-            <div className="border p-3 rounded bg-white">
-              <div className="font-bold text-slate-900">Force Redact</div>
-              <div className="text-xs text-slate-500 mt-1">Re-hide Footers</div>
+        {/* 13. Document Management */}
+        <PrintSection title="13. Document Management" icon={FolderOpen}>
+          <p>Repository for vendor invoices and files.</p>
+          <div className="space-y-2 mt-4">
+            <h4 className="font-semibold text-slate-800 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>Features
+            </h4>
+            <div className="ml-4">
+              <ul className="list-disc pl-5 space-y-2">
+                <li><strong>Upload:</strong> Drag and drop files.</li>
+                <li><strong>AI Processing:</strong> Extracts data from Vendor Invoices.</li>
+                <li><strong>Split Tool:</strong> Break large PDFs into individual invoices.</li>
+                <li><strong>Allocation:</strong> Assign costs to locations/orders.</li>
+              </ul>
             </div>
           </div>
         </PrintSection>
 
-        {/* 20. Checklist */}
-        <PrintSection title="20. Coverage Checklist" icon={ClipboardList} color="bg-yellow-50">
-          <div className="grid grid-cols-3 gap-6 text-sm">
-            <div>
-              <div className="font-bold text-yellow-900 flex items-center gap-1 mb-2"><CheckCircle2 className="w-4 h-4" /> Daily</div>
-              <p className="text-slate-700 text-xs">Check Pending Orders & Dashboard Alerts.</p>
+        {/* 14. Clinical Privileges */}
+        <PrintSection title="14. Clinical Privileges" icon={Award}>
+          <p>Track hospital privileges.</p>
+          <div className="space-y-2 mt-4">
+            <h4 className="font-semibold text-slate-800 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>Managing Privileges
+            </h4>
+            <div className="ml-4">
+              <ol className="list-decimal pl-5 space-y-2">
+                <li>Navigate to <strong>Clinical Privileges</strong> (under 'More').</li>
+                <li>Add/Edit privileges for each provider/facility.</li>
+                <li>Track Granted and Expiration dates.</li>
+              </ol>
             </div>
-            <div>
-              <div className="font-bold text-yellow-900 flex items-center gap-1 mb-2"><CheckCircle2 className="w-4 h-4" /> Weekly</div>
-              <p className="text-slate-700 text-xs">Log Income from texts/emails. Draft Invoices.</p>
+          </div>
+        </PrintSection>
+
+        {/* 15. CME Tracking */}
+        <PrintSection title="15. CME Tracking" icon={GraduationCap}>
+          <p>Log and monitor CME credits.</p>
+          <div className="space-y-2 mt-4">
+            <h4 className="font-semibold text-slate-800 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>Logging Credits
+            </h4>
+            <div className="ml-4">
+              <ol className="list-decimal pl-5 space-y-2">
+                <li>Navigate to <strong>CME Tracking</strong> (under 'More').</li>
+                <li>Log credits earned by providers.</li>
+                <li>Upload certificates.</li>
+                <li>Monitor compliance against annual quotas.</li>
+              </ol>
             </div>
-            <div>
-              <div className="font-bold text-yellow-900 flex items-center gap-1 mb-2"><CheckCircle2 className="w-4 h-4" /> Monthly</div>
-              <p className="text-slate-700 text-xs">Sync Invoices to Vendor. Reconcile Payments.</p>
+          </div>
+        </PrintSection>
+
+        {/* 16. Office Catalog */}
+        <PrintSection title="16. Office Catalog" icon={BookOpen}>
+          <p>Maintain the list of available office supplies.</p>
+          <div className="space-y-2 mt-4">
+            <h4 className="font-semibold text-slate-800 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>Managing Catalog
+            </h4>
+            <div className="ml-4">
+              <ol className="list-decimal pl-5 space-y-2">
+                <li>Navigate to <strong>Office Catalog</strong> (under 'More').</li>
+                <li>Add new items to appear in the order form.</li>
+                <li>Set standard pricing and units.</li>
+              </ol>
+            </div>
+          </div>
+        </PrintSection>
+
+        {/* 17. Clinical Catalog */}
+        <PrintSection title="17. Clinical Catalog" icon={Settings}>
+          <p>Maintain the list of medical supplies and vendor codes.</p>
+          <div className="space-y-2 mt-4">
+            <h4 className="font-semibold text-slate-800 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>Managing Catalog
+            </h4>
+            <div className="ml-4">
+              <ol className="list-decimal pl-5 space-y-2">
+                <li>Navigate to <strong>Clinical Catalog</strong> (under 'More').</li>
+                <li>Define items, SKUs, and Vendors.</li>
+                <li>Used to link Vendor Invoices to Orders automatically.</li>
+              </ol>
+            </div>
+          </div>
+        </PrintSection>
+
+        {/* 18. How System Works */}
+        <PrintSection title="18. How System Works" icon={Settings}>
+          <p>Understanding the automation and data relationships.</p>
+          
+          <div className="space-y-2 mt-4">
+            <h4 className="font-semibold text-slate-800 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>Data Relationships
+            </h4>
+            <div className="ml-4">
+              <ul className="list-disc pl-5 space-y-2">
+                <li><strong>Provider → Locations:</strong> Providers are linked to "Program Locations". This determines which facilities appear in dropdowns.</li>
+                <li><strong>Outside Income → Invoice:</strong> Many Income Records (shifts) can be linked to one Invoice. Sum(Income Amounts) = Invoice Subtotal.</li>
+                <li><strong>Payment → Allocation → Invoice:</strong> One Payment can be split across multiple Invoices. If (Amount Expected - Allocations) = 0, the invoice marks as Paid.</li>
+                <li><strong>Vendor Invoice → Clinical Supply Order:</strong> Allocating items creates a new Clinical Supply Order and Vendor Invoice for that location.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="space-y-2 mt-4">
+            <h4 className="font-semibold text-slate-800 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>Automated Jobs
+            </h4>
+            <div className="ml-4">
+              <ul className="list-disc pl-5 space-y-2">
+                <li><strong>License Checker:</strong> Runs daily. Checks Licenses and Privileges. Flags expiration dates 90, 60, 30 days out.</li>
+                <li><strong>Invoice Status Sync:</strong> Runs in background. Ensures Paid status matches payments received.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="mt-4 bg-blue-50 border border-blue-100 rounded-lg p-4 flex gap-3 text-sm text-blue-800">
+            <span className="font-bold">i</span>
+            <div><strong>Manual Override:</strong> If you manually change an Invoice Status (e.g., forcing it to "Paid"), the system sets a <strong>manual_status_override</strong> flag. Click the lock icon (🔒) on the invoice row to unlock it.</div>
+          </div>
+        </PrintSection>
+
+        {/* 19. Maintenance Tools */}
+        <PrintSection title="19. Maintenance Tools" icon={RefreshCw}>
+          <p>Tools to keep data clean and accurate.</p>
+          <div className="grid grid-cols-3 gap-4 mt-4">
+            <div className="border rounded-lg p-3 bg-slate-50">
+              <strong className="block text-sm font-bold text-slate-900 mb-1">Sync Henry Schein</strong>
+              <p className="text-xs text-slate-600">Finds "Henry Schein" invoices not linked to orders and automatically creates Clinical Supply Orders.</p>
+            </div>
+            <div className="border rounded-lg p-3 bg-slate-50">
+              <strong className="block text-sm font-bold text-slate-900 mb-1">Fix Vendor Data</strong>
+              <p className="text-xs text-slate-600">Fixes ALL CAPS vendor names and scans invoice data to link missing Locations.</p>
+            </div>
+            <div className="border rounded-lg p-3 bg-slate-50">
+              <strong className="block text-sm font-bold text-slate-900 mb-1">Force Redact Henry</strong>
+              <p className="text-xs text-slate-600">Re-applies redaction to Henry Schein invoices (bottom 35%) to hide sensitive footer info.</p>
+            </div>
+          </div>
+        </PrintSection>
+
+        {/* 20. Coverage Checklist */}
+        <PrintSection title="20. Coverage Checklist" icon={ClipboardList}>
+          <p>Essential tasks to ensure zero downtime when the administrator is out.</p>
+
+          <div className="space-y-4 mt-4">
+            <div className="bg-slate-50 p-4 rounded border border-slate-200">
+              <h4 className="font-bold text-slate-900 flex items-center gap-2 mb-2">
+                <CheckCircle2 className="w-4 h-4 text-blue-600" /> Daily (Morning)
+              </h4>
+              <ul className="list-disc pl-6 text-sm space-y-1">
+                <li><strong>Office Orders:</strong> Check "Pending Review". Approve urgent requests.</li>
+                <li><strong>Dashboard Alerts:</strong> Check "Expiring Licenses" or "Pending Invoices".</li>
+              </ul>
+            </div>
+
+            <div className="bg-slate-50 p-4 rounded border border-slate-200">
+              <h4 className="font-bold text-slate-900 flex items-center gap-2 mb-2">
+                <CheckCircle2 className="w-4 h-4 text-orange-600" /> Weekly (Friday)
+              </h4>
+              <ul className="list-disc pl-6 text-sm space-y-1">
+                <li><strong>Log Income:</strong> Enter shifts into Outside Income from provider texts/emails.</li>
+                <li><strong>Draft Invoices:</strong> Create invoices for completed work so they are ready for review.</li>
+              </ul>
+            </div>
+
+            <div className="bg-slate-50 p-4 rounded border border-slate-200">
+              <h4 className="font-bold text-slate-900 flex items-center gap-2 mb-2">
+                <CheckCircle2 className="w-4 h-4 text-purple-600" /> Monthly (1st - 5th)
+              </h4>
+              <ul className="list-disc pl-6 text-sm space-y-1">
+                <li><strong>The "Big Send":</strong> Review drafts, generate PDFs, and Sync to Vendor.</li>
+                <li><strong>Reconcile Payments:</strong> Enter deposit slips into Payments and Allocate them.</li>
+                <li><strong>Provider Payouts:</strong> Export "Monthly Financials" report for payroll.</li>
+              </ul>
             </div>
           </div>
         </PrintSection>
@@ -330,16 +532,16 @@ export default function PrintableSOPs() {
   );
 }
 
-function PrintSection({ title, icon: Icon, color = "bg-slate-50", children }) {
+function PrintSection({ title, icon: Icon, children }) {
   return (
-    <div className={`break-inside-avoid mb-8 border border-slate-200 rounded-xl overflow-hidden shadow-sm`}>
-      <div className={`flex items-center gap-3 px-6 py-3 border-b border-slate-200 ${color}`}>
-        <div className="bg-white p-1.5 rounded-lg shadow-sm">
-          <Icon className="w-5 h-5 text-slate-800" />
+    <div className="break-inside-avoid mb-8 border rounded-xl p-6 border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center gap-3 mb-4 pb-2 border-b border-slate-200">
+        <div className="bg-slate-50 p-2 rounded-lg border border-slate-200">
+          <Icon className="w-5 h-5 text-slate-700" />
         </div>
-        <h2 className="text-lg font-bold text-slate-900 uppercase tracking-wide">{title}</h2>
+        <h2 className="text-xl font-bold text-slate-900">{title}</h2>
       </div>
-      <div className="p-6 bg-white text-slate-700">
+      <div className="text-sm text-slate-600 space-y-4">
         {children}
       </div>
     </div>
