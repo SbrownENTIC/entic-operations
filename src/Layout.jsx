@@ -160,6 +160,15 @@ function LayoutContent({ children, currentPageName }) {
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
+  // Update document title based on page
+  React.useEffect(() => {
+    if (currentPageName === 'PublicSupplyRequest') {
+      document.title = "ENTIC Supply Order Request Form";
+    } else {
+      document.title = "ENTIC Operations";
+    }
+  }, [currentPageName]);
+
   const [previousCount, setPreviousCount] = React.useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
