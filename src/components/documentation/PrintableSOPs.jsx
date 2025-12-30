@@ -101,9 +101,7 @@ export default function PrintableSOPs() {
       {/* Repeating Elements - Must be outside flow for fixed positioning to work in print */}
       <div className="page-frame"></div>
       <div className="page-footer">
-        <span className="text-slate-400">ENTIC Operations Center SOP</span>
-        <span className="text-slate-400">{currentDate}</span>
-        <span className="page-number font-medium text-slate-500"></span>
+        <span className="page-number"></span>
       </div>
 
       <div className="content-wrapper">
@@ -621,6 +619,26 @@ function PrintSection({ title, icon: Icon, children }) {
       <div className="text-sm text-slate-700 leading-relaxed space-y-6 pl-1">
         {children}
       </div>
+    </div>
+  );
+}
+
+function Step({ title, children }) {
+  return (
+    <div className="space-y-3">
+      <h4 className="font-bold text-slate-900 text-base border-l-4 border-slate-300 pl-3 uppercase tracking-wide">
+        {title}
+      </h4>
+      <div className="ml-4 pl-3 border-l border-slate-100">{children}</div>
+    </div>
+  );
+}
+
+function InfoBox({ children }) {
+  return (
+    <div className="bg-slate-50 border-l-4 border-slate-400 p-4 flex gap-4 text-sm text-slate-700 my-4 italic">
+      <div className="font-bold not-italic text-slate-900">NOTE:</div>
+      <div>{children}</div>
     </div>
   );
 }
