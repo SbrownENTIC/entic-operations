@@ -615,8 +615,8 @@ export default function PrintableSOPs() {
 
 function PrintSection({ title, icon: Icon, children }) {
   return (
-    <div className="break-inside-avoid mb-10">
-      <div className="flex items-center gap-3 mb-6 border-b-2 border-slate-800 pb-2">
+    <div className="mb-10">
+      <div className="flex items-center gap-3 mb-6 border-b-2 border-slate-800 pb-2 break-inside-avoid">
         <h2 className="text-xl font-bold text-slate-900 uppercase tracking-widest">{title}</h2>
       </div>
       <div className="text-sm text-slate-700 leading-relaxed space-y-6 pl-1">
