@@ -99,7 +99,7 @@ export default function PrintableSOPs() {
       <div className="page-footer">
         <span className="text-slate-400">ENTIC Operations Center SOP</span>
         <span className="text-slate-400">{currentDate}</span>
-        <span className="font-medium text-slate-500">Confidential</span>
+        <span className="page-number font-medium text-slate-500"></span>
       </div>
 
       <div className="content-wrapper">
