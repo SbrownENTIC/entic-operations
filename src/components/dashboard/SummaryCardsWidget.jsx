@@ -69,7 +69,7 @@ export default function SummaryCardsWidget({
           </CardHeader>
           <CardContent className="pt-3">
             <div className="text-4xl font-bold text-slate-700 mb-1">{draftInvoices}</div>
-            <Link to={createPageUrl("Invoices")} className="text-xs text-slate-700 hover:text-slate-900 font-semibold hover:underline">
+            <Link to={createPageUrl("Invoices") + "?status=draft"} className="text-xs text-slate-700 hover:text-slate-900 font-semibold hover:underline">
               View drafts →
             </Link>
           </CardContent>
