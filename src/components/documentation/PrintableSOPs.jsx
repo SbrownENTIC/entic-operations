@@ -53,22 +53,10 @@ export default function PrintableSOPs() {
           
           /* Page Content Padding to fit inside frame */
           .content-wrapper {
-            /* Side margins only - top/bottom handled by table spacers */
-            margin: 0 15mm;
+            margin: 15mm;
+            padding: 10px;
             position: relative;
             z-index: 10;
-          }
-
-          /* Print Table Structure for spacing */
-          .print-table {
-            width: 100%;
-            border-collapse: collapse;
-          }
-          .print-table-header {
-            height: 20mm; /* Safe zone at top */
-          }
-          .print-table-footer {
-            height: 20mm; /* Safe zone at bottom */
           }
 
           @page {
@@ -116,17 +104,7 @@ export default function PrintableSOPs() {
       </div>
 
       <div className="content-wrapper">
-        <table className="print-table">
-          <thead>
-            <tr><td><div className="print-table-header"></div></td></tr>
-          </thead>
-          <tfoot>
-            <tr><td><div className="print-table-footer"></div></td></tr>
-          </tfoot>
-          <tbody>
-            <tr>
-              <td>
-                {/* TITLE PAGE */}
+        {/* TITLE PAGE */}
         <div className="page-break flex flex-col items-center justify-center min-h-[80vh] text-center relative">
         <div className="flex-1 flex flex-col items-center justify-center w-full">
           <div className="mb-12">
@@ -159,10 +137,12 @@ export default function PrintableSOPs() {
             </div>
           </div>
         </div>
-        </div>
 
-        {/* CONTENT */}
-        <div className="space-y-8 mt-8">
+
+      </div>
+
+      {/* CONTENT */}
+      <div className="space-y-8 mt-8">
         
         {/* System Access */}
         <PrintSection title="System Access" icon={LinkIcon}>
@@ -617,15 +597,13 @@ export default function PrintableSOPs() {
           </div>
         </PrintSection>
 
-                  <div className="mt-12 pt-8 border-t border-slate-200 text-center text-slate-400 text-sm font-medium break-inside-avoid">
-                    <p>Version 2.0 • Last Updated {currentDate}</p>
-                    <p className="mt-1 text-xs">ENTIC Medical Administration</p>
-                  </div>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div className="mt-12 pt-8 border-t border-slate-200 text-center text-slate-400 text-sm font-medium break-inside-avoid">
+          <p>Version 2.0 • Last Updated {currentDate}</p>
+          <p className="mt-1 text-xs">ENTIC Medical Administration</p>
+        </div>
+
+      </div>
+      </div>
       </div>
     </div>
   );

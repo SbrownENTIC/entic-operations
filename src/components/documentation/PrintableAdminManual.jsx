@@ -91,7 +91,7 @@ export default function PrintableAdminManual() {
             <tbody className="divide-y divide-slate-200">
               <tr><td className="p-2 font-mono">generateUConnPDF</td><td className="p-2">Fills <code>MasterUConnServiceInvoice.pdf</code> with invoice data. Returns URL.</td></tr>
               <tr><td className="p-2 font-mono">syncUConnInvoiceToAirtable</td><td className="p-2">Sends invoice data + PDF URL to Airtable 'Notifications' table.</td></tr>
-              <tr><td className="p-2 font-mono">sendScheduledReminders</td><td className="p-2">Daily Schedule. Finds today's Reminders &rarr; Calls <code>syncReminderToAirtable</code>.</td></tr>
+              <tr><td className="p-2 font-mono">sendScheduledReminders</td><td className="p-2">Daily Schedule. Finds today's Reminders -> Calls <code>syncReminderToAirtable</code>.</td></tr>
               <tr><td className="p-2 font-mono">syncOfficeClosuresToAirtable</td><td className="p-2">Syncs Holiday reminders to Airtable 'Office Closures' table.</td></tr>
               <tr><td className="p-2 font-mono">checkLicenseExpirations</td><td className="p-2">Daily Schedule. Direct email send (via Base44) for expiring licenses.</td></tr>
               <tr><td className="p-2 font-mono">syncPaymentsAndInvoices</td><td className="p-2">Hourly Schedule. Recalculates invoice balances from payments.</td></tr>
@@ -118,7 +118,7 @@ export default function PrintableAdminManual() {
               <p className="text-xs mb-2">Used for: <strong>Invoices & General Reminders</strong></p>
               <ul className="list-disc pl-4 text-xs space-y-1">
                 <li><strong>Synced Fields:</strong> Recipient, Subject, Body, Attachment URL.</li>
-                <li><strong>Automation:</strong> "When record created" &rarr; Send Email (Gmail/Outlook integration).</li>
+                <li><strong>Automation:</strong> "When record created" -> Send Email (Gmail/Outlook integration).</li>
                 <li><strong>Source Functions:</strong> <code>syncUConn...</code>, <code>syncManchester...</code>, <code>syncReminderToAirtable</code>.</li>
               </ul>
             </div>
@@ -161,7 +161,7 @@ export default function PrintableAdminManual() {
               </ul>
             </li>
             <li>
-              <strong>Delivery:</strong> Airtable Automation sees new record &rarr; Sends Email.
+              <strong>Delivery:</strong> Airtable Automation sees new record -> Sends Email.
             </li>
           </ol>
         </div>
@@ -204,7 +204,7 @@ export default function PrintableAdminManual() {
             <h4 className="font-bold text-slate-900 mb-1">St. Francis</h4>
             <p className="text-xs"><strong>Income Source:</strong> Driven by the On-Call Schedule.</p>
             <p className="text-xs"><strong>Logic:</strong> When a schedule is published for St. Francis locations, the system calls <code>sync2026StFrancis</code> (or similar logic) to generate Pending Income records calculated as <code>Days * Rate</code>.</p>
-            <p className="text-xs mt-1"><strong>Invoice:</strong> Standard manual creation. Select St. Francis &rarr; Link Income &rarr; Save.</p>
+            <p className="text-xs mt-1"><strong>Invoice:</strong> Standard manual creation. Select St. Francis -> Link Income -> Save.</p>
           </div>
         </div>
       </section>
@@ -221,7 +221,7 @@ export default function PrintableAdminManual() {
             <p className="text-xs"><strong>Scheduled Task:</strong> <code>sendScheduledReminders</code> runs daily.</p>
             <p className="text-xs">1. Finds active Reminders where <code>send_date == Today</code>.</p>
             <p className="text-xs">2. For each recipient, calls <code>syncReminderToAirtable</code>.</p>
-            <p className="text-xs">3. Creates record in Airtable <strong>Notifications</strong> table &rarr; Airtable sends email.</p>
+            <p className="text-xs">3. Creates record in Airtable <strong>Notifications</strong> table -> Airtable sends email.</p>
           </div>
 
           <div>
@@ -229,8 +229,8 @@ export default function PrintableAdminManual() {
             <p className="text-xs"><strong>Manual Trigger:</strong> "Sync Reminders to Airtable" button.</p>
             <p className="text-xs"><strong>Function:</strong> <code>syncOfficeClosuresToAirtable</code>.</p>
             <p className="text-xs">1. Reads all reminders.</p>
-            <p className="text-xs">2. If type is 'Holiday'/'Office Closure' &rarr; Syncs to <strong>Office Closures (New)</strong> table.</p>
-            <p className="text-xs">3. If type is 'Custom' &rarr; Syncs to <strong>Reminders</strong> table.</p>
+            <p className="text-xs">2. If type is 'Holiday'/'Office Closure' -> Syncs to <strong>Office Closures (New)</strong> table.</p>
+            <p className="text-xs">3. If type is 'Custom' -> Syncs to <strong>Reminders</strong> table.</p>
           </div>
         </div>
       </section>
@@ -290,8 +290,8 @@ export default function PrintableAdminManual() {
               <li><strong>Check API Key:</strong> Is <code>AIRTABLE_API_KEY</code> set in Secrets?</li>
               <li><strong>Check Record:</strong> Did the function create a record in the Airtable table?
                 <ul className="list-disc pl-4 text-slate-600">
-                  <li>Yes? &rarr; Issue is in Airtable Automation (Check Run History).</li>
-                  <li>No? &rarr; Issue is in Base44 Function (Check Function Logs).</li>
+                  <li>Yes? -> Issue is in Airtable Automation (Check Run History).</li>
+                  <li>No? -> Issue is in Base44 Function (Check Function Logs).</li>
                 </ul>
               </li>
             </ol>
@@ -321,6 +321,7 @@ export default function PrintableAdminManual() {
               Please email your system administrator <strong>Steve Brown</strong> at <a href="mailto:steve.brown@enticmd.com" className="text-blue-600 hover:underline">steve.brown@enticmd.com</a>.
             </p>
           </div>
+
         </div>
       </section>
 
