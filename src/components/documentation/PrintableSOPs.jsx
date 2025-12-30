@@ -22,10 +22,9 @@ export default function PrintableSOPs() {
           /* Zero page margins so we can control everything via body padding */
           @page { margin: 0; size: auto; }
           
-          /* The body padding creates the safe area for content */
           body { 
             margin: 0; 
-            padding: 25mm !important; /* Large padding to push content inside the border */
+            padding: 0 !important;
             -webkit-print-color-adjust: exact; 
             print-color-adjust: exact; 
             background-color: white;
@@ -36,9 +35,13 @@ export default function PrintableSOPs() {
           .print-container { 
             max-width: 100% !important; 
             width: 100% !important; 
-            margin: 0 !important; 
-            padding: 0 !important;
+            margin: 0 !important;
+            /* Add padding here to the container instead of body */
+            padding: 25mm !important; 
+            box-sizing: border-box !important;
             box-shadow: none !important;
+            position: relative;
+            z-index: 10;
           }
 
           /* The Border Frame - Fixed position ensures it repeats on every page */
