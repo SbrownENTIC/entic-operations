@@ -27,7 +27,7 @@ export default function PrintableSOPs() {
           .page-frame {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            border: 1px solid #94a3b8;
+            border: 4px double #94a3b8;
             margin: 5mm;
             pointer-events: none;
             z-index: 9999;
@@ -36,8 +36,8 @@ export default function PrintableSOPs() {
           /* Fixed Footer - Repeats on every page */
           .page-footer {
             position: fixed;
-            bottom: 8mm;
-            left: 8mm; right: 8mm;
+            bottom: 12mm;
+            left: 12mm; right: 12mm;
             text-align: right;
             font-size: 10px;
             color: #64748b;
@@ -46,12 +46,12 @@ export default function PrintableSOPs() {
             align-items: center;
             padding: 0 20px;
             z-index: 10000;
-            background-color: white;
+            background-color: transparent;
           }
 
           /* Page Numbering */
           .page-number::after {
-            content: "Page " counter(page);
+            content: counter(page);
             font-weight: 600;
             color: #334155;
           }
