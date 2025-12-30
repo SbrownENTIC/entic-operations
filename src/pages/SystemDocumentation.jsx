@@ -46,9 +46,7 @@ export default function SystemDocumentation() {
           /* Show the portal and ensure it is visible */
           .print-portal {
             display: block !important;
-            position: absolute;
-            top: 0;
-            left: 0;
+            position: static; /* Static ensures normal flow for pagination */
             width: 100%;
             height: auto;
             background: white;

@@ -49,7 +49,7 @@ export default function PrintableSOPs() {
             bottom: 0;
             border: 4px double #94a3b8;
             pointer-events: none;
-            z-index: 50; /* Lower z-index to avoid covering content interactions if any */
+            z-index: 50;
           }
 
           /* Content wrapper adds internal padding for text */
