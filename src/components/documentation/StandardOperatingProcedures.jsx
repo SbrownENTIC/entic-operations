@@ -2,13 +2,16 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { 
   Users, Calendar, DollarSign, FileText, CreditCard, 
   Package, ShoppingCart, Clock, Bell, Shield, 
   BarChart3, FolderOpen, Award, GraduationCap, 
   BookOpen, Settings, AlertCircle, LayoutDashboard,
-  HelpCircle, Link as LinkIcon, ExternalLink
+  HelpCircle, Link as LinkIcon, ExternalLink,
+  ClipboardList, CheckCircle2, RefreshCw
 } from "lucide-react";
+import { SyncHenryScheinButton, FixVendorDataButton, ForceRedactHenryButton } from "@/components/documentation/MaintenanceButtons";
 
 export default function StandardOperatingProcedures() {
   const scrollToSection = (id) => {
@@ -18,8 +21,9 @@ export default function StandardOperatingProcedures() {
     }
   };
 
-  const appUrl = window.location.origin;
-  const publicSupplyUrl = `${window.location.origin}/public-supply-request`;
+  // PUBLISHED LINKS
+  const appUrl = "https://entic-ops.base44.app"; 
+  const publicSupplyUrl = `${appUrl}/public-supply-request`;
 
   return (
     <div className="flex h-full border rounded-lg overflow-hidden bg-white">
@@ -49,7 +53,9 @@ export default function StandardOperatingProcedures() {
             <NavButton onClick={() => scrollToSection('cme-tracking')} icon={GraduationCap} label="15. CME Tracking" />
             <NavButton onClick={() => scrollToSection('office-catalog')} icon={BookOpen} label="16. Office Catalog" />
             <NavButton onClick={() => scrollToSection('clinical-catalog')} icon={Settings} label="17. Clinical Catalog" />
-            <NavButton onClick={() => scrollToSection('system-docs')} icon={HelpCircle} label="18. System Documentation" />
+            <NavButton onClick={() => scrollToSection('system-logic')} icon={Settings} label="18. How System Works" />
+            <NavButton onClick={() => scrollToSection('maintenance')} icon={RefreshCw} label="19. Maintenance" />
+            <NavButton onClick={() => scrollToSection('checklist')} icon={ClipboardList} label="20. Coverage Checklist" />
           </nav>
         </ScrollArea>
       </div>
@@ -93,7 +99,7 @@ export default function StandardOperatingProcedures() {
                   <li><strong>Alerts:</strong> Critical items (Expiring Licenses, Pending Invoices) appear at the top in red or yellow.</li>
                   <li><strong>Summary Cards:</strong> Quick access to Draft Invoices, Supply Orders, and other counts.</li>
                   <li><strong>Financial Overview:</strong> Real-time view of Outstanding vs. Paid amounts.</li>
-                  <li><strong>Customization:</strong> Use the "Customize Dashboard" button to show/hide specific widgets.</li>
+                  <li><strong>Customization:</strong> Use the "Customize Dashboard" button (top right) to personalize your view, showing/hiding or reordering widgets relevant to your role.</li>
                 </ul>
               </Step>
             </Section>
@@ -205,6 +211,23 @@ export default function StandardOperatingProcedures() {
                   <li><strong>St. Francis (Dr. Seth Brown):</strong> Similar to Hartford, when an On-Call shift is created for Dr. Seth Brown, the system automatically creates the Directorship Outside Income record. Select both when creating the invoice.</li>
                 </ul>
               </Step>
+
+              <Step title="Bulk Actions on Invoices">
+                <p className="mb-2">You can perform actions on multiple invoices simultaneously:</p>
+                <ol className="list-decimal pl-5 space-y-2">
+                  <li>Select multiple invoices using the checkboxes on the left.</li>
+                  <li>Use the dropdowns and date pickers in the bulk action bar to update status, mark as paid, or set a paid date.</li>
+                  <li>Click <strong>Update</strong> to apply changes.</li>
+                </ol>
+              </Step>
+
+              <Step title="Quarterly Provider Payouts">
+                <p className="mb-2">Use the quick buttons to mark all unpaid invoices for a past quarter as 'Provider Paid':</p>
+                <ol className="list-decimal pl-5 space-y-2">
+                  <li>Click the <strong>Pay Provider Q[X]</strong> button (e.g., "Pay Provider Q1") in the invoice header.</li>
+                  <li>Confirm the action. This will update the status of all relevant invoices to "Provider Paid" and set the payment date to today. This action is only available for past quarters.</li>
+                </ol>
+              </Step>
             </Section>
 
             {/* 6. Payments */}
@@ -299,7 +322,7 @@ export default function StandardOperatingProcedures() {
               </Step>
 
               <InfoBox>
-                The system automatically alerts you 90, 60, and 30 days before expiration.
+                The system automatically alerts you 90, 60, and 30 days before expiration. Use the <strong>Sync to Airtable</strong> button to update the central credentialing database.
               </InfoBox>
             </Section>
 
@@ -385,19 +408,117 @@ export default function StandardOperatingProcedures() {
               </Step>
             </Section>
 
-             {/* 18. System Documentation */}
-             <Section id="system-docs" title="18. System Documentation" icon={HelpCircle}>
-              <p>This section contains the Standard Operating Procedures (SOPs), manuals, and checklists.</p>
+            {/* 18. System Logic */}
+            <Section id="system-logic" title="18. How System Works" icon={Settings}>
+              <p>Understanding the automation and data relationships.</p>
 
-              <Step title="Usage">
+              <Step title="Data Relationships">
                 <ul className="list-disc pl-5 space-y-2">
-                  <li><strong>SOPs:</strong> This detailed guide.</li>
-                  <li><strong>How System Works:</strong> Technical logic and automation rules.</li>
-                  <li><strong>Maintenance:</strong> Tools for fixing data issues.</li>
-                  <li><strong>Checklists:</strong> Recurring task lists (Daily, Weekly, Monthly).</li>
-                  <li><strong>Printable Manuals:</strong> Printer-friendly versions of documentation.</li>
+                  <li><strong>Provider → Locations:</strong> Providers are linked to "Program Locations". This determines which facilities appear in dropdowns.</li>
+                  <li><strong>Outside Income → Invoice:</strong> Many Income Records (shifts) can be linked to one Invoice. Sum(Income Amounts) = Invoice Subtotal.</li>
+                  <li><strong>Payment → Allocation → Invoice:</strong> One Payment can be split across multiple Invoices. If (Amount Expected - Allocations) = 0, the invoice marks as Paid.</li>
+                  <li><strong>Vendor Invoice → Clinical Supply Order:</strong> Allocating items creates a new Clinical Supply Order and Vendor Invoice for that location.</li>
                 </ul>
               </Step>
+
+              <Step title="Automated Jobs">
+                <ul className="list-disc pl-5 space-y-2">
+                  <li><strong>License Checker:</strong> Runs daily. Checks Licenses and Privileges. Flags expiration dates 90, 60, 30 days out.</li>
+                  <li><strong>Invoice Status Sync:</strong> Runs in background. Ensures Paid status matches payments received.</li>
+                </ul>
+              </Step>
+
+              <InfoBox>
+                <strong>Manual Override:</strong> If you manually change an Invoice Status (e.g., forcing it to "Paid"), the system sets a <strong>manual_status_override</strong> flag. Click the lock icon (🔒) on the invoice row to unlock it.
+              </InfoBox>
+            </Section>
+
+            {/* 19. Maintenance */}
+            <Section id="maintenance" title="19. Maintenance Tools" icon={RefreshCw}>
+              <p>Tools to keep data clean and accurate.</p>
+
+              <div className="grid md:grid-cols-2 gap-6 mt-4">
+                <div className="border rounded-lg p-4 bg-slate-50">
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-bold text-sm">Sync Henry Schein</h4>
+                    <SyncHenryScheinButton />
+                  </div>
+                  <p className="text-xs text-slate-600">Finds "Henry Schein" invoices not linked to orders and automatically creates Clinical Supply Orders for them.</p>
+                </div>
+
+                <div className="border rounded-lg p-4 bg-slate-50">
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-bold text-sm">Fix Vendor Data</h4>
+                    <FixVendorDataButton />
+                  </div>
+                  <p className="text-xs text-slate-600">Fixes ALL CAPS vendor names and scans invoice data to link missing Locations.</p>
+                </div>
+
+                <div className="border rounded-lg p-4 bg-slate-50">
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-bold text-sm">Force Redact Henry</h4>
+                    <ForceRedactHenryButton />
+                  </div>
+                  <p className="text-xs text-slate-600">Re-applies redaction to Henry Schein invoices (bottom 35%) to hide sensitive footer info.</p>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <h4 className="font-bold text-slate-900 mb-2">Common Issues & Solutions</h4>
+                <Accordion type="single" collapsible className="w-full">
+                  <AccordionItem value="pdf-fail">
+                    <AccordionTrigger className="text-sm">UConn/Manchester PDF is Blank/Wrong</AccordionTrigger>
+                    <AccordionContent className="text-xs text-slate-600">
+                      <strong>Cause:</strong> Usually missing "Work Dates" on the linked Outside Income record.<br/>
+                      <strong>Fix:</strong> Go to Outside Income, find the record, add specific dates. Then regenerate the PDF.
+                    </AccordionContent>
+                  </AccordionItem>
+                  <AccordionItem value="status-stuck">
+                    <AccordionTrigger className="text-sm">Invoice Won't Mark "Paid"</AccordionTrigger>
+                    <AccordionContent className="text-xs text-slate-600">
+                      <strong>Cause:</strong> Total Allocations are less than Amount Expected (even by $0.01). Check the "Balance" column.
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </div>
+            </Section>
+
+            {/* 20. Coverage Checklist */}
+            <Section id="checklist" title="20. Coverage Checklist" icon={ClipboardList}>
+              <p>Essential tasks to ensure zero downtime when the administrator is out.</p>
+
+              <div className="space-y-6 mt-4">
+                <div className="bg-slate-50 p-4 rounded border border-slate-200">
+                  <h4 className="font-bold text-slate-900 flex items-center gap-2 mb-2">
+                    <CheckCircle2 className="w-4 h-4 text-blue-600" /> Daily (Morning)
+                  </h4>
+                  <ul className="list-disc pl-6 text-sm space-y-1">
+                    <li><strong>Office Orders:</strong> Check "Pending Review". Approve urgent requests.</li>
+                    <li><strong>Dashboard Alerts:</strong> Check "Expiring Licenses" or "Pending Invoices".</li>
+                  </ul>
+                </div>
+
+                <div className="bg-slate-50 p-4 rounded border border-slate-200">
+                  <h4 className="font-bold text-slate-900 flex items-center gap-2 mb-2">
+                    <CheckCircle2 className="w-4 h-4 text-orange-600" /> Weekly (Friday)
+                  </h4>
+                  <ul className="list-disc pl-6 text-sm space-y-1">
+                    <li><strong>Log Income:</strong> Enter shifts into Outside Income from provider texts/emails.</li>
+                    <li><strong>Draft Invoices:</strong> Create invoices for completed work so they are ready for review.</li>
+                  </ul>
+                </div>
+
+                <div className="bg-slate-50 p-4 rounded border border-slate-200">
+                  <h4 className="font-bold text-slate-900 flex items-center gap-2 mb-2">
+                    <CheckCircle2 className="w-4 h-4 text-purple-600" /> Monthly (1st - 5th)
+                  </h4>
+                  <ul className="list-disc pl-6 text-sm space-y-1">
+                    <li><strong>The "Big Send":</strong> Review drafts, generate PDFs, and Sync to Vendor.</li>
+                    <li><strong>Reconcile Payments:</strong> Enter deposit slips into Payments and Allocate them.</li>
+                    <li><strong>Provider Payouts:</strong> Export "Monthly Financials" report for payroll.</li>
+                  </ul>
+                </div>
+              </div>
             </Section>
 
           </div>
