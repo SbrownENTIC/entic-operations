@@ -15,6 +15,7 @@ import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
 export default function Licenses() {
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState("all");
   const [editingLicense, setEditingLicense] = useState(null);
   const [sortField, setSortField] = useState('expiration_date');
   const [sortDirection, setSortDirection] = useState('asc');
@@ -25,6 +26,13 @@ export default function Licenses() {
 
   const urlParams = new URLSearchParams(window.location.search);
   const editId = urlParams.get('edit');
+  const filterParam = urlParams.get('filter');
+
+  useEffect(() => {
+    if (filterParam) {
+      setFilterType(filterParam);
+    }
+  }, [filterParam]);
 
   const { data: licenses = [] } = useQuery({
     queryKey: ['licenses'],
