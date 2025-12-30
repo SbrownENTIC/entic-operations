@@ -197,8 +197,16 @@ export default function Invoices() {
             }
           }
           
-          return facilityMatch && providerMatch && monthMatch && !inc.invoice_id;
+          // Check if it's unlinked OR already linked to this invoice (user selected it manually)
+          const isPendingOrLinkedToCurrent = !inc.invoice_id || inc.invoice_id === invoice.id;
+          return facilityMatch && providerMatch && monthMatch && isPendingOrLinkedToCurrent;
         });
+
+        // If directorship income is found AND linked to the current invoice, we are done.
+        // The user manually selected it, so no need to create a duplicate or a second invoice.
+        if (directorshipIncome && directorshipIncome.invoice_id === invoice.id) {
+           return invoice;
+        }
 
         // If no income record exists, create one (Sourced from Invoice)
         if (!directorshipIncome) {
