@@ -49,12 +49,7 @@ export default function PrintableSOPs() {
             background-color: transparent;
           }
 
-          /* Page Numbering */
-          .page-number::after {
-            content: counter(page);
-            font-weight: 600;
-            color: #334155;
-          }
+          /* Page Numbering Removed */
           
           /* Page Content Padding to fit inside frame */
           .content-wrapper {
@@ -69,8 +64,12 @@ export default function PrintableSOPs() {
             size: auto;
           }
 
-          .page-break { page-break-after: always; }
-          .break-inside-avoid { page-break-inside: avoid; }
+          .page-break { page-break-after: always; break-after: page; }
+          .break-inside-avoid { 
+            page-break-inside: avoid; 
+            break-inside: avoid;
+            display: block; /* Ensure block formatting context */
+          }
           .no-print { display: none; }
           a { text-decoration: none; color: black; }
         }
@@ -101,7 +100,7 @@ export default function PrintableSOPs() {
       {/* Repeating Elements - Must be outside flow for fixed positioning to work in print */}
       <div className="page-frame"></div>
       <div className="page-footer">
-        <span className="page-number"></span>
+        {/* Page number removed */}
       </div>
 
       <div className="content-wrapper">
