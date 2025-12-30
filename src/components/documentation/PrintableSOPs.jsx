@@ -611,7 +611,7 @@ export default function PrintableSOPs() {
 
         <div className="mt-12 pt-8 border-t border-slate-200 text-center text-slate-400 text-sm font-medium break-inside-avoid">
           <p>Version 2.0 • Last Updated {currentDate}</p>
-          <p className="mt-1 text-xs">ENTIC Medical Administration</p>
+          <p className="mt-1 text-xs">ENTIC Operations Team</p>
         </div>
 
       </div>
