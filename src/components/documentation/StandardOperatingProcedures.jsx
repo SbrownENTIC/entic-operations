@@ -189,7 +189,7 @@ export default function StandardOperatingProcedures() {
                 <ol className="list-decimal pl-5 space-y-2">
                     <li>Ensure the <strong>Approved Invoice</strong> PDF is uploaded.</li>
                     <li>Click the <strong>Cloud Upload (Sync)</strong> button on the invoice row.</li>
-                    <li>Confirm the sync. This sends the data and PDF to Airtable/Notification system which triggers the email to the vendor.</li>
+                    <li>Confirm the sync. This sends the data and PDF to Airtable for email automations to improve workflow, which triggers the email to the vendor.</li>
                     <li>The status will automatically update to <strong>Sent to Vendor</strong>.</li>
                 </ol>
               </Step>
