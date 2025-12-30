@@ -19,8 +19,8 @@ export default function PrintableSOPs() {
       <div className="mx-auto bg-white text-slate-900 font-sans print-container shadow-2xl print:shadow-none max-w-[21cm] min-h-[29.7cm]">
       <style>{`
         @media print {
-          /* Standard page margins ensure content flows correctly on ALL pages */
-          @page { margin: 25mm; size: auto; }
+          /* Use smaller page margins to define the Border position */
+          @page { margin: 15mm; size: auto; }
           
           body { 
             margin: 0; 
@@ -34,35 +34,30 @@ export default function PrintableSOPs() {
             max-width: 100% !important; 
             width: 100% !important; 
             margin: 0 !important;
-            padding: 0 !important; /* Managed by @page margin now */
+            padding: 0 !important;
             box-shadow: none !important;
             position: relative;
             z-index: 10;
           }
 
-          /* The Border Frame - Fixed position ensures it repeats on every page */
-          /* 
-             Position is relative to the page margin box (usually 0,0 is top-left of margin box).
-             We want the border at 10mm from edge. 
-             Margin is 25mm. 
-             So we need to go OUTSIDE the margin by 15mm.
-          */
+          /* The Border Frame matches the @page margin */
           .page-frame {
             position: fixed;
-            top: -15mm; 
-            left: -15mm; 
-            right: -15mm; 
-            bottom: -15mm;
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            bottom: 0;
             border: 4px double #94a3b8;
             pointer-events: none;
-            z-index: 9999;
+            z-index: 50; /* Lower z-index to avoid covering content interactions if any */
           }
 
-          /* Content wrapper doesn't need extra padding now, body handles it */
+          /* Content wrapper adds internal padding for text */
           .content-wrapper {
             width: 100% !important;
             margin: 0 !important;
-            padding: 0 !important;
+            /* Add side padding to keep text away from border */
+            padding: 0 10mm !important; 
             position: relative;
             z-index: 10;
           }
