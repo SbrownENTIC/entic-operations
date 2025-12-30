@@ -599,12 +599,12 @@ export default function PrintableSOPs() {
 
       </div>
       </div>
+      </div>
     </div>
   );
 }
 
-function PrintSection({ title, icon, children }) {
-  const Icon = icon;
+function PrintSection({ title, icon: Icon, children }) {
   return (
     <div className="break-inside-avoid mb-8 p-6 border border-slate-200 rounded-xl bg-white shadow-sm print:shadow-none print:border-slate-300">
       <div className="flex items-center gap-3 mb-4 pb-2 border-b border-slate-200">
