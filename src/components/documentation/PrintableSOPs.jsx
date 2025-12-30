@@ -15,20 +15,81 @@ export default function PrintableSOPs() {
   });
 
   return (
-    <div className="p-8 max-w-[21cm] mx-auto bg-white text-slate-900 font-sans print-container">
+    <div className="min-h-screen bg-slate-100 py-8 print:bg-white print:py-0">
+      <div className="mx-auto bg-white text-slate-900 font-sans print-container shadow-2xl print:shadow-none max-w-[21cm] min-h-[29.7cm]">
       <style>{`
         @media print {
-          .print-container { max-width: 100% !important; padding: 0 !important; }
+          @page { margin: 0; size: auto; }
+          body { margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .print-container { max-width: 100% !important; width: 100%; margin: 0 !important; }
+          
+          /* Fixed Page Frame - Repeats on every page */
+          .page-frame {
+            position: fixed;
+            top: 15mm; left: 15mm; right: 15mm; bottom: 15mm;
+            border: 6px double #e2e8f0; /* slate-200 */
+            border-radius: 12px;
+            pointer-events: none;
+            z-index: 50;
+          }
+
+          /* Fixed Footer - Repeats on every page */
+          .page-footer {
+            position: fixed;
+            bottom: 20mm;
+            left: 15mm; right: 15mm;
+            text-align: center;
+            font-size: 10px;
+            color: #94a3b8;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 10px;
+          }
+          
+          /* Page Content Padding to fit inside frame */
+          .content-wrapper {
+            padding: 25mm; /* 15mm frame + 10mm padding */
+          }
+
           .page-break { page-break-after: always; }
           .break-inside-avoid { page-break-inside: avoid; }
           .no-print { display: none; }
           a { text-decoration: none; color: black; }
-          .toc-dots { border-bottom: 1px dotted #ccc; flex: 1; margin: 0 4px; position: relative; top: -4px; }
+        }
+        
+        /* Screen Styles for Page Look */
+        @media screen {
+          .page-frame {
+            border: 6px double #e2e8f0;
+            border-radius: 12px;
+            margin: 20px;
+            min-height: calc(100vh - 40px);
+            pointer-events: none;
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 10;
+          }
+          .content-wrapper {
+            padding: 3rem;
+            position: relative;
+            z-index: 20;
+          }
+          .page-footer {
+             display: none;
+          }
         }
       `}</style>
 
-      {/* TITLE PAGE */}
-      <div className="page-break flex flex-col items-center justify-center min-h-[85vh] text-center border-8 border-double border-slate-100 p-8 rounded-xl relative">
+      {/* Repeating Elements */}
+      <div className="page-frame"></div>
+      <div className="page-footer">
+        <span>ENTIC Operations Center SOP</span>
+        <span>{currentDate}</span>
+      </div>
+
+      <div className="content-wrapper">
+        {/* TITLE PAGE */}
+        <div className="page-break flex flex-col items-center justify-center min-h-[80vh] text-center relative">
         <div className="flex-1 flex flex-col items-center justify-center w-full">
           <div className="mb-6">
              <img 
@@ -67,7 +128,7 @@ export default function PrintableSOPs() {
       </div>
 
       {/* CONTENT */}
-      <div className="space-y-10 px-4">
+      <div className="space-y-8 mt-8">
         
         {/* System Access */}
         <PrintSection title="System Access" icon={LinkIcon}>
@@ -528,20 +589,19 @@ export default function PrintableSOPs() {
         </div>
 
       </div>
+      </div>
     </div>
   );
 }
 
 function PrintSection({ title, icon: Icon, children }) {
   return (
-    <div className="break-inside-avoid mb-8 border rounded-xl p-6 border-slate-200 bg-white shadow-sm">
-      <div className="flex items-center gap-3 mb-4 pb-2 border-b border-slate-200">
-        <div className="bg-slate-50 p-2 rounded-lg border border-slate-200">
-          <Icon className="w-5 h-5 text-slate-700" />
-        </div>
-        <h2 className="text-xl font-bold text-slate-900">{title}</h2>
+    <div className="break-inside-avoid mb-10">
+      <div className="flex items-center gap-3 mb-4 pb-2 border-b-2 border-slate-900">
+        <Icon className="w-6 h-6 text-slate-900" />
+        <h2 className="text-xl font-bold text-slate-900 uppercase tracking-tight">{title}</h2>
       </div>
-      <div className="text-sm text-slate-600 space-y-4">
+      <div className="text-sm text-slate-700 leading-relaxed space-y-4 pl-1">
         {children}
       </div>
     </div>
