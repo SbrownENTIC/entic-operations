@@ -26,9 +26,9 @@ export default function PrintableSOPs() {
           /* Fixed Page Frame - Repeats on every page */
           .page-frame {
             position: fixed;
-            top: 15mm; left: 15mm; right: 15mm; bottom: 15mm;
-            border: 6px double #e2e8f0; /* slate-200 */
-            border-radius: 12px;
+            top: 10mm; left: 10mm; right: 10mm; bottom: 10mm;
+            border: 8px double #cbd5e1; /* slate-300 */
+            border-radius: 16px;
             pointer-events: none;
             z-index: 50;
           }
@@ -36,19 +36,27 @@ export default function PrintableSOPs() {
           /* Fixed Footer - Repeats on every page */
           .page-footer {
             position: fixed;
-            bottom: 20mm;
+            bottom: 15mm;
             left: 15mm; right: 15mm;
             text-align: center;
-            font-size: 10px;
-            color: #94a3b8;
+            font-size: 9px;
+            color: #64748b;
             display: flex;
             justify-content: space-between;
             padding: 0 10px;
+            z-index: 51;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+          }
+          
+          /* Page Numbering */
+          .page-number:after {
+            content: counter(page);
           }
           
           /* Page Content Padding to fit inside frame */
           .content-wrapper {
-            padding: 25mm; /* 15mm frame + 10mm padding */
+            padding: 25mm; 
+            padding-top: 20mm;
           }
 
           .page-break { page-break-after: always; }
@@ -85,6 +93,7 @@ export default function PrintableSOPs() {
       <div className="page-footer">
         <span>ENTIC Operations Center SOP</span>
         <span>{currentDate}</span>
+        <span className="page-number">Page </span>
       </div>
 
       <div className="content-wrapper">
@@ -594,14 +603,17 @@ export default function PrintableSOPs() {
   );
 }
 
-function PrintSection({ title, icon: Icon, children }) {
+function PrintSection({ title, icon, children }) {
+  const Icon = icon;
   return (
-    <div className="break-inside-avoid mb-10">
-      <div className="flex items-center gap-3 mb-4 pb-2 border-b-2 border-slate-900">
-        <Icon className="w-6 h-6 text-slate-900" />
-        <h2 className="text-xl font-bold text-slate-900 uppercase tracking-tight">{title}</h2>
+    <div className="break-inside-avoid mb-8 p-6 border border-slate-200 rounded-xl bg-white shadow-sm print:shadow-none print:border-slate-300">
+      <div className="flex items-center gap-3 mb-4 pb-2 border-b border-slate-200">
+        <div className="p-2 bg-slate-50 rounded-lg border border-slate-100 print:bg-transparent print:border-slate-200">
+          <Icon className="w-5 h-5 text-slate-700" />
+        </div>
+        <h2 className="text-lg font-bold text-slate-900 uppercase tracking-wide">{title}</h2>
       </div>
-      <div className="text-sm text-slate-700 leading-relaxed space-y-4 pl-1">
+      <div className="text-sm text-slate-600 leading-relaxed space-y-4">
         {children}
       </div>
     </div>
