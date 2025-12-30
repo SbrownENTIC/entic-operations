@@ -126,11 +126,28 @@ export default function Licenses() {
     providerName: providers.find(p => p.id === license.provider_id)?.full_name || ''
   }));
 
-  const filteredLicenses = licensesWithProviders.filter(license =>
-    license.provider?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    license.license_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    license.internal_license_number?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredLicenses = licensesWithProviders.filter(license => {
+    const matchesSearch = license.provider?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      license.license_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      license.internal_license_number?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    if (!matchesSearch) return false;
+
+    if (filterType === 'expiring_14') {
+      return license.daysUntilExpiration <= 14 && license.daysUntilExpiration > 0;
+    }
+    if (filterType === 'expiring_30') {
+      return license.daysUntilExpiration <= 30 && license.daysUntilExpiration > 0;
+    }
+    if (filterType === 'expiring_60') {
+      return license.daysUntilExpiration <= 60 && license.daysUntilExpiration > 0;
+    }
+    if (filterType === 'expired') {
+      return license.daysUntilExpiration <= 0;
+    }
+
+    return true;
+  });
 
   const sortedLicenses = [...filteredLicenses].sort((a, b) => {
     let aValue, bValue;
