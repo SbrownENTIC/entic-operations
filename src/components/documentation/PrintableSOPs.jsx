@@ -19,60 +19,62 @@ export default function PrintableSOPs() {
       <div className="mx-auto bg-white text-slate-900 font-sans print-container shadow-2xl print:shadow-none max-w-[21cm] min-h-[29.7cm]">
       <style>{`
         @media print {
-          @page { margin: 20mm; size: auto; }
-          body { margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .print-container { max-width: 100% !important; width: 100%; margin: 0 !important; }
+          @page { margin: 0; size: auto; }
+          body { 
+            margin: 0; 
+            padding: 0; 
+            -webkit-print-color-adjust: exact; 
+            print-color-adjust: exact; 
+            background-color: white;
+          }
+          
+          .print-container { 
+            max-width: 100% !important; 
+            width: 100%; 
+            margin: 0 !important; 
+          }
 
-          /* Fixed Page Frame - Placed inside the page margins using negative positioning */
+          /* REPEATING BORDER FRAME */
           .page-frame {
             position: fixed;
-            /* @page margin is 20mm. We want border at ~8mm from edge. 
-               So we move -12mm out from the 20mm margin start. */
-            top: -12mm; left: -12mm; right: -12mm; bottom: -12mm;
+            top: 5mm; 
+            left: 5mm; 
+            right: 5mm; 
+            bottom: 5mm;
             border: 4px double #94a3b8;
             pointer-events: none;
             z-index: 9999;
           }
 
-          /* Fixed Footer */
-          .page-footer {
-            position: fixed;
-            bottom: -15mm; /* Move into bottom margin */
-            left: 0; right: 0;
-            text-align: right;
-            font-size: 10px;
-            color: #64748b;
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
-            z-index: 10000;
-            background-color: transparent;
-          }
-
-          /* Page Content */
+          /* CONTENT PADDING */
+          /* Pushes content away from the fixed border */
           .content-wrapper {
-            margin: 0;
-            padding: 0;
+            width: 100%;
+            padding-top: 20mm;
+            padding-bottom: 20mm;
+            padding-left: 20mm;
+            padding-right: 20mm;
             position: relative;
             z-index: 10;
-          }
-
-          @page {
-            margin: 0;
-            size: auto;
+            box-sizing: border-box;
           }
 
           .page-break { page-break-after: always; break-after: page; }
+          
           .break-inside-avoid { 
             page-break-inside: avoid; 
             break-inside: avoid;
-            display: block; /* Ensure block formatting context */
+            display: block; 
           }
+          
           .no-print { display: none; }
           a { text-decoration: none; color: black; }
+          
+          /* Footer hidden as requested */
+          .page-footer { display: none; }
         }
         
-        /* Screen Styles for Page Look */
+        /* SCREEN STYLES */
         @media screen {
           .page-frame {
             border: 6px double #e2e8f0;
