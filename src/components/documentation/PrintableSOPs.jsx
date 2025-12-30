@@ -19,8 +19,8 @@ export default function PrintableSOPs() {
       <div className="mx-auto bg-white text-slate-900 font-sans print-container shadow-2xl print:shadow-none max-w-[21cm] min-h-[29.7cm]">
       <style>{`
         @media print {
-          /* Zero page margins so we can control everything via body padding */
-          @page { margin: 0; size: auto; }
+          /* Standard page margins ensure content flows correctly on ALL pages */
+          @page { margin: 25mm; size: auto; }
           
           body { 
             margin: 0; 
@@ -28,30 +28,31 @@ export default function PrintableSOPs() {
             -webkit-print-color-adjust: exact; 
             print-color-adjust: exact; 
             background-color: white;
-            box-sizing: border-box;
           }
           
-          /* Reset container widths */
           .print-container { 
             max-width: 100% !important; 
             width: 100% !important; 
             margin: 0 !important;
-            /* Add padding here to the container instead of body */
-            padding: 25mm !important; 
-            box-sizing: border-box !important;
+            padding: 0 !important; /* Managed by @page margin now */
             box-shadow: none !important;
             position: relative;
             z-index: 10;
           }
 
           /* The Border Frame - Fixed position ensures it repeats on every page */
-          /* Placed at 10mm from edge, giving 15mm clearance to the content at 25mm padding */
+          /* 
+             Position is relative to the page margin box (usually 0,0 is top-left of margin box).
+             We want the border at 10mm from edge. 
+             Margin is 25mm. 
+             So we need to go OUTSIDE the margin by 15mm.
+          */
           .page-frame {
             position: fixed;
-            top: 10mm; 
-            left: 10mm; 
-            right: 10mm; 
-            bottom: 10mm;
+            top: -15mm; 
+            left: -15mm; 
+            right: -15mm; 
+            bottom: -15mm;
             border: 4px double #94a3b8;
             pointer-events: none;
             z-index: 9999;
