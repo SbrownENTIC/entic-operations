@@ -467,7 +467,7 @@ export default function PrintableSOPs() {
 
         {/* 19. Maintenance Tools */}
         <PrintSection title="19. Maintenance Tools" icon={RefreshCw}>
-          <p>Tools to keep data clean and accurate.</p>
+          <p>Tools to keep data clean and accurate. <span className="font-bold text-red-600 ml-2">⚠️ For System Admin ONLY</span></p>
           <div className="grid grid-cols-3 gap-4 mt-4">
             <div className="border rounded-lg p-3 bg-slate-50">
               <strong className="block text-sm font-bold text-slate-900 mb-1">Sync Henry Schein</strong>
