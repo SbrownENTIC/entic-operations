@@ -85,7 +85,7 @@ export default function SummaryCardsWidget({
           </CardHeader>
           <CardContent className="pt-3">
             <div className="text-4xl font-bold text-red-700 mb-1">{licensesExpiring14Days.length}</div>
-            <Link to={createPageUrl("Licenses")} className="text-xs text-red-700 hover:text-red-900 font-semibold hover:underline">
+            <Link to={createPageUrl("Licenses") + "?filter=expiring_14"} className="text-xs text-red-700 hover:text-red-900 font-semibold hover:underline">
               View licenses →
             </Link>
           </CardContent>
