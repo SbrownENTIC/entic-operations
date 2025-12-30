@@ -627,7 +627,6 @@ export default function PrintableSOPs() {
         </table>
       </div>
     </div>
-    </div>
   );
 }
 
