@@ -163,9 +163,9 @@ function LayoutContent({ children, currentPageName }) {
   // Update document title based on page
   React.useEffect(() => {
     if (currentPageName === 'PublicSupplyRequest') {
-      document.title = "ENTIC Supply Order Request Form";
+      document.title = "ENTIC Supply Order Form";
     } else {
-      document.title = "ENTIC Operations";
+      document.title = "ENTIC Operations Center";
     }
   }, [currentPageName]);
 
