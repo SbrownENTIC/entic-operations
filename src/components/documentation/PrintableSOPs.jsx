@@ -27,9 +27,8 @@ export default function PrintableSOPs() {
           .page-frame {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            border: 4px double #94a3b8;
+            border: 1px solid #94a3b8;
             margin: 5mm;
-            border-radius: 8px;
             pointer-events: none;
             z-index: 9999;
           }
@@ -39,17 +38,22 @@ export default function PrintableSOPs() {
             position: fixed;
             bottom: 8mm;
             left: 8mm; right: 8mm;
-            text-align: center;
-            font-size: 9px;
+            text-align: right;
+            font-size: 10px;
             color: #64748b;
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-end;
             align-items: center;
             padding: 0 20px;
             z-index: 10000;
             background-color: white;
-            border-top: 1px solid #e2e8f0;
-            padding-top: 4px;
+          }
+
+          /* Page Numbering */
+          .page-number::after {
+            content: "Page " counter(page);
+            font-weight: 600;
+            color: #334155;
           }
           
           /* Page Content Padding to fit inside frame */
@@ -106,21 +110,20 @@ export default function PrintableSOPs() {
         {/* TITLE PAGE */}
         <div className="page-break flex flex-col items-center justify-center min-h-[80vh] text-center relative">
         <div className="flex-1 flex flex-col items-center justify-center w-full">
-          <div className="mb-6">
+          <div className="mb-12">
              <img 
                 src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/691521cbabed77e5043c7037/267bf0119_thumbnail_ENTIC_horizontal_BKGD.png" 
                 alt="ENTIC Logo" 
-                className="h-32 w-auto object-contain mx-auto"
+                className="h-24 w-auto object-contain mx-auto grayscale"
               />
           </div>
           
-          <h1 className="text-5xl font-extrabold text-slate-900 mb-2 tracking-tight">OPERATIONS CENTER</h1>
-          <div className="h-1 w-32 bg-blue-600 mx-auto my-6"></div>
-          <h2 className="text-3xl text-slate-600 font-light uppercase tracking-widest mb-12">Standard Operating Procedures</h2>
+          <h1 className="text-4xl font-bold text-slate-900 mb-4 tracking-wider uppercase">Operations Manual</h1>
+          <div className="h-0.5 w-24 bg-slate-900 mx-auto my-8"></div>
+          <h2 className="text-xl text-slate-600 uppercase tracking-[0.2em] mb-16">Standard Operating Procedures</h2>
           
-          <div className="bg-slate-50 p-8 rounded-xl border border-slate-200 w-full max-w-2xl mx-auto shadow-sm">
-            <h3 className="text-lg font-bold mb-6 text-slate-800 uppercase tracking-wide border-b pb-4">Table of Contents</h3>
-            <div className="grid grid-cols-2 gap-x-12 gap-y-3 text-left text-sm">
+          <div className="w-full max-w-3xl mx-auto mt-8">
+            <div className="grid grid-cols-2 gap-x-16 gap-y-2 text-left text-xs font-medium text-slate-600">
               {[
                 "System Access", "Dashboard", "Providers", "On-Call Schedule", 
                 "Outside Income", "Invoices", "Payments", "Office Supply Orders",
