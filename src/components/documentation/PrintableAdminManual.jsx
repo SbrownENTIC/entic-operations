@@ -321,7 +321,6 @@ export default function PrintableAdminManual() {
               Please email your system administrator <strong>Steve Brown</strong> at <a href="mailto:steve.brown@enticmd.com" className="text-blue-600 hover:underline">steve.brown@enticmd.com</a>.
             </p>
           </div>
-
         </div>
       </section>
 
