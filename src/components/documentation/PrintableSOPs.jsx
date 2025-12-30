@@ -116,7 +116,17 @@ export default function PrintableSOPs() {
       </div>
 
       <div className="content-wrapper">
-        {/* TITLE PAGE */}
+        <table className="print-table">
+          <thead>
+            <tr><td><div className="print-table-header"></div></td></tr>
+          </thead>
+          <tfoot>
+            <tr><td><div className="print-table-footer"></div></td></tr>
+          </tfoot>
+          <tbody>
+            <tr>
+              <td>
+                {/* TITLE PAGE */}
         <div className="page-break flex flex-col items-center justify-center min-h-[80vh] text-center relative">
         <div className="flex-1 flex flex-col items-center justify-center w-full">
           <div className="mb-12">
@@ -150,11 +160,8 @@ export default function PrintableSOPs() {
           </div>
         </div>
 
-
-      </div>
-
-      {/* CONTENT */}
-      <div className="space-y-8 mt-8">
+        {/* CONTENT */}
+        <div className="space-y-8 mt-8">
         
         {/* System Access */}
         <PrintSection title="System Access" icon={LinkIcon}>
