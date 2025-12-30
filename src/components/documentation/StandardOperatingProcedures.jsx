@@ -166,9 +166,41 @@ export default function StandardOperatingProcedures() {
                 </ol>
               </Step>
 
-              <Step title="Workflows">
+              <Step title="Managing Invoice Files">
+                <p className="mb-2">Once an invoice is created, you manage its lifecycle by attaching PDFs:</p>
+                <ol className="list-decimal pl-5 space-y-2">
+                    <li><strong>Draft Invoice:</strong> In the invoice form (or via action buttons), upload the initial PDF. This is for internal review.</li>
+                    <li><strong>Approved Invoice:</strong> Once the draft is approved/signed, upload the final PDF.
+                        <ul className="list-disc pl-5 mt-1">
+                            <li><strong>Auto-Status Update:</strong> Uploading an "Approved Invoice" automatically updates the status to <strong>Approved</strong>.</li>
+                        </ul>
+                    </li>
+                </ol>
+              </Step>
+
+              <Step title="Syncing to Vendor (Airtable)">
+                <p className="mb-2">To send the invoice to the vendor (AP Department):</p>
+                <ol className="list-decimal pl-5 space-y-2">
+                    <li>Ensure the <strong>Approved Invoice</strong> PDF is uploaded.</li>
+                    <li>Click the <strong>Cloud Upload (Sync)</strong> button on the invoice row.</li>
+                    <li>Confirm the sync. This sends the data and PDF to Airtable/Notification system which triggers the email to the vendor.</li>
+                    <li>The status will automatically update to <strong>Sent to Vendor</strong>.</li>
+                </ol>
+              </Step>
+
+              <Step title="Action Buttons Guide">
+                 <p className="mb-2">Use the icons on the right side of the invoice list:</p>
+                 <ul className="list-disc pl-5 space-y-2">
+                    <li><strong className="text-blue-600">File Down (⬇️):</strong> <strong>Generate PDF</strong>. Creates the official PDF template (UConn/Manchester) based on the invoice data.</li>
+                    <li><strong className="text-teal-600">Upload (⬆️):</strong> <strong>Quick Upload</strong>. Quickly upload the "Approved" PDF without opening the full edit form. Automatically updates status to "Approved".</li>
+                    <li><strong className="text-indigo-600">Cloud (☁️):</strong> <strong>Sync to Airtable</strong>. Sends the approved invoice to the vendor. (Only active for UConn, Manchester, Hartford). Updates status to "Sent to Vendor".</li>
+                    <li><strong className="text-purple-600">Eye (👁️):</strong> <strong>View Draft</strong>. Opens the attached draft PDF.</li>
+                    <li><strong className="text-red-600">Trash (🗑️):</strong> <strong>Delete</strong>. Removes the invoice and resets linked income records to "Pending".</li>
+                 </ul>
+              </Step>
+
+              <Step title="Facility-Specific Workflows">
                 <ul className="list-disc pl-5 space-y-2">
-                  <li><strong>UConn/Manchester:</strong> Click the "File Down" (⬇️) icon to generate the official PDF. Then use the Cloud icon to sync/email it.</li>
                   <li><strong>Hartford Hospital:</strong> When you create the RVU Outside Income record, the system automatically creates the Directorship Outside Income record. When creating the invoice, simply select both records to include them.</li>
                   <li><strong>St. Francis (Dr. Seth Brown):</strong> Similar to Hartford, when an On-Call shift is created for Dr. Seth Brown, the system automatically creates the Directorship Outside Income record. Select both when creating the invoice.</li>
                 </ul>
