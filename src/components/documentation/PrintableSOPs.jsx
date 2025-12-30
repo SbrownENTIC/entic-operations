@@ -19,62 +19,66 @@ export default function PrintableSOPs() {
       <div className="mx-auto bg-white text-slate-900 font-sans print-container shadow-2xl print:shadow-none max-w-[21cm] min-h-[29.7cm]">
       <style>{`
         @media print {
+          /* Zero page margins so we can control everything via body padding */
           @page { margin: 0; size: auto; }
+          
+          /* The body padding creates the safe area for content */
           body { 
             margin: 0; 
-            padding: 0; 
+            padding: 25mm !important; /* Large padding to push content inside the border */
             -webkit-print-color-adjust: exact; 
             print-color-adjust: exact; 
             background-color: white;
+            box-sizing: border-box;
           }
           
+          /* Reset container widths */
           .print-container { 
             max-width: 100% !important; 
-            width: 100%; 
+            width: 100% !important; 
             margin: 0 !important; 
+            padding: 0 !important;
+            box-shadow: none !important;
           }
 
-          /* REPEATING BORDER FRAME */
+          /* The Border Frame - Fixed position ensures it repeats on every page */
+          /* Placed at 10mm from edge, giving 15mm clearance to the content at 25mm padding */
           .page-frame {
             position: fixed;
-            top: 5mm; 
-            left: 5mm; 
-            right: 5mm; 
-            bottom: 5mm;
+            top: 10mm; 
+            left: 10mm; 
+            right: 10mm; 
+            bottom: 10mm;
             border: 4px double #94a3b8;
             pointer-events: none;
             z-index: 9999;
           }
 
-          /* CONTENT PADDING */
-          /* Pushes content away from the fixed border */
+          /* Content wrapper doesn't need extra padding now, body handles it */
           .content-wrapper {
-            width: 100%;
-            padding-top: 20mm;
-            padding-bottom: 20mm;
-            padding-left: 20mm;
-            padding-right: 20mm;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
             position: relative;
             z-index: 10;
-            box-sizing: border-box;
           }
 
           .page-break { page-break-after: always; break-after: page; }
           
+          /* Allow breaks inside sections if they are long, but keep headers with content */
           .break-inside-avoid { 
             page-break-inside: avoid; 
             break-inside: avoid;
             display: block; 
           }
           
-          .no-print { display: none; }
-          a { text-decoration: none; color: black; }
+          .no-print { display: none !important; }
+          a { text-decoration: none !important; color: black !important; }
           
-          /* Footer hidden as requested */
           .page-footer { display: none; }
         }
         
-        /* SCREEN STYLES */
+        /* SCREEN STYLES - Unchanged */
         @media screen {
           .page-frame {
             border: 6px double #e2e8f0;
