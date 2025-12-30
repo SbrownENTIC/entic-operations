@@ -169,7 +169,8 @@ export default function StandardOperatingProcedures() {
               <Step title="Workflows">
                 <ul className="list-disc pl-5 space-y-2">
                   <li><strong>UConn/Manchester:</strong> Click the "File Down" (⬇️) icon to generate the official PDF. Then use the Cloud icon to sync/email it.</li>
-                  <li><strong>Hartford Hospital:</strong> The system automatically detects Directorships when creating RVU invoices and offers to create the Directorship invoice simultaneously.</li>
+                  <li><strong>Hartford Hospital:</strong> When you create the RVU Outside Income record, the system automatically creates the Directorship Outside Income record. When creating the invoice, simply select both records to include them.</li>
+                  <li><strong>St. Francis (Dr. Seth Brown):</strong> Similar to Hartford, when an On-Call shift is created for Dr. Seth Brown, the system automatically creates the Directorship Outside Income record. Select both when creating the invoice.</li>
                 </ul>
               </Step>
             </Section>
