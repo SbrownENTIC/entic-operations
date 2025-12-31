@@ -4,7 +4,8 @@ import {
   Package, ShoppingCart, Clock, Bell, Shield, 
   BarChart3, FolderOpen, Award, GraduationCap, 
   BookOpen, Settings, LayoutDashboard, RefreshCw,
-  ClipboardList, CheckCircle2, Link as LinkIcon
+  ClipboardList, CheckCircle2, Link as LinkIcon,
+  FileDown, Upload, CloudUpload, Eye, Trash2
 } from "lucide-react";
 
 export default function PrintableSOPs() {
@@ -285,6 +286,49 @@ export default function PrintableSOPs() {
                 <li>Confirm the sync. This sends the data and PDF to Airtable for email automations to improve workflow, which triggers the email to the vendor.</li>
                 <li>The status will automatically update to <strong>Sent to Vendor</strong>.</li>
               </ol>
+            </div>
+          </div>
+
+          <div className="mt-4 border rounded-lg p-4 bg-slate-50 break-inside-avoid">
+            <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>Action Buttons Guide
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-4 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-white border border-slate-200 rounded text-blue-600 shadow-sm"><FileDown className="w-4 h-4" /></div>
+                <div>
+                  <span className="font-bold text-slate-900">Generate PDF</span>
+                  <div className="text-xs text-slate-500">Create official template (UConn/ECHN)</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-white border border-slate-200 rounded text-teal-600 shadow-sm"><Upload className="w-4 h-4" /></div>
+                <div>
+                  <span className="font-bold text-slate-900">Quick Upload</span>
+                  <div className="text-xs text-slate-500">Upload approved/signed PDF</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-white border border-slate-200 rounded text-indigo-600 shadow-sm"><CloudUpload className="w-4 h-4" /></div>
+                <div>
+                  <span className="font-bold text-slate-900">Sync to Vendor</span>
+                  <div className="text-xs text-slate-500">Send to Airtable/AP Dept</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-white border border-slate-200 rounded text-purple-600 shadow-sm"><Eye className="w-4 h-4" /></div>
+                <div>
+                  <span className="font-bold text-slate-900">View Draft</span>
+                  <div className="text-xs text-slate-500">View current attachment</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-white border border-slate-200 rounded text-red-600 shadow-sm"><Trash2 className="w-4 h-4" /></div>
+                <div>
+                  <span className="font-bold text-slate-900">Delete</span>
+                  <div className="text-xs text-slate-500">Remove invoice & reset income</div>
+                </div>
+              </div>
             </div>
           </div>
         </PrintSection>

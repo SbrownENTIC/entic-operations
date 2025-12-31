@@ -22,7 +22,12 @@ import {
   FolderOpen,
   Award,
   BookOpen,
-  CheckCircle2
+  CheckCircle2,
+  FileDown, 
+  Upload, 
+  CloudUpload, 
+  Eye, 
+  Trash2
 } from "lucide-react";
 
 export default function PrintableManual() {
@@ -243,11 +248,54 @@ export default function PrintableManual() {
 
             <Step title="Specific Workflows">
               <ul className="list-disc pl-5 space-y-2">
-                <li><strong>UConn & Manchester:</strong> Once created, click the <strong>"File Down" (⬇️)</strong> icon to generate the official PDF. Then click the <strong>"Cloud"</strong> icon to sync it to Airtable for email automations to improve workflow.</li>
+                <li><strong>UConn & Manchester:</strong> Once created, click the <strong>Generate PDF</strong> button (<FileDown className="w-3 h-3 inline text-blue-600"/>) to create the official PDF. Then click <strong>Sync to Vendor</strong> (<CloudUpload className="w-3 h-3 inline text-indigo-600"/>) to send it to Airtable for automation.</li>
                 <li><strong>Hartford Hospital:</strong> Creating an RVU invoice will check for Directorships. If found, the system asks to auto-create a separate Directorship invoice.</li>
                 <li><strong>St. Francis:</strong> Income is typically auto-generated from the On-Call Schedule. Create a standard invoice and link these pending records to bill them.</li>
               </ul>
             </Step>
+
+            <div className="mt-4 border rounded-lg p-4 bg-slate-50 break-inside-avoid">
+              <h4 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>Action Buttons Guide
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-white border border-slate-200 rounded text-blue-600 shadow-sm"><FileDown className="w-4 h-4" /></div>
+                  <div>
+                    <span className="font-bold text-slate-900">Generate PDF</span>
+                    <div className="text-xs text-slate-500">Create official template (UConn/ECHN)</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-white border border-slate-200 rounded text-teal-600 shadow-sm"><Upload className="w-4 h-4" /></div>
+                  <div>
+                    <span className="font-bold text-slate-900">Quick Upload</span>
+                    <div className="text-xs text-slate-500">Upload approved/signed PDF</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-white border border-slate-200 rounded text-indigo-600 shadow-sm"><CloudUpload className="w-4 h-4" /></div>
+                  <div>
+                    <span className="font-bold text-slate-900">Sync to Vendor</span>
+                    <div className="text-xs text-slate-500">Send to Airtable/AP Dept</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-white border border-slate-200 rounded text-purple-600 shadow-sm"><Eye className="w-4 h-4" /></div>
+                  <div>
+                    <span className="font-bold text-slate-900">View Draft</span>
+                    <div className="text-xs text-slate-500">View current attachment</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-white border border-slate-200 rounded text-red-600 shadow-sm"><Trash2 className="w-4 h-4" /></div>
+                  <div>
+                    <span className="font-bold text-slate-900">Delete</span>
+                    <div className="text-xs text-slate-500">Remove invoice & reset income</div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </PrintSection>
 
           {/* 6. Payments */}

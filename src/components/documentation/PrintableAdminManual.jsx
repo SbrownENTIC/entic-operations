@@ -13,7 +13,9 @@ import {
   Cloud,
   AlertTriangle,
   FileText,
-  Bell
+  Bell,
+  FileDown, 
+  CloudUpload
 } from "lucide-react";
 
 export default function PrintableAdminManual() {
@@ -233,7 +235,7 @@ export default function PrintableAdminManual() {
                   <strong>PDF Gen:</strong> <code>generateUConnPDF</code> runs. It pulls the template, fills fields, and saves the PDF to the Storage bucket. Returns a public URL.
                 </li>
                 <li>
-                  <strong>Sync Trigger:</strong> Admin clicks "Cloud" icon. Frontend calls <code>syncUConnInvoiceToAirtable</code>.
+                  <strong>Sync Trigger:</strong> Admin clicks <CloudUpload className="w-3 h-3 inline text-indigo-600"/> <strong>Sync to Vendor</strong>. Frontend calls <code>syncUConnInvoiceToAirtable</code>.
                 </li>
                 <li>
                   <strong>Airtable Push:</strong> Function creates record in <strong>Notifications</strong> table.
