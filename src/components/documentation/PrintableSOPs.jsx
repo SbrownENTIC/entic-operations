@@ -282,7 +282,8 @@ export default function PrintableSOPs() {
               <p className="mb-2">To send the invoice to the vendor (AP Department):</p>
               <ol className="list-decimal pl-5 space-y-2">
                 <li>Ensure the <strong>Approved Invoice</strong> PDF is uploaded.</li>
-                <li>Click the <strong>Cloud Upload (Sync)</strong> button on the invoice row.</li>
+                <li>Click the <strong>Sync to Vendor</strong> button (<CloudUpload className="w-3 h-3 inline text-indigo-600"/>). <br/>
+                <span className="text-xs text-slate-500 italic">Note: Check the badge: <strong>HH</strong> for Hartford, <strong>UC</strong> for UConn, <strong>M</strong> for Manchester.</span></li>
                 <li>Confirm the sync. This sends the data and PDF to Airtable for email automations to improve workflow, which triggers the email to the vendor.</li>
                 <li>The status will automatically update to <strong>Sent to Vendor</strong>.</li>
               </ol>
@@ -312,7 +313,7 @@ export default function PrintableSOPs() {
                 <div className="p-1.5 bg-white border border-slate-200 rounded text-indigo-600 shadow-sm"><CloudUpload className="w-4 h-4" /></div>
                 <div>
                   <span className="font-bold text-slate-900">Sync to Vendor</span>
-                  <div className="text-xs text-slate-500">Send to Airtable/AP Dept</div>
+                  <div className="text-xs text-slate-500">Send to Airtable (Badges: <strong>HH</strong>=Hartford, <strong>UC</strong>=UConn, <strong>M</strong>=Manchester)</div>
                 </div>
               </div>
               <div className="flex items-center gap-2">

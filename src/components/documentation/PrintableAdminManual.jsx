@@ -235,7 +235,7 @@ export default function PrintableAdminManual() {
                   <strong>PDF Gen:</strong> <code>generateUConnPDF</code> runs. It pulls the template, fills fields, and saves the PDF to the Storage bucket. Returns a public URL.
                 </li>
                 <li>
-                  <strong>Sync Trigger:</strong> Admin clicks <CloudUpload className="w-3 h-3 inline text-indigo-600"/> <strong>Sync to Vendor</strong>. Frontend calls <code>syncUConnInvoiceToAirtable</code>.
+                  <strong>Sync Trigger:</strong> Admin clicks <CloudUpload className="w-3 h-3 inline text-indigo-600"/> <strong>Sync to Vendor</strong> (Badge: <strong>UC</strong>). Frontend calls <code>syncUConnInvoiceToAirtable</code>.
                 </li>
                 <li>
                   <strong>Airtable Push:</strong> Function creates record in <strong>Notifications</strong> table.
@@ -260,6 +260,7 @@ export default function PrintableAdminManual() {
               <li>CC: steve.brown@enticmd.com</li>
               <li>Subject: "Manchester [Month] Invoices"</li>
             </ul>
+            <p className="text-xs mt-2 text-slate-500"><em>Trigger via Sync Button with <strong>M</strong> badge.</em></p>
           </PrintSection>
 
           {/* 6. Workflow: Hartford & St. Francis */}

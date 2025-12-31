@@ -248,8 +248,10 @@ export default function PrintableManual() {
 
             <Step title="Specific Workflows">
               <ul className="list-disc pl-5 space-y-2">
-                <li><strong>UConn & Manchester:</strong> Once created, click the <strong>Generate PDF</strong> button (<FileDown className="w-3 h-3 inline text-blue-600"/>) to create the official PDF. Then click <strong>Sync to Vendor</strong> (<CloudUpload className="w-3 h-3 inline text-indigo-600"/>) to send it to Airtable for automation.</li>
-                <li><strong>Hartford Hospital:</strong> Creating an RVU invoice will check for Directorships. If found, the system asks to auto-create a separate Directorship invoice.</li>
+                <li><strong>UConn & Manchester:</strong> Once created, click the <strong>Generate PDF</strong> button (<FileDown className="w-3 h-3 inline text-blue-600"/>) to create the official PDF. Then click <strong>Sync to Vendor</strong> (<CloudUpload className="w-3 h-3 inline text-indigo-600"/>) to send it to Airtable. <br/>
+                <span className="text-xs text-slate-500 italic">Look for the badge: <strong>UC</strong> (UConn) or <strong>M</strong> (Manchester) on the cloud icon.</span></li>
+                <li><strong>Hartford Hospital:</strong> Creating an RVU invoice will check for Directorships. If found, the system asks to auto-create a separate Directorship invoice. <br/>
+                <span className="text-xs text-slate-500 italic">To sync, use the button with the <strong>HH</strong> badge.</span></li>
                 <li><strong>St. Francis:</strong> Income is typically auto-generated from the On-Call Schedule. Create a standard invoice and link these pending records to bill them.</li>
               </ul>
             </Step>
@@ -277,7 +279,7 @@ export default function PrintableManual() {
                   <div className="p-1.5 bg-white border border-slate-200 rounded text-indigo-600 shadow-sm"><CloudUpload className="w-4 h-4" /></div>
                   <div>
                     <span className="font-bold text-slate-900">Sync to Vendor</span>
-                    <div className="text-xs text-slate-500">Send to Airtable/AP Dept</div>
+                    <div className="text-xs text-slate-500">Send to Airtable (Badges: <strong>HH</strong>=Hartford, <strong>UC</strong>=UConn, <strong>M</strong>=Manchester)</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

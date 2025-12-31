@@ -199,7 +199,8 @@ export default function StandardOperatingProcedures() {
                  <ul className="list-disc pl-5 space-y-2">
                     <li><strong className="text-blue-600">File Down (⬇️):</strong> <strong>Generate PDF</strong>. Creates the official PDF template (UConn/Manchester) based on the invoice data.</li>
                     <li><strong className="text-teal-600">Upload (⬆️):</strong> <strong>Quick Upload</strong>. Quickly upload the "Approved" PDF without opening the full edit form. Automatically updates status to "Approved".</li>
-                    <li><strong className="text-indigo-600">Cloud (☁️):</strong> <strong>Sync to Airtable</strong>. Sends the approved invoice to the vendor. (Only active for UConn, Manchester, Hartford). Updates status to "Sent to Vendor".</li>
+                    <li><strong className="text-indigo-600">Cloud (☁️):</strong> <strong>Sync to Airtable</strong>. Sends the approved invoice to the vendor. Updates status to "Sent to Vendor". <br/>
+                    <span className="text-xs text-slate-500 italic ml-6">Badges: <strong>HH</strong> = Hartford, <strong>UC</strong> = UConn, <strong>M</strong> = Manchester.</span></li>
                     <li><strong className="text-purple-600">Eye (👁️):</strong> <strong>View Draft</strong>. Opens the attached draft PDF.</li>
                     <li><strong className="text-red-600">Trash (🗑️):</strong> <strong>Delete</strong>. Removes the invoice and resets linked income records to "Pending".</li>
                  </ul>
