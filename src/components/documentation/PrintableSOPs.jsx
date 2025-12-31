@@ -165,7 +165,7 @@ export default function PrintableSOPs() {
               <div className="text-xs text-blue-700 font-mono break-all">https://enticmd-operations-team.base44.app</div>
             </div>
             <div className="p-4 bg-green-50 rounded-lg border border-green-100">
-              <strong className="block font-semibold text-green-900 mb-2">Public Supply Request</strong>
+              <strong className="block font-semibold text-green-900 mb-2">Public Supply Request Form</strong>
               <div className="text-xs text-green-700 font-mono break-all">https://enticmd-operations-team.base44.app/PublicSupplyRequest</div>
             </div>
           </div>
@@ -287,6 +287,37 @@ export default function PrintableSOPs() {
                 <li>The status will automatically update to <strong>Sent to Vendor</strong>.</li>
               </ol>
             </div>
+          </div>
+
+          <div className="space-y-2 mt-4">
+              <h4 className="font-semibold text-slate-800 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>Action Buttons Guide
+              </h4>
+              <div className="ml-4 space-y-3">
+                <p className="mb-2 text-sm text-slate-600">Use the icons on the right side of the invoice list:</p>
+                <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 mt-0.5 p-1 bg-blue-50 rounded text-blue-600"><FileDown className="w-4 h-4" /></div>
+                      <div className="text-sm"><strong>Generate PDF:</strong> Creates the official PDF template (UConn/Manchester) based on the invoice data.</div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 mt-0.5 p-1 bg-teal-50 rounded text-teal-600"><Upload className="w-4 h-4" /></div>
+                      <div className="text-sm"><strong>Quick Upload:</strong> Quickly upload the "Approved" PDF without opening the full edit form. Automatically updates status to "Approved".</div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 mt-0.5 p-1 bg-indigo-50 rounded text-indigo-600"><CloudUpload className="w-4 h-4" /></div>
+                      <div className="text-sm"><strong>Sync to Airtable:</strong> Sends the approved invoice to the vendor (email). Only active for UConn, Manchester, Hartford. Updates status to "Sent to Vendor".</div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 mt-0.5 p-1 bg-purple-50 rounded text-purple-600"><Eye className="w-4 h-4" /></div>
+                      <div className="text-sm"><strong>View Draft:</strong> Opens the attached draft PDF.</div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 mt-0.5 p-1 bg-red-50 rounded text-red-600"><Trash2 className="w-4 h-4" /></div>
+                      <div className="text-sm"><strong>Delete:</strong> Removes the invoice and resets linked income records to "Pending".</div>
+                    </div>
+                 </div>
+              </div>
           </div>
         </PrintSection>
 
