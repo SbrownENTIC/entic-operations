@@ -237,13 +237,26 @@ export default function PrintableManual() {
             <p className="mb-3">The <strong>Invoices</strong> module groups individual income records into a formal bill for a facility.</p>
 
             <Step title="Creating an Invoice">
-              <ol className="list-decimal pl-5 space-y-2">
-                <li>Go to <strong>Invoices</strong> -> <strong>Create Invoice</strong>.</li>
-                <li>Select <strong>Program Group</strong> (e.g., UConn) and <strong>Staff Member</strong>.</li>
-                <li>The system automatically finds all <em>Pending</em> income for that provider/program.</li>
-                <li><strong>Link Income:</strong> Select the shifts you want to bill for. The invoice total is auto-calculated.</li>
-                <li><strong>Save.</strong></li>
-              </ol>
+              <div className="space-y-4">
+                <div>
+                  <strong className="text-sm block mb-1">Option 1: Via Invoices Module</strong>
+                  <ol className="list-decimal pl-5 space-y-1">
+                    <li>Go to <strong>Invoices</strong> -> <strong>Create Invoice</strong>.</li>
+                    <li>Select <strong>Program Group</strong> and <strong>Staff Member</strong>.</li>
+                    <li>Select the <strong>Pending Income</strong> records to include.</li>
+                    <li>Click <strong>Save</strong>.</li>
+                  </ol>
+                </div>
+                <div>
+                  <strong className="text-sm block mb-1">Option 2: Via Outside Income Module</strong>
+                  <ol className="list-decimal pl-5 space-y-1">
+                    <li>Go to <strong>Outside Income</strong>.</li>
+                    <li>Select multiple <strong>Pending</strong> records using the checkboxes.</li>
+                    <li>Click <strong>Create Invoice</strong> at the top of the page.</li>
+                    <li>Review the pre-filled invoice and click <strong>Save</strong>.</li>
+                  </ol>
+                </div>
+              </div>
             </Step>
 
             <Step title="Specific Workflows">

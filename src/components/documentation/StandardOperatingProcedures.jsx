@@ -162,14 +162,26 @@ export default function StandardOperatingProcedures() {
               <p>Group income records into invoices for billing facilities.</p>
 
               <Step title="Creating an Invoice">
-                <ol className="list-decimal pl-5 space-y-2">
-                  <li>Navigate to <strong>Invoices</strong>.</li>
-                  <li>Click <strong>Create Invoice</strong>.</li>
-                  <li>Select <strong>Program Group</strong> (e.g., UConn, Hartford Hospital).</li>
-                  <li>Select <strong>Staff Member</strong>.</li>
-                  <li>Check the boxes for the <strong>Pending Income</strong> records to include.</li>
-                  <li>Click <strong>Create Invoice</strong>.</li>
-                </ol>
+                <div className="space-y-4">
+                  <div>
+                    <strong className="text-sm block mb-1">Method A: From Invoices Page</strong>
+                    <ol className="list-decimal pl-5 space-y-1">
+                      <li>Navigate to <strong>Invoices</strong> and click <strong>Create Invoice</strong>.</li>
+                      <li>Select <strong>Program Group</strong> and <strong>Staff Member</strong>.</li>
+                      <li>Check the boxes for the <strong>Pending Income</strong> records to include.</li>
+                      <li>Click <strong>Create Invoice</strong>.</li>
+                    </ol>
+                  </div>
+                  <div>
+                    <strong className="text-sm block mb-1">Method B: From Outside Income Page</strong>
+                    <ol className="list-decimal pl-5 space-y-1">
+                      <li>Navigate to <strong>Outside Income</strong>.</li>
+                      <li>Select the checkboxes next to the <strong>Pending</strong> records you want to bill.</li>
+                      <li>Click the <strong>Create Invoice</strong> button in the top action bar.</li>
+                      <li>The Invoice form opens with those items pre-selected.</li>
+                    </ol>
+                  </div>
+                </div>
               </Step>
 
               <Step title="Managing Invoice Files">
