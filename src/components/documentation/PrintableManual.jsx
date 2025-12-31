@@ -22,8 +22,7 @@ import {
   FolderOpen,
   Award,
   BookOpen,
-  CheckCircle2,
-  FileDown, Upload, CloudUpload, Eye, Trash2
+  CheckCircle2
 } from "lucide-react";
 
 export default function PrintableManual() {
@@ -240,32 +239,6 @@ export default function PrintableManual() {
                 <li><strong>Link Income:</strong> Select the shifts you want to bill for. The invoice total is auto-calculated.</li>
                 <li><strong>Save.</strong></li>
               </ol>
-            </Step>
-
-            <Step title="Action Buttons Guide">
-               <p className="mb-2 text-sm text-slate-600">Use the icons on the right side of the invoice list:</p>
-               <div className="grid grid-cols-1 gap-2 pl-2">
-                  <div className="flex items-center gap-3">
-                    <div className="p-1 rounded bg-blue-50 text-blue-600 border border-blue-100"><FileDown className="w-4 h-4" /></div>
-                    <span className="text-sm"><strong>Generate PDF:</strong> Creates the official PDF template.</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="p-1 rounded bg-teal-50 text-teal-600 border border-teal-100"><Upload className="w-4 h-4" /></div>
-                    <span className="text-sm"><strong>Quick Upload:</strong> Upload approved invoice PDF.</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="p-1 rounded bg-indigo-50 text-indigo-600 border border-indigo-100"><CloudUpload className="w-4 h-4" /></div>
-                    <span className="text-sm"><strong>Sync to Vendor:</strong> Sends invoice via Airtable (Email).</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="p-1 rounded bg-purple-50 text-purple-600 border border-purple-100"><Eye className="w-4 h-4" /></div>
-                    <span className="text-sm"><strong>View Draft:</strong> Preview the generated/attached draft.</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="p-1 rounded bg-red-50 text-red-600 border border-red-100"><Trash2 className="w-4 h-4" /></div>
-                    <span className="text-sm"><strong>Delete:</strong> Removes invoice, resets shifts to Pending.</span>
-                  </div>
-               </div>
             </Step>
 
             <Step title="Specific Workflows">

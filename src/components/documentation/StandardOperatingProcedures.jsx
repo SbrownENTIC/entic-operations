@@ -9,8 +9,7 @@ import {
   BarChart3, FolderOpen, Award, GraduationCap, 
   BookOpen, Settings, AlertCircle, LayoutDashboard,
   HelpCircle, Link as LinkIcon, ExternalLink,
-  ClipboardList, CheckCircle2, RefreshCw,
-  FileDown, Upload, CloudUpload, Eye, Trash2
+  ClipboardList, CheckCircle2, RefreshCw
 } from "lucide-react";
 import { SyncHenryScheinButton, FixVendorDataButton, ForceRedactHenryButton } from "@/components/documentation/MaintenanceButtons";
 
@@ -197,28 +196,13 @@ export default function StandardOperatingProcedures() {
 
               <Step title="Action Buttons Guide">
                  <p className="mb-2">Use the icons on the right side of the invoice list:</p>
-                 <div className="space-y-3">
-                    <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0 mt-0.5"><FileDown className="w-4 h-4 text-blue-600" /></div>
-                      <div className="text-sm"><strong>Generate PDF:</strong> Creates the official PDF template (UConn/Manchester) based on the invoice data.</div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0 mt-0.5"><Upload className="w-4 h-4 text-teal-600" /></div>
-                      <div className="text-sm"><strong>Quick Upload:</strong> Quickly upload the "Approved" PDF without opening the full edit form. Automatically updates status to "Approved".</div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0 mt-0.5"><CloudUpload className="w-4 h-4 text-indigo-600" /></div>
-                      <div className="text-sm"><strong>Sync to Airtable:</strong> Sends the approved invoice to the vendor (email). Only active for UConn, Manchester, Hartford. Updates status to "Sent to Vendor".</div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0 mt-0.5"><Eye className="w-4 h-4 text-purple-600" /></div>
-                      <div className="text-sm"><strong>View Draft:</strong> Opens the attached draft PDF.</div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0 mt-0.5"><Trash2 className="w-4 h-4 text-red-600" /></div>
-                      <div className="text-sm"><strong>Delete:</strong> Removes the invoice and resets linked income records to "Pending".</div>
-                    </div>
-                 </div>
+                 <ul className="list-disc pl-5 space-y-2">
+                    <li><strong className="text-blue-600">File Down (⬇️):</strong> <strong>Generate PDF</strong>. Creates the official PDF template (UConn/Manchester) based on the invoice data.</li>
+                    <li><strong className="text-teal-600">Upload (⬆️):</strong> <strong>Quick Upload</strong>. Quickly upload the "Approved" PDF without opening the full edit form. Automatically updates status to "Approved".</li>
+                    <li><strong className="text-indigo-600">Cloud (☁️):</strong> <strong>Sync to Airtable</strong>. Sends the approved invoice to the vendor. (Only active for UConn, Manchester, Hartford). Updates status to "Sent to Vendor".</li>
+                    <li><strong className="text-purple-600">Eye (👁️):</strong> <strong>View Draft</strong>. Opens the attached draft PDF.</li>
+                    <li><strong className="text-red-600">Trash (🗑️):</strong> <strong>Delete</strong>. Removes the invoice and resets linked income records to "Pending".</li>
+                 </ul>
               </Step>
 
               <Step title="Facility-Specific Workflows">
