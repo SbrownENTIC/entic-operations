@@ -21,7 +21,8 @@ import {
   BarChart3,
   FolderOpen,
   Award,
-  BookOpen
+  BookOpen,
+  CheckCircle2
 } from "lucide-react";
 
 export default function PrintableManual() {
@@ -137,7 +138,7 @@ export default function PrintableManual() {
                   "Dashboard & Customization", "Provider Management", "On-Call Schedule", 
                   "Outside Income & Billing", "Invoices & Workflows", "Payments & Allocations", 
                   "Supply Management", "Time Off & CME", "Compliance Tracking", "Notifications & Closures",
-                  "Reports", "Document Management", "Facility Workflows"
+                  "Reports", "Document Management", "Facility Workflows", "How System Works", "Coverage Checklist"
                   ].map((item, idx) => (
                   <div key={idx} className="flex items-baseline gap-3 border-b border-slate-100 py-1">
                     <span className="text-slate-400 font-mono text-xs w-6 text-right">{idx + 1}.</span>
@@ -416,6 +417,69 @@ export default function PrintableManual() {
                 <p><strong>Note:</strong> You do not need to manually enter income for St. Francis if the schedule is up to date.</p>
               </div>
             </Step>
+          </PrintSection>
+
+          {/* 14. How System Works */}
+          <PrintSection title="14. How System Works" icon={Settings}>
+            <p className="mb-3">Understanding the automation and data relationships.</p>
+
+            <Step title="Data Relationships">
+              <ul className="list-disc pl-5 space-y-2">
+                <li><strong>Provider → Locations:</strong> Providers are linked to "Program Locations". This determines which facilities appear in dropdowns.</li>
+                <li><strong>Outside Income → Invoice:</strong> Many Income Records (shifts) can be linked to one Invoice. Sum(Income Amounts) = Invoice Subtotal.</li>
+                <li><strong>Payment → Allocation → Invoice:</strong> One Payment can be split across multiple Invoices. If (Amount Expected - Allocations) = 0, the invoice marks as Paid.</li>
+                <li><strong>Vendor Invoice → Clinical Supply Order:</strong> Allocating items creates a new Clinical Supply Order and Vendor Invoice for that location.</li>
+              </ul>
+            </Step>
+
+            <Step title="Automated Jobs">
+              <ul className="list-disc pl-5 space-y-2">
+                <li><strong>License Checker:</strong> Runs daily. Checks Licenses and Privileges. Flags expiration dates 90, 60, 30 days out.</li>
+                <li><strong>Invoice Status Sync:</strong> Runs in background. Ensures Paid status matches payments received.</li>
+              </ul>
+            </Step>
+
+            <InfoBox>
+              <strong>Manual Override:</strong> If you manually change an Invoice Status (e.g., forcing it to "Paid"), the system sets a <strong>manual_status_override</strong> flag. Click the lock icon (🔒) on the invoice row to unlock it.
+            </InfoBox>
+          </PrintSection>
+
+          {/* 15. Coverage Checklist */}
+          <PrintSection title="15. Coverage Checklist" icon={ClipboardList}>
+            <p className="mb-3">Essential tasks to ensure zero downtime when the administrator is out.</p>
+
+            <div className="space-y-4 mt-4">
+              <div className="bg-slate-50 p-4 rounded border border-slate-200">
+                <h4 className="font-bold text-slate-900 flex items-center gap-2 mb-2">
+                  <CheckCircle2 className="w-4 h-4 text-blue-600" /> Daily (Morning)
+                </h4>
+                <ul className="list-disc pl-6 text-sm space-y-1">
+                  <li><strong>Office Orders:</strong> Check "Pending Review". Approve urgent requests.</li>
+                  <li><strong>Dashboard Alerts:</strong> Check "Expiring Licenses" or "Pending Invoices".</li>
+                </ul>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded border border-slate-200">
+                <h4 className="font-bold text-slate-900 flex items-center gap-2 mb-2">
+                  <CheckCircle2 className="w-4 h-4 text-orange-600" /> Weekly (Friday)
+                </h4>
+                <ul className="list-disc pl-6 text-sm space-y-1">
+                  <li><strong>Log Income:</strong> Enter shifts into Outside Income from provider texts/emails.</li>
+                  <li><strong>Draft Invoices:</strong> Create invoices for completed work so they are ready for review.</li>
+                </ul>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded border border-slate-200">
+                <h4 className="font-bold text-slate-900 flex items-center gap-2 mb-2">
+                  <CheckCircle2 className="w-4 h-4 text-purple-600" /> Monthly (1st - 5th)
+                </h4>
+                <ul className="list-disc pl-6 text-sm space-y-1">
+                  <li><strong>The "Big Send":</strong> Review drafts, generate PDFs, and Sync to Vendor.</li>
+                  <li><strong>Reconcile Payments:</strong> Enter deposit slips into Payments and Allocate them.</li>
+                  <li><strong>Provider Payouts:</strong> Export "Monthly Financials" report for payroll.</li>
+                </ul>
+              </div>
+            </div>
           </PrintSection>
 
           <div className="mt-12 pt-8 border-t border-slate-200 text-center text-slate-400 text-sm font-medium break-inside-avoid">
