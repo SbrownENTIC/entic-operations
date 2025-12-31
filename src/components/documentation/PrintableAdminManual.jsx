@@ -13,7 +13,8 @@ import {
   Cloud,
   AlertTriangle,
   FileText,
-  Bell
+  Bell,
+  FileDown, Upload, CloudUpload, Eye, Trash2
 } from "lucide-react";
 
 export default function PrintableAdminManual() {
@@ -224,6 +225,28 @@ export default function PrintableAdminManual() {
 
           {/* 4. Workflow: UConn Invoices */}
           <PrintSection title="4. Workflow: UConn Invoices" icon={FileText}>
+            <div className="mb-6 bg-slate-50 p-4 rounded border border-slate-200 break-inside-avoid">
+               <h4 className="font-bold text-slate-900 mb-2 text-sm uppercase tracking-wide">Quick Reference: Action Buttons</h4>
+               <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1 rounded bg-blue-50 text-blue-600 border border-blue-100"><FileDown className="w-3 h-3" /></div>
+                    <span><strong>Generate PDF</strong> (Blue)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="p-1 rounded bg-teal-50 text-teal-600 border border-teal-100"><Upload className="w-3 h-3" /></div>
+                    <span><strong>Quick Upload</strong> (Teal)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="p-1 rounded bg-indigo-50 text-indigo-600 border border-indigo-100"><CloudUpload className="w-3 h-3" /></div>
+                    <span><strong>Sync/Send</strong> (Indigo)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="p-1 rounded bg-purple-50 text-purple-600 border border-purple-100"><Eye className="w-3 h-3" /></div>
+                    <span><strong>View Draft</strong> (Purple)</span>
+                  </div>
+               </div>
+            </div>
+
             <Step title="Process Flow">
               <ol className="list-decimal pl-5 space-y-3">
                 <li>

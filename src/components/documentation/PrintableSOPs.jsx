@@ -4,7 +4,8 @@ import {
   Package, ShoppingCart, Clock, Bell, Shield, 
   BarChart3, FolderOpen, Award, GraduationCap, 
   BookOpen, Settings, LayoutDashboard, RefreshCw,
-  ClipboardList, CheckCircle2, Link as LinkIcon
+  ClipboardList, CheckCircle2, Link as LinkIcon,
+  FileDown, Upload, CloudUpload, Eye, Trash2
 } from "lucide-react";
 
 export default function PrintableSOPs() {
