@@ -216,6 +216,19 @@ export default function Dashboard() {
     staleTime: 30000
   });
 
+  const { data: programLocations = [] } = useQuery({
+    queryKey: ['program-locations'],
+    queryFn: async () => {
+      try {
+        return await base44.entities.ProgramLocation.list();
+      } catch (error) {
+        return handleQueryError(error);
+      }
+    },
+    retry: false,
+    staleTime: 30000
+  });
+
   const { data: invoiceWaivers = [] } = useQuery({
   queryKey: ['invoice-waivers'],
   queryFn: async () => {
@@ -349,50 +362,74 @@ export default function Dashboard() {
     targetProviderNames.some(name => p.full_name.toLowerCase().includes(name))
   );
 
-  const providersMissingPriorInvoice = targetProviders.filter(provider => {
-    // Special rule for Belachew Tessema - must have Hartford Hospital invoice
+  const providersMissingPriorInvoice = targetProviders.map(provider => {
+    // Determine expected program groups
+    let expectedGroups = new Set();
     const isTessema = provider.full_name.toLowerCase().includes('belachew tessema');
-
-    // Check if provider is the primary staff member on an invoice for the month
-    const isPrimaryOnInvoice = invoices.some(inv => {
-      const matchProvider = inv.staff_member_id === provider.id;
-      const matchMonth = inv.month === previousMonthStr;
-      
-      if (matchProvider && matchMonth) {
-        // If Tessema, enforce Hartford Hospital program group
-        if (isTessema) {
-          return inv.program_group === 'Hartford Hospital';
+    
+    if (isTessema) {
+      expectedGroups.add('Hartford Hospital');
+    } else if (provider.program_locations && provider.program_locations.length > 0) {
+      // Map locations to groups
+      provider.program_locations.forEach(locName => {
+        const progLoc = programLocations.find(pl => pl.program_location === locName);
+        if (progLoc && progLoc.program_group) {
+          expectedGroups.add(progLoc.program_group);
         }
-        return true;
-      }
-      return false;
+      });
+    }
+
+    // If no groups found/mapped, fallback to 'ANY' (backward compatibility)
+    if (expectedGroups.size === 0) {
+      expectedGroups.add('ANY');
+    }
+
+    const missingGroups = [];
+
+    expectedGroups.forEach(group => {
+      // 1. Check if waived (Global or Specific)
+      const isWaived = invoiceWaivers.some(w => 
+        w.provider_id === provider.id && 
+        w.month === previousMonthStr && 
+        (!w.program_group || w.program_group === group || (group === 'ANY'))
+      );
+
+      if (isWaived) return; // Skip if waived
+
+      // 2. Check if invoice exists
+      const hasInvoice = invoices.some(inv => {
+        const matchProvider = inv.staff_member_id === provider.id;
+        const matchMonth = inv.month === previousMonthStr;
+        if (!matchProvider || !matchMonth) return false;
+
+        if (group === 'ANY') return true;
+        return inv.program_group === group;
+      });
+
+      if (hasInvoice) return; // Skip if invoice exists
+
+      // 3. Check linked income
+      const hasLinkedIncome = outsideIncomes.some(inc => {
+        const matchProvider = inc.provider_id === provider.id;
+        const matchMonth = (inc.invoice_month === previousMonthStr || inc.workMonth === previousMonthStr);
+        if (!matchProvider || !matchMonth || !inc.invoice_id) return false;
+
+        if (group === 'ANY') return true;
+        
+        const linkedInvoice = invoices.find(inv => inv.id === inc.invoice_id);
+        return linkedInvoice && linkedInvoice.program_group === group;
+      });
+
+      if (hasLinkedIncome) return;
+
+      missingGroups.push(group);
     });
 
-    // Check if provider has any linked outside income for the month that is attached to an invoice
-    const hasLinkedIncomeInvoiced = outsideIncomes.some(inc => {
-      const matchProvider = inc.provider_id === provider.id;
-      const matchMonth = (inc.invoice_month === previousMonthStr || inc.workMonth === previousMonthStr);
-      const isInvoiced = !!inc.invoice_id;
-      
-      if (matchProvider && matchMonth && isInvoiced) {
-        if (isTessema) {
-             // Find the invoice this income is linked to
-             const linkedInvoice = invoices.find(inv => inv.id === inc.invoice_id);
-             return linkedInvoice && linkedInvoice.program_group === 'Hartford Hospital';
-        }
-        return true;
-      }
-      return false;
-    });
-
-    // Check if invoice is waived
-    const isWaived = invoiceWaivers.some(w => 
-      w.provider_id === provider.id && 
-      w.month === previousMonthStr
-    );
-
-    return !isPrimaryOnInvoice && !hasLinkedIncomeInvoiced && !isWaived;
-  });
+    if (missingGroups.length > 0) {
+      return { ...provider, missingGroups };
+    }
+    return null;
+  }).filter(Boolean);
 
   // Providers with pending approval invoices (Any Date)
   const providersWithPendingInvoices = React.useMemo(() => {
