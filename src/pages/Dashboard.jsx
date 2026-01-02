@@ -256,10 +256,17 @@ export default function Dashboard() {
   });
 
   const createWaiverMutation = useMutation({
-  mutationFn: (data) => base44.entities.InvoiceWaiver.create(data),
-  onSuccess: () => {
-  queryClient.invalidateQueries({ queryKey: ['invoice-waivers'] });
-  }
+    mutationFn: (data) => base44.entities.InvoiceWaiver.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoice-waivers'] });
+    }
+  });
+
+  const deleteWaiverMutation = useMutation({
+    mutationFn: (id) => base44.entities.InvoiceWaiver.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoice-waivers'] });
+    }
   });
 
   const createCMEWaiverMutation = useMutation({
@@ -911,13 +918,14 @@ export default function Dashboard() {
           />
         );
       case 'missing_invoices':
-        return (
-          <MissingInvoicesWidget
-            providersMissingPriorInvoice={providersMissingPriorInvoice}
-            previousMonthStr={previousMonthStr}
-            createWaiverMutation={createWaiverMutation}
-          />
-        );
+            return (
+              <MissingInvoicesWidget
+                providersMissingPriorInvoice={providersMissingPriorInvoice}
+                previousMonthStr={previousMonthStr}
+                createWaiverMutation={createWaiverMutation}
+                deleteWaiverMutation={deleteWaiverMutation}
+              />
+            );
       case 'license_expirations':
         return (
           <LicenseExpirationsWidget

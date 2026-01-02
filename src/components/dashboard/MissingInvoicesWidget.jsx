@@ -9,21 +9,45 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useToast } from "@/components/ui/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 
 export default function MissingInvoicesWidget({ 
   providersMissingPriorInvoice, 
   previousMonthStr, 
-  createWaiverMutation 
+  createWaiverMutation,
+  deleteWaiverMutation
 }) {
+  const { toast } = useToast();
+
   if (!providersMissingPriorInvoice || providersMissingPriorInvoice.length === 0) return null;
 
-  const handleWaive = (providerId, programGroup = null) => {
-    createWaiverMutation.mutate({
-      provider_id: providerId,
-      month: previousMonthStr,
-      program_group: programGroup,
-      reason: programGroup ? `Not Required for ${programGroup}` : "No On Call Time to Record"
-    });
+  const handleWaive = (providerId, programGroup = null, providerName) => {
+    createWaiverMutation.mutate(
+      {
+        provider_id: providerId,
+        month: previousMonthStr,
+        program_group: programGroup,
+        reason: programGroup ? `Not Required for ${programGroup}` : "No On Call Time to Record"
+      },
+      {
+        onSuccess: (data) => {
+          // data is the created waiver entity
+          toast({
+            title: "Invoice Waived",
+            description: `Marked as not required for ${providerName}${programGroup ? ` (${programGroup})` : ''}.`,
+            action: (
+              <ToastAction 
+                altText="Undo" 
+                onClick={() => deleteWaiverMutation.mutate(data.id)}
+              >
+                Undo
+              </ToastAction>
+            ),
+          });
+        }
+      }
+    );
   };
 
   return (
@@ -69,39 +93,39 @@ export default function MissingInvoicesWidget({
                 </div>
                 
                 <div className="flex justify-end">
-                  {isGeneric ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleWaive(provider.id)}
-                      className="text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-50 h-7 w-full sm:w-auto"
-                    >
-                      Not Required
-                    </Button>
-                  ) : (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-50 h-7 w-full sm:w-auto flex justify-between gap-1"
-                        >
-                          Not Required
-                          <ChevronDown className="w-3 h-3" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleWaive(provider.id)}>
-                          Waive All (Entire Month)
+                {isGeneric ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleWaive(provider.id, null, provider.full_name)}
+                    className="text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-50 h-7 w-full sm:w-auto"
+                  >
+                    Not Required
+                  </Button>
+                ) : (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-50 h-7 w-full sm:w-auto flex justify-between gap-1"
+                      >
+                        Not Required
+                        <ChevronDown className="w-3 h-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleWaive(provider.id, null, provider.full_name)}>
+                        Waive All (Entire Month)
+                      </DropdownMenuItem>
+                      {missingGroups.map(group => (
+                        <DropdownMenuItem key={group} onClick={() => handleWaive(provider.id, group, provider.full_name)}>
+                          Waive {group} Only
                         </DropdownMenuItem>
-                        {missingGroups.map(group => (
-                          <DropdownMenuItem key={group} onClick={() => handleWaive(provider.id, group)}>
-                            Waive {group} Only
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
                 </div>
               </div>
             );
