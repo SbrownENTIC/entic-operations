@@ -78,7 +78,7 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
 
       // Auto-process paste input if exists
       if (pasteInput) {
-        const lines = pasteInput.split(/\r?\n/);
+        const lines = pasteInput.split(/[\r\n,]+/);
         lines.forEach(line => {
           const dateMatch = line.match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);
           if (dateMatch) {
@@ -223,14 +223,14 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
                       id="paste_dates"
                       value={pasteInput}
                       onChange={(e) => setPasteInput(e.target.value)}
-                      placeholder="e.g. 1/19/2026&#10;2/12/2026&#10;3/16/2026"
+                      placeholder="e.g. 1/19/2026, 2/12/2026&#10;or list them on separate lines"
                       className="text-sm font-mono"
                       rows={5}
                     />
                   </div>
                   <div className="flex justify-between items-center mt-2">
                     <p className="text-xs text-slate-500">
-                      Supports MM/DD/YYYY formats. Ignores numbering and extra text.
+                      Supports MM/DD/YYYY formats. Separate by new lines or commas. Ignores numbering.
                     </p>
                     <Button
                       type="button"
@@ -239,7 +239,7 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
                       onClick={() => {
                         if (!pasteInput) return;
 
-                        const lines = pasteInput.split(/\r?\n/);
+                        const lines = pasteInput.split(/[\r\n,]+/);
                         const newDates = new Set(selectedDates);
                         let addedCount = 0;
 
