@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X, Plus, Trash2, Check, ChevronsUpDown } from "lucide-react";
+import { MultiDatePicker } from "@/components/ui/multi-date-picker";
 import {
   Command,
   CommandEmpty,
@@ -145,26 +146,8 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
     onSubmit(submissionData);
   };
 
-  const addWorkDate = () => {
-    setFormData({
-      ...formData,
-      work_dates: [...formData.work_dates, '']
-    });
-    setIsDirty(true);
-  };
-
-  const removeWorkDate = (index) => {
-    setFormData({
-      ...formData,
-      work_dates: formData.work_dates.filter((_, i) => i !== index)
-    });
-    setIsDirty(true);
-  };
-
-  const updateWorkDate = (index, value) => {
-    const newDates = [...formData.work_dates];
-    newDates[index] = value;
-    setFormData({ ...formData, work_dates: newDates });
+  const handleDatesChange = (newDates) => {
+    setFormData(prev => ({ ...prev, work_dates: newDates }));
     setIsDirty(true);
   };
 
@@ -355,34 +338,18 @@ export default function OutsideIncomeForm({ income, providers, onSubmit, onCance
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-2">
               <Label>
                 Work Dates {!isHartfordHospitalRVUBased && !isDirectorship && '*'}
                 {(isHartfordHospitalRVUBased || isDirectorship) && <span className="text-xs text-slate-500 font-normal ml-2">(Optional)</span>}
               </Label>
-              <Button type="button" variant="outline" size="sm" onClick={addWorkDate}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Date
-              </Button>
             </div>
-            <div className="space-y-3">
-              {formData.work_dates.map((date, index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <Input
-                    type="date"
-                    value={date}
-                    onChange={(e) => updateWorkDate(index, e.target.value)}
-                    className="flex-1"
-                    required={!isHartfordHospitalRVUBased && !isDirectorship && index === 0}
-                  />
-                  {formData.work_dates.length > 1 && (
-                    <Button type="button" variant="ghost" size="icon" onClick={() => removeWorkDate(index)}>
-                      <Trash2 className="w-4 h-4 text-red-500" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
+            <MultiDatePicker 
+              value={formData.work_dates.filter(d => d)} // Filter out empty strings if any
+              onChange={handleDatesChange}
+              placeholder="Select work dates..."
+              className="w-full"
+            />
           </div>
 
           <div className="space-y-2">
