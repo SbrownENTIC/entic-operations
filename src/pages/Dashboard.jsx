@@ -194,8 +194,10 @@ export default function Dashboard() {
     queryFn: async () => {
       try {
         const orders = await base44.entities.SupplyOrder.filter({ updated_after_submission: true });
-        return orders.filter(order => order.status !== 'order_placed');
-      } catch (error) {
+        // Exclude orders that have already been placed or received
+        const processedStatuses = ['order_placed', 'received', 'partially_received', 'rejected'];
+        return orders.filter(order => !processedStatuses.includes(order.status));
+        } catch (error) {
         return handleQueryError(error);
       }
     },
