@@ -91,26 +91,33 @@ Deno.serve(async (req) => {
             folder_id: folder_id || null
         });
 
-        // 4. Auto-Link to Clinical Supply Order
-        // Always attempt to link/create clinical supply orders
+        // 4. Auto-Link to Supply Order
+        // Always attempt to link/create supply orders
         try {
-            // A. Search for existing matching order
-            const recentOrders = await base44.asServiceRole.entities.SupplyOrder.list('-created_date', 200);
-            
-            let matchedOrder = recentOrders.find(order => {
-                // Ignore already received/linked orders if we want to be strict, but user might be re-uploading.
-                // Best match: Same Vendor AND (Same Amount OR Same PO Number/Invoice Number)
-                const vendorMatch = (order.vendor || '').toLowerCase().includes(normalizedVendorName.toLowerCase()) || 
-                                    normalizedVendorName.toLowerCase().includes((order.vendor || '').toLowerCase());
+            let matchedOrder = null;
+
+            // A1. Try direct lookup by order number first (most reliable)
+            if (data.invoice_number) {
+                const byNumber = await base44.asServiceRole.entities.SupplyOrder.filter({ order_number: data.invoice_number });
+                if (byNumber && byNumber.length > 0) {
+                    matchedOrder = byNumber[0];
+                }
+            }
+
+            // A2. If not found, fall back to recent list scan (fuzzy match)
+            if (!matchedOrder) {
+                const recentOrders = await base44.asServiceRole.entities.SupplyOrder.list('-created_date', 200);
                 
-                if (!vendorMatch) return false;
+                matchedOrder = recentOrders.find(order => {
+                    const vendorMatch = (order.vendor || '').toLowerCase().includes(normalizedVendorName.toLowerCase()) || 
+                                        normalizedVendorName.toLowerCase().includes((order.vendor || '').toLowerCase());
+                    
+                    if (!vendorMatch) return false;
 
-                const amountMatch = Math.abs((order.total_amount || 0) - (data.total_amount || 0)) < 0.1;
-                // Some vendors might put PO number in invoice number field or vice versa
-                const numberMatch = order.order_number && (order.order_number === data.invoice_number);
-
-                return amountMatch || numberMatch;
-            });
+                    const amountMatch = Math.abs((order.total_amount || 0) - (data.total_amount || 0)) < 0.1;
+                    return amountMatch;
+                });
+            }
 
             if (matchedOrder) {
                 console.log(`Matched existing order ${matchedOrder.order_number} for invoice ${invoice.invoice_number}`);
@@ -118,7 +125,6 @@ Deno.serve(async (req) => {
                 // Update existing order
                 await base44.asServiceRole.entities.SupplyOrder.update(matchedOrder.id, {
                     status: 'received',
-                    // Append items if needed? For now, just mark received.
                 });
 
                 // Link invoice
@@ -127,8 +133,13 @@ Deno.serve(async (req) => {
                 });
 
             } else {
-                console.log(`No match found. Creating new Clinical Supply Order for ${invoice.invoice_number}`);
+                console.log(`No match found. Creating new Supply Order for ${invoice.invoice_number}`);
                 
+                // Determine Category
+                const OFFICE_VENDORS = ['staples', 'amazon', 'wb mason', 'u-line', 'uline', 'quill'];
+                const isOffice = OFFICE_VENDORS.some(v => normalizedVendorName.toLowerCase().includes(v));
+                const category = isOffice ? 'office' : 'clinical';
+
                 // B. Create new Supply Order
                 const supplyOrderItems = (data.line_items || []).map(item => ({
                     supply_name: item.description || 'Unknown Item',
@@ -145,7 +156,7 @@ Deno.serve(async (req) => {
                     location: data.location || 'Glastonbury', // Default if unknown
                     order_date: data.invoice_date || new Date().toISOString().split('T')[0],
                     status: 'received',
-                    category: 'clinical', // Default to clinical as requested
+                    category: category, 
                     order_type: 'order',
                     items: supplyOrderItems,
                     total_amount: data.total_amount || 0,
