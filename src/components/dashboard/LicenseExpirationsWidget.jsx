@@ -7,7 +7,7 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { differenceInDays, parseISO } from "date-fns";
 
-function LicenseExpirationCard({ title, licenses, providers, severity }) {
+function LicenseExpirationCard({ title, licenses, providers, severity, filterType }) {
   const severityColors = {
     high: 'border-red-500 bg-gradient-to-br from-red-100 to-red-50 shadow-lg shadow-red-200/50',
     medium: 'border-orange-500 bg-gradient-to-br from-orange-100 to-orange-50 shadow-lg shadow-orange-200/50',
@@ -41,39 +41,42 @@ function LicenseExpirationCard({ title, licenses, providers, severity }) {
       <CardContent className="p-3 bg-white/60 backdrop-blur-sm">
         {licenses.length > 0 ? (
           <div className="space-y-1.5">
-            {licenses.slice(0, 3).map(license => {
-              const provider = providers.find(p => p.id === license.provider_id);
-              const daysUntil = differenceInDays(parseISO(license.expiration_date), new Date());
-              return (
-                <Link 
-                  key={license.id} 
-                  to={`${createPageUrl("Licenses")}?edit=${license.id}`}
-                  className="block"
-                >
-                  <div className={`flex items-center justify-between p-2 rounded-lg border-2 transition-all duration-200 ${itemColors[severity]} hover:scale-[1.02] cursor-pointer`}>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-slate-900 text-xs truncate">{provider?.full_name}</p>
-                      <p className="text-[10px] text-slate-700 font-medium">
-                        {license.license_type}
-                      </p>
+            <div className="max-h-[200px] overflow-y-auto pr-1 space-y-1.5 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+              {licenses.map(license => {
+                const provider = providers.find(p => p.id === license.provider_id);
+                const daysUntil = differenceInDays(parseISO(license.expiration_date), new Date());
+                return (
+                  <Link 
+                    key={license.id} 
+                    to={`${createPageUrl("Licenses")}?edit=${license.id}`}
+                    className="block"
+                  >
+                    <div className={`flex items-center justify-between p-2 rounded-lg border-2 transition-all duration-200 ${itemColors[severity]} hover:scale-[1.02] cursor-pointer`}>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-slate-900 text-xs truncate">{provider?.full_name}</p>
+                        <p className="text-[10px] text-slate-700 font-medium">
+                          {license.license_type}
+                        </p>
+                      </div>
+                      <Badge className={`text-[10px] ml-2 font-bold ${
+                        daysUntil <= 7 ? 'bg-red-600 text-white border-0' : 
+                        daysUntil <= 14 ? 'bg-orange-600 text-white border-0' : 
+                        daysUntil <= 30 ? 'bg-yellow-600 text-white border-0' :
+                        'bg-blue-600 text-white border-0'
+                      }`}>
+                        {daysUntil}d
+                      </Badge>
                     </div>
-                    <Badge className={`text-[10px] ml-2 font-bold ${
-                      daysUntil <= 7 ? 'bg-red-600 text-white border-0' : 
-                      daysUntil <= 14 ? 'bg-orange-600 text-white border-0' : 
-                      daysUntil <= 30 ? 'bg-yellow-600 text-white border-0' :
-                      'bg-blue-600 text-white border-0'
-                    }`}>
-                      {daysUntil}d
-                    </Badge>
-                  </div>
-                </Link>
-              );
-            })}
-            {licenses.length > 3 && (
-              <Link to={createPageUrl("Licenses")} className="block text-[10px] text-blue-600 hover:text-blue-800 font-semibold text-center pt-1 hover:underline">
-                View all {licenses.length} →
-              </Link>
-            )}
+                  </Link>
+                );
+              })}
+            </div>
+            <Link 
+              to={`${createPageUrl("Licenses")}?filter=${filterType}`}
+              className="block text-[10px] text-blue-600 hover:text-blue-800 font-semibold text-center pt-1 hover:underline sticky bottom-0 bg-white/80 backdrop-blur-sm"
+            >
+              View all {licenses.length} on page →
+            </Link>
           </div>
         ) : (
           <div className="text-center py-4 bg-green-50 rounded-lg border border-green-200">
@@ -114,24 +117,28 @@ export default function LicenseExpirationsWidget({
           licenses={licensesExpiring7Days}
           providers={providers}
           severity="high"
+          filterType="expiring_7"
         />
         <LicenseExpirationCard
           title="Expiring in 14 Days"
           licenses={licensesExpiring14Days}
           providers={providers}
           severity="medium"
+          filterType="expiring_14"
         />
         <LicenseExpirationCard
           title="Expiring in 30 Days"
           licenses={licensesExpiring30Days}
           providers={providers}
           severity="low"
+          filterType="expiring_30"
         />
         <LicenseExpirationCard
           title="Expiring in 60 Days"
           licenses={licensesExpiring60Days}
           providers={providers}
           severity="info"
+          filterType="expiring_60"
         />
       </div>
     </div>

@@ -133,6 +133,9 @@ export default function Licenses() {
 
     if (!matchesSearch) return false;
 
+    if (filterType === 'expiring_7') {
+      return license.daysUntilExpiration <= 7 && license.daysUntilExpiration > 0;
+    }
     if (filterType === 'expiring_14') {
       return license.daysUntilExpiration <= 14 && license.daysUntilExpiration > 0;
     }
