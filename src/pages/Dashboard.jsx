@@ -371,9 +371,8 @@ export default function Dashboard() {
       expectedGroups.add('Hartford Hospital');
     } else if (provider.program_locations && provider.program_locations.length > 0) {
       // Map locations to groups
-      provider.program_locations.forEach(loc => {
-        // Try matching by ID (standard) or Name (legacy/import)
-        const progLoc = programLocations.find(pl => pl.id === loc || pl.program_location === loc);
+      provider.program_locations.forEach(locName => {
+        const progLoc = programLocations.find(pl => pl.program_location === locName);
         if (progLoc && progLoc.program_group) {
           expectedGroups.add(progLoc.program_group);
         }
