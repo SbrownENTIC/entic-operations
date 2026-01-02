@@ -55,15 +55,11 @@ export function MultiDatePicker({
           <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
           {selectedDates.length > 0 ? (
             <div className="flex flex-wrap gap-1">
-              {selectedDates.length > 5 ? (
-                 <span className="text-slate-900">{selectedDates.length} dates selected</span>
-              ) : (
-                selectedDates.sort((a,b) => a - b).map((d, index) => (
-                    <Badge key={index} variant="secondary" className="rounded-sm px-1 py-0 text-xs font-normal bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-200">
-                    {format(d, "MMM d")}
-                    </Badge>
-                ))
-              )}
+              {selectedDates.sort((a,b) => a - b).map((d, index) => (
+                  <Badge key={index} variant="secondary" className="rounded-sm px-1 py-0 text-xs font-normal bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-200">
+                  {format(d, "MMM d")}
+                  </Badge>
+              ))}
             </div>
           ) : (
             <span>{placeholder}</span>
