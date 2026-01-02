@@ -372,9 +372,19 @@ export default function Dashboard() {
     } else if (provider.program_locations && provider.program_locations.length > 0) {
       // Map locations to groups
       provider.program_locations.forEach(locName => {
+        // 1. Try exact match from ProgramLocation entity
         const progLoc = programLocations.find(pl => pl.program_location === locName);
         if (progLoc && progLoc.program_group) {
           expectedGroups.add(progLoc.program_group);
+        } else {
+          // 2. Fallback heuristic for when ProgramLocation entity lookup fails
+          const lowerLoc = locName.toLowerCase();
+          if (lowerLoc.includes('hartford hospital')) expectedGroups.add('Hartford Hospital');
+          else if (lowerLoc.includes('st. francis') || lowerLoc.includes('saint francis')) expectedGroups.add('St. Francis');
+          else if (lowerLoc.includes('uconn')) expectedGroups.add('UConn');
+          else if (lowerLoc.includes('manchester') || lowerLoc.includes('echn')) expectedGroups.add('Manchester / ECHN');
+          else if (lowerLoc.includes('ccmc')) expectedGroups.add('CCMC');
+          else if (lowerLoc.includes('bloomfield') || lowerLoc.includes('basc')) expectedGroups.add('Bloomfield');
         }
       });
     }
