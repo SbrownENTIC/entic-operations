@@ -5,7 +5,7 @@ import { FileText, Search, Loader2, ArrowUpDown, Upload, Plus, Trash2 } from "lu
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { format } from "date-fns";
+import { formatDateToEST, formatDateTimeToEST } from "@/components/DateUtils";
 
 export default function SimpleFolderView({ folderId }) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -262,16 +262,10 @@ export default function SimpleFolderView({ folderId }) {
                   </div>
                 </td>
                 <td className="p-3 text-slate-600 cursor-pointer" onClick={() => invoice.document_url && window.open(invoice.document_url, '_blank')}>
-                  {invoice.invoice_date 
-                    ? format(new Date(invoice.invoice_date), 'MMM d, yyyy')
-                    : '-'
-                  }
+                  {formatDateToEST(invoice.invoice_date)}
                 </td>
                 <td className="p-3 text-slate-600 cursor-pointer" onClick={() => invoice.document_url && window.open(invoice.document_url, '_blank')}>
-                  {invoice.created_date 
-                    ? format(new Date(invoice.created_date), 'MMM d, yyyy \'at\' h:mma')
-                    : '-'
-                  }
+                  {formatDateTimeToEST(invoice.created_date)}
                 </td>
                 <td className="p-3 text-slate-600 cursor-pointer" onClick={() => invoice.document_url && window.open(invoice.document_url, '_blank')}>
                   {formatFileSize(invoice.file_size)}
