@@ -59,7 +59,12 @@ export default function Reports() {
     queryFn: () => base44.entities.ProgramLocation.list()
   });
 
-  const isLoading = paymentsLoading || invoicesLoading || providersLoading || incomesLoading || ordersLoading || programLocationsLoading || audiologyOrdersLoading;
+  const { data: vendorInvoices = [], isLoading: vendorInvoicesLoading } = useQuery({
+    queryKey: ['vendor-invoices-report'],
+    queryFn: () => base44.entities.VendorInvoice.list('-invoice_date', 1000)
+  });
+
+  const isLoading = paymentsLoading || invoicesLoading || providersLoading || incomesLoading || ordersLoading || programLocationsLoading || audiologyOrdersLoading || vendorInvoicesLoading;
 
   const formatCurrency = (amount) => {
     return '$' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -583,6 +588,45 @@ export default function Reports() {
     exportToCSV(rows, 'unlinked_invoices_report');
   };
 
+  // REPORT 7: Vendor Expenses Report
+  const generateVendorExpensesReport = () => {
+    const filteredInvoices = filterByDateRange(vendorInvoices, 'invoice_date');
+    
+    const rows = [
+      ['Vendor Expenses by Entity', '', '', '', '', '', ''],
+      ['', '', '', '', '', '', ''],
+      ['Vendor', 'Invoice Number', 'Date', 'Billed To', 'Status', 'Total Amount']
+    ];
+
+    filteredInvoices.forEach(inv => {
+      rows.push([
+        inv.vendor_name || 'Unknown',
+        inv.invoice_number || '',
+        inv.invoice_date ? format(parseISO(inv.invoice_date), 'yyyy-MM-dd') : '',
+        inv.billed_to || 'ENTIC',
+        inv.status || '',
+        inv.total_amount || 0
+      ]);
+    });
+
+    // Summaries
+    const enticTotal = filteredInvoices
+      .filter(inv => (inv.billed_to || 'ENTIC') === 'ENTIC')
+      .reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
+      
+    const thiTotal = filteredInvoices
+      .filter(inv => inv.billed_to === 'The Hearing Institute')
+      .reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
+
+    rows.push(['', '', '', '', '', '']);
+    rows.push(['SUMMARY', '', '', '', '', '']);
+    rows.push(['ENTIC Total', '', '', '', '', enticTotal]);
+    rows.push(['The Hearing Institute Total', '', '', '', '', thiTotal]);
+    rows.push(['GRAND TOTAL', '', '', '', '', enticTotal + thiTotal]);
+
+    exportToCSV(rows, 'vendor_expenses_by_entity');
+  };
+
   if (isLoading) {
     return (
       <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
@@ -696,6 +740,10 @@ export default function Reports() {
             <TabsTrigger value="unlinked" className="gap-2 py-3 flex-1 min-w-[150px]">
               <AlertCircle className="w-4 h-4" />
               Unlinked Invoices
+            </TabsTrigger>
+            <TabsTrigger value="vendor-expenses" className="gap-2 py-3 flex-1 min-w-[150px]">
+              <DollarSign className="w-4 h-4" />
+              Vendor Expenses
             </TabsTrigger>
             <TabsTrigger value="credentialing" className="gap-2 py-3 flex-1 min-w-[150px]">
               <Users className="w-4 h-4" />
@@ -1144,6 +1192,100 @@ export default function Reports() {
                           {filtered.length > 50 && (
                             <p className="text-xs text-slate-500 mt-2 text-center">Showing first 50 records. Export to CSV to view all {filtered.length} records.</p>
                           )}
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="vendor-expenses">
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader className="border-b border-slate-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Vendor Expenses by Entity</CardTitle>
+                    <p className="text-sm text-slate-500 mt-1">
+                      Breakdown of vendor invoices billed to ENTIC vs The Hearing Institute
+                    </p>
+                  </div>
+                  <Button onClick={generateVendorExpensesReport} className="gap-2">
+                    <Download className="w-4 h-4" />
+                    Export to CSV
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-6">
+                  {(() => {
+                    const filtered = filterByDateRange(vendorInvoices, 'invoice_date');
+                    const enticInvoices = filtered.filter(inv => (inv.billed_to || 'ENTIC') === 'ENTIC');
+                    const thiInvoices = filtered.filter(inv => inv.billed_to === 'The Hearing Institute');
+                    
+                    const enticTotal = enticInvoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
+                    const thiTotal = thiInvoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
+                    
+                    return (
+                      <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="bg-blue-50 p-6 rounded-lg border border-blue-100">
+                            <h3 className="text-lg font-semibold text-blue-900 mb-2">ENTIC</h3>
+                            <p className="text-sm text-blue-600 mb-4">Total Billed Expenses</p>
+                            <p className="text-4xl font-bold text-blue-700">{formatCurrency(enticTotal)}</p>
+                            <p className="text-sm text-blue-600 mt-2">{enticInvoices.length} invoices</p>
+                          </div>
+                          <div className="bg-purple-50 p-6 rounded-lg border border-purple-100">
+                            <h3 className="text-lg font-semibold text-purple-900 mb-2">The Hearing Institute</h3>
+                            <p className="text-sm text-purple-600 mb-4">Total Billed Expenses</p>
+                            <p className="text-4xl font-bold text-purple-700">{formatCurrency(thiTotal)}</p>
+                            <p className="text-sm text-purple-600 mt-2">{thiInvoices.length} invoices</p>
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                          <h3 className="font-semibold text-slate-900 mb-4">Top Vendors Breakdown</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                              <h4 className="text-sm font-medium text-slate-500 mb-3 uppercase">ENTIC Vendors</h4>
+                              <div className="space-y-2">
+                                {Object.entries(enticInvoices.reduce((acc, inv) => {
+                                  const vendor = inv.vendor_name || 'Unknown';
+                                  if (!acc[vendor]) acc[vendor] = 0;
+                                  acc[vendor] += (inv.total_amount || 0);
+                                  return acc;
+                                }, {}))
+                                .sort(([,a], [,b]) => b - a)
+                                .slice(0, 10)
+                                .map(([vendor, amount]) => (
+                                  <div key={vendor} className="flex justify-between items-center text-sm p-2 bg-white rounded border border-slate-100">
+                                    <span className="font-medium text-slate-700">{vendor}</span>
+                                    <span className="text-slate-900">{formatCurrency(amount)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-medium text-slate-500 mb-3 uppercase">Hearing Institute Vendors</h4>
+                              <div className="space-y-2">
+                                {Object.entries(thiInvoices.reduce((acc, inv) => {
+                                  const vendor = inv.vendor_name || 'Unknown';
+                                  if (!acc[vendor]) acc[vendor] = 0;
+                                  acc[vendor] += (inv.total_amount || 0);
+                                  return acc;
+                                }, {}))
+                                .sort(([,a], [,b]) => b - a)
+                                .slice(0, 10)
+                                .map(([vendor, amount]) => (
+                                  <div key={vendor} className="flex justify-between items-center text-sm p-2 bg-white rounded border border-slate-100">
+                                    <span className="font-medium text-slate-700">{vendor}</span>
+                                    <span className="text-slate-900">{formatCurrency(amount)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </>
                     );
