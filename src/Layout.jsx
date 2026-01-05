@@ -87,6 +87,11 @@ const navigationItems = [
     icon: Package,
   },
   {
+    title: "Audiology Supply Orders",
+    url: createPageUrl("AudiologySupplyOrders"),
+    icon: Package,
+  },
+  {
     title: "Time Off & CME",
     url: createPageUrl("ProviderTimeOff"),
     icon: Calendar,

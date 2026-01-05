@@ -96,9 +96,18 @@ Deno.serve(async (req) => {
         try {
             let matchedOrder = null;
 
+            // Determine Target Entity based on Vendor
+            let TargetEntity = base44.asServiceRole.entities.SupplyOrder;
+            let isAudiology = false;
+
+            if (normalizedVendorName.toLowerCase().includes('oaktree')) {
+                TargetEntity = base44.asServiceRole.entities.AudiologySupplyOrder;
+                isAudiology = true;
+            }
+
             // A1. Try direct lookup by order number first (most reliable)
             if (data.invoice_number) {
-                const byNumber = await base44.asServiceRole.entities.SupplyOrder.filter({ order_number: data.invoice_number });
+                const byNumber = await TargetEntity.filter({ order_number: data.invoice_number });
                 if (byNumber && byNumber.length > 0) {
                     matchedOrder = byNumber[0];
                 }
@@ -106,7 +115,7 @@ Deno.serve(async (req) => {
 
             // A2. If not found, fall back to recent list scan (fuzzy match)
             if (!matchedOrder) {
-                const recentOrders = await base44.asServiceRole.entities.SupplyOrder.list('-created_date', 200);
+                const recentOrders = await TargetEntity.list('-created_date', 200);
                 
                 matchedOrder = recentOrders.find(order => {
                     const vendorMatch = (order.vendor || '').toLowerCase().includes(normalizedVendorName.toLowerCase()) || 
@@ -123,7 +132,7 @@ Deno.serve(async (req) => {
                 console.log(`Matched existing order ${matchedOrder.order_number} for invoice ${invoice.invoice_number}`);
                 
                 // Update existing order
-                await base44.asServiceRole.entities.SupplyOrder.update(matchedOrder.id, {
+                await TargetEntity.update(matchedOrder.id, {
                     status: 'received',
                 });
 
@@ -156,14 +165,18 @@ Deno.serve(async (req) => {
                     location: data.location || 'Glastonbury', // Default if unknown
                     order_date: data.invoice_date || new Date().toISOString().split('T')[0],
                     status: 'received',
-                    category: category, 
                     order_type: 'order',
                     items: supplyOrderItems,
                     total_amount: data.total_amount || 0,
                     notes: `Auto-generated from Import of Invoice #${data.invoice_number}`
                 };
 
-                const newOrder = await base44.asServiceRole.entities.SupplyOrder.create(newOrderData);
+                // Add category only if it's the standard SupplyOrder entity
+                if (!isAudiology) {
+                    newOrderData.category = category;
+                }
+
+                const newOrder = await TargetEntity.create(newOrderData);
 
                 // Link invoice
                 await base44.asServiceRole.entities.VendorInvoice.update(invoice.id, {
