@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { format, parseISO } from "date-fns";
+import { formatDateToEST } from "@/components/DateUtils";
 import SupplyOrderForm from "../components/supplies/SupplyOrderForm";
 import SplitOrderModal from "../components/supplies/SplitOrderModal";
 import EmptyState from "@/components/ui/EmptyState";
@@ -272,25 +273,7 @@ export default function AudiologySupplyOrders() {
     return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
 
-  const safeFormatDate = (dateString) => {
-    if (!dateString) return '-';
-    try {
-      // Handle if it's already a JS Date
-      if (dateString instanceof Date) return format(dateString, 'MMM d, yyyy');
-      // Parse ISO
-      const date = parseISO(dateString);
-      if (isNaN(date.getTime())) {
-          // Fallback to simple new Date if parseISO fails
-          const fallbackDate = new Date(dateString);
-          if (isNaN(fallbackDate.getTime())) return dateString; 
-          return format(fallbackDate, 'MMM d, yyyy');
-      }
-      return format(date, 'MMM d, yyyy');
-    } catch (error) {
-      console.warn("Date formatting error:", error);
-      return dateString || '-';
-    }
-  };
+  const safeFormatDate = (dateString) => formatDateToEST(dateString);
 
   if (ordersLoading) {
     return <ListPageSkeleton />;

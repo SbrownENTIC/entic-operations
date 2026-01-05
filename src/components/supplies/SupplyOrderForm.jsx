@@ -13,7 +13,7 @@ import { X, Plus, Trash2, Search, Check, CheckSquare, Printer } from "lucide-rea
 import { useFormState } from "@/components/FormContext";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
-import { format as formatDate } from "date-fns";
+import { formatDateToEST as formatDate } from "@/components/DateUtils";
 
 export default function SupplyOrderForm({ order, category, onSubmit, onCancel, isLoading }) {
   const { setIsDirty } = useFormState();
@@ -197,7 +197,7 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
           <div>
             <p className="text-sm text-slate-600 mb-1">Order Date</p>
             <p className="text-lg font-semibold text-slate-900">
-              {formData.order_date ? formatDate(new Date(formData.order_date), 'MMM d, yyyy') : 'N/A'}
+              {formData.order_date ? formatDate(formData.order_date) : 'N/A'}
             </p>
           </div>
         </div>
