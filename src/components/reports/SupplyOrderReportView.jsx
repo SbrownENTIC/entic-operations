@@ -14,7 +14,8 @@ export default function SupplyOrderReportView({
   subtitle,
   dateRange,
   formatCurrency,
-  onExport 
+  onExport,
+  linkDestination = 'SupplyOrderDetail'
 }) {
   const [supplyOrderDetail, setSupplyOrderDetail] = useState(null);
 
@@ -454,7 +455,7 @@ export default function SupplyOrderReportView({
                      <tr key={order.id} className="border-b border-slate-100 hover:bg-slate-50">
                        <td className="p-3">
                          <Link 
-                           to={createPageUrl('SupplyOrderDetail') + '?id=' + order.id}
+                           to={createPageUrl(linkDestination) + (linkDestination === 'SupplyOrderDetail' ? '?id=' + order.id : '')}
                            className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
                          >
                            {order.order_number || '-'}

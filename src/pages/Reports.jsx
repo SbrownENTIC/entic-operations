@@ -49,12 +49,17 @@ export default function Reports() {
     queryFn: () => base44.entities.SupplyOrder.list('-order_date')
   });
 
+  const { data: audiologyOrders = [], isLoading: audiologyOrdersLoading } = useQuery({
+    queryKey: ['audiology-supply-orders'],
+    queryFn: () => base44.entities.AudiologySupplyOrder.list('-order_date')
+  });
+
   const { data: programLocations = [], isLoading: programLocationsLoading } = useQuery({
     queryKey: ['program-locations'],
     queryFn: () => base44.entities.ProgramLocation.list()
   });
 
-  const isLoading = paymentsLoading || invoicesLoading || providersLoading || incomesLoading || ordersLoading || programLocationsLoading;
+  const isLoading = paymentsLoading || invoicesLoading || providersLoading || incomesLoading || ordersLoading || programLocationsLoading || audiologyOrdersLoading;
 
   const formatCurrency = (amount) => {
     return '$' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -684,6 +689,10 @@ export default function Reports() {
               <Package className="w-4 h-4" />
               Clinical Supply Orders
             </TabsTrigger>
+            <TabsTrigger value="audiology-supplies" className="gap-2 py-3 flex-1 min-w-[150px]">
+              <Package className="w-4 h-4" />
+              Audiology Supply Orders
+            </TabsTrigger>
             <TabsTrigger value="unlinked" className="gap-2 py-3 flex-1 min-w-[150px]">
               <AlertCircle className="w-4 h-4" />
               Unlinked Invoices
@@ -1028,6 +1037,18 @@ export default function Reports() {
               dateRange={dateRange}
               formatCurrency={formatCurrency}
               onExport={() => generateSupplyOrderReport(clinicalSupplyOrders, 'Clinical Supply Orders Report', 'clinical_supply_orders_report')}
+            />
+          </TabsContent>
+
+          <TabsContent value="audiology-supplies">
+            <SupplyOrderReportView 
+              orders={audiologyOrders}
+              title="Audiology Supply Orders Report"
+              subtitle="Supply spending analysis for audiology supplies"
+              dateRange={dateRange}
+              formatCurrency={formatCurrency}
+              onExport={() => generateSupplyOrderReport(audiologyOrders, 'Audiology Supply Orders Report', 'audiology_supply_orders_report')}
+              linkDestination="AudiologySupplyOrders"
             />
           </TabsContent>
 
