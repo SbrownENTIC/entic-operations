@@ -297,6 +297,7 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
                 <SelectContent>
                   <SelectItem value="Staples">Staples</SelectItem>
                   <SelectItem value="Henry Schein">Henry Schein</SelectItem>
+                  <SelectItem value="Oaktree Products">Oaktree Products</SelectItem>
                 </SelectContent>
               </Select>
             </div>
