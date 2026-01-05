@@ -91,6 +91,16 @@ export default function OnCallSchedule() {
       if (data.location?.toLowerCase().includes('st. francis') || data.location?.toLowerCase().includes('st francis')) {
         await createOutsideIncomeFromSchedule(schedule, data);
       }
+      
+      // Sync to Airtable
+      try {
+        await base44.functions.invoke('syncOnCallToAirtable', {
+            action: 'create',
+            schedule_id: schedule.id
+        });
+      } catch (e) {
+          console.error("Airtable sync failed", e);
+      }
 
       return schedule;
     },
@@ -101,32 +111,68 @@ export default function OnCallSchedule() {
       setEditingSchedule(null);
       toast({
         title: "Success",
-        description: "Schedule created successfully.",
+        description: "Schedule created and synced to Airtable.",
       });
     }
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.OnCallSchedule.update(id, data),
+    mutationFn: async ({ id, data }) => {
+        const result = await base44.entities.OnCallSchedule.update(id, data);
+        
+        // Sync to Airtable
+        try {
+            await base44.functions.invoke('syncOnCallToAirtable', {
+                action: 'update',
+                schedule_id: id
+            });
+        } catch (e) {
+            console.error("Airtable sync failed", e);
+        }
+        return result;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['oncall-schedules'] });
       setShowForm(false);
       setEditingSchedule(null);
       toast({
         title: "Success",
-        description: "Schedule updated successfully.",
+        description: "Schedule updated and synced to Airtable.",
       });
     }
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.OnCallSchedule.delete(id),
+    mutationFn: async (id) => {
+        // We need the object before deleting, but we have it in deleteConfirm state if needed.
+        // However, purely inside mutationFn, we only have ID.
+        // We'll trust the caller passed the ID. 
+        // We can get the airtable_record_id from the deleteConfirm state if we pass it via closure, 
+        // or we pass it as argument.
+        // But mutationFn signature here is just (id).
+        // We'll access `deleteConfirm` state directly since it's in scope.
+        
+        const airtableId = deleteConfirm?.airtable_record_id;
+        
+        await base44.entities.OnCallSchedule.delete(id);
+        
+        if (airtableId) {
+             try {
+                await base44.functions.invoke('syncOnCallToAirtable', {
+                    action: 'delete',
+                    airtable_record_id: airtableId
+                });
+            } catch (e) {
+                console.error("Airtable delete sync failed", e);
+            }
+        }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['oncall-schedules'] });
       setDeleteConfirm(null);
       toast({
         title: "Success",
-        description: "Schedule deleted successfully.",
+        description: "Schedule deleted and synced to Airtable.",
       });
     }
   });
