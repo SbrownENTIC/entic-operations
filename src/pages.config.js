@@ -20,10 +20,10 @@ import PublicSupplyRequest from './pages/PublicSupplyRequest';
 import Reminders from './pages/Reminders';
 import Reports from './pages/Reports';
 import SimpleDashboard from './pages/SimpleDashboard';
-import SupplyOrderDetail from './pages/SupplyOrderDetail';
 import SupplyRequest from './pages/SupplyRequest';
 import SystemDocumentation from './pages/SystemDocumentation';
 import TodaysOrders from './pages/TodaysOrders';
+import SupplyOrderDetail from './pages/SupplyOrderDetail';
 import __Layout from './Layout.jsx';
 
 
@@ -50,10 +50,10 @@ export const PAGES = {
     "Reminders": Reminders,
     "Reports": Reports,
     "SimpleDashboard": SimpleDashboard,
-    "SupplyOrderDetail": SupplyOrderDetail,
     "SupplyRequest": SupplyRequest,
     "SystemDocumentation": SystemDocumentation,
     "TodaysOrders": TodaysOrders,
+    "SupplyOrderDetail": SupplyOrderDetail,
 }
 
 export const pagesConfig = {

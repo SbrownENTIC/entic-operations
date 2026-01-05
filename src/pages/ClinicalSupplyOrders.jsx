@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2, Trash2, ClipboardList } from "lucide-react";
+import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2, Trash2, ClipboardList, Split } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { format, parseISO } from "date-fns";
 import SupplyOrderForm from "../components/supplies/SupplyOrderForm";
+import SplitOrderModal from "../components/supplies/SplitOrderModal";
 import EmptyState from "@/components/ui/EmptyState";
 import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
 
@@ -37,6 +38,7 @@ export default function ClinicalSupplyOrders() {
   const [summaryOrder, setSummaryOrder] = useState(null);
   const [selectedOrders, setSelectedOrders] = useState([]);
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+  const [splittingOrder, setSplittingOrder] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: orders = [], isLoading: ordersLoading } = useQuery({
@@ -123,6 +125,55 @@ export default function ClinicalSupplyOrders() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['supply-orders'] });
       setSelectedOrders([]);
+    }
+  });
+
+  const splitOrderMutation = useMutation({
+    mutationFn: async ({ originalOrder, selectedIndices, targetLocation }) => {
+      // 1. Identify items to move vs keep
+      const itemsToMove = originalOrder.items.filter((_, idx) => selectedIndices.includes(idx));
+      const itemsToKeep = originalOrder.items.filter((_, idx) => !selectedIndices.includes(idx));
+      
+      // 2. Calculate new totals
+      const subtotalMove = itemsToMove.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0);
+      const subtotalKeep = itemsToKeep.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0);
+      
+      const originalSubtotal = originalOrder.subtotal || (subtotalMove + subtotalKeep) || 1; // avoid div by 0
+      const ratioMove = subtotalMove / originalSubtotal;
+      
+      const taxMove = (originalOrder.tax || 0) * ratioMove;
+      const taxKeep = (originalOrder.tax || 0) - taxMove;
+      
+      const totalMove = subtotalMove + taxMove;
+      const totalKeep = subtotalKeep + taxKeep;
+
+      // 3. Create new order
+      await base44.entities.SupplyOrder.create({
+        ...originalOrder,
+        id: undefined, // Create new ID
+        created_date: undefined,
+        updated_date: undefined,
+        location: targetLocation,
+        order_number: `${originalOrder.order_number} - ${targetLocation}`,
+        items: itemsToMove,
+        subtotal: subtotalMove,
+        tax: taxMove,
+        total_amount: totalMove,
+        status: 'order_placed', // New order starts as placed or maybe copy status? 'order_placed' is safer.
+        notes: `Split from order ${originalOrder.order_number}. \n${originalOrder.notes || ''}`
+      });
+
+      // 4. Update original order
+      await base44.entities.SupplyOrder.update(originalOrder.id, {
+        items: itemsToKeep,
+        subtotal: subtotalKeep,
+        tax: taxKeep,
+        total_amount: totalKeep
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['supply-orders'] });
+      setSplittingOrder(null);
     }
   });
 
@@ -471,6 +522,14 @@ export default function ClinicalSupplyOrders() {
                            <Button 
                              variant="ghost" 
                              size="sm"
+                             onClick={() => setSplittingOrder(order)}
+                             title="Split Order"
+                           >
+                             <Split className="w-4 h-4" />
+                           </Button>
+                           <Button 
+                             variant="ghost" 
+                             size="sm"
                              onClick={() => {
                                setEditingOrder(order);
                                setShowForm(true);
@@ -603,6 +662,16 @@ export default function ClinicalSupplyOrders() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <SplitOrderModal
+          order={splittingOrder}
+          isOpen={!!splittingOrder}
+          onClose={() => setSplittingOrder(null)}
+          onSplit={(originalOrder, selectedIndices, targetLocation) => {
+            splitOrderMutation.mutate({ originalOrder, selectedIndices, targetLocation });
+          }}
+          isLoading={splitOrderMutation.isPending}
+        />
         </div>
       </div>
     </div>
