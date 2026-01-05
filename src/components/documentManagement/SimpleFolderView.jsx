@@ -265,7 +265,7 @@ export default function SimpleFolderView({ folderId }) {
                   {formatDateToEST(invoice.invoice_date)}
                 </td>
                 <td className="p-3 text-slate-600 cursor-pointer" onClick={() => invoice.document_url && window.open(invoice.document_url, '_blank')}>
-                  {formatDateTimeToEST(invoice.created_date)}
+                  {formatDateToEST(invoice.created_date)}
                 </td>
                 <td className="p-3 text-slate-600 cursor-pointer" onClick={() => invoice.document_url && window.open(invoice.document_url, '_blank')}>
                   {formatFileSize(invoice.file_size)}
