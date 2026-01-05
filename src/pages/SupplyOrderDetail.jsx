@@ -8,11 +8,8 @@ import { ArrowLeft, Package, Calendar, MapPin, DollarSign } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import SplitOrderModal from "@/components/supplies/SplitOrderModal";
-import { ArrowRightLeft } from "lucide-react";
 
 export default function SupplyOrderDetail() {
-  const [isSplitModalOpen, setIsSplitModalOpen] = useState(false);
   const [orderId, setOrderId] = useState(null);
 
   useEffect(() => {
@@ -264,24 +261,10 @@ export default function SupplyOrderDetail() {
           <Link to={createPageUrl('Reports')}>
             <Button variant="outline">Back to Reports</Button>
           </Link>
-          <Button 
-            variant="outline"
-            className="text-orange-600 border-orange-200 hover:bg-orange-50 hover:text-orange-700"
-            onClick={() => setIsSplitModalOpen(true)}
-          >
-            <ArrowRightLeft className="w-4 h-4 mr-2" />
-            Split / Move Items
-          </Button>
           <Link to={createPageUrl('SupplyOrders')}>
             <Button className="bg-blue-600 hover:bg-blue-700">View All Orders</Button>
           </Link>
         </div>
-        
-        <SplitOrderModal 
-          isOpen={isSplitModalOpen}
-          onClose={() => setIsSplitModalOpen(false)}
-          order={order}
-        />
       </div>
     </div>
   );
