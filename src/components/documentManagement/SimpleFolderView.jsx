@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { FileText, Search, Loader2, ArrowUpDown, Upload, Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { formatDateToEST, formatDateTimeToEST } from "@/components/DateUtils";
 
@@ -219,6 +220,15 @@ export default function SimpleFolderView({ folderId }) {
               </th>
               <th 
                 className="text-left p-3 font-medium text-slate-600 cursor-pointer hover:bg-slate-100"
+                onClick={() => handleSort('billed_to')}
+              >
+                <div className="flex items-center gap-2">
+                  Billed To
+                  <ArrowUpDown className="w-4 h-4 text-slate-400" />
+                </div>
+              </th>
+              <th 
+                className="text-left p-3 font-medium text-slate-600 cursor-pointer hover:bg-slate-100"
                 onClick={() => handleSort('invoice_date')}
               >
                 <div className="flex items-center gap-2">
@@ -260,6 +270,11 @@ export default function SimpleFolderView({ folderId }) {
                       {invoice.invoice_number || 'Untitled'}.pdf
                     </span>
                   </div>
+                </td>
+                <td className="p-3 cursor-pointer" onClick={() => invoice.document_url && window.open(invoice.document_url, '_blank')}>
+                  <Badge variant="outline" className={invoice.billed_to === 'The Hearing Institute' ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-blue-50 text-blue-700 border-blue-200'}>
+                    {invoice.billed_to || 'ENTIC'}
+                  </Badge>
                 </td>
                 <td className="p-3 text-slate-600 cursor-pointer" onClick={() => invoice.document_url && window.open(invoice.document_url, '_blank')}>
                   {formatDateToEST(invoice.invoice_date)}
