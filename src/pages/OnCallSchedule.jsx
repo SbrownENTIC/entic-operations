@@ -514,21 +514,26 @@ export default function OnCallSchedule() {
 
   const exportToCSV = () => {
     const rows = [
-      ['Provider ID', 'Provider Name', 'Phone Number', 'Location', 'Start Date', 'Start Time', 'End Date', 'End Time', 'Days', 'Notes']
+      ['DATE', 'PROVIDER']
     ];
     
     sortedSchedules.forEach(schedule => {
+      const fullName = schedule.provider?.full_name || '';
+      // Try to extract the last name (assuming "First Last" or "First Middle Last")
+      // If there's a comma (Last, First), handle that too, though typically full_name is "First Last"
+      let lastName = fullName;
+      if (fullName.includes(',')) {
+        lastName = fullName.split(',')[0].trim();
+      } else {
+        const parts = fullName.trim().split(' ');
+        if (parts.length > 0) {
+          lastName = parts[parts.length - 1];
+        }
+      }
+
       rows.push([
-        schedule.provider_id || '',
-        schedule.provider?.full_name || '',
-        schedule.provider?.phone || '',
-        schedule.location || '',
-        schedule.start_date ? format(parseISO(schedule.start_date), 'yyyy-MM-dd') : '',
-        schedule.start_time || '',
-        schedule.end_date ? format(parseISO(schedule.end_date), 'yyyy-MM-dd') : '',
-        schedule.end_time || '',
-        schedule.days || '',
-        schedule.notes || ''
+        schedule.start_date ? format(parseISO(schedule.start_date), 'M/d/yy') : '',
+        lastName
       ]);
     });
     
