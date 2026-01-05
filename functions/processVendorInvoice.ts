@@ -77,6 +77,11 @@ Deno.serve(async (req) => {
 
         const normalizedVendorName = normalizeVendor(data.vendor_name);
 
+        let billedTo = 'ENTIC';
+        if (normalizedVendorName.toLowerCase().includes('oaktree')) {
+            billedTo = 'The Hearing Institute';
+        }
+
         // 3. Create the VendorInvoice record
         const invoice = await base44.asServiceRole.entities.VendorInvoice.create({
             vendor_name: normalizedVendorName,
@@ -85,6 +90,7 @@ Deno.serve(async (req) => {
             invoice_date: data.invoice_date,
             due_date: data.due_date,
             total_amount: data.total_amount || 0,
+            billed_to: billedTo,
             status: 'approved', // Auto-approve as requested
             document_url: file_url,
             extracted_data: data, // Store full extraction including line items
