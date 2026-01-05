@@ -176,7 +176,9 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
       }}>
         <div className="mb-8 text-center border-b-2 border-slate-300 pb-6">
           <h1 className="text-3xl font-bold text-slate-900 mb-2">Supply Order Request</h1>
-          <p className="text-lg text-slate-600">{category === 'clinical' ? 'Clinical' : 'Office'} Supplies</p>
+          <p className="text-lg text-slate-600">
+            {category === 'clinical' ? 'Clinical' : category === 'audiology' ? 'Audiology' : 'Office'} Supplies
+          </p>
         </div>
         
         <div className="mb-8 grid grid-cols-2 gap-6">
