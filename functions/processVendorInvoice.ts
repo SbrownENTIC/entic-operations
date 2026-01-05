@@ -105,6 +105,44 @@ Deno.serve(async (req) => {
                 isAudiology = true;
             }
 
+            // 0. Ensure Items exist in Catalog if Audiology
+            if (isAudiology && data.line_items && data.line_items.length > 0) {
+                try {
+                    for (const item of data.line_items) {
+                        if (!item.item_code || !item.description) continue;
+
+                        const existingItems = await base44.asServiceRole.entities.Supply.filter({
+                            item_number: item.item_code,
+                            category: 'audiology'
+                        });
+
+                        if (existingItems.length === 0) {
+                            console.log(`Auto-adding new audiology supply: ${item.item_code} - ${item.description}`);
+                            await base44.asServiceRole.entities.Supply.create({
+                                item_number: item.item_code,
+                                product_name: item.description,
+                                unit_price: item.unit_price || 0,
+                                vendor: normalizedVendorName,
+                                category: 'audiology',
+                                units: 'each'
+                            });
+                        } else {
+                            // Update price if different? 
+                            // For now, let's just ensure it exists. 
+                            // Optionally we could update unit_price if valid
+                            if (item.unit_price > 0 && Math.abs(item.unit_price - (existingItems[0].unit_price || 0)) > 0.01) {
+                                await base44.asServiceRole.entities.Supply.update(existingItems[0].id, {
+                                    unit_price: item.unit_price
+                                });
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error auto-adding supplies:", err);
+                    // Don't block flow
+                }
+            }
+
             // A1. Try direct lookup by order number first (most reliable)
             if (data.invoice_number) {
                 const byNumber = await TargetEntity.filter({ order_number: data.invoice_number });

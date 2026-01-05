@@ -140,6 +140,11 @@ const moreMenuItems = [
     icon: FileText,
   },
   {
+    title: "Audiology Catalog",
+    url: createPageUrl("AudiologySupplyCatalog"),
+    icon: Boxes,
+  },
+  {
     title: "System Documentation",
     url: createPageUrl("SystemDocumentation"),
     icon: HelpCircle,
