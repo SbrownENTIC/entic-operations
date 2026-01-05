@@ -20,6 +20,7 @@ export default function VendorInvoiceForm({ invoice, onSubmit, onCancel, isLoadi
     invoice_date: invoice?.invoice_date || "",
     total_amount: invoice?.total_amount || 0,
     status: invoice?.status || "pending_review",
+    billed_to: invoice?.billed_to || "ENTIC",
     location: invoice?.location || "",
     notes: invoice?.notes || "",
     linked_supply_order_ids: invoice?.linked_supply_order_ids || []
@@ -254,6 +255,22 @@ export default function VendorInvoiceForm({ invoice, onSubmit, onCancel, isLoadi
               <SelectItem value="Manchester">Manchester</SelectItem>
               <SelectItem value="Bloomfield">Bloomfield</SelectItem>
               <SelectItem value="Farmington">Farmington</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="billed_to">Billed To</Label>
+          <Select
+            value={formData.billed_to}
+            onValueChange={(value) => handleSelectChange("billed_to", value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select business line" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ENTIC">ENTIC</SelectItem>
+              <SelectItem value="The Hearing Institute">The Hearing Institute</SelectItem>
             </SelectContent>
           </Select>
         </div>

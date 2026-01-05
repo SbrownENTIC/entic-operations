@@ -189,6 +189,9 @@ export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, 
             >
               Type <SortIcon field="invoice_type" />
             </th>
+            <th className="p-4 font-semibold bg-slate-50 sticky top-0 z-10">
+              Billed To
+            </th>
             <th 
               className="p-4 font-semibold cursor-pointer hover:bg-slate-100 transition-colors bg-slate-50 sticky top-0 z-10"
               onClick={() => onSort && onSort('invoice_date')}
@@ -246,6 +249,11 @@ export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, 
                   ) : (
                       <span className="text-slate-500 text-xs">Invoice</span>
                   )}
+              </td>
+              <td className="p-4 text-slate-600">
+                  <Badge variant="outline" className={invoice.billed_to === 'The Hearing Institute' ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-blue-50 text-blue-700 border-blue-200'}>
+                    {invoice.billed_to || 'ENTIC'}
+                  </Badge>
               </td>
               <td className="p-4 text-slate-600">
                 {safeFormatDate(invoice.invoice_date)}
