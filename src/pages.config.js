@@ -24,6 +24,7 @@ import SupplyOrderDetail from './pages/SupplyOrderDetail';
 import SupplyRequest from './pages/SupplyRequest';
 import SystemDocumentation from './pages/SystemDocumentation';
 import TodaysOrders from './pages/TodaysOrders';
+import AudiologySupplyOrders from './pages/AudiologySupplyOrders';
 import __Layout from './Layout.jsx';
 
 
@@ -54,6 +55,7 @@ export const PAGES = {
     "SupplyRequest": SupplyRequest,
     "SystemDocumentation": SystemDocumentation,
     "TodaysOrders": TodaysOrders,
+    "AudiologySupplyOrders": AudiologySupplyOrders,
 }
 
 export const pagesConfig = {
