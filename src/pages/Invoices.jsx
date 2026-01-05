@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { format, parseISO } from "date-fns";
 import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { formatDateToEST } from "@/components/DateUtils";
 import InvoiceForm from "../components/invoices/InvoiceForm";
 import EmptyState from "@/components/ui/EmptyState";
 import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
@@ -1061,7 +1062,7 @@ export default function Invoices() {
         <div className="print-content h-full flex flex-col">
           <div className="hidden print:block mb-4 flex-shrink-0">
             <h1 className="text-2xl font-bold">Invoices Report</h1>
-            <p className="text-sm text-gray-600">Generated on {format(new Date(), 'MMM d, yyyy')}</p>
+            <p className="text-sm text-gray-600">Generated on {formatDateToEST(new Date())}</p>
           </div>
 
           <Card className="border-slate-200 shadow-sm h-full flex flex-col">
@@ -1304,7 +1305,7 @@ export default function Invoices() {
                         <td className="px-3 py-2 text-sm text-slate-900">{invoice.provider?.full_name || '-'}</td>
                         <td className="px-3 py-2 text-sm text-slate-600">{invoice.month || '-'}</td>
                         <td className="px-3 py-2 text-sm text-slate-600">
-                          {format(parseISO(invoice.invoice_date), 'MMM d, yyyy')}
+                          {formatDateToEST(invoice.invoice_date)}
                         </td>
                         <td className="px-3 py-2 text-sm font-medium text-slate-900">
                           ${formatCurrency(invoice.total || 0)}

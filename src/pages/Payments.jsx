@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Eye, Pencil, Trash2, DollarSign, Download, ArrowUpDown, ArrowUp, ArrowDown, AlertCircle, RefreshCw, Wrench, Printer } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useLocation } from "react-router-dom";
+import { formatDateToEST } from "@/components/DateUtils";
 import PaymentForm from "../components/payments/PaymentForm";
 import PaymentDetailModal from "../components/payments/PaymentDetailModal";
 import EmptyState from "@/components/ui/EmptyState";
@@ -678,7 +679,7 @@ export default function Payments() {
         <div className="print-content h-full flex flex-col">
           <div className="hidden print:block mb-4 flex-shrink-0">
             <h1 className="text-2xl font-bold mb-1">Payments Report</h1>
-            <p className="text-sm text-gray-600">Generated on {format(new Date(), 'MMM d, yyyy')}</p>
+            <p className="text-sm text-gray-600">Generated on {formatDateToEST(new Date())}</p>
           </div>
 
           <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm card h-full flex flex-col">
@@ -775,7 +776,7 @@ export default function Payments() {
                           {index + 1}
                         </td>
                         <td className="px-3 py-2 text-xs text-slate-600">
-                          {format(parseISO(payment.payment_date), 'MMM d, yyyy')}
+                          {formatDateToEST(payment.payment_date)}
                         </td>
                         <td className="px-3 py-2 text-xs text-slate-600">
                           {payment.payment_month || '-'}
