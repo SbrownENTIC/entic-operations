@@ -1,5 +1,6 @@
 import React from "react";
 import { format, parseISO } from "date-fns";
+import { formatDateToEST } from "@/components/DateUtils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileText, Eye, ExternalLink, CheckCircle, AlertCircle, Clock, Trash2, ArrowUpDown, ArrowUp, ArrowDown, ListX, PlusCircle, Loader2, Pencil, RefreshCw } from "lucide-react";
@@ -138,25 +139,7 @@ export default function VendorInvoiceList({ invoices, isLoading, onDeleteClick, 
     }
   };
 
-  const safeFormatDate = (dateString) => {
-    if (!dateString) return '-';
-    try {
-      // Handle if it's already a JS Date
-      if (dateString instanceof Date) return format(dateString, 'MMM d, yyyy');
-      // Parse ISO
-      const date = parseISO(dateString);
-      if (isNaN(date.getTime())) {
-          // Fallback to simple new Date if parseISO fails
-          const fallbackDate = new Date(dateString);
-          if (isNaN(fallbackDate.getTime())) return dateString; // Return raw string if all fails
-          return format(fallbackDate, 'MMM d, yyyy');
-      }
-      return format(date, 'MMM d, yyyy');
-    } catch (error) {
-      console.warn("Date formatting error:", error);
-      return dateString || '-';
-    }
-  };
+  const safeFormatDate = (dateString) => formatDateToEST(dateString);
 
   const getMissingItems = (invoice) => {
       const lineItems = invoice.extracted_data?.line_items || [];
