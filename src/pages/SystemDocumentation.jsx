@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/use-toast";
-import { SyncHenryScheinButton, FixVendorDataButton, ForceRedactHenryButton } from "@/components/documentation/MaintenanceButtons";
+import { SyncHenryScheinButton, FixVendorDataButton, ForceRedactHenryButton, UpdateOaktreeInvoicesButton } from "@/components/documentation/MaintenanceButtons";
 
 export default function SystemDocumentation() {
   const [activeTab, setActiveTab] = useState("sops");
@@ -267,6 +267,17 @@ export default function SystemDocumentation() {
                     <p className="text-xs text-slate-500 mt-1">
                       • Re-runs the math: <em>Days × Rate</em> = Total.<br/>
                       • Useful if you changed a provider's daily rate and want to update old records.
+                    </p>
+                  </div>
+
+                  <div className="border rounded-lg p-3 bg-slate-50 mt-2">
+                    <div className="flex justify-between items-center mb-1">
+                      <p className="font-medium text-sm">"Update Oaktree Billing"</p>
+                      <UpdateOaktreeInvoicesButton />
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                      • Scans all invoices for "Oaktree Products".<br/>
+                      • Updates "Billed To" field to "The Hearing Institute".
                     </p>
                   </div>
                 </div>

@@ -126,3 +126,38 @@ export function ForceRedactHenryButton() {
     </div>
   );
 }
+
+export function UpdateOaktreeInvoicesButton() {
+  const { toast } = useToast();
+  const [loading, setLoading] = React.useState(false);
+
+  const handleUpdate = async () => {
+    if (!confirm("Update all Oaktree Products invoices to show as billed to 'The Hearing Institute'?")) return;
+    
+    setLoading(true);
+    toast({ title: "Update Started", description: "Scanning Oaktree invoices..." });
+    
+    try {
+      const res = await base44.functions.invoke('updateOaktreeInvoices');
+      toast({ 
+        title: "Update Completed", 
+        description: res.data.message
+      });
+    } catch (err) {
+      toast({ 
+        title: "Error", 
+        description: err.message, 
+        variant: "destructive" 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Button size="sm" variant="outline" onClick={handleUpdate} disabled={loading} className="h-7 text-xs gap-1 bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100">
+      <RefreshCw className="w-3 h-3" />
+      {loading ? "Updating..." : "Update Oaktree Billing"}
+    </Button>
+  );
+}
