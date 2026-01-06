@@ -20,12 +20,12 @@ import ProviderTimeOff from './pages/ProviderTimeOff';
 import Providers from './pages/Providers';
 import PublicSupplyRequest from './pages/PublicSupplyRequest';
 import Reminders from './pages/Reminders';
-import Reports from './pages/Reports';
 import SimpleDashboard from './pages/SimpleDashboard';
 import SupplyOrderDetail from './pages/SupplyOrderDetail';
 import SupplyRequest from './pages/SupplyRequest';
 import SystemDocumentation from './pages/SystemDocumentation';
 import TodaysOrders from './pages/TodaysOrders';
+import Reports from './pages/Reports';
 import __Layout from './Layout.jsx';
 
 
@@ -52,12 +52,12 @@ export const PAGES = {
     "Providers": Providers,
     "PublicSupplyRequest": PublicSupplyRequest,
     "Reminders": Reminders,
-    "Reports": Reports,
     "SimpleDashboard": SimpleDashboard,
     "SupplyOrderDetail": SupplyOrderDetail,
     "SupplyRequest": SupplyRequest,
     "SystemDocumentation": SystemDocumentation,
     "TodaysOrders": TodaysOrders,
+    "Reports": Reports,
 }
 
 export const pagesConfig = {

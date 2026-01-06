@@ -704,56 +704,58 @@ export default function Reports() {
         </Card>
 
         <Tabs defaultValue="payment-tracking" className="space-y-4">
-          <TabsList className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 w-full h-auto bg-transparent p-0">
-            <TabsTrigger value="payment-tracking" className="gap-2 py-3 h-auto whitespace-normal text-center bg-white border border-slate-200 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-slate-50 shadow-sm">
-              <FileText className="w-4 h-4 shrink-0" />
-              Payment Tracking
-            </TabsTrigger>
-            <TabsTrigger value="allocation" className="gap-2 py-3 h-auto whitespace-normal text-center bg-white border border-slate-200 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-slate-50 shadow-sm">
-              <DollarSign className="w-4 h-4 shrink-0" />
-              Payment Allocations
-            </TabsTrigger>
-            <TabsTrigger value="aging" className="gap-2 py-3 h-auto whitespace-normal text-center bg-white border border-slate-200 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-slate-50 shadow-sm">
-              <Clock className="w-4 h-4 shrink-0" />
-              Invoice Aging
-            </TabsTrigger>
-            <TabsTrigger value="income" className="gap-2 py-3 h-auto whitespace-normal text-center bg-white border border-slate-200 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-slate-50 shadow-sm">
-              <FileText className="w-4 h-4 shrink-0" />
-              Outside Income
-            </TabsTrigger>
-            <TabsTrigger value="provider" className="gap-2 py-3 h-auto whitespace-normal text-center bg-white border border-slate-200 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-slate-50 shadow-sm">
-              <Users className="w-4 h-4 shrink-0" />
-              Invoice by Provider
-            </TabsTrigger>
-            <TabsTrigger value="office-supplies" className="gap-2 py-3 h-auto whitespace-normal text-center bg-white border border-slate-200 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-slate-50 shadow-sm">
-              <Package className="w-4 h-4 shrink-0" />
-              Office Supply Orders
-            </TabsTrigger>
-            <TabsTrigger value="clinical-supplies" className="gap-2 py-3 h-auto whitespace-normal text-center bg-white border border-slate-200 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-slate-50 shadow-sm">
-              <Package className="w-4 h-4 shrink-0" />
-              Clinical Supply Orders
-            </TabsTrigger>
-            <TabsTrigger value="audiology-supplies" className="gap-2 py-3 h-auto whitespace-normal text-center bg-white border border-slate-200 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-slate-50 shadow-sm">
-              <Package className="w-4 h-4 shrink-0" />
-              Audiology Supply Orders
-            </TabsTrigger>
-            <TabsTrigger value="unlinked" className="gap-2 py-3 h-auto whitespace-normal text-center bg-white border border-slate-200 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-slate-50 shadow-sm">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              Unlinked Invoices
-            </TabsTrigger>
-            <TabsTrigger value="vendor-expenses" className="gap-2 py-3 h-auto whitespace-normal text-center bg-white border border-slate-200 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-slate-50 shadow-sm">
-              <DollarSign className="w-4 h-4 shrink-0" />
-              Vendor Expenses
-            </TabsTrigger>
-            <TabsTrigger value="credentialing" className="gap-2 py-3 h-auto whitespace-normal text-center bg-white border border-slate-200 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-slate-50 shadow-sm">
-              <Users className="w-4 h-4 shrink-0" />
-              Credentialing Matrix
-            </TabsTrigger>
-            <TabsTrigger value="monthly-financials" className="gap-2 py-3 h-auto whitespace-normal text-center bg-white border border-slate-200 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-slate-50 shadow-sm">
-              <Calendar className="w-4 h-4 shrink-0" />
-              Monthly Financials
-            </TabsTrigger>
-          </TabsList>
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+            <TabsList className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 w-full h-auto bg-transparent p-0">
+              <TabsTrigger value="payment-tracking" className="flex flex-col items-center justify-center gap-2 py-4 h-full whitespace-normal text-center bg-slate-50 border border-slate-200 rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600 hover:bg-slate-100 hover:border-slate-300 transition-all shadow-sm">
+                <FileText className="w-5 h-5 shrink-0" />
+                <span className="text-xs font-medium">Payment Tracking</span>
+              </TabsTrigger>
+              <TabsTrigger value="allocation" className="flex flex-col items-center justify-center gap-2 py-4 h-full whitespace-normal text-center bg-slate-50 border border-slate-200 rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600 hover:bg-slate-100 hover:border-slate-300 transition-all shadow-sm">
+                <DollarSign className="w-5 h-5 shrink-0" />
+                <span className="text-xs font-medium">Payment Allocations</span>
+              </TabsTrigger>
+              <TabsTrigger value="aging" className="flex flex-col items-center justify-center gap-2 py-4 h-full whitespace-normal text-center bg-slate-50 border border-slate-200 rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600 hover:bg-slate-100 hover:border-slate-300 transition-all shadow-sm">
+                <Clock className="w-5 h-5 shrink-0" />
+                <span className="text-xs font-medium">Invoice Aging</span>
+              </TabsTrigger>
+              <TabsTrigger value="income" className="flex flex-col items-center justify-center gap-2 py-4 h-full whitespace-normal text-center bg-slate-50 border border-slate-200 rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600 hover:bg-slate-100 hover:border-slate-300 transition-all shadow-sm">
+                <FileText className="w-5 h-5 shrink-0" />
+                <span className="text-xs font-medium">Outside Income</span>
+              </TabsTrigger>
+              <TabsTrigger value="provider" className="flex flex-col items-center justify-center gap-2 py-4 h-full whitespace-normal text-center bg-slate-50 border border-slate-200 rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600 hover:bg-slate-100 hover:border-slate-300 transition-all shadow-sm">
+                <Users className="w-5 h-5 shrink-0" />
+                <span className="text-xs font-medium">Invoice by Provider</span>
+              </TabsTrigger>
+              <TabsTrigger value="office-supplies" className="flex flex-col items-center justify-center gap-2 py-4 h-full whitespace-normal text-center bg-slate-50 border border-slate-200 rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600 hover:bg-slate-100 hover:border-slate-300 transition-all shadow-sm">
+                <Package className="w-5 h-5 shrink-0" />
+                <span className="text-xs font-medium">Office Supplies</span>
+              </TabsTrigger>
+              <TabsTrigger value="clinical-supplies" className="flex flex-col items-center justify-center gap-2 py-4 h-full whitespace-normal text-center bg-slate-50 border border-slate-200 rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600 hover:bg-slate-100 hover:border-slate-300 transition-all shadow-sm">
+                <Package className="w-5 h-5 shrink-0" />
+                <span className="text-xs font-medium">Clinical Supplies</span>
+              </TabsTrigger>
+              <TabsTrigger value="audiology-supplies" className="flex flex-col items-center justify-center gap-2 py-4 h-full whitespace-normal text-center bg-slate-50 border border-slate-200 rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600 hover:bg-slate-100 hover:border-slate-300 transition-all shadow-sm">
+                <Package className="w-5 h-5 shrink-0" />
+                <span className="text-xs font-medium">Audiology Supplies</span>
+              </TabsTrigger>
+              <TabsTrigger value="unlinked" className="flex flex-col items-center justify-center gap-2 py-4 h-full whitespace-normal text-center bg-slate-50 border border-slate-200 rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600 hover:bg-slate-100 hover:border-slate-300 transition-all shadow-sm">
+                <AlertCircle className="w-5 h-5 shrink-0" />
+                <span className="text-xs font-medium">Unlinked Invoices</span>
+              </TabsTrigger>
+              <TabsTrigger value="vendor-expenses" className="flex flex-col items-center justify-center gap-2 py-4 h-full whitespace-normal text-center bg-slate-50 border border-slate-200 rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600 hover:bg-slate-100 hover:border-slate-300 transition-all shadow-sm">
+                <DollarSign className="w-5 h-5 shrink-0" />
+                <span className="text-xs font-medium">Vendor Expenses</span>
+              </TabsTrigger>
+              <TabsTrigger value="credentialing" className="flex flex-col items-center justify-center gap-2 py-4 h-full whitespace-normal text-center bg-slate-50 border border-slate-200 rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600 hover:bg-slate-100 hover:border-slate-300 transition-all shadow-sm">
+                <Users className="w-5 h-5 shrink-0" />
+                <span className="text-xs font-medium">Credentialing</span>
+              </TabsTrigger>
+              <TabsTrigger value="monthly-financials" className="flex flex-col items-center justify-center gap-2 py-4 h-full whitespace-normal text-center bg-slate-50 border border-slate-200 rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600 hover:bg-slate-100 hover:border-slate-300 transition-all shadow-sm">
+                <Calendar className="w-5 h-5 shrink-0" />
+                <span className="text-xs font-medium">Monthly Financials</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="payment-tracking">
             <PaymentTrackingReport
