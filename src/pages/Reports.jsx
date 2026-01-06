@@ -704,53 +704,53 @@ export default function Reports() {
         </Card>
 
         <Tabs defaultValue="payment-tracking" className="space-y-4">
-          <TabsList className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 w-full h-auto bg-transparent p-0">
-            <TabsTrigger value="payment-tracking" className="gap-2 py-3 h-auto whitespace-normal text-center bg-white border border-slate-200 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-slate-50 shadow-sm">
-              <FileText className="w-4 h-4 shrink-0" />
+          <TabsList className="flex flex-wrap w-full h-auto gap-1">
+            <TabsTrigger value="payment-tracking" className="gap-2 py-3 flex-1 min-w-[150px]">
+              <FileText className="w-4 h-4" />
               Payment Tracking
             </TabsTrigger>
-            <TabsTrigger value="allocation" className="gap-2 py-3 h-auto whitespace-normal text-center bg-white border border-slate-200 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-slate-50 shadow-sm">
-              <DollarSign className="w-4 h-4 shrink-0" />
+            <TabsTrigger value="allocation" className="gap-2 py-3 flex-1 min-w-[150px]">
+              <DollarSign className="w-4 h-4" />
               Payment Allocations
             </TabsTrigger>
-            <TabsTrigger value="aging" className="gap-2 py-3 h-auto whitespace-normal text-center bg-white border border-slate-200 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-slate-50 shadow-sm">
-              <Clock className="w-4 h-4 shrink-0" />
+            <TabsTrigger value="aging" className="gap-2 py-3 flex-1 min-w-[150px]">
+              <Clock className="w-4 h-4" />
               Invoice Aging
             </TabsTrigger>
-            <TabsTrigger value="income" className="gap-2 py-3 h-auto whitespace-normal text-center bg-white border border-slate-200 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-slate-50 shadow-sm">
-              <FileText className="w-4 h-4 shrink-0" />
+            <TabsTrigger value="income" className="gap-2 py-3 flex-1 min-w-[150px]">
+              <FileText className="w-4 h-4" />
               Outside Income
             </TabsTrigger>
-            <TabsTrigger value="provider" className="gap-2 py-3 h-auto whitespace-normal text-center bg-white border border-slate-200 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-slate-50 shadow-sm">
-              <Users className="w-4 h-4 shrink-0" />
+            <TabsTrigger value="provider" className="gap-2 py-3 flex-1 min-w-[150px]">
+              <Users className="w-4 h-4" />
               Invoice by Provider
             </TabsTrigger>
-            <TabsTrigger value="office-supplies" className="gap-2 py-3 h-auto whitespace-normal text-center bg-white border border-slate-200 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-slate-50 shadow-sm">
-              <Package className="w-4 h-4 shrink-0" />
+            <TabsTrigger value="office-supplies" className="gap-2 py-3 flex-1 min-w-[150px]">
+              <Package className="w-4 h-4" />
               Office Supply Orders
             </TabsTrigger>
-            <TabsTrigger value="clinical-supplies" className="gap-2 py-3 h-auto whitespace-normal text-center bg-white border border-slate-200 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-slate-50 shadow-sm">
-              <Package className="w-4 h-4 shrink-0" />
+            <TabsTrigger value="clinical-supplies" className="gap-2 py-3 flex-1 min-w-[150px]">
+              <Package className="w-4 h-4" />
               Clinical Supply Orders
             </TabsTrigger>
-            <TabsTrigger value="audiology-supplies" className="gap-2 py-3 h-auto whitespace-normal text-center bg-white border border-slate-200 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-slate-50 shadow-sm">
-              <Package className="w-4 h-4 shrink-0" />
+            <TabsTrigger value="audiology-supplies" className="gap-2 py-3 flex-1 min-w-[150px]">
+              <Package className="w-4 h-4" />
               Audiology Supply Orders
             </TabsTrigger>
-            <TabsTrigger value="unlinked" className="gap-2 py-3 h-auto whitespace-normal text-center bg-white border border-slate-200 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-slate-50 shadow-sm">
-              <AlertCircle className="w-4 h-4 shrink-0" />
+            <TabsTrigger value="unlinked" className="gap-2 py-3 flex-1 min-w-[150px]">
+              <AlertCircle className="w-4 h-4" />
               Unlinked Invoices
             </TabsTrigger>
-            <TabsTrigger value="vendor-expenses" className="gap-2 py-3 h-auto whitespace-normal text-center bg-white border border-slate-200 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-slate-50 shadow-sm">
-              <DollarSign className="w-4 h-4 shrink-0" />
+            <TabsTrigger value="vendor-expenses" className="gap-2 py-3 flex-1 min-w-[150px]">
+              <DollarSign className="w-4 h-4" />
               Vendor Expenses
             </TabsTrigger>
-            <TabsTrigger value="credentialing" className="gap-2 py-3 h-auto whitespace-normal text-center bg-white border border-slate-200 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-slate-50 shadow-sm">
-              <Users className="w-4 h-4 shrink-0" />
+            <TabsTrigger value="credentialing" className="gap-2 py-3 flex-1 min-w-[150px]">
+              <Users className="w-4 h-4" />
               Credentialing Matrix
             </TabsTrigger>
-            <TabsTrigger value="monthly-financials" className="gap-2 py-3 h-auto whitespace-normal text-center bg-white border border-slate-200 data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-slate-50 shadow-sm">
-              <Calendar className="w-4 h-4 shrink-0" />
+            <TabsTrigger value="monthly-financials" className="gap-2 py-3 flex-1 min-w-[150px]">
+              <Calendar className="w-4 h-4" />
               Monthly Financials
             </TabsTrigger>
           </TabsList>
