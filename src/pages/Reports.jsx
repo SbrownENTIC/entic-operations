@@ -706,7 +706,7 @@ export default function Reports() {
 
         <Tabs defaultValue="payment-tracking" className="space-y-4">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-            <TabsList className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 w-full h-auto bg-transparent p-0">
+            <TabsList className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3 w-full h-auto bg-transparent p-0">
               <TabsTrigger value="payment-tracking" className="flex flex-col items-center justify-center gap-2 py-4 h-full whitespace-normal text-center bg-slate-50 border border-slate-200 rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600 hover:bg-slate-100 hover:border-slate-300 transition-all shadow-sm">
                 <FileText className="w-5 h-5 shrink-0" />
                 <span className="text-xs font-medium">Payment Tracking</span>
