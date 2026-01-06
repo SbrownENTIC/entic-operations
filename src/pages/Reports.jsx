@@ -12,6 +12,7 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import PaymentTrackingReport from "../components/reports/PaymentTrackingReport";
 import MonthlyFinancialsReport from "../components/reports/MonthlyFinancialsReport";
+import YearlyFinancialsReport from "../components/reports/YearlyFinancialsReport";
 import SupplyOrderReportView from "../components/reports/SupplyOrderReportView";
 import ProviderCredentialingReport from "../components/reports/ProviderCredentialingReport";
 import { PaymentTrendChart, InvoiceAgingChart, IncomeDistributionChart, SupplySpendingChart } from "../components/reports/ReportCharts";
@@ -754,6 +755,10 @@ export default function Reports() {
                 <Calendar className="w-5 h-5 shrink-0" />
                 <span className="text-xs font-medium">Monthly Financials</span>
               </TabsTrigger>
+              <TabsTrigger value="yearly-financials" className="flex flex-col items-center justify-center gap-2 py-4 h-full whitespace-normal text-center bg-slate-50 border border-slate-200 rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600 hover:bg-slate-100 hover:border-slate-300 transition-all shadow-sm">
+                <Calendar className="w-5 h-5 shrink-0" />
+                <span className="text-xs font-medium">Yearly Financials</span>
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -1303,6 +1308,13 @@ export default function Reports() {
 
           <TabsContent value="monthly-financials">
             <MonthlyFinancialsReport 
+              payments={payments}
+              formatCurrency={formatCurrency}
+            />
+          </TabsContent>
+
+          <TabsContent value="yearly-financials">
+            <YearlyFinancialsReport 
               payments={payments}
               formatCurrency={formatCurrency}
             />
