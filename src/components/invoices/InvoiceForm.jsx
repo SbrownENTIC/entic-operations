@@ -20,6 +20,8 @@ const INVOICE_STATUSES = [
   { value: "draft", label: "Draft" },
   { value: "pending_providers_approval", label: "Pending Providers Approval" },
   { value: "pending_providers_time", label: "Pending Providers Time" },
+  { value: "sent_to_provider_for_approval", label: "Sent to Provider for Approval" },
+  { value: "sent_to_provider_for_review", label: "Sent to Provider for Review" },
   { value: "sent_to_coo_for_approval", label: "Sent to COO for Approval" },
   { value: "sent_for_approval", label: "Sent for Approval" },
   { value: "approved", label: "Approved" },
@@ -782,7 +784,29 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                 onCheckedChange={(checked) => handleStatusCheckboxChange('pending_providers_approval', null, checked)}
               />
               <label htmlFor="pending_providers_approval" className="text-sm font-medium cursor-pointer">
+                Pending Provider Approval
+              </label>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="sent_to_provider_for_approval"
+                checked={formData.status === 'sent_to_provider_for_approval'}
+                onCheckedChange={(checked) => handleStatusCheckboxChange('sent_to_provider_for_approval', null, checked)}
+              />
+              <label htmlFor="sent_to_provider_for_approval" className="text-sm font-medium cursor-pointer">
                 Sent to Provider for Approval
+              </label>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="sent_to_provider_for_review"
+                checked={formData.status === 'sent_to_provider_for_review'}
+                onCheckedChange={(checked) => handleStatusCheckboxChange('sent_to_provider_for_review', null, checked)}
+              />
+              <label htmlFor="sent_to_provider_for_review" className="text-sm font-medium cursor-pointer">
+                Sent to Provider for Review
               </label>
             </div>
 
