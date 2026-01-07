@@ -31,7 +31,7 @@ export default function PendingInvoicesWidget({ providersWithPendingInvoices }) 
           {providersWithPendingInvoices.map(provider => (
             <Link 
               key={provider.id}
-              to={`${createPageUrl("Invoices")}?status=pending_providers_approval,sent_for_approval&search=${encodeURIComponent(provider.full_name)}`}
+              to={`${createPageUrl("Invoices")}?status=pending_providers_approval,sent_for_approval,sent_to_provider_for_approval,sent_to_provider_for_review&search=${encodeURIComponent(provider.full_name)}`}
               className="block group"
             >
               <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-indigo-200 shadow-sm group-hover:border-indigo-400 group-hover:shadow-md transition-all">

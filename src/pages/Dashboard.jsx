@@ -452,7 +452,7 @@ export default function Dashboard() {
 
   // Providers with pending approval invoices (Any Date)
   const providersWithPendingInvoices = React.useMemo(() => {
-    const relevantStatuses = ['pending_providers_approval', 'sent_for_approval'];
+    const relevantStatuses = ['pending_providers_approval', 'sent_for_approval', 'sent_to_provider_for_approval', 'sent_to_provider_for_review'];
     const pendingInvoices = invoices.filter(inv => relevantStatuses.includes(inv.status));
     
     const providerCounts = {};
@@ -586,6 +586,14 @@ export default function Dashboard() {
 
   const sentToCOOInvoices = invoices.filter(inv => 
     inv.status === 'sent_to_coo_for_approval'
+  ).length;
+
+  const sentToProviderForApprovalCount = invoices.filter(inv => 
+    inv.status === 'sent_to_provider_for_approval'
+  ).length;
+
+  const sentToProviderForReviewCount = invoices.filter(inv => 
+    inv.status === 'sent_to_provider_for_review'
   ).length;
 
   const pendingProviderApprovalCount = invoices.filter(inv => 
@@ -896,6 +904,8 @@ export default function Dashboard() {
             uconnPendingVendorInvoices={uconnPendingVendorInvoices}
             sentForApprovalInvoices={sentForApprovalInvoices}
             sentToCOOInvoices={sentToCOOInvoices}
+            sentToProviderForApprovalCount={sentToProviderForApprovalCount}
+            sentToProviderForReviewCount={sentToProviderForReviewCount}
             pendingProviderApprovalCount={pendingProviderApprovalCount}
             pendingProviderTimeCount={pendingProviderTimeCount}
             privilegesExpiring30Days={privilegesExpiring30Days}

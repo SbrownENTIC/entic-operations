@@ -11,6 +11,8 @@ export default function AlertsWidget({
   uconnPendingVendorInvoices, 
   sentForApprovalInvoices, 
   sentToCOOInvoices,
+  sentToProviderForApprovalCount,
+  sentToProviderForReviewCount,
   pendingProviderApprovalCount,
   pendingProviderTimeCount,
   privilegesExpiring30Days,
@@ -21,7 +23,9 @@ export default function AlertsWidget({
                     uconnPendingVendorInvoices > 0 || 
                     sentForApprovalInvoices > 0 || 
                     sentToCOOInvoices > 0 ||
-                    pendingProviderApprovalCount > 0 || 
+                    sentToProviderForApprovalCount > 0 ||
+                    sentToProviderForReviewCount > 0 ||
+                    pendingProviderApprovalCount > 0 ||
                     pendingProviderTimeCount > 0 || 
                     privilegesExpiring30Days.length > 0 ||
                     partiallyReceivedCount > 0 ||
@@ -87,6 +91,36 @@ export default function AlertsWidget({
             <CardContent className="pt-3">
               <div className="text-4xl font-bold text-fuchsia-700 mb-1">{sentToCOOInvoices}</div>
               <Link to={`${createPageUrl("Invoices")}?status=sent_to_coo_for_approval`} className="text-xs text-fuchsia-700 hover:text-fuchsia-900 font-semibold hover:underline">
+                View invoices →
+              </Link>
+            </CardContent>
+          </Card>
+        )}
+
+        {sentToProviderForApprovalCount > 0 && (
+          <Card className={`bg-gradient-to-br from-indigo-100 to-indigo-50 transition-all duration-300 ${sentToProviderForApprovalCount > 0 ? 'border-[5px] border-indigo-600 animate-alert-glow' : 'border-3 border-indigo-300 shadow-xl shadow-indigo-200/50 hover:scale-105'}`}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-indigo-300">
+              <CardTitle className="text-sm font-bold text-slate-900">Sent to Provider for Approval</CardTitle>
+              <UserCheck className="w-5 h-5 text-indigo-700 animate-slow-pulse" />
+            </CardHeader>
+            <CardContent className="pt-3">
+              <div className="text-4xl font-bold text-indigo-700 mb-1">{sentToProviderForApprovalCount}</div>
+              <Link to={`${createPageUrl("Invoices")}?status=sent_to_provider_for_approval`} className="text-xs text-indigo-700 hover:text-indigo-900 font-semibold hover:underline">
+                View invoices →
+              </Link>
+            </CardContent>
+          </Card>
+        )}
+
+        {sentToProviderForReviewCount > 0 && (
+          <Card className={`bg-gradient-to-br from-purple-100 to-purple-50 transition-all duration-300 ${sentToProviderForReviewCount > 0 ? 'border-[5px] border-purple-600 animate-alert-glow' : 'border-3 border-purple-300 shadow-xl shadow-purple-200/50 hover:scale-105'}`}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-purple-300">
+              <CardTitle className="text-sm font-bold text-slate-900">Sent to Provider for Review</CardTitle>
+              <UserCheck className="w-5 h-5 text-purple-700 animate-slow-pulse" />
+            </CardHeader>
+            <CardContent className="pt-3">
+              <div className="text-4xl font-bold text-purple-700 mb-1">{sentToProviderForReviewCount}</div>
+              <Link to={`${createPageUrl("Invoices")}?status=sent_to_provider_for_review`} className="text-xs text-purple-700 hover:text-purple-900 font-semibold hover:underline">
                 View invoices →
               </Link>
             </CardContent>
