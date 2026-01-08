@@ -67,18 +67,21 @@ export default function ProviderLicensesReport() {
   };
 
   // Process data
-  const processedLicenses = licenses.map(license => {
-    const provider = providers.find(p => p.id === license.provider_id);
-    const statusLabel = getStatusLabel(license);
-    const daysUntil = license.expiration_date ? differenceInDays(parseISO(license.expiration_date), new Date()) : null;
-    
-    return {
-      ...license,
-      provider_name: provider?.full_name || 'Unknown Provider',
-      status_label: statusLabel,
-      days_until: daysUntil
-    };
-  });
+  const processedLicenses = licenses
+    .map(license => {
+      const provider = providers.find(p => p.id === license.provider_id);
+      const statusLabel = getStatusLabel(license);
+      const daysUntil = license.expiration_date ? differenceInDays(parseISO(license.expiration_date), new Date()) : null;
+      
+      return {
+        ...license,
+        provider_name: provider?.full_name || 'Unknown Provider',
+        provider_status: provider?.status,
+        status_label: statusLabel,
+        days_until: daysUntil
+      };
+    })
+    .filter(license => license.provider_status !== 'inactive');
 
   // Filter data
   const filteredLicenses = processedLicenses.filter(license => {
