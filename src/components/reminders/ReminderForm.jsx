@@ -158,7 +158,8 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
     'Christmas': { '2025': '2025-12-29', '2026': '2026-12-28' },
     'New Year\'s Day': { '2026': '2026-01-05' },
     'Easter': { '2026': '2026-04-07' },
-    'Memorial Day': { '2026': '2026-05-26' }
+    'Memorial Day': { '2026': '2026-05-26' },
+    'Independence Day': { '2025': '2025-07-07', '2026': '2026-07-06' }
   };
 
   // Auto-calculate send date when closure date changes (only if not manually edited)
@@ -538,6 +539,7 @@ The Operations Team
                       <SelectItem value="New Year's Day">New Year's Day</SelectItem>
                       <SelectItem value="Easter">Easter</SelectItem>
                       <SelectItem value="Memorial Day">Memorial Day</SelectItem>
+                      <SelectItem value="Independence Day">Independence Day</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
