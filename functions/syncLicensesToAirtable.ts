@@ -150,7 +150,7 @@ Deno.serve(async (req) => {
       const fields = {
         'License Type': cleanLicenseType,
         'Expiration Date': license.expiration_date || null,
-        'Status': license.status || 'active',
+        'Status': (license.status === 'expired') ? 'Inactive' : 'Active',
         // 'Internal License ID': internalId || '', // Cannot write to computed field
         'Reminder 30 Days': license.reminder_30_sent || false,
         'Reminder 14 Days': license.reminder_14_sent || false,
