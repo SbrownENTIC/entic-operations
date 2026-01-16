@@ -68,8 +68,12 @@ Deno.serve(async (req) => {
 
     if (allStaffRecords.length > 0) {
       allStaffRecords.forEach(record => {
-        // Strictly use 'Provider Name' as requested, with fallback only if empty
-        const name = record.fields['Provider Name'] || record.fields['Name'];
+        // Try multiple common column names for the Staff Name
+        const name = record.fields['Provider Name'] || 
+                     record.fields['Name'] || 
+                     record.fields['Full Name'] || 
+                     record.fields['Staff Name'] ||
+                     record.fields['Provider'];
 
         if (name) {
           // Normalize name: lowercase, trim, and collapse multiple spaces to single space
@@ -225,11 +229,22 @@ Deno.serve(async (req) => {
 
       // DEBUG: Capture Ashley Radcliffe details
       if (provider.name.toLowerCase().includes('ashley radcliffe')) {
+          let extraDebug = "";
+          if (!staffRecordId) {
+             // If we couldn't match her, search ALL staff records to see where she might be hiding
+             const potentialMatches = allStaffRecords.filter(r => 
+                 JSON.stringify(r.fields).toLowerCase().includes('ashley')
+             ).map(r => ({ id: r.id, fields: r.fields }));
+             extraDebug = `Potential Matches in Airtable: ${JSON.stringify(potentialMatches)}`;
+          }
+
           debug_logs.push({
               providerName: provider.name,
               staffRecordId,
               fieldsSent: fields,
-              isUpdate: !!existingRecordId
+              isUpdate: !!existingRecordId,
+              extraDebug,
+              staffColumnsFound: allStaffRecords.length > 0 ? Object.keys(allStaffRecords[0].fields) : []
           });
       }
 

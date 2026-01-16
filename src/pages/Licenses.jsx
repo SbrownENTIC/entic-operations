@@ -107,7 +107,10 @@ export default function Licenses() {
   // Temporary: Show debug info if available
   if (response.data.debug_logs && response.data.debug_logs.length > 0) {
       const log = response.data.debug_logs[0];
-      msg += ` | DEBUG ASHLEY: StaffID=${log.staffRecordId ? 'FOUND' : 'MISSING'}, FieldSet=${!!log.fieldsSent['Staff Member']}, IsUpdate=${log.isUpdate}`;
+      msg += ` | DEBUG ASHLEY: StaffID=${log.staffRecordId ? 'FOUND' : 'MISSING'}. `;
+      if (!log.staffRecordId && log.extraDebug) {
+         msg += ` | Looked in cols: ${log.staffColumnsFound.join(', ')}. ${log.extraDebug.substring(0, 200)}...`;
+      }
   }
   if (response.data.debug_field_check) {
        msg += ` | Fields found: ${response.data.debug_field_check.sampleFields.join(', ')}`;
