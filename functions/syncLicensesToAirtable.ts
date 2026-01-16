@@ -125,6 +125,11 @@ Deno.serve(async (req) => {
         'Reminder 7 Days': license.reminder_7_sent || false
       };
 
+      const body = JSON.stringify({
+        fields,
+        typecast: true
+      });
+
       // Link to staff member if found
       if (staffRecordId) {
         fields['Staff Member'] = [staffRecordId];
@@ -147,7 +152,7 @@ Deno.serve(async (req) => {
                 'Authorization': `Bearer ${airtableApiKey}`,
                 'Content-Type': 'application/json'
               },
-              body: JSON.stringify({ fields })
+              body
             }
           );
         } else {
@@ -160,7 +165,7 @@ Deno.serve(async (req) => {
                 'Authorization': `Bearer ${airtableApiKey}`,
                 'Content-Type': 'application/json'
               },
-              body: JSON.stringify({ fields })
+              body
             }
           );
         }
