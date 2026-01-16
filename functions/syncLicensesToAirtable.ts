@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 const AIRTABLE_BASE_ID = 'app6seexOdkDrMl2U';
 const LICENSES_TABLE_ID = 'tbl82FkdzkUH3QBlr';
@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
       providerMap[p.id] = { name: p.full_name, email: p.email };
     });
 
-    // First, get existing Airtable staff records to map names to record IDs
+    // 1. Get existing Airtable staff records
     const staffResponse = await fetch(
       `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${STAFF_TABLE_ID}?fields%5B%5D=Provider%20Name`,
       {
@@ -50,7 +50,38 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Sync each license to Airtable
+    // 2. Get existing Airtable license records to perform UPSERT (Update/Create)
+    // We fetch 'Internal License ID' to match against
+    let allAirtableLicenses = [];
+    let offset = null;
+    do {
+      const url = new URL(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${LICENSES_TABLE_ID}`);
+      url.searchParams.append('fields[]', 'Internal License ID');
+      if (offset) url.searchParams.append('offset', offset);
+
+      const response = await fetch(url.toString(), {
+        headers: {
+          'Authorization': `Bearer ${airtableApiKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      if (data.records) {
+        allAirtableLicenses = [...allAirtableLicenses, ...data.records];
+      }
+      offset = data.offset;
+    } while (offset);
+
+    // Map Internal License ID -> Airtable Record ID
+    const licenseIdToRecordId = {};
+    allAirtableLicenses.forEach(record => {
+      const internalId = record.fields['Internal License ID'];
+      if (internalId) {
+        licenseIdToRecordId[internalId] = record.id;
+      }
+    });
+
+    // Sync each license to Airtable (UPSERT)
     let synced = 0;
     let errors = [];
 
@@ -60,12 +91,14 @@ Deno.serve(async (req) => {
 
       // Find matching staff record in Airtable
       const staffRecordId = staffNameToId[provider.name?.toLowerCase().trim()];
+      const internalId = license.internal_license_number;
+      const existingRecordId = internalId ? licenseIdToRecordId[internalId] : null;
 
       const fields = {
         'License Type': license.license_type || '',
         'Expiration Date': license.expiration_date || null,
         'Status': license.status || 'active',
-        'Internal License ID': license.internal_license_number || '',
+        'Internal License ID': internalId || '',
         'Reminder 30 Days': license.reminder_30_sent || false,
         'Reminder 14 Days': license.reminder_14_sent || false,
         'Reminder 7 Days': license.reminder_7_sent || false
@@ -77,18 +110,34 @@ Deno.serve(async (req) => {
       }
 
       try {
-        // Create new record in Airtable
-        const response = await fetch(
-          `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${LICENSES_TABLE_ID}`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${airtableApiKey}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ fields })
-          }
-        );
+        let response;
+        if (existingRecordId) {
+          // UPDATE (PATCH)
+          response = await fetch(
+            `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${LICENSES_TABLE_ID}/${existingRecordId}`,
+            {
+              method: 'PATCH',
+              headers: {
+                'Authorization': `Bearer ${airtableApiKey}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ fields })
+            }
+          );
+        } else {
+          // CREATE (POST)
+          response = await fetch(
+            `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${LICENSES_TABLE_ID}`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${airtableApiKey}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ fields })
+            }
+          );
+        }
 
         if (response.ok) {
           synced++;
@@ -99,6 +148,9 @@ Deno.serve(async (req) => {
       } catch (err) {
         errors.push({ license: license.id, error: err.message });
       }
+      
+      // Basic rate limiting to respect Airtable's 5 rps
+      await new Promise(resolve => setTimeout(resolve, 250));
     }
 
     return Response.json({
