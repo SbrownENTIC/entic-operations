@@ -141,6 +141,8 @@ Deno.serve(async (req) => {
     if (recordsToCreate.length > 0) await processBatch(recordsToCreate, 'POST');
 
     let message = `Synced ${syncedCount} providers to Airtable.`;
+    let debugInfo = null;
+
     if (errors.length > 0) {
       // detailed error message for the first error
       const firstError = errors[0];
@@ -149,13 +151,33 @@ Deno.serve(async (req) => {
         errorDetail = errorDetail.message || JSON.stringify(errorDetail);
       }
       message += ` Failed to sync ${errors.length} batches. First error: ${errorDetail}`;
+
+      // Debug: Fetch one record to inspect schema if we have validation errors
+      try {
+        const debugResponse = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${STAFF_TABLE_ID}?maxRecords=1`, {
+          headers: { 'Authorization': `Bearer ${airtableApiKey}` }
+        });
+        const debugData = await debugResponse.json();
+        if (debugData.records && debugData.records.length > 0) {
+          const sampleFields = debugData.records[0].fields;
+          debugInfo = {
+            sampleRecordFields: Object.keys(sampleFields),
+            sampleValues: sampleFields,
+            failedPayload: firstError.batchIds ? recordsToUpdate.find(r => r.id === firstError.batchIds[0]) || recordsToCreate[0] : null
+          };
+          message += ` | DEBUG: Sending: ${JSON.stringify(debugInfo.failedPayload?.fields)}. Airtable Expects fields like: ${Object.keys(sampleFields).join(', ')}`;
+        }
+      } catch (e) {
+        console.error("Failed to fetch debug info", e);
+      }
     }
 
     return Response.json({
       success: errors.length === 0,
       message: message,
       stats: { updated: recordsToUpdate.length, created: recordsToCreate.length },
-      errors: errors.length > 0 ? errors : undefined
+      errors: errors.length > 0 ? errors : undefined,
+      debug: debugInfo
     });
 
   } catch (error) {
