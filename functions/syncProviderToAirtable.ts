@@ -84,15 +84,20 @@ Deno.serve(async (req) => {
 
       const fields = {
         'Provider Name': provider.full_name,
-        'Work Email': provider.email || null,
         'Status': provider.status === 'active' ? 'Active' : provider.status === 'inactive' ? 'Inactive' : 'Pending',
-        'Phone': provider.phone || null,
-        'Role': provider.role || null,
-        // Send array for Multi-Select/Linked Record fields to work better with typecast
-        'Program/Location': (provider.program_locations && provider.program_locations.length > 0) ? provider.program_locations : null,
-        'Flu Vaccine Date': provider.flu_vaccine_date || null,
-        'Current Year Flu Vaccine': provider.flu_vaccine_year || null,
       };
+
+      if (provider.email) fields['Work Email'] = provider.email;
+      if (provider.phone) fields['Phone'] = provider.phone;
+      if (provider.role) fields['Role'] = provider.role;
+      
+      // Only include Program/Location if there are values
+      if (provider.program_locations && provider.program_locations.length > 0) {
+        fields['Program/Location'] = provider.program_locations;
+      }
+      
+      if (provider.flu_vaccine_date) fields['Flu Vaccine Date'] = provider.flu_vaccine_date;
+      if (provider.flu_vaccine_year) fields['Current Year Flu Vaccine'] = provider.flu_vaccine_year;
 
       if (airtableRecordId) {
         recordsToUpdate.push({
