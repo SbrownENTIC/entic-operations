@@ -89,18 +89,43 @@ Deno.serve(async (req) => {
         'Status': provider.status === 'active' ? 'Active' : 'Inactive',
       };
 
-      if (provider.email) fields['Email'] = provider.email;
-      if (provider.phone) fields['Phone'] = provider.phone;
-      if (provider.role) fields['Role'] = provider.role;
-      
-      // Only include Program/Location if there are values
-      if (provider.program_locations && Array.isArray(provider.program_locations) && provider.program_locations.length > 0) {
-        // Filter out any empty strings or non-string values just in case
-        const validLocations = provider.program_locations.filter(loc => typeof loc === 'string' && loc.trim() !== '');
-        if (validLocations.length > 0) {
-          fields['Program/Location'] = validLocations;
-        }
+      // 1. Correct Field Name: "Work Email" instead of "Email"
+      if (provider.email) fields['Work Email'] = provider.email;
+
+      // 2. Validate Phone against exact allowed options
+      const validPhones = [
+        '(860) 543-4846',
+        '(571) 232-9212',
+        '(513) 497-7890',
+        '(860) 463-0099',
+        '(860) 977-3163',
+        '(860) 810-4018',
+        '(860) 805-5529',
+        '(925) 322-9228',
+        '(860) 716-8602'
+      ];
+      if (provider.phone && validPhones.includes(provider.phone)) {
+        fields['Phone'] = provider.phone;
       }
+
+      // 3. Validate Role against exact allowed options
+      const validRoles = [
+        'ENT MD', 
+        'ENT PA', 
+        'ENT NP', 
+        'Audiologist', 
+        'Sleep MD', 
+        'Sleep NP', 
+        'Sleep PA'
+      ];
+      if (provider.role && validRoles.includes(provider.role)) {
+        fields['Role'] = provider.role;
+      }
+      
+      // 4. Removed Program/Location mapping
+      // This is a Linked Record field. Sending text strings causes errors. 
+      // We need to look up IDs from the Programs table first, but we don't have that table ID yet.
+      // Skipping as requested.
       
       // Ensure date is strictly YYYY-MM-DD
       if (provider.flu_vaccine_date) {
@@ -108,7 +133,7 @@ Deno.serve(async (req) => {
         fields['Flu Vaccine Date'] = provider.flu_vaccine_date.substring(0, 10);
       }
       
-      if (provider.flu_vaccine_year) fields['Current Year Flu Vaccine'] = provider.flu_vaccine_year;
+      // 5. Removed 'Current Year Flu Vaccine' as it is a read-only formula field
 
       if (airtableRecordId) {
         recordsToUpdate.push({
