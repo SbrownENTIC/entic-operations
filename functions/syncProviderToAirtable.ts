@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
         '(571) 232-9212',
         '(513) 497-7890',
         '(860) 463-0099',
-        '(860) 977-3163', // Corrected from typo (860) 97-3163 based on standard format
+        '(860) 97-3163', // Using exact value from user input (even if it looks like a typo) to match Airtable
         '(860) 810-4018',
         '(860) 805-5529',
         '(925) 322-9228',
@@ -134,8 +134,9 @@ Deno.serve(async (req) => {
       */
       
       // Ensure date is strictly YYYY-MM-DD
+      // Note: Error logs suggest the field is named "Flu Vaccine", not "Flu Vaccine Date"
       if (provider.flu_vaccine_date) {
-        fields['Flu Vaccine Date'] = provider.flu_vaccine_date.substring(0, 10);
+        fields['Flu Vaccine'] = provider.flu_vaccine_date.substring(0, 10);
       }
       
       // 5. Removed 'Current Year Flu Vaccine' (Formula field is read-only)
