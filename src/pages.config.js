@@ -17,7 +17,6 @@ import Payments from './pages/Payments';
 import ProgramLocations from './pages/ProgramLocations';
 import ProviderDetail from './pages/ProviderDetail';
 import ProviderTimeOff from './pages/ProviderTimeOff';
-import Providers from './pages/Providers';
 import PublicSupplyRequest from './pages/PublicSupplyRequest';
 import Reminders from './pages/Reminders';
 import Reports from './pages/Reports';
@@ -26,6 +25,7 @@ import SupplyOrderDetail from './pages/SupplyOrderDetail';
 import SupplyRequest from './pages/SupplyRequest';
 import SystemDocumentation from './pages/SystemDocumentation';
 import TodaysOrders from './pages/TodaysOrders';
+import Providers from './pages/Providers';
 import __Layout from './Layout.jsx';
 
 
@@ -49,7 +49,6 @@ export const PAGES = {
     "ProgramLocations": ProgramLocations,
     "ProviderDetail": ProviderDetail,
     "ProviderTimeOff": ProviderTimeOff,
-    "Providers": Providers,
     "PublicSupplyRequest": PublicSupplyRequest,
     "Reminders": Reminders,
     "Reports": Reports,
@@ -58,6 +57,7 @@ export const PAGES = {
     "SupplyRequest": SupplyRequest,
     "SystemDocumentation": SystemDocumentation,
     "TodaysOrders": TodaysOrders,
+    "Providers": Providers,
 }
 
 export const pagesConfig = {

@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Pencil, Trash2, CheckCircle, XCircle, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, Search, Eye, Pencil, Trash2, CheckCircle, XCircle, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown, CloudUpload, RefreshCw } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { format, parseISO } from "date-fns";
@@ -33,6 +34,8 @@ export default function Providers() {
   const [sortDirection, setSortDirection] = useState('asc');
   const [checkingTerminations, setCheckingTerminations] = useState(false);
   const [terminationMessage, setTerminationMessage] = useState('');
+  const [selectedProviders, setSelectedProviders] = useState(new Set());
+  const [isSyncing, setIsSyncing] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const location = useLocation();
@@ -180,6 +183,57 @@ export default function Providers() {
     }
   };
 
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedProviders(new Set(filteredProviders.map(p => p.id)));
+    } else {
+      setSelectedProviders(new Set());
+    }
+  };
+
+  const handleSelectProvider = (id, checked) => {
+    const newSelected = new Set(selectedProviders);
+    if (checked) {
+      newSelected.add(id);
+    } else {
+      newSelected.delete(id);
+    }
+    setSelectedProviders(newSelected);
+  };
+
+  const handleSyncToAirtable = async () => {
+    if (selectedProviders.size === 0) return;
+    
+    setIsSyncing(true);
+    try {
+      const response = await base44.functions.invoke('syncProviderToAirtable', {
+        providerIds: Array.from(selectedProviders)
+      });
+
+      if (response.data.success) {
+        toast({
+          title: "Sync Successful",
+          description: response.data.message,
+        });
+        setSelectedProviders(new Set()); // Clear selection on success
+      } else {
+        toast({
+          title: "Sync Completed with Errors",
+          description: response.data.message,
+          variant: "warning"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Sync Failed",
+        description: error.message || "An error occurred while syncing to Airtable",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   // Calculate current flu season
   const currentFluSeason = useMemo(() => {
     const now = new Date();
@@ -238,16 +292,29 @@ export default function Providers() {
             <h1 className="text-2xl font-bold text-slate-900">Providers</h1>
             <p className="text-slate-600 text-sm">Manage provider information and credentials</p>
           </div>
-          <Button
-            onClick={() => {
-              setEditingProvider(null);
-              setShowForm(true);
-            }}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Provider
-          </Button>
+          <div className="flex gap-2">
+            {selectedProviders.size > 0 && (
+              <Button
+                onClick={handleSyncToAirtable}
+                disabled={isSyncing}
+                variant="outline"
+                className="border-purple-200 text-purple-700 hover:bg-purple-50"
+              >
+                {isSyncing ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <CloudUpload className="w-4 h-4 mr-2" />}
+                Sync {selectedProviders.size} to Airtable
+              </Button>
+            )}
+            <Button
+              onClick={() => {
+                setEditingProvider(null);
+                setShowForm(true);
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Provider
+            </Button>
+          </div>
         </div>
 
         {showForm && (
@@ -288,10 +355,17 @@ export default function Providers() {
                   
                   return (
                     <div key={provider.id} className="bg-white rounded-lg border border-slate-200 shadow-sm p-4 space-y-3">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <Link 
-                            to={`${createPageUrl("ProviderDetail")}?id=${provider.id}`}
+                      <div className="flex items-start gap-3">
+                        <Checkbox 
+                          checked={selectedProviders.has(provider.id)}
+                          onCheckedChange={(checked) => handleSelectProvider(provider.id, checked)}
+                          className="mt-1"
+                        />
+                        <div className="flex-1">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <Link 
+                                to={`${createPageUrl("ProviderDetail")}?id=${provider.id}`}
                             className="font-medium text-blue-600 hover:text-blue-800 text-lg"
                           >
                             {provider.full_name}
@@ -373,6 +447,13 @@ export default function Providers() {
               <table className="w-full hidden md:table bg-white">
                 <thead className="sticky top-0 bg-slate-50 border-b border-slate-200 z-10">
                   <tr>
+                    <th className="p-4 w-[40px]">
+                      <Checkbox 
+                        checked={filteredProviders.length > 0 && selectedProviders.size === filteredProviders.length}
+                        onCheckedChange={handleSelectAll}
+                        aria-label="Select all"
+                      />
+                    </th>
                     <th 
                       className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                       onClick={() => handleSort('full_name')}
@@ -422,6 +503,13 @@ export default function Providers() {
                     
                     return (
                       <tr key={provider.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td className="p-4">
+                          <Checkbox 
+                            checked={selectedProviders.has(provider.id)}
+                            onCheckedChange={(checked) => handleSelectProvider(provider.id, checked)}
+                            aria-label={`Select ${provider.full_name}`}
+                          />
+                        </td>
                         <td className="p-4">
                                   <Link 
                                     to={`${createPageUrl("ProviderDetail")}?id=${provider.id}`}
