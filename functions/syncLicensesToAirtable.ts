@@ -42,9 +42,9 @@ Deno.serve(async (req) => {
       providerMap[p.id] = { name: p.full_name, email: p.email };
     });
 
-    // 1. Get existing Airtable staff records
+    // 1. Get existing Airtable staff records (Fetch Name and Email)
     const staffResponse = await fetch(
-      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${STAFF_TABLE_ID}?fields%5B%5D=Provider%20Name`,
+      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${STAFF_TABLE_ID}?fields%5B%5D=Provider%20Name&fields%5B%5D=Email`,
       {
         headers: {
           'Authorization': `Bearer ${airtableApiKey}`,
@@ -55,11 +55,16 @@ Deno.serve(async (req) => {
     
     const staffData = await staffResponse.json();
     const staffNameToId = {};
+    const staffEmailToId = {};
     if (staffData.records) {
       staffData.records.forEach(record => {
         const name = record.fields['Provider Name'];
         if (name) {
           staffNameToId[name.toLowerCase().trim()] = record.id;
+        }
+        const email = record.fields['Email'];
+        if (email) {
+          staffEmailToId[email.toLowerCase().trim()] = record.id;
         }
       });
     }
@@ -117,8 +122,11 @@ Deno.serve(async (req) => {
       const provider = providerMap[license.provider_id];
       if (!provider) continue;
 
-      // Find matching staff record in Airtable
-      const staffRecordId = staffNameToId[provider.name?.toLowerCase().trim()];
+      // Find matching staff record in Airtable (Try Name first, then Email)
+      let staffRecordId = staffNameToId[provider.name?.toLowerCase().trim()];
+      if (!staffRecordId && provider.email) {
+        staffRecordId = staffEmailToId[provider.email.toLowerCase().trim()];
+      }
       
       // Determine existing record ID:
       // 1. Try matching by Internal License ID
@@ -140,7 +148,9 @@ Deno.serve(async (req) => {
         'Medical License': 'MED',
         'APRN License': 'APRN',
         'Controlled Substance Practitioner License': 'CSP',
-        'Physician Assistant- Certified': 'PA'
+        'Physician Assistant- Certified': 'PA',
+        'Physician Assistant-Certified': 'PA',
+        'ASHA Certification': 'ASHA'
       };
 
       if (licenseTypeMap[cleanLicenseType]) {
