@@ -439,6 +439,8 @@ export default function Providers() {
                         </Button>
                       </div>
                     </div>
+                  </div>
+                </div>
                   );
                 })}
               </div>
