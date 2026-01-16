@@ -42,9 +42,9 @@ Deno.serve(async (req) => {
       providerMap[p.id] = { name: p.full_name, email: p.email };
     });
 
-    // 1. Get existing Airtable staff records (Fetch Name, Staff Member, and Email)
+    // 1. Get existing Airtable staff records (Fetch ALL fields to ensure we catch the name)
     const staffResponse = await fetch(
-      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${STAFF_TABLE_ID}?fields%5B%5D=Provider%20Name&fields%5B%5D=Staff%20Member&fields%5B%5D=Name&fields%5B%5D=Email`,
+      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${STAFF_TABLE_ID}`,
       {
         headers: {
           'Authorization': `Bearer ${airtableApiKey}`,
@@ -56,14 +56,34 @@ Deno.serve(async (req) => {
     const staffData = await staffResponse.json();
     const staffNameToId = {};
     const staffEmailToId = {};
+    const availableStaffNames = []; // For debugging
+
     if (staffData.records) {
       staffData.records.forEach(record => {
-        // Try multiple potential column names for the staff name
-        const name = record.fields['Provider Name'] || record.fields['Staff Member'] || record.fields['Name'];
-        if (name) {
-          staffNameToId[name.toLowerCase().trim()] = record.id;
+        // Try multiple potential column names
+        let name = record.fields['Provider Name'] || record.fields['Staff Member'] || record.fields['Name'] || record.fields['Full Name'];
+        
+        // If not found, try to construct from First/Last if available
+        if (!name && record.fields['First Name'] && record.fields['Last Name']) {
+            name = `${record.fields['First Name']} ${record.fields['Last Name']}`;
         }
-        const email = record.fields['Email'];
+
+        if (name) {
+          const cleanName = name.toLowerCase().trim();
+          staffNameToId[cleanName] = record.id;
+          
+          // Also handle "Last, First" format by adding "First Last" version
+          if (name.includes(',')) {
+             const parts = name.split(',').map(p => p.trim());
+             if (parts.length === 2) {
+                 staffNameToId[`${parts[1].toLowerCase()} ${parts[0].toLowerCase()}`] = record.id;
+             }
+          }
+          
+          if (availableStaffNames.length < 5) availableStaffNames.push(name);
+        }
+
+        const email = record.fields['Email'] || record.fields['Work Email'] || record.fields['Personal Email'];
         if (email) {
           staffEmailToId[email.toLowerCase().trim()] = record.id;
         }
@@ -178,8 +198,10 @@ Deno.serve(async (req) => {
         fields['Staff Member'] = [staffRecordId];
       } else {
          // If we can't link to a staff member, we might want to skip or log an error?
-         // For now, let's log it to errors so the user knows why it didn't sync
-         errors.push({ license: license.id, error: `Provider "${provider.name}" not found in Airtable` });
+         errors.push({ 
+             license: license.id, 
+             error: `Provider "${provider.name}" not found in Airtable. Available names sample: ${availableStaffNames.join(', ')}` 
+         });
          continue; 
       }
 
