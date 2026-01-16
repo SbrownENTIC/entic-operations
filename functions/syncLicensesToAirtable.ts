@@ -64,14 +64,16 @@ Deno.serve(async (req) => {
         const name = record.fields['Provider Name'] || record.fields['Name'];
 
         if (name) {
-          const cleanName = name.toLowerCase().trim();
+          // Normalize name: lowercase, trim, and collapse multiple spaces to single space
+          const cleanName = name.toLowerCase().trim().replace(/\s+/g, ' ');
           staffNameToId[cleanName] = record.id;
 
           // Also handle "Last, First" format by adding "First Last" version just in case
           if (name.includes(',')) {
              const parts = name.split(',').map(p => p.trim());
              if (parts.length === 2) {
-                 staffNameToId[`${parts[1].toLowerCase()} ${parts[0].toLowerCase()}`] = record.id;
+                 const firstLast = `${parts[1]} ${parts[0]}`.toLowerCase().replace(/\s+/g, ' ');
+                 staffNameToId[firstLast] = record.id;
              }
           }
 
@@ -140,7 +142,10 @@ Deno.serve(async (req) => {
       if (!provider) continue;
 
       // Find matching staff record in Airtable (Try Name first, then Email)
-      let staffRecordId = staffNameToId[provider.name?.toLowerCase().trim()];
+      // Normalize provider name from app as well
+      const appProviderName = (provider.name || '').toLowerCase().trim().replace(/\s+/g, ' ');
+      let staffRecordId = staffNameToId[appProviderName];
+      
       if (!staffRecordId && provider.email) {
         staffRecordId = staffEmailToId[provider.email.toLowerCase().trim()];
       }
@@ -155,7 +160,8 @@ Deno.serve(async (req) => {
         'Controlled Substance Practitioner License': 'CSP',
         'Physician Assistant- Certified': 'PA',
         'Physician Assistant-Certified': 'PA',
-        'ASHA Certification': 'ASHA'
+        'ASHA Certification': 'ASHA',
+        'ASHA': 'ASHA'
       };
 
       if (licenseTypeMap[cleanLicenseType]) {
@@ -197,7 +203,7 @@ Deno.serve(async (req) => {
          // If we can't link to a staff member, we might want to skip or log an error?
          errors.push({ 
              license: license.id, 
-             error: `Provider "${provider.name}" not found in Airtable. Available names sample: ${availableStaffNames.join(', ')}` 
+             error: `Provider "${provider.name}" (normalized: "${appProviderName}", email: "${provider.email}") not found in Airtable. Available names sample: ${availableStaffNames.join(', ')}` 
          });
          continue; 
       }
