@@ -85,30 +85,60 @@ Deno.serve(async (req) => {
 
       const fields = {
         'Provider Name': provider.full_name,
-        // Airtable only accepts "Active" or "Inactive". Map "pending" to "Inactive".
         'Status': provider.status === 'active' ? 'Active' : 'Inactive',
       };
 
-      if (provider.email) fields['Email'] = provider.email;
-      if (provider.phone) fields['Phone'] = provider.phone;
-      if (provider.role) fields['Role'] = provider.role;
+      // 1. Correct Field Name: 'Work Email' instead of 'Email'
+      if (provider.email) fields['Work Email'] = provider.email;
+
+      // 2. Validate Phone Number (Single Select strict matching)
+      const validPhones = [
+        '(860) 543-4846',
+        '(571) 232-9212',
+        '(513) 497-7890',
+        '(860) 463-0099',
+        '(860) 977-3163', // Corrected from typo (860) 97-3163 based on standard format
+        '(860) 810-4018',
+        '(860) 805-5529',
+        '(925) 322-9228',
+        '(860) 716-8602'
+      ];
+      if (provider.phone && validPhones.includes(provider.phone)) {
+        fields['Phone'] = provider.phone;
+      }
+
+      // 3. Validate Role (Single Select strict matching)
+      const validRoles = [
+        'ENT MD', 
+        'ENT PA', 
+        'ENT NP', 
+        'Audiologist', 
+        'Sleep MD', 
+        'Sleep NP', 
+        'Sleep PA'
+      ];
+      if (provider.role && validRoles.includes(provider.role)) {
+        fields['Role'] = provider.role;
+      }
       
-      // Only include Program/Location if there are values
+      // 4. Temporarily skip Program/Location (Linked Record)
+      // Sending strings to a Linked Record field fails validation. 
+      // We need to look up Program IDs first to sync this correctly.
+      /*
       if (provider.program_locations && Array.isArray(provider.program_locations) && provider.program_locations.length > 0) {
-        // Filter out any empty strings or non-string values just in case
         const validLocations = provider.program_locations.filter(loc => typeof loc === 'string' && loc.trim() !== '');
         if (validLocations.length > 0) {
           fields['Program/Location'] = validLocations;
         }
       }
+      */
       
       // Ensure date is strictly YYYY-MM-DD
       if (provider.flu_vaccine_date) {
-        // Handle both ISO strings and YYYY-MM-DD
         fields['Flu Vaccine Date'] = provider.flu_vaccine_date.substring(0, 10);
       }
       
-      if (provider.flu_vaccine_year) fields['Current Year Flu Vaccine'] = provider.flu_vaccine_year;
+      // 5. Removed 'Current Year Flu Vaccine' (Formula field is read-only)
 
       if (airtableRecordId) {
         recordsToUpdate.push({
