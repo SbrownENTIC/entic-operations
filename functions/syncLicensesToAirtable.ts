@@ -71,6 +71,8 @@ Deno.serve(async (req) => {
     do {
       const url = new URL(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${LICENSES_TABLE_ID}`);
       url.searchParams.append('fields[]', 'Internal License ID');
+      url.searchParams.append('fields[]', 'Staff Member');
+      url.searchParams.append('fields[]', 'License Type');
       if (offset) url.searchParams.append('offset', offset);
 
       const response = await fetch(url.toString(), {
