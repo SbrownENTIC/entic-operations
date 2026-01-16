@@ -73,11 +73,23 @@ Deno.serve(async (req) => {
     } while (offset);
 
     // Map Internal License ID -> Airtable Record ID
+    // Also Map (Staff Record ID + License Type) -> Airtable Record ID for fallback matching
     const licenseIdToRecordId = {};
+    const compositeKeyToRecordId = {};
+
     allAirtableLicenses.forEach(record => {
+      // Map by Internal ID
       const internalId = record.fields['Internal License ID'];
       if (internalId) {
         licenseIdToRecordId[internalId] = record.id;
+      }
+
+      // Map by Composite Key (Staff + Type)
+      const staff = record.fields['Staff Member'];
+      const type = record.fields['License Type'];
+      if (staff && Array.isArray(staff) && staff.length > 0 && type) {
+        const key = `${staff[0]}_${type}`;
+        compositeKeyToRecordId[key] = record.id;
       }
     });
 
@@ -91,8 +103,17 @@ Deno.serve(async (req) => {
 
       // Find matching staff record in Airtable
       const staffRecordId = staffNameToId[provider.name?.toLowerCase().trim()];
+      
+      // Determine existing record ID:
+      // 1. Try matching by Internal License ID
+      // 2. Fallback to matching by Staff + License Type
       const internalId = license.internal_license_number;
-      const existingRecordId = internalId ? licenseIdToRecordId[internalId] : null;
+      let existingRecordId = internalId ? licenseIdToRecordId[internalId] : null;
+
+      if (!existingRecordId && staffRecordId && license.license_type) {
+        const compositeKey = `${staffRecordId}_${license.license_type}`;
+        existingRecordId = compositeKeyToRecordId[compositeKey];
+      }
 
       const fields = {
         'License Type': license.license_type || '',
@@ -107,6 +128,11 @@ Deno.serve(async (req) => {
       // Link to staff member if found
       if (staffRecordId) {
         fields['Staff Member'] = [staffRecordId];
+      } else {
+         // If we can't link to a staff member, we might want to skip or log an error?
+         // For now, let's log it to errors so the user knows why it didn't sync
+         errors.push({ license: license.id, error: `Provider "${provider.name}" not found in Airtable` });
+         continue; 
       }
 
       try {
@@ -153,9 +179,14 @@ Deno.serve(async (req) => {
       await new Promise(resolve => setTimeout(resolve, 250));
     }
 
+    let message = `Synced ${synced} licenses to Airtable`;
+    if (errors.length > 0) {
+      message += `. with ${errors.length} errors. First error: ${JSON.stringify(errors[0].error)}`;
+    }
+
     return Response.json({
-      success: true,
-      message: `Synced ${synced} licenses to Airtable`,
+      success: errors.length === 0,
+      message,
       total: licenses.length,
       synced,
       errors: errors.length > 0 ? errors : undefined
