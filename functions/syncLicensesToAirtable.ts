@@ -43,23 +43,31 @@ Deno.serve(async (req) => {
     });
 
     // 1. Get existing Airtable staff records (Fetch ALL fields to ensure we catch the name)
-    const staffResponse = await fetch(
-      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${STAFF_TABLE_ID}`,
-      {
+    let allStaffRecords = [];
+    let staffOffset = null;
+    do {
+      const url = new URL(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${STAFF_TABLE_ID}`);
+      if (staffOffset) url.searchParams.append('offset', staffOffset);
+      
+      const response = await fetch(url.toString(), {
         headers: {
           'Authorization': `Bearer ${airtableApiKey}`,
           'Content-Type': 'application/json'
         }
+      });
+      const data = await response.json();
+      if (data.records) {
+        allStaffRecords = [...allStaffRecords, ...data.records];
       }
-    );
-    
-    const staffData = await staffResponse.json();
+      staffOffset = data.offset;
+    } while (staffOffset);
+
     const staffNameToId = {};
     const staffEmailToId = {};
     const availableStaffNames = []; // For debugging
 
-    if (staffData.records) {
-      staffData.records.forEach(record => {
+    if (allStaffRecords.length > 0) {
+      allStaffRecords.forEach(record => {
         // Strictly use 'Provider Name' as requested, with fallback only if empty
         const name = record.fields['Provider Name'] || record.fields['Name'];
 
