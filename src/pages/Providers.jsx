@@ -217,16 +217,24 @@ export default function Providers() {
         });
         setSelectedProviders(new Set()); // Clear selection on success
       } else {
+        console.error("Sync errors:", response.data.errors);
         toast({
           title: "Sync Completed with Errors",
           description: response.data.message,
-          variant: "warning"
+          variant: "destructive" // Changed to destructive to catch attention
         });
       }
     } catch (error) {
+      console.error("Sync failed exception:", error);
+      // Check if it's a 401 to give a better message
+      let msg = error.message || "An error occurred while syncing to Airtable";
+      if (msg.includes("401")) {
+        msg = "Authentication failed. Please try refreshing the page.";
+      }
+      
       toast({
         title: "Sync Failed",
-        description: error.message || "An error occurred while syncing to Airtable",
+        description: msg,
         variant: "destructive"
       });
     } finally {

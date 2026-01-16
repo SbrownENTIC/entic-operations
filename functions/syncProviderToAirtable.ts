@@ -141,9 +141,20 @@ Deno.serve(async (req) => {
     if (recordsToUpdate.length > 0) await processBatch(recordsToUpdate, 'PATCH');
     if (recordsToCreate.length > 0) await processBatch(recordsToCreate, 'POST');
 
+    let message = `Synced ${syncedCount} providers to Airtable.`;
+    if (errors.length > 0) {
+      // detailed error message for the first error
+      const firstError = errors[0];
+      let errorDetail = firstError.error;
+      if (typeof errorDetail === 'object') {
+        errorDetail = errorDetail.message || JSON.stringify(errorDetail);
+      }
+      message += ` Failed to sync ${errors.length} batches. First error: ${errorDetail}`;
+    }
+
     return Response.json({
       success: errors.length === 0,
-      message: `Synced ${syncedCount} providers to Airtable.`,
+      message: message,
       stats: { updated: recordsToUpdate.length, created: recordsToCreate.length },
       errors: errors.length > 0 ? errors : undefined
     });
