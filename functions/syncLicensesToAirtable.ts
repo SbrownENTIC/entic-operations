@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
-const AIRTABLE_BASE_ID = 'app6seexOdkDrMl2U';
+const AIRTABLE_BASE_ID = 'appwLeODexurgpElt';
 const LICENSES_TABLE_ID = 'tbl82FkdzkUH3QBlr';
 const STAFF_TABLE_ID = 'tblUwc7ndQvt1MXhM';
 
