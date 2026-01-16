@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Pencil, Trash2, CheckCircle, XCircle, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, CheckCircle, XCircle, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown, CloudUpload, RefreshCw } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import { Checkbox } from "@/components/ui/checkbox";
 import { createPageUrl } from "@/utils";
 import { format, parseISO } from "date-fns";
 import ProviderForm from "../components/providers/ProviderForm";
@@ -33,6 +34,8 @@ export default function Providers() {
   const [sortDirection, setSortDirection] = useState('asc');
   const [checkingTerminations, setCheckingTerminations] = useState(false);
   const [terminationMessage, setTerminationMessage] = useState('');
+  const [selectedProviders, setSelectedProviders] = useState([]);
+  const [isSyncing, setIsSyncing] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const location = useLocation();
@@ -180,6 +183,57 @@ export default function Providers() {
     }
   };
 
+  const handleSyncToAirtable = async () => {
+    if (selectedProviders.length === 0) return;
+    
+    setIsSyncing(true);
+    try {
+      const response = await base44.functions.invoke('syncProviderToAirtable', {
+        providerIds: selectedProviders
+      });
+      
+      if (response.data.success) {
+        toast({
+          title: "Sync Successful",
+          description: response.data.message,
+        });
+        setSelectedProviders([]); // Clear selection on success
+      } else {
+         toast({
+          title: "Sync Completed with Errors",
+          description: response.data.message,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Sync Failed",
+        description: error.message || "An error occurred while syncing to Airtable",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const toggleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedProviders(filteredProviders.map(p => p.id));
+    } else {
+      setSelectedProviders([]);
+    }
+  };
+
+  const toggleSelectProvider = (providerId) => {
+    setSelectedProviders(prev => {
+      if (prev.includes(providerId)) {
+        return prev.filter(id => id !== providerId);
+      } else {
+        return [...prev, providerId];
+      }
+    });
+  };
+
   // Calculate current flu season
   const currentFluSeason = useMemo(() => {
     const now = new Date();
@@ -238,16 +292,27 @@ export default function Providers() {
             <h1 className="text-2xl font-bold text-slate-900">Providers</h1>
             <p className="text-slate-600 text-sm">Manage provider information and credentials</p>
           </div>
-          <Button
-            onClick={() => {
-              setEditingProvider(null);
-              setShowForm(true);
-            }}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Provider
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleSyncToAirtable}
+              disabled={isSyncing || selectedProviders.length === 0}
+              variant="outline"
+              className="border-purple-300 text-purple-700 hover:bg-purple-50 gap-2"
+            >
+              {isSyncing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CloudUpload className="w-4 h-4" />}
+              Sync Selected ({selectedProviders.length})
+            </Button>
+            <Button
+              onClick={() => {
+                setEditingProvider(null);
+                setShowForm(true);
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Provider
+            </Button>
+          </div>
         </div>
 
         {showForm && (
@@ -282,13 +347,37 @@ export default function Providers() {
             <div className="overflow-auto h-full">
               {/* Mobile Card View */}
               <div className="md:hidden space-y-4 p-4">
+                <div className="flex items-center gap-2 mb-2 px-1">
+                   <Checkbox 
+                      checked={selectedProviders.length === filteredProviders.length && filteredProviders.length > 0}
+                      onCheckedChange={toggleSelectAll}
+                   />
+                   <span className="text-sm text-slate-600">Select All</span>
+                </div>
                 {sortedProviders.map((provider) => {
                   const hasFluVaccine = provider.flu_vaccine_year === currentFluSeason && provider.flu_vaccine_date;
                   const capitalizedStatus = provider.status ? provider.status.charAt(0).toUpperCase() + provider.status.slice(1) : '';
-                  
+                  const isSelected = selectedProviders.includes(provider.id);
+
                   return (
-                    <div key={provider.id} className="bg-white rounded-lg border border-slate-200 shadow-sm p-4 space-y-3">
+                    <div key={provider.id} className={`bg-white rounded-lg border shadow-sm p-4 space-y-3 ${isSelected ? 'border-blue-300 bg-blue-50' : 'border-slate-200'}`}>
                       <div className="flex justify-between items-start">
+                        <div className="flex gap-3">
+                          <Checkbox 
+                            checked={isSelected}
+                            onCheckedChange={() => toggleSelectProvider(provider.id)}
+                            className="mt-1"
+                          />
+                          <div>
+                          <Link 
+                            to={`${createPageUrl("ProviderDetail")}?id=${provider.id}`}
+                            className="font-medium text-blue-600 hover:text-blue-800 text-lg"
+                          >
+                            {provider.full_name}
+                          </Link>
+                          <div className="text-sm text-slate-500">{provider.role || '-'}</div>
+                          </div>
+                        </div>
                         <div>
                           <Link 
                             to={`${createPageUrl("ProviderDetail")}?id=${provider.id}`}
@@ -373,6 +462,12 @@ export default function Providers() {
               <table className="w-full hidden md:table bg-white">
                 <thead className="sticky top-0 bg-slate-50 border-b border-slate-200 z-10">
                   <tr>
+                    <th className="p-4 w-12">
+                      <Checkbox 
+                        checked={selectedProviders.length === filteredProviders.length && filteredProviders.length > 0}
+                        onCheckedChange={toggleSelectAll}
+                      />
+                    </th>
                     <th 
                       className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                       onClick={() => handleSort('full_name')}
@@ -420,8 +515,15 @@ export default function Providers() {
                     const hasFluVaccine = provider.flu_vaccine_year === currentFluSeason && provider.flu_vaccine_date;
                     const capitalizedStatus = provider.status ? provider.status.charAt(0).toUpperCase() + provider.status.slice(1) : '';
                     
+                    const isSelected = selectedProviders.includes(provider.id);
                     return (
-                      <tr key={provider.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                      <tr key={provider.id} className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${isSelected ? 'bg-blue-50/50' : ''}`}>
+                        <td className="p-4">
+                          <Checkbox 
+                            checked={isSelected}
+                            onCheckedChange={() => toggleSelectProvider(provider.id)}
+                          />
+                        </td>
                         <td className="p-4">
                                   <Link 
                                     to={`${createPageUrl("ProviderDetail")}?id=${provider.id}`}
