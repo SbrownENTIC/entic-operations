@@ -85,7 +85,8 @@ Deno.serve(async (req) => {
 
       const fields = {
         'Provider Name': provider.full_name,
-        'Status': provider.status === 'active' ? 'Active' : provider.status === 'inactive' ? 'Inactive' : 'Pending',
+        // Airtable only accepts "Active" or "Inactive". Map "pending" to "Inactive".
+        'Status': provider.status === 'active' ? 'Active' : 'Inactive',
       };
 
       if (provider.email) fields['Email'] = provider.email;
