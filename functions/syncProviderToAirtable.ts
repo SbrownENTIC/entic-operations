@@ -18,6 +18,7 @@ Deno.serve(async (req) => {
     }
 
     const { providerIds } = await req.json();
+    console.log(`Starting sync for ${providerIds?.length} providers (v2 - no nulls)`);
 
     if (!providerIds || !Array.isArray(providerIds) || providerIds.length === 0) {
       return Response.json({ error: 'No provider IDs provided for sync' }, { status: 400 });
