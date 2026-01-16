@@ -60,30 +60,26 @@ Deno.serve(async (req) => {
 
     if (staffData.records) {
       staffData.records.forEach(record => {
-        // Try multiple potential column names
-        let name = record.fields['Provider Name'] || record.fields['Staff Member'] || record.fields['Name'] || record.fields['Full Name'];
-        
-        // If not found, try to construct from First/Last if available
-        if (!name && record.fields['First Name'] && record.fields['Last Name']) {
-            name = `${record.fields['First Name']} ${record.fields['Last Name']}`;
-        }
+        // Strictly use 'Provider Name' as requested, with fallback only if empty
+        const name = record.fields['Provider Name'] || record.fields['Name'];
 
         if (name) {
           const cleanName = name.toLowerCase().trim();
           staffNameToId[cleanName] = record.id;
-          
-          // Also handle "Last, First" format by adding "First Last" version
+
+          // Also handle "Last, First" format by adding "First Last" version just in case
           if (name.includes(',')) {
              const parts = name.split(',').map(p => p.trim());
              if (parts.length === 2) {
                  staffNameToId[`${parts[1].toLowerCase()} ${parts[0].toLowerCase()}`] = record.id;
              }
           }
-          
+
           if (availableStaffNames.length < 5) availableStaffNames.push(name);
         }
 
-        const email = record.fields['Email'] || record.fields['Work Email'] || record.fields['Personal Email'];
+        // Strictly use 'Work Email' as requested
+        const email = record.fields['Work Email'];
         if (email) {
           staffEmailToId[email.toLowerCase().trim()] = record.id;
         }
@@ -149,20 +145,8 @@ Deno.serve(async (req) => {
         staffRecordId = staffEmailToId[provider.email.toLowerCase().trim()];
       }
       
-      // Determine existing record ID:
-      // 1. Try matching by Internal License ID
-      // 2. Fallback to matching by Staff + License Type
-      const internalId = license.internal_license_number;
-      let existingRecordId = internalId ? licenseIdToRecordId[internalId] : null;
-
-      if (!existingRecordId && staffRecordId && license.license_type) {
-        const compositeKey = `${staffRecordId}_${license.license_type}`;
-        existingRecordId = compositeKeyToRecordId[compositeKey];
-      }
-
+      // Map to Airtable License Types FIRST so we can match correctly
       let cleanLicenseType = (license.license_type || '').trim().replace(/^"|"$/g, '');
-
-      // Map to Airtable License Types
       const licenseTypeMap = {
         'Audiologist License': 'AUD',
         'DEA License': 'DEA',
@@ -176,6 +160,19 @@ Deno.serve(async (req) => {
 
       if (licenseTypeMap[cleanLicenseType]) {
         cleanLicenseType = licenseTypeMap[cleanLicenseType];
+      }
+
+      // Determine existing record ID:
+      // 1. Try matching by Internal License ID
+      // 2. Fallback to matching by Staff + License Type (using the MAPPED type)
+      const internalId = license.internal_license_number;
+      let existingRecordId = internalId ? licenseIdToRecordId[internalId] : null;
+
+      if (!existingRecordId && staffRecordId && cleanLicenseType) {
+        // CRITICAL FIX: Use cleanLicenseType (mapped) instead of raw license.license_type
+        // because Airtable keys were built using the mapped values (e.g. 'MED')
+        const compositeKey = `${staffRecordId}_${cleanLicenseType}`;
+        existingRecordId = compositeKeyToRecordId[compositeKey];
       }
 
       const fields = {
