@@ -84,15 +84,14 @@ Deno.serve(async (req) => {
 
       const fields = {
         'Provider Name': provider.full_name,
-        'Work Email': provider.email,
+        'Work Email': provider.email || null,
         'Status': provider.status === 'active' ? 'Active' : provider.status === 'inactive' ? 'Inactive' : 'Pending',
-        'Phone': provider.phone || '',
-        'Role': provider.role || '',
-        'Program/Location': (provider.program_locations && provider.program_locations.length > 0) ? provider.program_locations.join(', ') : '',
+        'Phone': provider.phone || null,
+        'Role': provider.role || null,
+        // Send array for Multi-Select/Linked Record fields to work better with typecast
+        'Program/Location': (provider.program_locations && provider.program_locations.length > 0) ? provider.program_locations : null,
         'Flu Vaccine Date': provider.flu_vaccine_date || null,
-        'Current Year Flu Vaccine': provider.flu_vaccine_year || '',
-        // 'Display Color' - skipping as we don't have a source for this
-        // 'CME Records', etc. - skipping related records for now as per instructions
+        'Current Year Flu Vaccine': provider.flu_vaccine_year || null,
       };
 
       if (airtableRecordId) {
