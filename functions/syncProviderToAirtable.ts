@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
       const url = new URL(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${STAFF_TABLE_ID}`);
       // Only fetch necessary fields for matching
       url.searchParams.append('fields[]', 'Provider Name');
-      url.searchParams.append('fields[]', 'Work Email');
+      url.searchParams.append('fields[]', 'Email');
       if (staffOffset) url.searchParams.append('offset', staffOffset);
       
       const response = await fetch(url.toString(), {
@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
         // Normalize: lowercase, trim, single spaces
         staffNameToId[name.toLowerCase().trim().replace(/\s+/g, ' ')] = record.id;
       }
-      const email = record.fields['Work Email'];
+      const email = record.fields['Email'];
       if (email) {
         staffEmailToId[email.toLowerCase().trim()] = record.id;
       }
@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
         'Status': provider.status === 'active' ? 'Active' : provider.status === 'inactive' ? 'Inactive' : 'Pending',
       };
 
-      if (provider.email) fields['Work Email'] = provider.email;
+      if (provider.email) fields['Email'] = provider.email;
       if (provider.phone) fields['Phone'] = provider.phone;
       if (provider.role) fields['Role'] = provider.role;
       
