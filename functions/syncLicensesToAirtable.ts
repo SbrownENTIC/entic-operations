@@ -18,8 +18,22 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'AIRTABLE_API_KEY not configured' }, { status: 500 });
     }
 
+    // Parse optional provider_id from request body for testing
+    let provider_id = null;
+    try {
+      const body = await req.json();
+      provider_id = body.provider_id;
+    } catch (e) {
+      // body might be empty or not json
+    }
+
     // Fetch licenses and providers from Base44
-    const licenses = await base44.asServiceRole.entities.License.list();
+    let licenses;
+    if (provider_id) {
+       licenses = await base44.asServiceRole.entities.License.filter({ provider_id });
+    } else {
+       licenses = await base44.asServiceRole.entities.License.list();
+    }
     const providers = await base44.asServiceRole.entities.Provider.list();
 
     // Create a map of provider IDs to names and emails
@@ -115,8 +129,10 @@ Deno.serve(async (req) => {
         existingRecordId = compositeKeyToRecordId[compositeKey];
       }
 
+      const cleanLicenseType = (license.license_type || '').trim().replace(/^"|"$/g, '');
+
       const fields = {
-        'License Type': license.license_type || '',
+        'License Type': cleanLicenseType,
         'Expiration Date': license.expiration_date || null,
         'Status': license.status || 'active',
         // 'Internal License ID': internalId || '', // Cannot write to computed field
@@ -174,7 +190,11 @@ Deno.serve(async (req) => {
           synced++;
         } else {
           const errorData = await response.json();
-          errors.push({ license: license.id, error: errorData });
+          if (errorData?.error?.type === 'INVALID_MULTIPLE_CHOICE_OPTIONS') {
+            errors.push({ license: license.id, error: `License Type "${cleanLicenseType}" is not a valid option in Airtable for License Type field. Please add it manually or correct the license type.` });
+          } else {
+            errors.push({ license: license.id, error: errorData });
+          }
         }
       } catch (err) {
         errors.push({ license: license.id, error: err.message });

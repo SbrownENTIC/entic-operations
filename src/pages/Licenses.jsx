@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, AlertTriangle, Pencil, ArrowUpDown, ArrowUp, ArrowDown, CloudUpload, RefreshCw } from "lucide-react";
+import { Plus, Search, AlertTriangle, Pencil, ArrowUpDown, ArrowUp, ArrowDown, CloudUpload, RefreshCw, TestTube } from "lucide-react";
 import { differenceInDays, format, parseISO } from "date-fns";
 import { useLocation } from "react-router-dom";
 import LicenseForm from "../components/licenses/LicenseForm";
@@ -110,6 +110,22 @@ export default function Licenses() {
     }
   };
 
+  const handleTestSync = async (providerId) => {
+    if (!window.confirm("Test sync for this specific provider? This will only attempt to sync their licenses.")) return;
+    
+    setAirtableSyncing(true);
+    setAirtableMessage('');
+    try {
+      const response = await base44.functions.invoke('syncLicensesToAirtable', { provider_id: providerId });
+      setAirtableMessage(response.data.message);
+    } catch (error) {
+      const errorMessage = error.response?.data?.error || error.message;
+      setAirtableMessage('Error testing sync: ' + errorMessage);
+    } finally {
+      setAirtableSyncing(false);
+    }
+  };
+
   const handleSort = (field) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -196,6 +212,15 @@ export default function Licenses() {
             <p className="text-slate-600 text-sm">Track provider licenses and expiration dates</p>
           </div>
           <div className="flex gap-3">
+            <Button
+              onClick={() => handleTestSync('69152424b571bac7d076ff55')} // Dr. Erin Alday
+              disabled={airtableSyncing}
+              variant="outline"
+              className="border-orange-300 text-orange-700 hover:bg-orange-50 gap-2"
+            >
+               {airtableSyncing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <TestTube className="w-4 h-4" />}
+               Test Dr. Alday Sync
+            </Button>
             <Button
               onClick={handleSyncToAirtable}
               disabled={airtableSyncing}
