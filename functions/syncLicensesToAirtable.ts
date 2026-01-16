@@ -42,9 +42,9 @@ Deno.serve(async (req) => {
       providerMap[p.id] = { name: p.full_name, email: p.email };
     });
 
-    // 1. Get existing Airtable staff records (Fetch Name and Email)
+    // 1. Get existing Airtable staff records (Fetch Name, Staff Member, and Email)
     const staffResponse = await fetch(
-      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${STAFF_TABLE_ID}?fields%5B%5D=Provider%20Name&fields%5B%5D=Email`,
+      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${STAFF_TABLE_ID}?fields%5B%5D=Provider%20Name&fields%5B%5D=Staff%20Member&fields%5B%5D=Name&fields%5B%5D=Email`,
       {
         headers: {
           'Authorization': `Bearer ${airtableApiKey}`,
@@ -58,7 +58,8 @@ Deno.serve(async (req) => {
     const staffEmailToId = {};
     if (staffData.records) {
       staffData.records.forEach(record => {
-        const name = record.fields['Provider Name'];
+        // Try multiple potential column names for the staff name
+        const name = record.fields['Provider Name'] || record.fields['Staff Member'] || record.fields['Name'];
         if (name) {
           staffNameToId[name.toLowerCase().trim()] = record.id;
         }
