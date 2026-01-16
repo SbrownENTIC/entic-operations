@@ -93,11 +93,20 @@ Deno.serve(async (req) => {
       if (provider.role) fields['Role'] = provider.role;
       
       // Only include Program/Location if there are values
-      if (provider.program_locations && provider.program_locations.length > 0) {
-        fields['Program/Location'] = provider.program_locations;
+      if (provider.program_locations && Array.isArray(provider.program_locations) && provider.program_locations.length > 0) {
+        // Filter out any empty strings or non-string values just in case
+        const validLocations = provider.program_locations.filter(loc => typeof loc === 'string' && loc.trim() !== '');
+        if (validLocations.length > 0) {
+          fields['Program/Location'] = validLocations;
+        }
       }
       
-      if (provider.flu_vaccine_date) fields['Flu Vaccine Date'] = provider.flu_vaccine_date;
+      // Ensure date is strictly YYYY-MM-DD
+      if (provider.flu_vaccine_date) {
+        // Handle both ISO strings and YYYY-MM-DD
+        fields['Flu Vaccine Date'] = provider.flu_vaccine_date.substring(0, 10);
+      }
+      
       if (provider.flu_vaccine_year) fields['Current Year Flu Vaccine'] = provider.flu_vaccine_year;
 
       if (airtableRecordId) {
