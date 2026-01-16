@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
-const AIRTABLE_BASE_ID = 'app6seexOdkDrMl2U'; // Base ID for ENTIC
-const NOTIFICATIONS_TABLE = 'Notifications';
+const AIRTABLE_BASE_ID = 'appwLeODexurgpElt';
+const NOTIFICATIONS_TABLE = 'tblVG6MUoSifOpHsh';
 
 Deno.serve(async (req) => {
   try {
@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
 
     // Create record in Airtable
     const response = await fetch(
-        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(NOTIFICATIONS_TABLE)}`,
+        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${NOTIFICATIONS_TABLE}`,
         {
             method: 'POST',
             headers: {

@@ -131,7 +131,21 @@ Deno.serve(async (req) => {
         existingRecordId = compositeKeyToRecordId[compositeKey];
       }
 
-      const cleanLicenseType = (license.license_type || '').trim().replace(/^"|"$/g, '');
+      let cleanLicenseType = (license.license_type || '').trim().replace(/^"|"$/g, '');
+
+      // Map to Airtable License Types
+      const licenseTypeMap = {
+        'Audiologist License': 'AUD',
+        'DEA License': 'DEA',
+        'Medical License': 'MED',
+        'APRN License': 'APRN',
+        'Controlled Substance Practitioner License': 'CSP',
+        'Physician Assistant- Certified': 'PA'
+      };
+
+      if (licenseTypeMap[cleanLicenseType]) {
+        cleanLicenseType = licenseTypeMap[cleanLicenseType];
+      }
 
       const fields = {
         'License Type': cleanLicenseType,
