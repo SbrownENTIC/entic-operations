@@ -133,6 +133,13 @@ Deno.serve(async (req) => {
       }
     });
 
+    // Debug: Check if 'Staff Member' field exists in fetched records
+    const debug_field_check = {
+        hasStaffMemberField: allAirtableLicenses.some(r => r.fields['Staff Member']),
+        sampleFields: allAirtableLicenses.length > 0 ? Object.keys(allAirtableLicenses[0].fields) : []
+    };
+    const debug_logs = [];
+
     // Sync each license to Airtable (UPSERT)
     let synced = 0;
     let errors = [];
@@ -208,6 +215,16 @@ Deno.serve(async (req) => {
          continue; 
       }
 
+      // DEBUG: Capture Ashley Radcliffe details
+      if (provider.name.toLowerCase().includes('ashley radcliffe')) {
+          debug_logs.push({
+              providerName: provider.name,
+              staffRecordId,
+              fieldsSent: fields,
+              isUpdate: !!existingRecordId
+          });
+      }
+
       try {
         let response;
         if (existingRecordId) {
@@ -266,7 +283,9 @@ Deno.serve(async (req) => {
       message,
       total: licenses.length,
       synced,
-      errors: errors.length > 0 ? errors : undefined
+      errors: errors.length > 0 ? errors : undefined,
+      debug_field_check,
+      debug_logs
     });
 
   } catch (error) {

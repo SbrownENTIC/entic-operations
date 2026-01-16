@@ -97,17 +97,29 @@ export default function Licenses() {
   };
 
   const handleSyncToAirtable = async () => {
-    setAirtableSyncing(true);
-    setAirtableMessage('');
-    try {
-      const response = await base44.functions.invoke('syncLicensesToAirtable', {});
-      setAirtableMessage(response.data.message);
-    } catch (error) {
-      const errorMessage = error.response?.data?.error || error.message;
-      setAirtableMessage('Error syncing to Airtable: ' + errorMessage);
-    } finally {
-      setAirtableSyncing(false);
-    }
+  setAirtableSyncing(true);
+  setAirtableMessage('');
+  try {
+  const response = await base44.functions.invoke('syncLicensesToAirtable', {});
+
+  let msg = response.data.message;
+
+  // Temporary: Show debug info if available
+  if (response.data.debug_logs && response.data.debug_logs.length > 0) {
+      const log = response.data.debug_logs[0];
+      msg += ` | DEBUG ASHLEY: StaffID=${log.staffRecordId ? 'FOUND' : 'MISSING'}, FieldSet=${!!log.fieldsSent['Staff Member']}, IsUpdate=${log.isUpdate}`;
+  }
+  if (response.data.debug_field_check) {
+       msg += ` | Fields found: ${response.data.debug_field_check.sampleFields.join(', ')}`;
+  }
+
+  setAirtableMessage(msg);
+  } catch (error) {
+  const errorMessage = error.response?.data?.error || error.message;
+  setAirtableMessage('Error syncing to Airtable: ' + errorMessage);
+  } finally {
+  setAirtableSyncing(false);
+  }
   };
 
 
