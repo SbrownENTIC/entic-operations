@@ -68,12 +68,26 @@ Deno.serve(async (req) => {
 
     if (allStaffRecords.length > 0) {
       allStaffRecords.forEach(record => {
-        // Try multiple common column names for the Staff Name
-        const name = record.fields['Provider Name'] || 
-                     record.fields['Name'] || 
-                     record.fields['Full Name'] || 
-                     record.fields['Staff Name'] ||
-                     record.fields['Provider'];
+        // 1. Try specific column names first
+        let name = record.fields['Provider Name'] || 
+                   record.fields['Name'] || 
+                   record.fields['Full Name'] || 
+                   record.fields['Staff Name'] ||
+                   record.fields['Provider'];
+
+        // 2. If not found, look for ANY field that looks like a full name
+        if (!name) {
+           for (const [key, value] of Object.entries(record.fields)) {
+               if (typeof value === 'string' && value.includes(' ')) {
+                   // A crude heuristic: string with a space might be a name
+                   // We'll rely on the specific matching logic later to ensure correctness
+                   // But for building the map, we need a primary name.
+                   // Let's just index ALL string fields as potential names for this ID
+                   const cleanVal = value.toLowerCase().trim().replace(/\s+/g, ' ');
+                   staffNameToId[cleanVal] = record.id;
+               }
+           }
+        }
 
         if (name) {
           // Normalize name: lowercase, trim, and collapse multiple spaces to single space
