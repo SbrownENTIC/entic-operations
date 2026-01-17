@@ -382,13 +382,7 @@ export default function Providers() {
               <table className="w-full hidden md:table bg-white">
                 <thead className="sticky top-0 bg-slate-50 border-b border-slate-200 z-10">
                   <tr>
-                    <th className="p-4 w-[40px]">
-                      <Checkbox 
-                        checked={filteredProviders.length > 0 && selectedProviders.size === filteredProviders.length}
-                        onCheckedChange={handleSelectAll}
-                        aria-label="Select all"
-                      />
-                    </th>
+
                     <th 
                       className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                       onClick={() => handleSort('full_name')}
