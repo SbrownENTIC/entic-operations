@@ -130,10 +130,42 @@ export default function ClinicalSupplyOrders() {
   });
 
   const splitOrderMutation = useMutation({
-    mutationFn: async ({ originalOrder, selectedIndices, targetLocation }) => {
-      // 1. Identify items to move vs keep
-      const itemsToMove = originalOrder.items.filter((_, idx) => selectedIndices.includes(idx));
-      const itemsToKeep = originalOrder.items.filter((_, idx) => !selectedIndices.includes(idx));
+    mutationFn: async ({ originalOrder, itemsToSplit, targetLocation }) => {
+      // itemsToSplit is array of { index, quantity }
+      
+      // 1. Construct lists of items for new order (move) and remaining (keep)
+      const itemsToMove = [];
+      const itemsToKeep = [];
+
+      originalOrder.items.forEach((item, idx) => {
+        const splitInfo = itemsToSplit.find(s => s.index === idx);
+        
+        if (splitInfo) {
+          // Move specified quantity
+          const moveQty = splitInfo.quantity;
+          const remainingQty = (item.quantity || 0) - moveQty;
+          
+          if (moveQty > 0) {
+            itemsToMove.push({
+              ...item,
+              quantity: moveQty,
+              line_total: moveQty * (item.unit_price || 0)
+            });
+          }
+          
+          if (remainingQty > 0) {
+            itemsToKeep.push({
+              ...item,
+              quantity: remainingQty,
+              line_total: remainingQty * (item.unit_price || 0)
+            });
+          }
+          // if remainingQty <= 0, item is fully moved and removed from original
+        } else {
+          // Keep item as is
+          itemsToKeep.push(item);
+        }
+      });
       
       // 2. Calculate new totals
       const subtotalMove = itemsToMove.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0);
@@ -160,7 +192,7 @@ export default function ClinicalSupplyOrders() {
         subtotal: subtotalMove,
         tax: taxMove,
         total_amount: totalMove,
-        status: 'order_placed', // New order starts as placed or maybe copy status? 'order_placed' is safer.
+        status: 'order_placed', // New order starts as placed
         notes: `Split from order ${originalOrder.order_number}. \n${originalOrder.notes || ''}`
       });
 
@@ -652,8 +684,8 @@ export default function ClinicalSupplyOrders() {
           order={splittingOrder}
           isOpen={!!splittingOrder}
           onClose={() => setSplittingOrder(null)}
-          onSplit={(originalOrder, selectedIndices, targetLocation) => {
-            splitOrderMutation.mutate({ originalOrder, selectedIndices, targetLocation });
+          onSplit={(originalOrder, itemsToSplit, targetLocation) => {
+            splitOrderMutation.mutate({ originalOrder, itemsToSplit, targetLocation });
           }}
           isLoading={splitOrderMutation.isPending}
         />
