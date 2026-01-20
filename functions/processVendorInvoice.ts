@@ -27,12 +27,13 @@ Deno.serve(async (req) => {
                 total_amount: { type: "number" },
                 line_items: {
                     type: "array",
+                    description: "List of items purchased. For receipts (like Reliant), extract items even if they don't have item codes. Look for rows with description and price.",
                     items: {
                         type: "object",
                         properties: {
                             item_code: { type: "string" },
-                            description: { type: "string" },
-                            quantity: { type: "number" },
+                            description: { type: "string", description: "Product name or description. For Reliant, this is the main item text (e.g. 'Dexamethasone...')." },
+                            quantity: { type: "number", default: 1 },
                             unit_price: { type: "number" },
                             total_price: { type: "number" },
                             lot_number: { type: "string", description: "Lot No. or Batch number if available" }
