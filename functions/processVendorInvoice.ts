@@ -102,43 +102,67 @@ Deno.serve(async (req) => {
         try {
             let matchedOrder = null;
 
-            // Determine Target Entity based on Vendor
+            // Determine Category and Target Entity
             let TargetEntity = base44.asServiceRole.entities.SupplyOrder;
-            let isAudiology = false;
+            let category = 'office'; // Default
+            
+            const OFFICE_VENDORS = ['staples', 'amazon', 'wb mason', 'u-line', 'uline', 'quill'];
+            const normalizedVendorLower = normalizedVendorName.toLowerCase();
 
-            if (normalizedVendorName.toLowerCase().includes('oaktree')) {
+            if (normalizedVendorLower.includes('oaktree')) {
                 TargetEntity = base44.asServiceRole.entities.AudiologySupplyOrder;
-                isAudiology = true;
+                category = 'audiology';
+            } else if (OFFICE_VENDORS.some(v => normalizedVendorLower.includes(v))) {
+                category = 'office';
+            } else {
+                category = 'clinical';
             }
 
-            // 0. Ensure Items exist in Catalog if Audiology
-            if (isAudiology && data.line_items && data.line_items.length > 0) {
+            // 0. Ensure Items exist in Catalog (for Clinical and Audiology)
+            if ((category === 'clinical' || category === 'audiology') && data.line_items && data.line_items.length > 0) {
                 try {
                     for (const item of data.line_items) {
-                        if (!item.item_code || !item.description) continue;
+                        if (!item.description) continue; // Description is required, item_code is optional
 
-                        const existingItems = await base44.asServiceRole.entities.Supply.filter({
-                            item_number: item.item_code,
-                            category: 'audiology'
-                        });
+                        // Try to find by item_number first if available, otherwise by name
+                        let existingItems = [];
+                        if (item.item_code) {
+                            existingItems = await base44.asServiceRole.entities.Supply.filter({
+                                item_number: item.item_code,
+                                category: category
+                            });
+                        }
+                        
+                        // Fallback to name check if no code match or no code provided
+                        if (existingItems.length === 0) {
+                            existingItems = await base44.asServiceRole.entities.Supply.filter({
+                                product_name: item.description,
+                                category: category
+                            });
+                        }
 
                         if (existingItems.length === 0) {
-                            console.log(`Auto-adding new audiology supply: ${item.item_code} - ${item.description}`);
+                            console.log(`Auto-adding new ${category} supply: ${item.description}`);
                             await base44.asServiceRole.entities.Supply.create({
-                                item_number: item.item_code,
+                                item_number: item.item_code || '',
                                 product_name: item.description,
                                 unit_price: item.unit_price || 0,
                                 vendor: normalizedVendorName,
-                                category: 'audiology',
+                                category: category,
                                 units: 'each'
                             });
                         } else {
-                            // Update price if different? 
-                            // For now, let's just ensure it exists. 
-                            // Optionally we could update unit_price if valid
-                            if (item.unit_price > 0 && Math.abs(item.unit_price - (existingItems[0].unit_price || 0)) > 0.01) {
-                                await base44.asServiceRole.entities.Supply.update(existingItems[0].id, {
+                            // Update price if different
+                            const existingItem = existingItems[0];
+                            if (item.unit_price > 0 && Math.abs(item.unit_price - (existingItem.unit_price || 0)) > 0.01) {
+                                await base44.asServiceRole.entities.Supply.update(existingItem.id, {
                                     unit_price: item.unit_price
+                                });
+                            }
+                            // Update item_number if missing in catalog but present in invoice
+                            if (item.item_code && !existingItem.item_number) {
+                                await base44.asServiceRole.entities.Supply.update(existingItem.id, {
+                                    item_number: item.item_code
                                 });
                             }
                         }
@@ -188,11 +212,6 @@ Deno.serve(async (req) => {
             } else {
                 console.log(`No match found. Creating new Supply Order for ${invoice.invoice_number}`);
                 
-                // Determine Category
-                const OFFICE_VENDORS = ['staples', 'amazon', 'wb mason', 'u-line', 'uline', 'quill'];
-                const isOffice = OFFICE_VENDORS.some(v => normalizedVendorName.toLowerCase().includes(v));
-                const category = isOffice ? 'office' : 'clinical';
-
                 // B. Create new Supply Order
                 const supplyOrderItems = (data.line_items || []).map(item => ({
                     supply_name: item.description || 'Unknown Item',
@@ -216,7 +235,7 @@ Deno.serve(async (req) => {
                 };
 
                 // Add category only if it's the standard SupplyOrder entity
-                if (!isAudiology) {
+                if (category !== 'audiology') {
                     newOrderData.category = category;
                 }
 
