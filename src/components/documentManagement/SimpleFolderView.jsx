@@ -1,12 +1,15 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { FileText, Search, Loader2, ArrowUpDown, Upload, Plus, Trash2 } from "lucide-react";
+import { FileText, Search, Loader2, ArrowUpDown, Upload, Plus, Trash2, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { formatDateToEST, formatDateTimeToEST } from "@/components/DateUtils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
 
 export default function SimpleFolderView({ folderId }) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -18,6 +21,17 @@ export default function SimpleFolderView({ folderId }) {
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  const updateInvoiceMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.VendorInvoice.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vendor-invoices', folderId] });
+      toast({ title: "Updated", description: "Invoice date updated successfully" });
+    },
+    onError: (error) => {
+      toast({ title: "Update Failed", description: error.message, variant: "destructive" });
+    }
+  });
 
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ['vendor-invoices', folderId],
@@ -276,8 +290,33 @@ export default function SimpleFolderView({ folderId }) {
                     {invoice.billed_to || 'ENTIC'}
                   </Badge>
                 </td>
-                <td className="p-3 text-slate-600 cursor-pointer" onClick={() => invoice.document_url && window.open(invoice.document_url, '_blank')}>
-                  {formatDateToEST(invoice.invoice_date)}
+                <td className="p-3 text-slate-600 cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        className="p-0 h-auto font-normal hover:bg-transparent hover:text-blue-600 flex items-center gap-2"
+                      >
+                        {formatDateToEST(invoice.invoice_date)}
+                        <Pencil className="h-3 w-3 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={invoice.invoice_date ? new Date(invoice.invoice_date) : undefined}
+                        onSelect={(date) => {
+                          if (date) {
+                            const dateStr = format(date, "yyyy-MM-dd");
+                            updateInvoiceMutation.mutate({ id: invoice.id, data: { invoice_date: dateStr } });
+                            // The popover will close automatically when clicking outside, or we can control open state if needed
+                            // But for simplicity, we let it be.
+                          }
+                        }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </td>
                 <td className="p-3 text-slate-600 cursor-pointer" onClick={() => invoice.document_url && window.open(invoice.document_url, '_blank')}>
                   {formatDateToEST(invoice.created_date)}
