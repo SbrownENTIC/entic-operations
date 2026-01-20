@@ -17,12 +17,12 @@ Deno.serve(async (req) => {
             type: "object",
             properties: {
                 vendor_name: { type: "string" },
-                invoice_number: { type: "string" },
+                invoice_number: { type: "string", description: "The unique invoice number. For 'Reliant Compounded Solutions', use the 'Order #' as the invoice number." },
                 invoice_date: { type: "string", format: "date", description: "YYYY-MM-DD format" },
                 due_date: { type: "string", format: "date", description: "YYYY-MM-DD format" },
                 packlist_number: { type: "string", description: "Packlist No. from the invoice (specifically for Grace Medical)" },
-                order_number: { type: "string", description: "Order No. from the invoice (specifically for Grace Medical)" },
-                location: { type: "string", enum: ["Glastonbury", "Manchester", "Bloomfield", "Farmington"], description: "The location/office name found in the Ship To address. Look for keywords: Glastonbury, Manchester, Bloomfield, Farmington." },
+                order_number: { type: "string", description: "Order No. from the invoice (specifically for Grace Medical or Reliant Compounded Solutions)" },
+                location: { type: "string", enum: ["Glastonbury", "Manchester", "Bloomfield", "Farmington"], description: "The location/office name found in the Ship To address. Look for keywords: Glastonbury, Manchester, Bloomfield, Farmington. Default to Glastonbury if not found." },
                 ship_to_text: { type: "string", description: "The full raw text of the 'Ship To' address block for debugging" },
                 total_amount: { type: "number" },
                 line_items: {
@@ -88,6 +88,16 @@ Deno.serve(async (req) => {
         // Grace Medical specific logic
         if (normalizedVendorName.toLowerCase().includes('grace medical')) {
             billedTo = 'ENTIC';
+        }
+
+        // Reliant Compounded Solutions specific logic
+        if (normalizedVendorName.toLowerCase().includes('reliant') || normalizedVendorName.toLowerCase().includes('compounded solutions')) {
+            billedTo = 'ENTIC';
+            // Ensure vendor name is consistent
+            if (!normalizedVendorName.toLowerCase().includes('reliant compounded solutions')) {
+                 // If it captures just 'Reliant' or similar, try to normalize if confident, 
+                 // or rely on the extracted name if it's close enough.
+            }
         }
 
         // 3. Create the VendorInvoice record
