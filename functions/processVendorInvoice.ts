@@ -205,20 +205,8 @@ Deno.serve(async (req) => {
                 }
             }
 
-            // A2. If not found, fall back to recent list scan (fuzzy match)
-            if (!matchedOrder) {
-                const recentOrders = await TargetEntity.list('-created_date', 200);
-                
-                matchedOrder = recentOrders.find(order => {
-                    const vendorMatch = (order.vendor || '').toLowerCase().includes(normalizedVendorName.toLowerCase()) || 
-                                        normalizedVendorName.toLowerCase().includes((order.vendor || '').toLowerCase());
-                    
-                    if (!vendorMatch) return false;
-
-                    const amountMatch = Math.abs((order.total_amount || 0) - (data.total_amount || 0)) < 0.1;
-                    return amountMatch;
-                });
-            }
+            // A2. Fuzzy matching disabled to prevent incorrect linking of separate orders with same amount
+            // if (!matchedOrder) { ... }
 
             if (matchedOrder) {
                 console.log(`Matched existing order ${matchedOrder.order_number} for invoice ${invoice.invoice_number}`);
