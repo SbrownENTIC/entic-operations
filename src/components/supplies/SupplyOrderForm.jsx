@@ -299,7 +299,6 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Staples">Staples</SelectItem>
                   <SelectItem value="Staples Business">Staples Business</SelectItem>
                   <SelectItem value="Henry Schein">Henry Schein</SelectItem>
                   <SelectItem value="Oaktree Products">Oaktree Products</SelectItem>
