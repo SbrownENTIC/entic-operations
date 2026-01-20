@@ -1,7 +1,13 @@
 export const formatDateToEST = (dateString, options = {}) => {
   if (!dateString) return '-';
   try {
-    const date = new Date(dateString);
+    // If exact date string YYYY-MM-DD, treat as noon UTC to avoid timezone shift to previous day
+    let parseString = dateString;
+    if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+      parseString = `${dateString}T12:00:00Z`;
+    }
+
+    const date = new Date(parseString);
     if (isNaN(date.getTime())) {
         return dateString;
     }
