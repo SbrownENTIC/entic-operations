@@ -20,6 +20,8 @@ Deno.serve(async (req) => {
                 invoice_number: { type: "string" },
                 invoice_date: { type: "string", format: "date", description: "YYYY-MM-DD format" },
                 due_date: { type: "string", format: "date", description: "YYYY-MM-DD format" },
+                packlist_number: { type: "string", description: "Packlist No. from the invoice (specifically for Grace Medical)" },
+                order_number: { type: "string", description: "Order No. from the invoice (specifically for Grace Medical)" },
                 location: { type: "string", enum: ["Glastonbury", "Manchester", "Bloomfield", "Farmington"], description: "The location/office name found in the Ship To address. Look for keywords: Glastonbury, Manchester, Bloomfield, Farmington." },
                 ship_to_text: { type: "string", description: "The full raw text of the 'Ship To' address block for debugging" },
                 total_amount: { type: "number" },
@@ -81,9 +83,14 @@ Deno.serve(async (req) => {
         if (normalizedVendorName.toLowerCase().includes('oaktree')) {
             billedTo = 'The Hearing Institute';
         }
+        
+        // Grace Medical specific logic
+        if (normalizedVendorName.toLowerCase().includes('grace medical')) {
+            billedTo = 'ENTIC';
+        }
 
         // 3. Create the VendorInvoice record
-        const invoice = await base44.asServiceRole.entities.VendorInvoice.create({
+        const invoiceData = {
             vendor_name: normalizedVendorName,
             location: data.location,
             invoice_number: data.invoice_number,
@@ -95,7 +102,12 @@ Deno.serve(async (req) => {
             document_url: file_url,
             extracted_data: data, // Store full extraction including line items
             folder_id: folder_id || null
-        });
+        };
+
+        if (data.packlist_number) invoiceData.packlist_number = data.packlist_number;
+        if (data.order_number) invoiceData.order_number = data.order_number;
+
+        const invoice = await base44.asServiceRole.entities.VendorInvoice.create(invoiceData);
 
         // 4. Auto-Link to Supply Order
         // Always attempt to link/create supply orders

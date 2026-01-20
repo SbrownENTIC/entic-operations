@@ -33,6 +33,15 @@ export default function SimpleFolderView({ folderId }) {
     }
   });
 
+  // Fetch folder details to check for Grace Medical
+  const { data: folder } = useQuery({
+    queryKey: ['folder', folderId],
+    queryFn: () => folderId ? base44.entities.DocumentFolder.get(folderId) : null,
+    enabled: !!folderId
+  });
+
+  const isGraceMedical = folder?.name?.toLowerCase().includes('grace medical');
+
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ['vendor-invoices', folderId],
     queryFn: () => folderId 
@@ -250,6 +259,12 @@ export default function SimpleFolderView({ folderId }) {
                   <ArrowUpDown className="w-4 h-4 text-slate-400" />
                 </div>
               </th>
+              {isGraceMedical && (
+                <>
+                  <th className="text-left p-3 font-medium text-slate-600">Packlist No.</th>
+                  <th className="text-left p-3 font-medium text-slate-600">Order No.</th>
+                </>
+              )}
               <th 
                 className="text-left p-3 font-medium text-slate-600 cursor-pointer hover:bg-slate-100"
                 onClick={() => handleSort('created_date')}
@@ -309,8 +324,6 @@ export default function SimpleFolderView({ folderId }) {
                           if (date) {
                             const dateStr = format(date, "yyyy-MM-dd");
                             updateInvoiceMutation.mutate({ id: invoice.id, data: { invoice_date: dateStr } });
-                            // The popover will close automatically when clicking outside, or we can control open state if needed
-                            // But for simplicity, we let it be.
                           }
                         }}
                         initialFocus
@@ -318,6 +331,12 @@ export default function SimpleFolderView({ folderId }) {
                     </PopoverContent>
                   </Popover>
                 </td>
+                {isGraceMedical && (
+                  <>
+                    <td className="p-3 text-slate-600">{invoice.packlist_number || '-'}</td>
+                    <td className="p-3 text-slate-600">{invoice.order_number || '-'}</td>
+                  </>
+                )}
                 <td className="p-3 text-slate-600 cursor-pointer" onClick={() => invoice.document_url && window.open(invoice.document_url, '_blank')}>
                   {formatDateToEST(invoice.created_date)}
                 </td>
