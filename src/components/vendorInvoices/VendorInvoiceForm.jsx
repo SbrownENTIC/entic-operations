@@ -17,7 +17,7 @@ export default function VendorInvoiceForm({ invoice, onSubmit, onCancel, isLoadi
   const [formData, setFormData] = React.useState({
     vendor_name: invoice?.vendor_name || "",
     invoice_number: invoice?.invoice_number || "",
-    invoice_date: invoice?.invoice_date ? invoice.invoice_date.split('T')[0] : "",
+    invoice_date: invoice?.invoice_date || "",
     total_amount: invoice?.total_amount || 0,
     status: invoice?.status || "pending_review",
     billed_to: invoice?.billed_to || "ENTIC",
@@ -68,10 +68,9 @@ export default function VendorInvoiceForm({ invoice, onSubmit, onCancel, isLoadi
       setFormData({
         vendor_name: invoice.vendor_name || "",
         invoice_number: invoice.invoice_number || "",
-        invoice_date: invoice.invoice_date ? invoice.invoice_date.split('T')[0] : "",
+        invoice_date: invoice.invoice_date || "",
         total_amount: invoice.total_amount || 0,
         status: invoice.status || "pending_review",
-        billed_to: invoice.billed_to || "ENTIC",
         location: invoice.location || "",
         notes: invoice.notes || "",
         linked_supply_order_ids: invoice.linked_supply_order_ids || []
