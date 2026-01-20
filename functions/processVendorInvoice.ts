@@ -34,7 +34,8 @@ Deno.serve(async (req) => {
                             description: { type: "string" },
                             quantity: { type: "number" },
                             unit_price: { type: "number" },
-                            total_price: { type: "number" }
+                            total_price: { type: "number" },
+                            lot_number: { type: "string", description: "Lot No. or Batch number if available" }
                         }
                     }
                 }
@@ -231,7 +232,8 @@ Deno.serve(async (req) => {
                     quantity: item.quantity || 0,
                     unit_price: item.unit_price || 0,
                     line_total: item.total_price || 0,
-                    received: true
+                    received: true,
+                    lot_number: item.lot_number || null
                 }));
 
                 const newOrderData = {
