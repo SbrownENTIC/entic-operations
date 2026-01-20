@@ -579,6 +579,7 @@ export default function ClinicalSupplyOrders() {
                         <tr>
                           <th className="text-left p-2 font-semibold text-slate-700">Item #</th>
                           <th className="text-left p-2 font-semibold text-slate-700">Product</th>
+                          <th className="text-left p-2 font-semibold text-slate-700">Lot #</th>
                           <th className="text-right p-2 font-semibold text-slate-700">Qty</th>
                         </tr>
                       </thead>
@@ -590,6 +591,7 @@ export default function ClinicalSupplyOrders() {
                             <tr key={idx} className="border-t border-slate-200">
                               <td className="p-2 text-slate-900 font-mono">{item.item_number || '-'}</td>
                               <td className="p-2 text-slate-700">{item.supply_name}</td>
+                              <td className="p-2 text-slate-600 font-mono text-xs">{item.lot_number || '-'}</td>
                               <td className="p-2 text-right font-semibold text-slate-900">{item.quantity}</td>
                             </tr>
                           ))}

@@ -209,6 +209,7 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
               <tr className="bg-slate-100 border-b-2 border-slate-300">
                 <th className="text-left p-3 text-sm font-semibold">Item #</th>
                 <th className="text-left p-3 text-sm font-semibold">Product</th>
+                <th className="text-left p-3 text-sm font-semibold">Lot #</th>
                 <th className="text-right p-3 text-sm font-semibold">Qty</th>
                 <th className="text-right p-3 text-sm font-semibold">Unit Price</th>
                 <th className="text-right p-3 text-sm font-semibold">Total</th>
@@ -219,6 +220,7 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
                 <tr key={idx} className="border-b border-slate-200">
                   <td className="p-3 text-sm">{item.item_number || '-'}</td>
                   <td className="p-3 text-sm">{item.supply_name}</td>
+                  <td className="p-3 text-sm text-slate-600 font-mono">{item.lot_number || '-'}</td>
                   <td className="p-3 text-sm text-right">{item.quantity}</td>
                   <td className="p-3 text-sm text-right">${(item.unit_price || 0).toFixed(2)}</td>
                   <td className="p-3 text-sm text-right font-semibold">
@@ -300,6 +302,8 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
                   <SelectItem value="Staples">Staples</SelectItem>
                   <SelectItem value="Henry Schein">Henry Schein</SelectItem>
                   <SelectItem value="Oaktree Products">Oaktree Products</SelectItem>
+                  <SelectItem value="Grace Medical">Grace Medical</SelectItem>
+                  <SelectItem value="Reliant Compounded Solutions">Reliant Compounded Solutions</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -390,7 +394,7 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
               {formData.items.map((item, index) => (
                 <div key={index} className="space-y-2">
                   <div className="grid grid-cols-12 gap-3 items-end">
-                    <div className="col-span-4 space-y-1">
+                    <div className="col-span-3 space-y-1">
                       <Label className="text-xs text-slate-600">Item/Product</Label>
                       <Popover open={itemSelectOpen[index]} onOpenChange={(open) => setItemSelectOpen({ ...itemSelectOpen, [index]: open })}>
                         <PopoverTrigger asChild>
@@ -461,6 +465,15 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
                         placeholder="Price"
                         value={item.unit_price}
                         onChange={(e) => updateItem(index, 'unit_price', parseFloat(e.target.value))}
+                      />
+                    </div>
+                    <div className="col-span-2 space-y-1">
+                      <Label className="text-xs text-slate-600">Lot Number</Label>
+                      <Input
+                        type="text"
+                        placeholder="Lot/Batch #"
+                        value={item.lot_number || ''}
+                        onChange={(e) => updateItem(index, 'lot_number', e.target.value)}
                       />
                     </div>
                     <div className="col-span-2 space-y-1">
