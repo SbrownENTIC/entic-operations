@@ -33,6 +33,11 @@ export default function ClinicalPrivileges() {
   const queryClient = useQueryClient();
   const location = useLocation();
 
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me()
+  });
+
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('filter') === 'expiring_30') {

@@ -21,6 +21,11 @@ export default function CMETracking() {
   const queryClient = useQueryClient();
   const location = useLocation();
 
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me()
+  });
+
   const { data: cmeRecords = [] } = useQuery({
     queryKey: ['cme'],
     queryFn: () => base44.entities.CME.list('-completion_date')

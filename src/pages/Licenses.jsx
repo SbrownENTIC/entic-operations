@@ -24,6 +24,11 @@ export default function Licenses() {
   const queryClient = useQueryClient();
   const location = useLocation();
 
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me()
+  });
+
   const urlParams = new URLSearchParams(window.location.search);
   const editId = urlParams.get('edit');
   const filterParam = urlParams.get('filter');
