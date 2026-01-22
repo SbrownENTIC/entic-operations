@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { FormProvider, useFormState } from "@/components/FormContext";
+import { UserAccessProvider, useUserAccess } from "@/components/UserAccessContext";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -153,13 +154,16 @@ const moreMenuItems = [
 
 export default function Layout(props) {
   return (
-    <FormProvider>
-      <LayoutContent {...props} />
-    </FormProvider>
+    <UserAccessProvider>
+      <FormProvider>
+        <LayoutContent {...props} />
+      </FormProvider>
+    </UserAccessProvider>
   );
 }
 
 function LayoutContent({ children, currentPageName }) {
+  const { isAdmin } = useUserAccess();
   const location = useLocation();
   const navigate = useNavigate();
   const { isDirty, setIsDirty } = useFormState();
