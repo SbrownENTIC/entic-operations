@@ -44,6 +44,11 @@ export default function DocumentManagement() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me()
+  });
+
   const { data: customFolders = [] } = useQuery({
     queryKey: ['document-folders'],
     queryFn: () => base44.entities.DocumentFolder.list()
