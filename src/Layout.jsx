@@ -219,34 +219,48 @@ function LayoutContent({ children, currentPageName }) {
   // Play notification sound when new orders arrive
   React.useEffect(() => {
     if (pendingOrders.length > previousCount) {
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      
-      const playDoorbell = () => {
-        const oscillator1 = audioContext.createOscillator();
-        const gainNode1 = audioContext.createGain();
-        oscillator1.connect(gainNode1);
-        gainNode1.connect(audioContext.destination);
-        oscillator1.frequency.value = 800;
-        oscillator1.type = 'sine';
-        gainNode1.gain.setValueAtTime(0.3, audioContext.currentTime);
-        gainNode1.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-        oscillator1.start(audioContext.currentTime);
-        oscillator1.stop(audioContext.currentTime + 0.3);
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
         
-        const oscillator2 = audioContext.createOscillator();
-        const gainNode2 = audioContext.createGain();
-        oscillator2.connect(gainNode2);
-        gainNode2.connect(audioContext.destination);
-        oscillator2.frequency.value = 600;
-        oscillator2.type = 'sine';
-        gainNode2.gain.setValueAtTime(0, audioContext.currentTime + 0.3);
-        gainNode2.gain.setValueAtTime(0.3, audioContext.currentTime + 0.3);
-        gainNode2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.7);
-        oscillator2.start(audioContext.currentTime + 0.3);
-        oscillator2.stop(audioContext.currentTime + 0.7);
-      };
-      
-      playDoorbell();
+        const audioContext = new AudioContext();
+        
+        const playDoorbell = () => {
+          const oscillator1 = audioContext.createOscillator();
+          const gainNode1 = audioContext.createGain();
+          oscillator1.connect(gainNode1);
+          gainNode1.connect(audioContext.destination);
+          oscillator1.frequency.value = 800;
+          oscillator1.type = 'sine';
+          gainNode1.gain.setValueAtTime(0.3, audioContext.currentTime);
+          gainNode1.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+          oscillator1.start(audioContext.currentTime);
+          oscillator1.stop(audioContext.currentTime + 0.3);
+          
+          const oscillator2 = audioContext.createOscillator();
+          const gainNode2 = audioContext.createGain();
+          oscillator2.connect(gainNode2);
+          gainNode2.connect(audioContext.destination);
+          oscillator2.frequency.value = 600;
+          oscillator2.type = 'sine';
+          gainNode2.gain.setValueAtTime(0, audioContext.currentTime + 0.3);
+          gainNode2.gain.setValueAtTime(0.3, audioContext.currentTime + 0.3);
+          gainNode2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.7);
+          oscillator2.start(audioContext.currentTime + 0.3);
+          oscillator2.stop(audioContext.currentTime + 0.7);
+
+          // Clean up context after sound finishes
+          setTimeout(() => {
+            if (audioContext.state !== 'closed') {
+              audioContext.close().catch(console.error);
+            }
+          }, 1000);
+        };
+        
+        playDoorbell();
+      } catch (err) {
+        console.error("Failed to play notification sound", err);
+      }
     }
     setPreviousCount(pendingOrders.length);
   }, [pendingOrders.length]);
