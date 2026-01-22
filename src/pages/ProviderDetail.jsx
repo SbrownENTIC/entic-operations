@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Mail, Phone, Award, GraduationCap, ShieldCheck, CheckCircle2, XCircle, Syringe, Plus } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
 import LicenseForm from "@/components/licenses/LicenseForm";
 import PrivilegeForm from "@/components/privileges/PrivilegeForm";
 import CMEForm from "@/components/cme/CMEForm";
@@ -18,12 +17,6 @@ export default function ProviderDetail() {
   const providerId = urlParams.get('id');
   const queryClient = useQueryClient();
   const [activeAction, setActiveAction] = useState(null);
-  const { toast } = useToast();
-
-  const { data: user } = useQuery({
-    queryKey: ['user'],
-    queryFn: () => base44.auth.me()
-  });
 
   const { data: provider, isLoading: providerLoading } = useQuery({
     queryKey: ['provider', providerId],
@@ -38,13 +31,6 @@ export default function ProviderDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['licenses', providerId] });
       setActiveAction(null);
-    },
-    onError: () => {
-      toast({
-        title: "Permission Denied",
-        description: "You do not have permission to add licenses.",
-        variant: "destructive",
-      });
     }
   });
 
@@ -53,13 +39,6 @@ export default function ProviderDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['privileges', providerId] });
       setActiveAction(null);
-    },
-    onError: () => {
-      toast({
-        title: "Permission Denied",
-        description: "You do not have permission to add privileges.",
-        variant: "destructive",
-      });
     }
   });
 
@@ -68,13 +47,6 @@ export default function ProviderDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cme', providerId] });
       setActiveAction(null);
-    },
-    onError: () => {
-      toast({
-        title: "Permission Denied",
-        description: "You do not have permission to add CME records.",
-        variant: "destructive",
-      });
     }
   });
 
@@ -152,19 +124,17 @@ export default function ProviderDetail() {
           </div>
         </div>
 
-        {user?.role === 'admin' && (
-          <div className="flex gap-3 flex-wrap">
-            <Button onClick={() => setActiveAction('license')} className="bg-indigo-600 hover:bg-indigo-700">
-              <Plus className="w-4 h-4 mr-2" /> Add License
-            </Button>
-            <Button onClick={() => setActiveAction('privilege')} className="bg-indigo-600 hover:bg-indigo-700">
-              <Plus className="w-4 h-4 mr-2" /> Add Privilege
-            </Button>
-            <Button onClick={() => setActiveAction('cme')} className="bg-indigo-600 hover:bg-indigo-700">
-              <Plus className="w-4 h-4 mr-2" /> Add CME
-            </Button>
-          </div>
-        )}
+        <div className="flex gap-3 flex-wrap">
+          <Button onClick={() => setActiveAction('license')} className="bg-indigo-600 hover:bg-indigo-700">
+            <Plus className="w-4 h-4 mr-2" /> Add License
+          </Button>
+          <Button onClick={() => setActiveAction('privilege')} className="bg-indigo-600 hover:bg-indigo-700">
+            <Plus className="w-4 h-4 mr-2" /> Add Privilege
+          </Button>
+          <Button onClick={() => setActiveAction('cme')} className="bg-indigo-600 hover:bg-indigo-700">
+            <Plus className="w-4 h-4 mr-2" /> Add CME
+          </Button>
+        </div>
 
         <div className="grid md:grid-cols-3 gap-6">
           <Card className="border-slate-200 shadow-sm">

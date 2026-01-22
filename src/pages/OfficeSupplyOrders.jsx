@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2, Trash2, ClipboardList } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,7 +38,6 @@ export default function OfficeSupplyOrders() {
   const [sortDirection, setSortDirection] = useState('desc');
   const [summaryOrder, setSummaryOrder] = useState(null);
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   const { data: user } = useQuery({
     queryKey: ['user'],
@@ -65,8 +63,7 @@ export default function OfficeSupplyOrders() {
       queryClient.invalidateQueries({ queryKey: ['supply-orders'] });
       setShowForm(false);
       setEditingOrder(null);
-    },
-    onError: () => toast({ title: "Permission Denied", description: "You do not have permission to create orders.", variant: "destructive" })
+    }
   });
 
   const updateMutation = useMutation({
@@ -75,8 +72,7 @@ export default function OfficeSupplyOrders() {
       queryClient.invalidateQueries({ queryKey: ['supply-orders'] });
       setShowForm(false);
       setEditingOrder(null);
-    },
-    onError: () => toast({ title: "Permission Denied", description: "You do not have permission to update orders.", variant: "destructive" })
+    }
   });
 
   const markReceivedMutation = useMutation({
@@ -89,8 +85,7 @@ export default function OfficeSupplyOrders() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['supply-orders'] });
-    },
-    onError: () => toast({ title: "Permission Denied", description: "You do not have permission to mark orders as received.", variant: "destructive" })
+    }
   });
 
   const markOrderedMutation = useMutation({
@@ -99,8 +94,7 @@ export default function OfficeSupplyOrders() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['supply-orders'] });
-    },
-    onError: () => toast({ title: "Permission Denied", description: "You do not have permission to mark orders as placed.", variant: "destructive" })
+    }
   });
 
   const deleteMutation = useMutation({
@@ -108,8 +102,7 @@ export default function OfficeSupplyOrders() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['supply-orders'] });
       setDeletingOrder(null);
-    },
-    onError: () => toast({ title: "Permission Denied", description: "You do not have permission to delete orders.", variant: "destructive" })
+    }
   });
 
   const handleSubmit = (data) => {

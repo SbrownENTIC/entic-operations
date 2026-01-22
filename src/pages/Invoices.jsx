@@ -11,7 +11,6 @@ import { format, parseISO } from "date-fns";
 import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { formatDateToEST } from "@/components/DateUtils";
-import { useToast } from "@/components/ui/use-toast";
 import InvoiceForm from "../components/invoices/InvoiceForm";
 import EmptyState from "@/components/ui/EmptyState";
 import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
@@ -49,7 +48,6 @@ export default function Invoices() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
-  const { toast } = useToast();
 
   const { data: user } = useQuery({
     queryKey: ['user'],
@@ -375,8 +373,8 @@ export default function Invoices() {
       setShowForm(false);
       setEditingInvoice(null);
       setPreselectedIncomes([]);
-    },
-    onError: () => toast({ title: "Permission Denied", description: "You do not have permission to create invoices.", variant: "destructive" })
+
+    }
   });
 
   const updateMutation = useMutation({
@@ -424,8 +422,8 @@ export default function Invoices() {
       queryClient.invalidateQueries({ queryKey: ['outside-income'] });
       setShowForm(false);
       setEditingInvoice(null);
-    },
-    onError: () => toast({ title: "Permission Denied", description: "You do not have permission to update invoices.", variant: "destructive" })
+
+    }
   });
 
   const deleteMutation = useMutation({
@@ -454,7 +452,8 @@ export default function Invoices() {
       setDeleteConfirm(null);
     },
     onError: (error) => {
-      toast({ title: "Permission Denied", description: "You do not have permission to delete invoices.", variant: "destructive" });
+      console.error("Delete failed", error);
+      alert(`Failed to delete invoice: ${error.message}`);
     }
   });
 
@@ -475,8 +474,7 @@ export default function Invoices() {
       setBulkDateProviderPaid('');
       setBulkProviderPaid(false);
       setBulkStatusUpdate('');
-    },
-    onError: () => toast({ title: "Permission Denied", description: "You do not have permission to update invoices.", variant: "destructive" })
+    }
   });
 
   const handleSubmit = (data, statusChanged) => {

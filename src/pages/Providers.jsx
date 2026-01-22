@@ -127,13 +127,6 @@ export default function Providers() {
         description: "Provider added successfully.",
       });
       return newProvider;
-    },
-    onError: () => {
-      toast({
-        title: "Permission Denied",
-        description: "You do not have permission to add providers.",
-        variant: "destructive",
-      });
     }
   });
 
@@ -147,13 +140,6 @@ export default function Providers() {
         title: "Success",
         description: "Provider updated successfully.",
       });
-    },
-    onError: () => {
-      toast({
-        title: "Permission Denied",
-        description: "You do not have permission to update providers.",
-        variant: "destructive",
-      });
     }
   });
 
@@ -165,13 +151,6 @@ export default function Providers() {
       toast({
         title: "Success",
         description: "Provider deleted successfully.",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Permission Denied",
-        description: "You do not have permission to delete providers.",
-        variant: "destructive",
       });
     }
   });
