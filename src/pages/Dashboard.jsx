@@ -55,7 +55,15 @@ export default function Dashboard() {
 
   const { data: user } = useQuery({
     queryKey: ['user'],
-    queryFn: () => base44.auth.me()
+    queryFn: async () => {
+      try {
+        return await base44.auth.me();
+      } catch (error) {
+        if (error.code === 'ECONNABORTED') return null;
+        throw error;
+      }
+    },
+    retry: false
   });
 
   const { data: providers = [], isLoading: providersLoading, isError: providersError } = useQuery({

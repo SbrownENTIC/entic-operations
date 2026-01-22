@@ -298,6 +298,9 @@ function LayoutContent({ children, currentPageName }) {
                 className="h-14 w-auto object-contain"
                 crossOrigin="anonymous"
                 referrerPolicy="no-referrer"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
               />
               <div>
                 <h2 className="font-bold text-slate-900 text-sm">Operations Center</h2>
