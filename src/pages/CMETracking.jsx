@@ -164,6 +164,7 @@ export default function CMETracking() {
               setEditingCME(null);
             }}
             isLoading={createMutation.isPending || updateMutation.isPending}
+            isReadOnly={user?.role !== 'admin'}
           />
         )}
 

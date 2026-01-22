@@ -30,7 +30,7 @@ const INVOICE_STATUSES = [
   { value: "provider_paid", label: "Provider Paid" }
 ];
 
-export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [], onSubmit, onCancel, isLoading }) {
+export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [], onSubmit, onCancel, isLoading, isReadOnly }) {
   const { setIsDirty } = useFormState();
   const [formData, setFormData] = useState({
     invoice_number: '',
@@ -488,6 +488,15 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="p-6 space-y-6">
+          {isReadOnly && (
+            <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded-lg mb-4">
+              <p className="font-medium flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                View Only
+              </p>
+              <p className="text-sm mt-1">This section is view-only. Please contact an administrator to make changes.</p>
+            </div>
+          )}
           {invoice && invoiceAllocations.length > 0 && (
             <Card className="border-orange-200 bg-orange-50">
               <CardHeader className="pb-3">
@@ -557,12 +566,13 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                 value={formData.invoice_number}
                 onChange={(e) => handleChange('invoice_number', e.target.value)}
                 placeholder={formData.program_group === 'UConn' ? 'Auto-generated' : ''}
+                disabled={isReadOnly}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="program_group">Program Group *</Label>
-              <Select value={formData.program_group} onValueChange={(value) => handleChange('program_group', value)}>
+              <Select value={formData.program_group} onValueChange={(value) => handleChange('program_group', value)} disabled={isReadOnly}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select program group" />
                 </SelectTrigger>
@@ -578,7 +588,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
 
             <div className="space-y-2">
               <Label htmlFor="staff_member_id">Staff Member *</Label>
-              <Select value={formData.staff_member_id} onValueChange={(value) => handleChange('staff_member_id', value)}>
+              <Select value={formData.staff_member_id} onValueChange={(value) => handleChange('staff_member_id', value)} disabled={isReadOnly}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select staff member" />
                 </SelectTrigger>
@@ -609,6 +619,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                 value={formData.invoice_date}
                 onChange={(date) => handleChange('invoice_date', date)}
                 defaultMonth={subMonths(new Date(), 1)}
+                disabled={isReadOnly}
               />
             </div>
 
@@ -619,6 +630,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                 placeholder="e.g., January 2024 (auto-filled from invoice #)"
                 value={formData.month}
                 onChange={(e) => handleChange('month', e.target.value)}
+                disabled={isReadOnly}
               />
             </div>
 
@@ -631,10 +643,14 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                   </span>
                 )}
               </Label>
-              <Select value={formData.status} onValueChange={(value) => {
-                manualEditFlags.current.status = true;
-                handleChange('status', value);
-              }}>
+              <Select 
+                value={formData.status} 
+                onValueChange={(value) => {
+                  manualEditFlags.current.status = true;
+                  handleChange('status', value);
+                }}
+                disabled={isReadOnly}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -663,6 +679,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                 step="0.01"
                 value={formData.subtotal}
                 onChange={(e) => handleManualEdit('subtotal', e.target.value)}
+                disabled={isReadOnly}
               />
             </div>
 
@@ -674,6 +691,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                 step="0.01"
                 value={formData.total}
                 onChange={(e) => handleManualEdit('total', e.target.value)}
+                disabled={isReadOnly}
               />
             </div>
 
@@ -685,6 +703,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                 step="0.01"
                 value={formData.amount_expected}
                 onChange={(e) => handleManualEdit('amount_expected', e.target.value)}
+                disabled={isReadOnly}
               />
             </div>
 
@@ -717,6 +736,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
               <DatePicker
                 value={formData.date_provider_paid}
                 onChange={(date) => handleChange('date_provider_paid', date)}
+                disabled={isReadOnly}
               />
             </div>
           </div>
@@ -727,6 +747,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                 id="provider_paid"
                 checked={formData.provider_paid}
                 onCheckedChange={(checked) => handleStatusCheckboxChange('provider_paid', 'provider_paid', checked)}
+                disabled={isReadOnly}
               />
               <label htmlFor="provider_paid" className="text-sm font-medium cursor-pointer">
                 Provider Paid
@@ -738,6 +759,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                 id="invoice_ready_to_send"
                 checked={formData.invoice_ready_to_send}
                 onCheckedChange={(checked) => handleStatusCheckboxChange('approved', 'invoice_ready_to_send', checked)}
+                disabled={isReadOnly}
               />
               <label htmlFor="invoice_ready_to_send" className="text-sm font-medium cursor-pointer">
                 Invoice Ready to Send
@@ -749,6 +771,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                 id="invoice_sent_for_approval"
                 checked={formData.invoice_sent_for_approval}
                 onCheckedChange={(checked) => handleStatusCheckboxChange('sent_for_approval', 'invoice_sent_for_approval', checked)}
+                disabled={isReadOnly}
               />
               <label htmlFor="invoice_sent_for_approval" className="text-sm font-medium cursor-pointer">
                 Invoice Sent for Approval
@@ -760,6 +783,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                 id="invoice_sent_to_vendor"
                 checked={formData.invoice_sent_to_vendor}
                 onCheckedChange={(checked) => handleStatusCheckboxChange('sent_to_vendor', 'invoice_sent_to_vendor', checked)}
+                disabled={isReadOnly}
               />
               <label htmlFor="invoice_sent_to_vendor" className="text-sm font-medium cursor-pointer">
                 Invoice Sent to Vendor
@@ -771,6 +795,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                 id="pending_providers_time"
                 checked={formData.status === 'pending_providers_time'}
                 onCheckedChange={(checked) => handleStatusCheckboxChange('pending_providers_time', null, checked)}
+                disabled={isReadOnly}
               />
               <label htmlFor="pending_providers_time" className="text-sm font-medium cursor-pointer">
                 Provider Needs to Enter Time
@@ -782,6 +807,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                 id="pending_providers_approval"
                 checked={formData.status === 'pending_providers_approval'}
                 onCheckedChange={(checked) => handleStatusCheckboxChange('pending_providers_approval', null, checked)}
+                disabled={isReadOnly}
               />
               <label htmlFor="pending_providers_approval" className="text-sm font-medium cursor-pointer">
                 Pending Provider Approval
@@ -793,6 +819,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                 id="sent_to_provider_for_approval"
                 checked={formData.status === 'sent_to_provider_for_approval'}
                 onCheckedChange={(checked) => handleStatusCheckboxChange('sent_to_provider_for_approval', null, checked)}
+                disabled={isReadOnly}
               />
               <label htmlFor="sent_to_provider_for_approval" className="text-sm font-medium cursor-pointer">
                 Sent to Provider for Approval
@@ -804,6 +831,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                 id="sent_to_provider_for_review"
                 checked={formData.status === 'sent_to_provider_for_review'}
                 onCheckedChange={(checked) => handleStatusCheckboxChange('sent_to_provider_for_review', null, checked)}
+                disabled={isReadOnly}
               />
               <label htmlFor="sent_to_provider_for_review" className="text-sm font-medium cursor-pointer">
                 Sent to Provider for Review
@@ -815,6 +843,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                 id="sent_to_coo_for_approval"
                 checked={formData.status === 'sent_to_coo_for_approval'}
                 onCheckedChange={(checked) => handleStatusCheckboxChange('sent_to_coo_for_approval', null, checked)}
+                disabled={isReadOnly}
               />
               <label htmlFor="sent_to_coo_for_approval" className="text-sm font-medium cursor-pointer">
                 Sent to COO for Approval
@@ -826,6 +855,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                 id="sent_for_approval"
                 checked={formData.status === 'sent_for_approval'}
                 onCheckedChange={(checked) => handleStatusCheckboxChange('sent_for_approval', null, checked)}
+                disabled={isReadOnly}
               />
               <label htmlFor="sent_for_approval" className="text-sm font-medium cursor-pointer">
                 Sent to Vendor for Approval
@@ -838,13 +868,15 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
             <div className="space-y-2">
               <Label>Draft Invoice</Label>
               <div className="flex gap-2">
-                <Input
-                  type="file"
-                  accept=".pdf,.doc,.docx"
-                  onChange={(e) => handleFileUpload(e, 'draft')}
-                  disabled={uploadingDraft}
-                  className="flex-1"
-                />
+                {!isReadOnly && (
+                  <Input
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onChange={(e) => handleFileUpload(e, 'draft')}
+                    disabled={uploadingDraft}
+                    className="flex-1"
+                  />
+                )}
                 {formData.draft_invoice_url && (
                   <>
                     <Button type="button" variant="outline" size="sm" asChild>
@@ -852,19 +884,21 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                         View
                       </a>
                     </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setFormData(prev => ({ ...prev, draft_invoice_url: '' }));
-                        setIsDirty(true);
-                      }}
-                      title="Remove file"
-                      className="text-red-600 hover:text-red-700 px-2"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    {!isReadOnly && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setFormData(prev => ({ ...prev, draft_invoice_url: '' }));
+                          setIsDirty(true);
+                        }}
+                        title="Remove file"
+                        className="text-red-600 hover:text-red-700 px-2"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
                   </>
                 )}
               </div>
@@ -874,13 +908,15 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
             <div className="space-y-2">
               <Label>Approved Invoice</Label>
               <div className="flex gap-2">
-                <Input
-                  type="file"
-                  accept=".pdf,.doc,.docx"
-                  onChange={(e) => handleFileUpload(e, 'approved')}
-                  disabled={uploadingApproved}
-                  className="flex-1"
-                />
+                {!isReadOnly && (
+                  <Input
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onChange={(e) => handleFileUpload(e, 'approved')}
+                    disabled={uploadingApproved}
+                    className="flex-1"
+                  />
+                )}
                 {formData.approved_invoice_url && (
                   <>
                     <Button type="button" variant="outline" size="sm" asChild>
@@ -888,19 +924,21 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                         View
                       </a>
                     </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setFormData(prev => ({ ...prev, approved_invoice_url: '' }));
-                        setIsDirty(true);
-                      }}
-                      title="Remove file"
-                      className="text-red-600 hover:text-red-700 px-2"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    {!isReadOnly && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setFormData(prev => ({ ...prev, approved_invoice_url: '' }));
+                          setIsDirty(true);
+                        }}
+                        title="Remove file"
+                        className="text-red-600 hover:text-red-700 px-2"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
                   </>
                 )}
               </div>
@@ -962,6 +1000,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                         checked={isLinkedToThisInvoice}
                         onCheckedChange={() => toggleIncome(income.id)}
                         className="mt-1"
+                        disabled={isReadOnly}
                       />
                       <label htmlFor={income.id} className="flex-1 text-sm cursor-pointer">
                         <div className="flex items-center gap-2 mb-1">
@@ -1005,6 +1044,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
               value={formData.notes}
               onChange={(e) => handleChange('notes', e.target.value)}
               rows={3}
+              disabled={isReadOnly}
             />
           </div>
         </CardContent>
@@ -1012,9 +1052,11 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
-            {isLoading ? 'Saving...' : invoice ? 'Update Invoice' : 'Create Invoice'}
-          </Button>
+          {!isReadOnly && (
+            <Button type="submit" disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
+              {isLoading ? 'Saving...' : invoice ? 'Update Invoice' : 'Create Invoice'}
+            </Button>
+          )}
         </CardFooter>
       </form>
     </Card>

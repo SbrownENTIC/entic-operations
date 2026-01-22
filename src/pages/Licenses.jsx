@@ -257,6 +257,7 @@ export default function Licenses() {
               setEditingLicense(null);
             }}
             isLoading={createMutation.isPending || updateMutation.isPending}
+            isReadOnly={user?.role !== 'admin'}
           />
         )}
         </div>

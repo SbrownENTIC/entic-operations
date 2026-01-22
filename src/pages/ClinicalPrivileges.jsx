@@ -184,6 +184,7 @@ export default function ClinicalPrivileges() {
               setEditingPrivilege(null);
             }}
             isLoading={createMutation.isPending || updateMutation.isPending}
+            isReadOnly={user?.role !== 'admin'}
           />
         )}
         </div>
