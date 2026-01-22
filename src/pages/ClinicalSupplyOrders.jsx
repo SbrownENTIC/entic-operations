@@ -42,6 +42,11 @@ export default function ClinicalSupplyOrders() {
   const [splittingOrder, setSplittingOrder] = useState(null);
   const queryClient = useQueryClient();
 
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me()
+  });
+
   const { data: orders = [], isLoading: ordersLoading } = useQuery({
     queryKey: ['supply-orders', 'clinical'],
     queryFn: () => base44.entities.SupplyOrder.filter({ category: 'clinical' }, '-order_date', 1000)
@@ -321,16 +326,18 @@ export default function ClinicalSupplyOrders() {
             <h1 className="text-2xl font-bold text-slate-900">Clinical Supply Orders</h1>
             <p className="text-slate-600 text-sm">Track clinical supply orders and deliveries</p>
           </div>
-          <Button
-            onClick={() => {
-              setEditingOrder(null);
-              setShowForm(true);
-            }}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            New Order
-          </Button>
+          {user?.role === 'admin' && (
+            <Button
+              onClick={() => {
+                setEditingOrder(null);
+                setShowForm(true);
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              New Order
+            </Button>
+          )}
         </div>
 
         {showForm && (
@@ -380,7 +387,7 @@ export default function ClinicalSupplyOrders() {
                   <SelectItem value="received">Received</SelectItem>
                 </SelectContent>
               </Select>
-              {selectedOrders.length > 0 && (
+              {user?.role === 'admin' && selectedOrders.length > 0 && (
                 <div className="flex gap-2">
                   <Button 
                     variant="outline" 
@@ -496,7 +503,7 @@ export default function ClinicalSupplyOrders() {
                      </td>
                      <td className="p-4 text-right">
                        <div className="flex flex-col gap-2 items-end">
-                         {order.status !== 'order_placed' && order.status !== 'received' && (
+                         {user?.role === 'admin' && order.status !== 'order_placed' && order.status !== 'received' && (
                            <Button 
                              variant="outline"
                              size="sm"
@@ -513,7 +520,7 @@ export default function ClinicalSupplyOrders() {
                              Mark Ordered
                            </Button>
                          )}
-                         {order.status !== 'received' && (
+                         {user?.role === 'admin' && order.status !== 'received' && (
                            <Button 
                              variant="outline"
                              size="sm"
@@ -534,32 +541,36 @@ export default function ClinicalSupplyOrders() {
                            >
                              <ClipboardList className="w-4 h-4" />
                            </Button>
-                           <Button 
-                             variant="ghost" 
-                             size="sm"
-                             onClick={() => setSplittingOrder(order)}
-                             title="Split Order"
-                           >
-                             <Split className="w-4 h-4" />
-                           </Button>
-                           <Button 
-                             variant="ghost" 
-                             size="sm"
-                             onClick={() => {
-                               setEditingOrder(order);
-                               setShowForm(true);
-                             }}
-                           >
-                             <Pencil className="w-4 h-4" />
-                           </Button>
-                           <Button 
-                             variant="ghost" 
-                             size="sm"
-                             onClick={() => setDeletingOrder(order)}
-                             className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                           >
-                             <Trash2 className="w-4 h-4" />
-                           </Button>
+                           {user?.role === 'admin' && (
+                             <>
+                               <Button 
+                                 variant="ghost" 
+                                 size="sm"
+                                 onClick={() => setSplittingOrder(order)}
+                                 title="Split Order"
+                               >
+                                 <Split className="w-4 h-4" />
+                               </Button>
+                               <Button 
+                                 variant="ghost" 
+                                 size="sm"
+                                 onClick={() => {
+                                   setEditingOrder(order);
+                                   setShowForm(true);
+                                 }}
+                               >
+                                 <Pencil className="w-4 h-4" />
+                               </Button>
+                               <Button 
+                                 variant="ghost" 
+                                 size="sm"
+                                 onClick={() => setDeletingOrder(order)}
+                                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                               >
+                                 <Trash2 className="w-4 h-4" />
+                               </Button>
+                             </>
+                           )}
                          </div>
                        </div>
                      </td>
@@ -573,7 +584,7 @@ export default function ClinicalSupplyOrders() {
                     title="No orders found"
                     description={searchTerm ? "Try adjusting your search terms" : "Create a new clinical supply order"}
                     action={
-                      !searchTerm && (
+                      !searchTerm && user?.role === 'admin' && (
                         <Button
                           onClick={() => {
                             setEditingOrder(null);
