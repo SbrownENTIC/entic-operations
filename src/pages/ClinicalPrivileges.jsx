@@ -160,16 +160,18 @@ export default function ClinicalPrivileges() {
             <h1 className="text-2xl font-bold text-slate-900">Clinical Privileges</h1>
             <p className="text-slate-600 text-sm">Track provider privileges at various facilities</p>
           </div>
-          <Button
-            onClick={() => {
-              setEditingPrivilege(null);
-              setShowForm(true);
-            }}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Privilege
-          </Button>
+          {user?.role === 'admin' && (
+            <Button
+              onClick={() => {
+                setEditingPrivilege(null);
+                setShowForm(true);
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Privilege
+            </Button>
+          )}
         </div>
 
         {showForm && (
@@ -277,26 +279,28 @@ export default function ClinicalPrivileges() {
                           </Badge>
                         </td>
                         <td className="p-4 text-right">
-                          <div className="flex gap-2 justify-end">
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => {
-                                setEditingPrivilege(priv);
-                                setShowForm(true);
-                              }}
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => setDeleteConfirm(priv)}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
+                          {user?.role === 'admin' && (
+                            <div className="flex gap-2 justify-end">
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => {
+                                  setEditingPrivilege(priv);
+                                  setShowForm(true);
+                                }}
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => setDeleteConfirm(priv)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     );

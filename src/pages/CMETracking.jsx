@@ -140,16 +140,18 @@ export default function CMETracking() {
             <h1 className="text-2xl font-bold text-slate-900">CME Tracking</h1>
             <p className="text-slate-600 text-sm">Track continuing medical education credits</p>
           </div>
-          <Button
-            onClick={() => {
-              setEditingCME(null);
-              setShowForm(true);
-            }}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add CME
-          </Button>
+          {user?.role === 'admin' && (
+            <Button
+              onClick={() => {
+                setEditingCME(null);
+                setShowForm(true);
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add CME
+            </Button>
+          )}
         </div>
 
         {showForm && (
@@ -245,16 +247,18 @@ export default function CMETracking() {
                         {format(parseISO(cme.completion_date), 'MMM d, yyyy')}
                       </td>
                       <td className="p-4 text-right">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => {
-                            setEditingCME(cme);
-                            setShowForm(true);
-                          }}
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
+                        {user?.role === 'admin' && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                              setEditingCME(cme);
+                              setShowForm(true);
+                            }}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   ))}

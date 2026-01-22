@@ -188,46 +188,48 @@ export default function ClinicalSupplyCatalog() {
             <h1 className="text-2xl font-bold text-slate-900">Clinical Supply Catalog</h1>
             <p className="text-slate-600 text-sm">View item codes, descriptions, and prices</p>
           </div>
-          <div className="flex gap-2">
-            {selectedItems.length > 0 && (
-              <Button
-                variant="destructive"
-                onClick={() => setIsBulkDeleting(true)}
-                className="bg-red-600 hover:bg-red-700"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete Selected ({selectedItems.length})
-              </Button>
-            )}
-              <div className="relative">
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileUpload}
-                  accept=".csv"
-                  className="hidden"
-                />
+          {user?.role === 'admin' && (
+            <div className="flex gap-2">
+              {selectedItems.length > 0 && (
                 <Button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={initializing}
-                  variant="outline"
-                  className="border-green-600 text-green-600 hover:bg-green-50"
+                  variant="destructive"
+                  onClick={() => setIsBulkDeleting(true)}
+                  className="bg-red-600 hover:bg-red-700"
                 >
-                  <Upload className="w-4 h-4 mr-2" />
-                  {initializing ? 'Importing...' : 'Import CSV'}
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Selected ({selectedItems.length})
                 </Button>
-              </div>
-            <Button
-              onClick={() => {
-                setEditingSupply(null);
-                setShowForm(true);
-              }}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Item
-            </Button>
-          </div>
+              )}
+                <div className="relative">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileUpload}
+                    accept=".csv"
+                    className="hidden"
+                  />
+                  <Button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={initializing}
+                    variant="outline"
+                    className="border-green-600 text-green-600 hover:bg-green-50"
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    {initializing ? 'Importing...' : 'Import CSV'}
+                  </Button>
+                </div>
+              <Button
+                onClick={() => {
+                  setEditingSupply(null);
+                  setShowForm(true);
+                }}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Item
+              </Button>
+            </div>
+          )}
         </div>
 
         {initMessage && (
@@ -321,26 +323,28 @@ export default function ClinicalSupplyCatalog() {
                         {formatCurrency(supply.unit_price || 0)}
                       </td>
                       <td className="p-4 text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => {
-                              setEditingSupply(supply);
-                              setShowForm(true);
-                            }}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => setDeletingSupply(supply)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                        {user?.role === 'admin' && (
+                          <div className="flex justify-end gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                setEditingSupply(supply);
+                                setShowForm(true);
+                              }}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => setDeletingSupply(supply)}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}

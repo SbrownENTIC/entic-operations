@@ -213,26 +213,29 @@ export default function Licenses() {
             <p className="text-slate-600 text-sm">Track provider licenses and expiration dates</p>
           </div>
           <div className="flex gap-3">
-
-            <Button
-              onClick={handleSyncToAirtable}
-              disabled={airtableSyncing}
-              variant="outline"
-              className="border-purple-300 text-purple-700 hover:bg-purple-50 gap-2"
-            >
-              {airtableSyncing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CloudUpload className="w-4 h-4" />}
-              Sync to Airtable
-            </Button>
-            <Button
-              onClick={() => {
-                setEditingLicense(null);
-                setShowForm(true);
-              }}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add License
-            </Button>
+            {user?.role === 'admin' && (
+              <>
+                <Button
+                  onClick={handleSyncToAirtable}
+                  disabled={airtableSyncing}
+                  variant="outline"
+                  className="border-purple-300 text-purple-700 hover:bg-purple-50 gap-2"
+                >
+                  {airtableSyncing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CloudUpload className="w-4 h-4" />}
+                  Sync to Airtable
+                </Button>
+                <Button
+                  onClick={() => {
+                    setEditingLicense(null);
+                    setShowForm(true);
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add License
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
@@ -357,16 +360,18 @@ export default function Licenses() {
                           </Badge>
                         </td>
                         <td className="p-4 text-right">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => {
-                              setEditingLicense(license);
-                              setShowForm(true);
-                            }}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
+                          {user?.role === 'admin' && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                setEditingLicense(license);
+                                setShowForm(true);
+                              }}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                          )}
                         </td>
                       </tr>
                     );

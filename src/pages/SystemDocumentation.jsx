@@ -18,6 +18,10 @@ import { SyncHenryScheinButton, FixVendorDataButton, ForceRedactHenryButton, Upd
 
 export default function SystemDocumentation() {
   const [activeTab, setActiveTab] = useState("sops");
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me()
+  });
 
   return (
     <div className="container mx-auto py-2 px-4 max-w-6xl h-[calc(100vh-8.5rem)] flex flex-col">
@@ -91,11 +95,15 @@ export default function SystemDocumentation() {
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 h-auto flex-shrink-0 gap-1 bg-slate-100/50 p-1">
           <TabsTrigger value="sops" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm">SOPs (Modules)</TabsTrigger>
           <TabsTrigger value="system" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm">How System Works</TabsTrigger>
-          <TabsTrigger value="maintenance" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm">Maintenance</TabsTrigger>
+          {user?.role === 'admin' && (
+            <TabsTrigger value="maintenance" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm">Maintenance</TabsTrigger>
+          )}
           <TabsTrigger value="checklist" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm">Steve's Checklist</TabsTrigger>
           <TabsTrigger value="manual" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm">User Manual</TabsTrigger>
           <TabsTrigger value="contacts" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm">Contact Sheet</TabsTrigger>
-          <TabsTrigger value="admin" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm font-medium text-red-600">Admin Manual</TabsTrigger>
+          {user?.role === 'admin' && (
+            <TabsTrigger value="admin" className="py-2 px-1 h-auto whitespace-normal text-center text-xs md:text-sm font-medium text-red-600">Admin Manual</TabsTrigger>
+          )}
         </TabsList>
 
         {/* SOPs Content */}
@@ -192,7 +200,8 @@ export default function SystemDocumentation() {
         </TabsContent>
 
         {/* MAINTENANCE GUIDE */}
-        <TabsContent value="maintenance" className="flex-1 overflow-hidden mt-4">
+        {user?.role === 'admin' && (
+          <TabsContent value="maintenance" className="flex-1 overflow-hidden mt-4">
           <ScrollArea className="h-full pr-4">
             <Card className="mb-6">
               <CardHeader>
@@ -317,6 +326,7 @@ export default function SystemDocumentation() {
           </Card>
           </ScrollArea>
         </TabsContent>
+        )}
 
         {/* STEVE'S CHECKLIST */}
         <TabsContent value="checklist" className="flex-1 overflow-hidden mt-4">
@@ -413,7 +423,8 @@ export default function SystemDocumentation() {
         </TabsContent>
 
         {/* ADMIN MANUAL */}
-        <TabsContent value="admin" className="flex-1 overflow-hidden mt-4">
+        {user?.role === 'admin' && (
+          <TabsContent value="admin" className="flex-1 overflow-hidden mt-4">
           <div className="h-full flex flex-col">
             <Card className="flex-1 flex flex-col overflow-hidden">
               <CardHeader className="bg-slate-50 border-b border-slate-100 flex-shrink-0 flex flex-row items-center justify-between">
@@ -462,6 +473,7 @@ export default function SystemDocumentation() {
             </Card>
           </div>
         </TabsContent>
+        )}
 
         {/* CONTACT SHEET */}
         <TabsContent value="contacts" className="flex-1 overflow-hidden mt-4">

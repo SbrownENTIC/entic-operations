@@ -217,35 +217,39 @@ export default function OfficeSupplyCatalog() {
               <Download className="w-4 h-4 mr-2" />
               Export CSV
             </Button>
-            <label>
-              <input
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                onChange={handleFileUpload}
-                className="hidden"
-                disabled={importing}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                disabled={importing}
-                onClick={(e) => e.currentTarget.previousElementSibling.click()}
-                className="border-blue-600 text-blue-600 hover:bg-blue-50"
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                {importing ? 'Importing...' : 'Import Excel'}
-              </Button>
-            </label>
-            <Button
-              onClick={() => {
-                setEditingSupply(null);
-                setShowForm(true);
-              }}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Item
-            </Button>
+            {user?.role === 'admin' && (
+              <>
+                <label>
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    disabled={importing}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={importing}
+                    onClick={(e) => e.currentTarget.previousElementSibling.click()}
+                    className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    {importing ? 'Importing...' : 'Import Excel'}
+                  </Button>
+                </label>
+                <Button
+                  onClick={() => {
+                    setEditingSupply(null);
+                    setShowForm(true);
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Item
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
@@ -351,26 +355,28 @@ export default function OfficeSupplyCatalog() {
                       </td>
                       <td className="p-4 text-slate-600">{supply.units || '-'}</td>
                       <td className="p-4 text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => {
-                              setEditingSupply(supply);
-                              setShowForm(true);
-                            }}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => setDeletingSupply(supply)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                        {user?.role === 'admin' && (
+                          <div className="flex justify-end gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                setEditingSupply(supply);
+                                setShowForm(true);
+                              }}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => setDeletingSupply(supply)}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}

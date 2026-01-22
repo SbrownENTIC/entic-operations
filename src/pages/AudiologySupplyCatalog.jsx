@@ -157,28 +157,30 @@ export default function AudiologySupplyCatalog() {
             <h1 className="text-2xl font-bold text-slate-900">Audiology Supply Catalog</h1>
             <p className="text-slate-600 text-sm">View item codes, descriptions, and prices for Oaktree Products</p>
           </div>
-          <div className="flex gap-2">
-            {selectedItems.length > 0 && (
+          {user?.role === 'admin' && (
+            <div className="flex gap-2">
+              {selectedItems.length > 0 && (
+                <Button
+                  variant="destructive"
+                  onClick={() => setIsBulkDeleting(true)}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Selected ({selectedItems.length})
+                </Button>
+              )}
               <Button
-                variant="destructive"
-                onClick={() => setIsBulkDeleting(true)}
-                className="bg-red-600 hover:bg-red-700"
+                onClick={() => {
+                  setEditingSupply(null);
+                  setShowForm(true);
+                }}
+                className="bg-blue-600 hover:bg-blue-700"
               >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete Selected ({selectedItems.length})
+                <Plus className="w-4 h-4 mr-2" />
+                Add Item
               </Button>
-            )}
-            <Button
-              onClick={() => {
-                setEditingSupply(null);
-                setShowForm(true);
-              }}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Item
-            </Button>
-          </div>
+            </div>
+          )}
         </div>
 
         {showForm && (
@@ -264,26 +266,28 @@ export default function AudiologySupplyCatalog() {
                         {formatCurrency(supply.unit_price || 0)}
                       </td>
                       <td className="p-4 text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => {
-                              setEditingSupply(supply);
-                              setShowForm(true);
-                            }}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => setDeletingSupply(supply)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                        {user?.role === 'admin' && (
+                          <div className="flex justify-end gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                setEditingSupply(supply);
+                                setShowForm(true);
+                              }}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => setDeletingSupply(supply)}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}

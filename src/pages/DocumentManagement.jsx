@@ -138,10 +138,12 @@ export default function DocumentManagement() {
             <h1 className="text-3xl font-bold text-slate-900">Documentation Database</h1>
             <p className="text-slate-600 mt-2">Central repository for all organization documents and invoices.</p>
           </div>
-          <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
-            <FolderPlus className="w-4 h-4" />
-            New Folder
-          </Button>
+          {user?.role === 'admin' && (
+            <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
+              <FolderPlus className="w-4 h-4" />
+              New Folder
+            </Button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -163,7 +165,7 @@ export default function DocumentManagement() {
                     {folder.description}
                   </p>
                 </div>
-                {!folder.isSystem && (
+                {!folder.isSystem && user?.role === 'admin' && (
                   <div className="ml-auto -mr-2">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
