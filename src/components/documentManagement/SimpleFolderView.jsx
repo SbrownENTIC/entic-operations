@@ -22,6 +22,11 @@ export default function SimpleFolderView({ folderId }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me()
+  });
+
   const updateInvoiceMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.VendorInvoice.update(id, data),
     onSuccess: () => {
@@ -180,7 +185,7 @@ export default function SimpleFolderView({ folderId }) {
             )}
           </div>
           <div className="flex gap-2">
-            {selectedIds.length > 0 && (
+            {selectedIds.length > 0 && user?.role === 'admin' && (
               <Button
                 onClick={handleDelete}
                 variant="destructive"
@@ -191,31 +196,35 @@ export default function SimpleFolderView({ folderId }) {
                 Delete ({selectedIds.length})
               </Button>
             )}
-            <input
-              type="file"
-              accept=".pdf"
-              multiple
-              onChange={handleFileUpload}
-              className="hidden"
-              id="document-upload"
-            />
-            <Button
-              onClick={() => document.getElementById('document-upload').click()}
-              disabled={uploading}
-              className="gap-2"
-            >
-              {uploading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Uploading... {uploadProgress.total > 0 && `(${uploadProgress.total - uploadProgress.current + 1} pending)`}
-                </>
-              ) : (
-                <>
-                  <Plus className="w-4 h-4" />
-                  Add Documents
-                </>
-              )}
-            </Button>
+            {user?.role === 'admin' && (
+              <>
+                <input
+                  type="file"
+                  accept=".pdf"
+                  multiple
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  id="document-upload"
+                />
+                <Button
+                  onClick={() => document.getElementById('document-upload').click()}
+                  disabled={uploading}
+                  className="gap-2"
+                >
+                  {uploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Uploading... {uploadProgress.total > 0 && `(${uploadProgress.total - uploadProgress.current + 1} pending)`}
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4" />
+                      Add Documents
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -306,30 +315,34 @@ export default function SimpleFolderView({ folderId }) {
                   </Badge>
                 </td>
                 <td className="p-3 text-slate-600 cursor-pointer" onClick={(e) => e.stopPropagation()}>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        className="p-0 h-auto font-normal hover:bg-transparent hover:text-blue-600 flex items-center gap-2"
-                      >
-                        {formatDateToEST(invoice.invoice_date)}
-                        <Pencil className="h-3 w-3 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={invoice.invoice_date ? new Date(invoice.invoice_date) : undefined}
-                        onSelect={(date) => {
-                          if (date) {
-                            const dateStr = format(date, "yyyy-MM-dd");
-                            updateInvoiceMutation.mutate({ id: invoice.id, data: { invoice_date: dateStr } });
-                          }
-                        }}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  {user?.role === 'admin' ? (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          className="p-0 h-auto font-normal hover:bg-transparent hover:text-blue-600 flex items-center gap-2"
+                        >
+                          {formatDateToEST(invoice.invoice_date)}
+                          <Pencil className="h-3 w-3 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={invoice.invoice_date ? new Date(invoice.invoice_date) : undefined}
+                          onSelect={(date) => {
+                            if (date) {
+                              const dateStr = format(date, "yyyy-MM-dd");
+                              updateInvoiceMutation.mutate({ id: invoice.id, data: { invoice_date: dateStr } });
+                            }
+                          }}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  ) : (
+                    formatDateToEST(invoice.invoice_date)
+                  )}
                 </td>
                 {isGraceMedical && (
                   <>
