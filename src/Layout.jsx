@@ -208,9 +208,10 @@ function LayoutContent({ children, currentPageName }) {
   const { data: pendingOrders = [] } = useQuery({
     queryKey: ['pending-review-orders'],
     queryFn: async () => {
-      const reviewOrders = await base44.entities.SupplyOrder.filter({ status: 'pending_review' });
-      const fulfillmentOrders = await base44.entities.SupplyOrder.filter({ status: 'pending_fulfillment' });
-      return [...reviewOrders, ...fulfillmentOrders];
+      // Use $in operator to fetch both statuses in a single request
+      return await base44.entities.SupplyOrder.filter({ 
+        status: { $in: ['pending_review', 'pending_fulfillment'] } 
+      });
     },
     refetchInterval: 30000
   });
