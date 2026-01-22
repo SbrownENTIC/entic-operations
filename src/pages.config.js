@@ -23,8 +23,8 @@ import SupplyOrderDetail from './pages/SupplyOrderDetail';
 import SupplyRequest from './pages/SupplyRequest';
 import SystemDocumentation from './pages/SystemDocumentation';
 import TodaysOrders from './pages/TodaysOrders';
-import ClinicalSupplyOrders from './pages/ClinicalSupplyOrders';
 import Invoices from './pages/Invoices';
+import ClinicalSupplyOrders from './pages/ClinicalSupplyOrders';
 import OfficeSupplyOrders from './pages/OfficeSupplyOrders';
 import __Layout from './Layout.jsx';
 
@@ -55,8 +55,8 @@ export const PAGES = {
     "SupplyRequest": SupplyRequest,
     "SystemDocumentation": SystemDocumentation,
     "TodaysOrders": TodaysOrders,
-    "ClinicalSupplyOrders": ClinicalSupplyOrders,
     "Invoices": Invoices,
+    "ClinicalSupplyOrders": ClinicalSupplyOrders,
     "OfficeSupplyOrders": OfficeSupplyOrders,
 }
 
