@@ -3,14 +3,11 @@ import AudiologySupplyOrders from './pages/AudiologySupplyOrders';
 import CMETracking from './pages/CMETracking';
 import ClinicalPrivileges from './pages/ClinicalPrivileges';
 import ClinicalSupplyCatalog from './pages/ClinicalSupplyCatalog';
-import ClinicalSupplyOrders from './pages/ClinicalSupplyOrders';
 import Dashboard from './pages/Dashboard';
 import DocumentManagement from './pages/DocumentManagement';
 import Home from './pages/Home';
-import Invoices from './pages/Invoices';
 import Licenses from './pages/Licenses';
 import OfficeSupplyCatalog from './pages/OfficeSupplyCatalog';
-import OfficeSupplyOrders from './pages/OfficeSupplyOrders';
 import OnCallSchedule from './pages/OnCallSchedule';
 import OutsideIncome from './pages/OutsideIncome';
 import Payments from './pages/Payments';
@@ -26,6 +23,9 @@ import SupplyOrderDetail from './pages/SupplyOrderDetail';
 import SupplyRequest from './pages/SupplyRequest';
 import SystemDocumentation from './pages/SystemDocumentation';
 import TodaysOrders from './pages/TodaysOrders';
+import ClinicalSupplyOrders from './pages/ClinicalSupplyOrders';
+import Invoices from './pages/Invoices';
+import OfficeSupplyOrders from './pages/OfficeSupplyOrders';
 import __Layout from './Layout.jsx';
 
 
@@ -35,14 +35,11 @@ export const PAGES = {
     "CMETracking": CMETracking,
     "ClinicalPrivileges": ClinicalPrivileges,
     "ClinicalSupplyCatalog": ClinicalSupplyCatalog,
-    "ClinicalSupplyOrders": ClinicalSupplyOrders,
     "Dashboard": Dashboard,
     "DocumentManagement": DocumentManagement,
     "Home": Home,
-    "Invoices": Invoices,
     "Licenses": Licenses,
     "OfficeSupplyCatalog": OfficeSupplyCatalog,
-    "OfficeSupplyOrders": OfficeSupplyOrders,
     "OnCallSchedule": OnCallSchedule,
     "OutsideIncome": OutsideIncome,
     "Payments": Payments,
@@ -58,6 +55,9 @@ export const PAGES = {
     "SupplyRequest": SupplyRequest,
     "SystemDocumentation": SystemDocumentation,
     "TodaysOrders": TodaysOrders,
+    "ClinicalSupplyOrders": ClinicalSupplyOrders,
+    "Invoices": Invoices,
+    "OfficeSupplyOrders": OfficeSupplyOrders,
 }
 
 export const pagesConfig = {
