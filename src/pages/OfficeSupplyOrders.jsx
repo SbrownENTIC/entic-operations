@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { format, parseISO } from "date-fns";
 import { formatDateToEST } from "@/components/DateUtils";
+import { useUserAccess } from "@/components/UserAccessContext";
 import SupplyOrderForm from "../components/supplies/SupplyOrderForm";
 import EmptyState from "@/components/ui/EmptyState";
 import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
@@ -37,6 +38,7 @@ export default function OfficeSupplyOrders() {
   const [sortField, setSortField] = useState('order_date');
   const [sortDirection, setSortDirection] = useState('desc');
   const [summaryOrder, setSummaryOrder] = useState(null);
+  const { isReadOnly } = useUserAccess();
   const queryClient = useQueryClient();
 
   const { data: orders = [], isLoading: ordersLoading } = useQuery({
@@ -195,16 +197,18 @@ export default function OfficeSupplyOrders() {
             <h1 className="text-2xl font-bold text-slate-900">Office Supply Orders</h1>
             <p className="text-slate-600 text-sm">Track office supply orders and deliveries</p>
           </div>
-          <Button
-            onClick={() => {
-              setEditingOrder(null);
-              setShowForm(true);
-            }}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            New Order
-          </Button>
+          {!isReadOnly && (
+            <Button
+              onClick={() => {
+                setEditingOrder(null);
+                setShowForm(true);
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              New Order
+            </Button>
+          )}
         </div>
 
         {showForm && (
@@ -323,7 +327,7 @@ export default function OfficeSupplyOrders() {
                      </td>
                      <td className="p-4 text-right">
                        <div className="flex flex-col gap-2 items-end">
-                         {order.status !== 'order_placed' && order.status !== 'received' && (
+                         {!isReadOnly && order.status !== 'order_placed' && order.status !== 'received' && (
                            <Button 
                              variant="outline"
                              size="sm"
@@ -340,7 +344,7 @@ export default function OfficeSupplyOrders() {
                              Mark Ordered
                            </Button>
                          )}
-                         {order.status !== 'received' && (
+                         {!isReadOnly && order.status !== 'received' && (
                            <Button 
                              variant="outline"
                              size="sm"
@@ -361,24 +365,28 @@ export default function OfficeSupplyOrders() {
                            >
                              <ClipboardList className="w-4 h-4" />
                            </Button>
-                           <Button 
-                             variant="ghost" 
-                             size="sm"
-                             onClick={() => {
-                               setEditingOrder(order);
-                               setShowForm(true);
-                             }}
-                           >
-                             <Pencil className="w-4 h-4" />
-                           </Button>
-                           <Button 
-                             variant="ghost" 
-                             size="sm"
-                             onClick={() => setDeletingOrder(order)}
-                             className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                           >
-                             <Trash2 className="w-4 h-4" />
-                           </Button>
+                           {!isReadOnly && (
+                             <>
+                               <Button 
+                                 variant="ghost" 
+                                 size="sm"
+                                 onClick={() => {
+                                   setEditingOrder(order);
+                                   setShowForm(true);
+                                 }}
+                               >
+                                 <Pencil className="w-4 h-4" />
+                               </Button>
+                               <Button 
+                                 variant="ghost" 
+                                 size="sm"
+                                 onClick={() => setDeletingOrder(order)}
+                                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                               >
+                                 <Trash2 className="w-4 h-4" />
+                               </Button>
+                             </>
+                           )}
                          </div>
                        </div>
                      </td>
@@ -392,7 +400,7 @@ export default function OfficeSupplyOrders() {
                     title="No orders found"
                     description={searchTerm ? "Try adjusting your search terms" : "Create a new office supply order"}
                     action={
-                      !searchTerm && (
+                      !searchTerm && !isReadOnly && (
                         <Button
                           onClick={() => {
                             setEditingOrder(null);

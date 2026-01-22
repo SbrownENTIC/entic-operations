@@ -11,6 +11,7 @@ import { format, parseISO } from "date-fns";
 import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { formatDateToEST } from "@/components/DateUtils";
+import { useUserAccess } from "@/components/UserAccessContext";
 import InvoiceForm from "../components/invoices/InvoiceForm";
 import EmptyState from "@/components/ui/EmptyState";
 import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
@@ -48,6 +49,7 @@ export default function Invoices() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
+  const { isReadOnly } = useUserAccess();
 
   const { data: invoices = [], isLoading: invoicesLoading } = useQuery({
     queryKey: ['invoices'],
@@ -1008,14 +1010,16 @@ export default function Invoices() {
             onChange={handleQuickUploadFile}
           />
           <div className="flex gap-3 flex-wrap">
-            <Button
-              onClick={handleFixHartfordInvoices}
-              variant="outline"
-              disabled={fixingHartford}
-              className="gap-2"
-            >
-              {fixingHartford ? 'Fixing...' : 'Fix & Sync Data'}
-            </Button>
+            {!isReadOnly && (
+              <Button
+                onClick={handleFixHartfordInvoices}
+                variant="outline"
+                disabled={fixingHartford}
+                className="gap-2"
+              >
+                {fixingHartford ? 'Fixing...' : 'Fix & Sync Data'}
+              </Button>
+            )}
             <Button
               onClick={handlePrint}
               variant="outline"
@@ -1024,17 +1028,19 @@ export default function Invoices() {
               <Printer className="w-4 h-4" />
               Print
             </Button>
-            <Button
-              onClick={() => {
-                setEditingInvoice(null);
-                setPreselectedIncomes([]);
-                setShowForm(true);
-              }}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Create Invoice
-            </Button>
+            {!isReadOnly && (
+              <Button
+                onClick={() => {
+                  setEditingInvoice(null);
+                  setPreselectedIncomes([]);
+                  setShowForm(true);
+                }}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create Invoice
+              </Button>
+            )}
           </div>
         </div>
 
@@ -1080,20 +1086,22 @@ export default function Invoices() {
                     />
                     </div>
 
-                    <div className="flex items-center gap-1">
-                    {['Q1', 'Q2', 'Q3', 'Q4'].map(q => (
-                    <Button
-                      key={q}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleMarkQuarterPaid(q)}
-                      disabled={bulkUpdateMutation.isPending}
-                      className="h-auto py-1 px-1 text-[10px] leading-3 whitespace-normal w-[50px] text-center border-slate-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
-                    >
-                      Pay Provider {q}
-                    </Button>
-                    ))}
-                    </div>
+                    {!isReadOnly && (
+                      <div className="flex items-center gap-1">
+                      {['Q1', 'Q2', 'Q3', 'Q4'].map(q => (
+                      <Button
+                        key={q}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleMarkQuarterPaid(q)}
+                        disabled={bulkUpdateMutation.isPending}
+                        className="h-auto py-1 px-1 text-[10px] leading-3 whitespace-normal w-[50px] text-center border-slate-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
+                      >
+                        Pay Provider {q}
+                      </Button>
+                      ))}
+                      </div>
+                    )}
 
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-[180px] bg-white">
@@ -1126,7 +1134,7 @@ export default function Invoices() {
                 </div>
 
 
-              {selectedInvoices.length > 0 && (
+              {selectedInvoices.length > 0 && !isReadOnly && (
                 <div className="flex flex-col xl:flex-row items-center justify-between gap-2 p-1.5 bg-blue-50 rounded-lg border border-blue-200 shadow-sm">
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="font-semibold text-slate-900 text-sm whitespace-nowrap">
@@ -1212,12 +1220,14 @@ export default function Invoices() {
                   <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                     <tr>
                       <th className="text-left px-3 py-2 text-xs font-semibold text-slate-700 w-10 no-print">
-                        <input
-                          type="checkbox"
-                          checked={selectedInvoices.length === sortedInvoices.length && sortedInvoices.length > 0}
-                          onChange={(e) => handleSelectAll(e.target.checked)}
-                          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                        />
+                        {!isReadOnly && (
+                          <input
+                            type="checkbox"
+                            checked={selectedInvoices.length === sortedInvoices.length && sortedInvoices.length > 0}
+                            onChange={(e) => handleSelectAll(e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                          />
+                        )}
                       </th>
                       <th 
                         className="text-left px-3 py-2 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 print:cursor-default"
@@ -1292,20 +1302,26 @@ export default function Invoices() {
                     {sortedInvoices.map((invoice) => (
                       <tr key={invoice.id} className={`border-b border-slate-100 hover:bg-slate-50 transition-colors print:hover:bg-white ${selectedInvoices.includes(invoice.id) ? 'bg-blue-50' : ''} ${!invoice.hasOutsideIncome ? 'bg-orange-50/30' : ''}`}>
                         <td className="px-3 py-2 no-print">
-                          <input
-                            type="checkbox"
-                            checked={selectedInvoices.includes(invoice.id)}
-                            onChange={(e) => handleSelectInvoice(invoice.id, e.target.checked)}
-                            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                          />
+                          {!isReadOnly && (
+                            <input
+                              type="checkbox"
+                              checked={selectedInvoices.includes(invoice.id)}
+                              onChange={(e) => handleSelectInvoice(invoice.id, e.target.checked)}
+                              className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                            />
+                          )}
                         </td>
                         <td className="px-3 py-2 text-sm">
-                          <button
-                            onClick={() => handleInvoiceNumberClick(invoice)}
-                            className="font-medium text-blue-600 hover:text-blue-800 hover:underline cursor-pointer text-left"
-                          >
-                            {invoice.invoice_number || '-'}
-                          </button>
+                          {isReadOnly ? (
+                            <span className="font-medium text-slate-900">{invoice.invoice_number || '-'}</span>
+                          ) : (
+                            <button
+                              onClick={() => handleInvoiceNumberClick(invoice)}
+                              className="font-medium text-blue-600 hover:text-blue-800 hover:underline cursor-pointer text-left"
+                            >
+                              {invoice.invoice_number || '-'}
+                            </button>
+                          )}
                         </td>
                         <td className="px-3 py-2 text-sm text-slate-600">{invoice.program_group}</td>
                         <td className="px-3 py-2 text-sm text-slate-900">{invoice.provider?.full_name || '-'}</td>
@@ -1332,24 +1348,28 @@ export default function Invoices() {
                         </td>
                         <td className="px-3 py-2 text-center no-print">
                           {invoice.manual_status_override && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                await base44.entities.Invoice.update(invoice.id, { manual_status_override: false });
-                                queryClient.invalidateQueries({ queryKey: ['invoices'] });
-                              }}
-                              className="text-orange-600 hover:text-orange-700 h-6 w-6 p-0"
-                              title="Click to allow automatic status updates"
-                            >
-                              🔒
-                            </Button>
+                            isReadOnly ? (
+                              <span title="Manual status override active" className="text-orange-600">🔒</span>
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  await base44.entities.Invoice.update(invoice.id, { manual_status_override: false });
+                                  queryClient.invalidateQueries({ queryKey: ['invoices'] });
+                                }}
+                                className="text-orange-600 hover:text-orange-700 h-6 w-6 p-0"
+                                title="Click to allow automatic status updates"
+                              >
+                                🔒
+                              </Button>
+                            )
                           )}
                         </td>
                         <td className="px-3 py-2 text-right no-print">
                           <div className="flex gap-2 justify-end">
-                            {!invoice.program_group?.includes('St. Francis') && invoice.program_group !== 'Hartford Hospital' && (
+                            {!isReadOnly && !invoice.program_group?.includes('St. Francis') && invoice.program_group !== 'Hartford Hospital' && (
                               <Button 
                                 variant="ghost" 
                                 size="sm"
@@ -1361,18 +1381,20 @@ export default function Invoices() {
                               </Button>
                             )}
 
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => handleQuickUploadClick(invoice)}
-                              disabled={uploadingId === invoice.id}
-                              title="Upload Approved Invoice"
-                              className="text-teal-600 hover:text-teal-700"
-                            >
-                              <Upload className={`w-4 h-4 ${uploadingId === invoice.id ? 'animate-pulse' : ''}`} />
-                            </Button>
+                            {!isReadOnly && (
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleQuickUploadClick(invoice)}
+                                disabled={uploadingId === invoice.id}
+                                title="Upload Approved Invoice"
+                                className="text-teal-600 hover:text-teal-700"
+                              >
+                                <Upload className={`w-4 h-4 ${uploadingId === invoice.id ? 'animate-pulse' : ''}`} />
+                              </Button>
+                            )}
 
-                            {(invoice.program_group?.includes('UConn') || invoice.program_group?.includes('Manchester') || invoice.program_group?.includes('ECHN') || invoice.program_group === 'Hartford Hospital') && (
+                            {!isReadOnly && (invoice.program_group?.includes('UConn') || invoice.program_group?.includes('Manchester') || invoice.program_group?.includes('ECHN') || invoice.program_group === 'Hartford Hospital') && (
                               <Button 
                                 variant="ghost" 
                                 size="sm"
@@ -1400,14 +1422,16 @@ export default function Invoices() {
                               </Button>
                             )}
 
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => setDeleteConfirm(invoice)}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                            {!isReadOnly && (
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => setDeleteConfirm(invoice)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
                           </div>
                         </td>
                       </tr>

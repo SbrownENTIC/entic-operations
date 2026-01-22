@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { format, parseISO } from "date-fns";
 import { formatDateToEST } from "@/components/DateUtils";
+import { useUserAccess } from "@/components/UserAccessContext";
 import SupplyOrderForm from "../components/supplies/SupplyOrderForm";
 import SplitOrderModal from "../components/supplies/SplitOrderModal";
 import EmptyState from "@/components/ui/EmptyState";
@@ -40,6 +41,7 @@ export default function ClinicalSupplyOrders() {
   const [selectedOrders, setSelectedOrders] = useState([]);
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   const [splittingOrder, setSplittingOrder] = useState(null);
+  const { isReadOnly } = useUserAccess();
   const queryClient = useQueryClient();
 
   const { data: orders = [], isLoading: ordersLoading } = useQuery({
@@ -321,16 +323,18 @@ export default function ClinicalSupplyOrders() {
             <h1 className="text-2xl font-bold text-slate-900">Clinical Supply Orders</h1>
             <p className="text-slate-600 text-sm">Track clinical supply orders and deliveries</p>
           </div>
-          <Button
-            onClick={() => {
-              setEditingOrder(null);
-              setShowForm(true);
-            }}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            New Order
-          </Button>
+          {!isReadOnly && (
+            <Button
+              onClick={() => {
+                setEditingOrder(null);
+                setShowForm(true);
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              New Order
+            </Button>
+          )}
         </div>
 
         {showForm && (
@@ -380,7 +384,7 @@ export default function ClinicalSupplyOrders() {
                   <SelectItem value="received">Received</SelectItem>
                 </SelectContent>
               </Select>
-              {selectedOrders.length > 0 && (
+              {selectedOrders.length > 0 && !isReadOnly && (
                 <div className="flex gap-2">
                   <Button 
                     variant="outline" 
@@ -409,12 +413,14 @@ export default function ClinicalSupplyOrders() {
                 <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                   <tr>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700 bg-slate-50 w-10">
-                      <input
-                        type="checkbox"
-                        checked={filteredOrders.length > 0 && selectedOrders.length === filteredOrders.length}
-                        onChange={(e) => handleToggleSelect('all', e.target.checked)}
-                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                      />
+                      {!isReadOnly && (
+                        <input
+                          type="checkbox"
+                          checked={filteredOrders.length > 0 && selectedOrders.length === filteredOrders.length}
+                          onChange={(e) => handleToggleSelect('all', e.target.checked)}
+                          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        />
+                      )}
                     </th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700 bg-slate-50 w-16">
                       #
@@ -468,12 +474,14 @@ export default function ClinicalSupplyOrders() {
                   {sortedOrders.map((order, index) => (
                    <tr key={order.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                      <td className="p-4">
-                       <input
-                         type="checkbox"
-                         checked={selectedOrders.includes(order.id)}
-                         onChange={(e) => handleToggleSelect(order.id, e.target.checked)}
-                         className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                       />
+                       {!isReadOnly && (
+                         <input
+                           type="checkbox"
+                           checked={selectedOrders.includes(order.id)}
+                           onChange={(e) => handleToggleSelect(order.id, e.target.checked)}
+                           className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                         />
+                       )}
                      </td>
                      <td className="p-4 text-slate-500 font-medium">{index + 1}</td>
                      <td className="p-4 font-medium text-slate-900">{order.order_number || '-'}</td>
@@ -496,7 +504,7 @@ export default function ClinicalSupplyOrders() {
                      </td>
                      <td className="p-4 text-right">
                        <div className="flex flex-col gap-2 items-end">
-                         {order.status !== 'order_placed' && order.status !== 'received' && (
+                         {!isReadOnly && order.status !== 'order_placed' && order.status !== 'received' && (
                            <Button 
                              variant="outline"
                              size="sm"
@@ -513,7 +521,7 @@ export default function ClinicalSupplyOrders() {
                              Mark Ordered
                            </Button>
                          )}
-                         {order.status !== 'received' && (
+                         {!isReadOnly && order.status !== 'received' && (
                            <Button 
                              variant="outline"
                              size="sm"
@@ -534,32 +542,36 @@ export default function ClinicalSupplyOrders() {
                            >
                              <ClipboardList className="w-4 h-4" />
                            </Button>
-                           <Button 
-                             variant="ghost" 
-                             size="sm"
-                             onClick={() => setSplittingOrder(order)}
-                             title="Split Order"
-                           >
-                             <Split className="w-4 h-4" />
-                           </Button>
-                           <Button 
-                             variant="ghost" 
-                             size="sm"
-                             onClick={() => {
-                               setEditingOrder(order);
-                               setShowForm(true);
-                             }}
-                           >
-                             <Pencil className="w-4 h-4" />
-                           </Button>
-                           <Button 
-                             variant="ghost" 
-                             size="sm"
-                             onClick={() => setDeletingOrder(order)}
-                             className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                           >
-                             <Trash2 className="w-4 h-4" />
-                           </Button>
+                           {!isReadOnly && (
+                             <>
+                               <Button 
+                                 variant="ghost" 
+                                 size="sm"
+                                 onClick={() => setSplittingOrder(order)}
+                                 title="Split Order"
+                               >
+                                 <Split className="w-4 h-4" />
+                               </Button>
+                               <Button 
+                                 variant="ghost" 
+                                 size="sm"
+                                 onClick={() => {
+                                   setEditingOrder(order);
+                                   setShowForm(true);
+                                 }}
+                               >
+                                 <Pencil className="w-4 h-4" />
+                               </Button>
+                               <Button 
+                                 variant="ghost" 
+                                 size="sm"
+                                 onClick={() => setDeletingOrder(order)}
+                                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                               >
+                                 <Trash2 className="w-4 h-4" />
+                               </Button>
+                             </>
+                           )}
                          </div>
                        </div>
                      </td>
@@ -573,7 +585,7 @@ export default function ClinicalSupplyOrders() {
                     title="No orders found"
                     description={searchTerm ? "Try adjusting your search terms" : "Create a new clinical supply order"}
                     action={
-                      !searchTerm && (
+                      !searchTerm && !isReadOnly && (
                         <Button
                           onClick={() => {
                             setEditingOrder(null);
