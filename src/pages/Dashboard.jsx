@@ -22,6 +22,7 @@ import CMEComplianceWidget from "../components/dashboard/CMEComplianceWidget";
 import DashboardCustomizer, { DEFAULT_WIDGETS } from "../components/dashboard/DashboardCustomizer";
 
 export default function Dashboard() {
+  // Force rebuild timestamp: 2026-01-22
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState('');
   const [invoiceLocationFilter, setInvoiceLocationFilter] = useState('all');
