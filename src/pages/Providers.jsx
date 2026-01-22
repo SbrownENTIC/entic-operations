@@ -38,6 +38,11 @@ export default function Providers() {
   const { toast } = useToast();
   const location = useLocation();
 
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me()
+  });
+
   const { data: providers = [], isLoading } = useQuery({
     queryKey: ['providers'],
     queryFn: () => base44.entities.Provider.list('full_name')
@@ -242,16 +247,18 @@ export default function Providers() {
             <p className="text-slate-600 text-sm">Manage provider information and credentials</p>
           </div>
           <div className="flex gap-2">
-            <Button
-              onClick={() => {
-                setEditingProvider(null);
-                setShowForm(true);
-              }}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Provider
-            </Button>
+            {user?.role === 'admin' && (
+              <Button
+                onClick={() => {
+                  setEditingProvider(null);
+                  setShowForm(true);
+                }}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Provider
+              </Button>
+            )}
           </div>
         </div>
 
@@ -351,25 +358,29 @@ export default function Providers() {
                             <Eye className="w-4 h-4 mr-1" /> View
                           </Button>
                         </Link>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="h-8"
-                          onClick={() => {
-                            setEditingProvider(provider);
-                            setShowForm(true);
-                          }}
-                        >
-                          <Pencil className="w-4 h-4 mr-1" /> Edit
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="h-8 text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50"
-                          onClick={() => setDeleteConfirm(provider)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        {user?.role === 'admin' && (
+                          <>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="h-8"
+                              onClick={() => {
+                                setEditingProvider(provider);
+                                setShowForm(true);
+                              }}
+                            >
+                              <Pencil className="w-4 h-4 mr-1" /> Edit
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="h-8 text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50"
+                              onClick={() => setDeleteConfirm(provider)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -481,24 +492,28 @@ export default function Providers() {
                                 <Eye className="w-4 h-4" />
                               </Button>
                             </Link>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => {
-                                setEditingProvider(provider);
-                                setShowForm(true);
-                              }}
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => setDeleteConfirm(provider)}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                            {user?.role === 'admin' && (
+                              <>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingProvider(provider);
+                                    setShowForm(true);
+                                  }}
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => setDeleteConfirm(provider)}
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -512,7 +527,7 @@ export default function Providers() {
                     title="No providers found"
                     description={searchTerm ? "Try adjusting your search terms" : "Get started by adding your first provider"}
                     action={
-                      !searchTerm && (
+                      !searchTerm && user?.role === 'admin' && (
                         <Button
                           onClick={() => {
                             setEditingProvider(null);
