@@ -16,7 +16,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import InvoiceForm from "../invoices/InvoiceForm";
 import { useFormState } from "@/components/FormContext";
 
-export default function PaymentForm({ payment, invoices, providers, onSubmit, onCancel, isLoading }) {
+export default function PaymentForm({ payment, invoices, providers, onSubmit, onCancel, isLoading, isReadOnly }) {
   const { setIsDirty } = useFormState();
   const [formData, setFormData] = useState({
     payment_date: payment?.payment_date || format(new Date(), 'yyyy-MM-dd'),
@@ -485,6 +485,15 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
         <form onSubmit={handleSubmit}>
           <div className="max-h-[60vh] overflow-y-auto">
             <CardContent className="p-6">
+            {isReadOnly && (
+              <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded-lg mb-6">
+                <p className="font-medium flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" />
+                  View Only
+                </p>
+                <p className="text-sm mt-1">This payment record is view-only. Contact an administrator to make changes.</p>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-slate-700 mb-1 block">
@@ -495,6 +504,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                   value={formData.payment_date}
                   onChange={(e) => handleChange('payment_date', e.target.value)}
                   required
+                  disabled={isReadOnly}
                 />
               </div>
 
@@ -520,6 +530,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                 <Select
                   value={formData.payer}
                   onValueChange={(value) => handleChange('payer', value)}
+                  disabled={isReadOnly}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select payer" />
@@ -544,6 +555,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                   value={formData.total_amount}
                   onChange={(e) => handleChange('total_amount', parseFloat(e.target.value) || 0)}
                   required
+                  disabled={isReadOnly}
                 />
               </div>
 
@@ -554,6 +566,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                 <Select
                   value={formData.payment_method}
                   onValueChange={(value) => handleChange('payment_method', value)}
+                  disabled={isReadOnly}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -576,6 +589,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                   value={formData.reference_number}
                   onChange={(e) => handleChange('reference_number', e.target.value)}
                   placeholder="Check number or transaction ID"
+                  disabled={isReadOnly}
                 />
               </div>
 
@@ -586,6 +600,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                 <Select
                   value={formData.status}
                   onValueChange={(value) => handleChange('status', value)}
+                  disabled={isReadOnly}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -615,35 +630,41 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                     >
                       View
                     </a>
-                    <Button 
-                      type="button" 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-6 w-6 hover:bg-red-50 hover:text-red-600"
-                      onClick={() => handleChange('remittance_url', '')}
-                    >
-                      <X className="w-3 h-3" />
-                    </Button>
+                    {!isReadOnly && (
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-6 w-6 hover:bg-red-50 hover:text-red-600"
+                        onClick={() => handleChange('remittance_url', '')}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    )}
                   </div>
                 ) : (
                   <div>
-                    <input 
-                      type="file" 
-                      ref={fileInputRef} 
-                      className="hidden" 
-                      onChange={handleFileUpload}
-                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" 
-                    />
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      className="w-full justify-start text-slate-600 font-normal bg-white"
-                      onClick={() => fileInputRef.current?.click()} 
-                      disabled={isUploading}
-                    >
-                      {isUploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-                      {isUploading ? (isExtracting ? 'Analyzing...' : 'Uploading...') : 'Attach Remittance'}
-                    </Button>
+                    {!isReadOnly && (
+                      <>
+                        <input 
+                          type="file" 
+                          ref={fileInputRef} 
+                          className="hidden" 
+                          onChange={handleFileUpload}
+                          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" 
+                        />
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          className="w-full justify-start text-slate-600 font-normal bg-white"
+                          onClick={() => fileInputRef.current?.click()} 
+                          disabled={isUploading}
+                        >
+                          {isUploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                          {isUploading ? (isExtracting ? 'Analyzing...' : 'Uploading...') : 'Attach Remittance'}
+                        </Button>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
@@ -660,10 +681,12 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                         Enter details to auto-generate Outside Income records
                       </p>
                     </div>
-                    <Button type="button" variant="outline" size="sm" onClick={addDirectItem}>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Item
-                    </Button>
+                    {!isReadOnly && (
+                      <Button type="button" variant="outline" size="sm" onClick={addDirectItem}>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Item
+                      </Button>
+                    )}
                   </div>
                   
                   <div className="space-y-4">
@@ -680,6 +703,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                                   value={item.service_date}
                                   onChange={(e) => updateDirectItem(index, 'service_date', e.target.value)}
                                   required
+                                  disabled={isReadOnly}
                                 />
                               </div>
                               <div className="col-span-4">
@@ -690,6 +714,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                                   onChange={(e) => updateDirectItem(index, 'external_invoice_number', e.target.value)}
                                   placeholder="Inv #"
                                   required
+                                  disabled={isReadOnly}
                                 />
                               </div>
                                <div className="col-span-4">
@@ -700,6 +725,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                                   onChange={(e) => updateDirectItem(index, 'external_po_number', e.target.value)}
                                   placeholder="PO #"
                                   required
+                                  disabled={isReadOnly}
                                 />
                               </div>
                             </div>
@@ -712,6 +738,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                                   onChange={(e) => updateDirectItem(index, 'description', e.target.value)}
                                   placeholder="Description..."
                                   required
+                                  disabled={isReadOnly}
                                 />
                               </div>
                               <div className="col-span-3">
@@ -723,12 +750,15 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                                    value={item.amount || 0}
                                    onChange={(e) => updateDirectItem(index, 'amount', parseFloat(e.target.value) || 0)}
                                    required
+                                   disabled={isReadOnly}
                                  />
                               </div>
                               <div className="col-span-1 flex items-end justify-end">
-                                <Button type="button" variant="ghost" size="icon" onClick={() => removeDirectItem(index)}>
-                                  <Trash2 className="w-4 h-4 text-red-500" />
-                                </Button>
+                                {!isReadOnly && (
+                                  <Button type="button" variant="ghost" size="icon" onClick={() => removeDirectItem(index)}>
+                                    <Trash2 className="w-4 h-4 text-red-500" />
+                                  </Button>
+                                )}
                               </div>
                             </div>
                           </>
@@ -745,6 +775,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                                   value={item.service_date}
                                   onChange={(e) => updateDirectItem(index, 'service_date', e.target.value)}
                                   required
+                                  disabled={isReadOnly}
                                 />
                               </div>
                               <div className="col-span-8">
@@ -755,6 +786,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                                   onChange={(e) => updateDirectItem(index, 'description', e.target.value)}
                                   placeholder="Bill Memo..."
                                   required
+                                  disabled={isReadOnly}
                                 />
                               </div>
                             </div>
@@ -768,6 +800,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                                    value={item.amount_due || 0}
                                    onChange={(e) => updateDirectItem(index, 'amount_due', parseFloat(e.target.value) || 0)}
                                    required
+                                   disabled={isReadOnly}
                                  />
                               </div>
                               <div className="col-span-4">
@@ -779,15 +812,18 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                                    value={item.amount || 0}
                                    onChange={(e) => updateDirectItem(index, 'amount', parseFloat(e.target.value) || 0)}
                                    required
+                                   disabled={isReadOnly}
                                  />
                               </div>
                               <div className="col-span-3">
                                 {/* Spacer or other fields if needed */}
                               </div>
                               <div className="col-span-1 flex items-end justify-end">
-                                <Button type="button" variant="ghost" size="icon" onClick={() => removeDirectItem(index)}>
-                                  <Trash2 className="w-4 h-4 text-red-500" />
-                                </Button>
+                                {!isReadOnly && (
+                                  <Button type="button" variant="ghost" size="icon" onClick={() => removeDirectItem(index)}>
+                                    <Trash2 className="w-4 h-4 text-red-500" />
+                                  </Button>
+                                )}
                               </div>
                             </div>
                           </>
@@ -809,16 +845,18 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                         </span>
                       </p>
                     </div>
-                    <div className="flex gap-2">
-                      <Button type="button" variant="outline" size="sm" onClick={handleBulkSelectOpen} className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 hover:text-blue-700">
-                        <Search className="w-4 h-4 mr-2" />
-                        Bulk Add
-                      </Button>
-                      <Button type="button" variant="outline" size="sm" onClick={addAllocation}>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Allocation
-                      </Button>
-                    </div>
+                    {!isReadOnly && (
+                      <div className="flex gap-2">
+                        <Button type="button" variant="outline" size="sm" onClick={handleBulkSelectOpen} className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 hover:text-blue-700">
+                          <Search className="w-4 h-4 mr-2" />
+                          Bulk Add
+                        </Button>
+                        <Button type="button" variant="outline" size="sm" onClick={addAllocation}>
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add Allocation
+                        </Button>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="space-y-3">
@@ -837,6 +875,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                                     variant="outline"
                                     role="combobox"
                                     className="w-full justify-between mt-1 h-10 text-left font-normal"
+                                    disabled={isReadOnly}
                                   >
                                     {selectedInvoice ? (
                                       <span className="truncate">
@@ -895,7 +934,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                                         );
                                       })}
                                     </CommandGroup>
-                                    {invoices.length > 0 && (
+                                    {invoices.length > 0 && !isReadOnly && (
                                       <div className="border-t p-2">
                                         <Button
                                           type="button"
@@ -931,6 +970,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                                 className="mt-1"
                                 value={allocation.amount || 0}
                                 onChange={(e) => updateAllocation(index, 'amount', parseFloat(e.target.value) || 0)}
+                                disabled={isReadOnly}
                               />
                               {selectedInvoice && (
                                 <p className="text-xs text-slate-500 mt-1">
@@ -940,9 +980,11 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                             </div>
                             
                             <div className="col-span-1">
-                              <Button type="button" variant="ghost" size="icon" onClick={() => removeAllocation(index)}>
-                                <Trash2 className="w-4 h-4 text-red-500" />
-                              </Button>
+                              {!isReadOnly && (
+                                <Button type="button" variant="ghost" size="icon" onClick={() => removeAllocation(index)}>
+                                  <Trash2 className="w-4 h-4 text-red-500" />
+                                </Button>
+                              )}
                             </div>
                           </div>
                           
@@ -953,6 +995,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                               placeholder="Optional notes for this allocation"
                               value={allocation.notes || ''}
                               onChange={(e) => updateAllocation(index, 'notes', e.target.value)}
+                              disabled={isReadOnly}
                             />
                           </div>
                         </div>
@@ -973,6 +1016,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                 value={formData.notes}
                 onChange={(e) => handleChange('notes', e.target.value)}
                 rows={4}
+                disabled={isReadOnly}
               />
             </div>
             </CardContent>
@@ -981,9 +1025,11 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
             <Button type="button" variant="outline" onClick={onCancel}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
-              {isLoading ? 'Saving...' : payment ? 'Update Payment' : 'Record Payment'}
-            </Button>
+            {!isReadOnly && (
+              <Button type="submit" disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
+                {isLoading ? 'Saving...' : payment ? 'Update Payment' : 'Record Payment'}
+              </Button>
+            )}
           </CardFooter>
         </form>
       </Card>

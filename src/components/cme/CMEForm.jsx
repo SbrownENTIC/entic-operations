@@ -10,7 +10,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Combobox } from "@/components/ui/combobox";
 import { useFormState } from "@/components/FormContext";
 
-export default function CMEForm({ cme, providers, onSubmit, onCancel, isLoading }) {
+export default function CMEForm({ cme, providers, onSubmit, onCancel, isLoading, isReadOnly }) {
   const { setIsDirty } = useFormState();
   const [formData, setFormData] = useState({
     provider_id: '',
@@ -50,6 +50,15 @@ export default function CMEForm({ cme, providers, onSubmit, onCancel, isLoading 
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="p-6">
+          {isReadOnly && (
+            <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded-lg mb-4">
+              <p className="font-medium flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" />
+                View Only
+              </p>
+              <p className="text-sm mt-1">This CME record is view-only.</p>
+            </div>
+          )}
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="provider_id">Provider *</Label>
@@ -60,6 +69,7 @@ export default function CMEForm({ cme, providers, onSubmit, onCancel, isLoading 
                 placeholder="Select provider..."
                 searchPlaceholder="Search providers..."
                 emptyText="No provider found"
+                disabled={isReadOnly}
               />
             </div>
 
@@ -70,6 +80,7 @@ export default function CMEForm({ cme, providers, onSubmit, onCancel, isLoading 
                 value={formData.course_name}
                 onChange={(e) => handleChange('course_name', e.target.value)}
                 required
+                disabled={isReadOnly}
               />
             </div>
 
@@ -82,6 +93,7 @@ export default function CMEForm({ cme, providers, onSubmit, onCancel, isLoading 
                 value={formData.credits}
                 onChange={(e) => handleChange('credits', parseFloat(e.target.value))}
                 required
+                disabled={isReadOnly}
               />
             </div>
 
@@ -90,6 +102,7 @@ export default function CMEForm({ cme, providers, onSubmit, onCancel, isLoading 
               <DatePicker
                 value={formData.completion_date}
                 onChange={(date) => handleChange('completion_date', date)}
+                disabled={isReadOnly}
               />
             </div>
 
@@ -101,6 +114,7 @@ export default function CMEForm({ cme, providers, onSubmit, onCancel, isLoading 
                 placeholder="https://..."
                 value={formData.certificate_url}
                 onChange={(e) => handleChange('certificate_url', e.target.value)}
+                disabled={isReadOnly}
               />
             </div>
 
@@ -111,6 +125,7 @@ export default function CMEForm({ cme, providers, onSubmit, onCancel, isLoading 
                 value={formData.notes}
                 onChange={(e) => handleChange('notes', e.target.value)}
                 rows={3}
+                disabled={isReadOnly}
               />
             </div>
           </div>
@@ -119,9 +134,11 @@ export default function CMEForm({ cme, providers, onSubmit, onCancel, isLoading 
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
-            {isLoading ? 'Saving...' : cme ? 'Update CME' : 'Add CME'}
-          </Button>
+          {!isReadOnly && (
+            <Button type="submit" disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
+              {isLoading ? 'Saving...' : cme ? 'Update CME' : 'Add CME'}
+            </Button>
+          )}
         </CardFooter>
       </form>
     </Card>

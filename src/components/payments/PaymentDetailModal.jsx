@@ -18,7 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-export default function PaymentDetailModal({ payment, invoices, providers, onClose, onUnallocate }) {
+export default function PaymentDetailModal({ payment, invoices, providers, onClose, onUnallocate, isReadOnly }) {
   const [deleteConfirm, setDeleteConfirm] = React.useState(null);
 
   // Format currency with commas
@@ -202,15 +202,17 @@ export default function PaymentDetailModal({ payment, invoices, providers, onClo
                           </div>
 
                           <div className="flex items-end justify-end">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleUnallocate(allocation)}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <Trash2 className="w-4 h-4 mr-1" />
-                              Remove
-                            </Button>
+                            {!isReadOnly && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleUnallocate(allocation)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4 mr-1" />
+                                Remove
+                              </Button>
+                            )}
                           </div>
                         </div>
                         

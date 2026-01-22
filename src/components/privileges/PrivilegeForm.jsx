@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { DatePicker } from "@/components/ui/date-picker";
 import { useFormState } from "@/components/FormContext";
 
-export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel, isLoading }) {
+export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel, isLoading, isReadOnly }) {
   const { setIsDirty } = useFormState();
   const [formData, setFormData] = useState({
     provider_id: '',
@@ -65,6 +65,15 @@ export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="p-6 space-y-6">
+          {isReadOnly && (
+            <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded-lg mb-4">
+              <p className="font-medium flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" />
+                View Only
+              </p>
+              <p className="text-sm mt-1">This privilege record is view-only.</p>
+            </div>
+          )}
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="provider_id">Provider *</Label>
@@ -75,6 +84,7 @@ export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel
                     role="combobox"
                     aria-expanded={open}
                     className="w-full justify-between font-normal"
+                    disabled={isReadOnly}
                   >
                     {selectedProvider ? selectedProvider.full_name : "Select provider..."}
                     <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -110,7 +120,7 @@ export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel
 
             <div className="space-y-2">
               <Label htmlFor="facility_name">Facility *</Label>
-              <Select value={formData.facility_name} onValueChange={(value) => handleChange('facility_name', value)}>
+              <Select value={formData.facility_name} onValueChange={(value) => handleChange('facility_name', value)} disabled={isReadOnly}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select facility" />
                 </SelectTrigger>
@@ -129,6 +139,7 @@ export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel
               <DatePicker
                 value={formData.granted_date}
                 onChange={(date) => handleChange('granted_date', date)}
+                disabled={isReadOnly}
               />
             </div>
 
@@ -137,12 +148,13 @@ export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel
               <DatePicker
                 value={formData.expiration_date}
                 onChange={(date) => handleChange('expiration_date', date)}
+                disabled={isReadOnly}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
-              <Select value={formData.status} onValueChange={(value) => handleChange('status', value)}>
+              <Select value={formData.status} onValueChange={(value) => handleChange('status', value)} disabled={isReadOnly}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -162,6 +174,7 @@ export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel
               value={formData.notes}
               onChange={(e) => handleChange('notes', e.target.value)}
               rows={3}
+              disabled={isReadOnly}
             />
           </div>
         </CardContent>
@@ -169,9 +182,11 @@ export default function PrivilegeForm({ privilege, providers, onSubmit, onCancel
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
-            {isLoading ? 'Saving...' : privilege ? 'Update Privilege' : 'Add Privilege'}
-          </Button>
+          {!isReadOnly && (
+            <Button type="submit" disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
+              {isLoading ? 'Saving...' : privilege ? 'Update Privilege' : 'Add Privilege'}
+            </Button>
+          )}
         </CardFooter>
       </form>
     </Card>
