@@ -166,68 +166,6 @@ function LayoutContent({ children, currentPageName }) {
   const navigate = useNavigate();
   const { isDirty, setIsDirty } = useFormState();
   const [pendingNavigation, setPendingNavigation] = useState(null);
-  const [isCheckingSession, setIsCheckingSession] = useState(true);
-
-  // Session Management Logic
-  React.useEffect(() => {
-    const checkSession = async () => {
-      // Skip session check for public pages
-      if (currentPageName === 'PublicSupplyRequest') {
-        setIsCheckingSession(false);
-        return;
-      }
-
-      try {
-        const user = await base44.auth.me().catch(() => null);
-        
-        // Helper to get cookie
-        const getSessionCookie = () => {
-          return document.cookie.split(';').some(c => c.trim().startsWith('app_session_active='));
-        };
-
-        const hasSessionCookie = getSessionCookie();
-        const urlParams = new URLSearchParams(window.location.search);
-        const hasInitParam = urlParams.get('session_init');
-
-        if (user) {
-          // User is authenticated with the platform
-          if (hasSessionCookie) {
-            // Valid session - continue
-            setIsCheckingSession(false);
-          } else if (hasInitParam) {
-            // Fresh login return - initialize session cookie
-            // No expires attribute = Session Cookie (cleared on browser close)
-            document.cookie = "app_session_active=true; path=/; samesite=lax";
-            
-            // Clean URL
-            urlParams.delete('session_init');
-            const newSearch = urlParams.toString();
-            const newUrl = window.location.pathname + (newSearch ? '?' + newSearch : '');
-            window.history.replaceState({}, '', newUrl);
-            
-            setIsCheckingSession(false);
-          } else {
-            // User has persistent platform token but NO session cookie
-            // This means browser was restarted - FORCE LOGOUT
-            console.log("Session invalid - forcing logout");
-            handleLogout();
-          }
-        } else {
-          // Not authenticated - redirect to login with init param
-          // This ensures when they return, they have the param to set the cookie
-          const returnUrl = new URL(window.location.href);
-          returnUrl.searchParams.set('session_init', '1');
-          
-          base44.auth.redirectToLogin(returnUrl.toString());
-        }
-      } catch (err) {
-        console.error("Session check failed", err);
-        setIsCheckingSession(false);
-      }
-    };
-
-    checkSession();
-  }, [currentPageName]);
 
   // Scroll to top on route change
   React.useEffect(() => {
@@ -262,8 +200,6 @@ function LayoutContent({ children, currentPageName }) {
   };
 
   const handleLogout = () => {
-    // Clear session cookie
-    document.cookie = "app_session_active=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     base44.auth.logout();
   };
 
@@ -340,14 +276,6 @@ function LayoutContent({ children, currentPageName }) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
         {children}
-      </div>
-    );
-  }
-
-  if (isCheckingSession) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
   }
