@@ -34,7 +34,8 @@ import {
         X,
         MoreVertical,
         HelpCircle,
-        Settings
+        Settings,
+        LogOut
       } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,6 +43,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Toaster } from "@/components/ui/toaster";
 
@@ -195,6 +197,10 @@ function LayoutContent({ children, currentPageName }) {
     }
     // If not dirty, let default Link behavior happen
     // This will handle navigating to "/Invoices" from "/Invoices?edit=1" correctly
+  };
+
+  const handleLogout = () => {
+    base44.auth.logout();
   };
 
   const handleConfirmNavigation = () => {
@@ -372,6 +378,11 @@ function LayoutContent({ children, currentPageName }) {
                       </Link>
                     </DropdownMenuItem>
                   ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50">
+                    <LogOut className="w-4 h-4" />
+                    <span>Sign Out</span>
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -442,6 +453,16 @@ function LayoutContent({ children, currentPageName }) {
                     <span>{item.title}</span>
                   </Link>
                 ))}
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleLogout();
+                  }}
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm transition-all text-red-600 hover:bg-red-50 w-full text-left"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Sign Out</span>
+                </button>
               </div>
             </div>
           )}
