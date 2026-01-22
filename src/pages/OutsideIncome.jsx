@@ -50,6 +50,11 @@ export default function OutsideIncome() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me()
+  });
+
   const { data: incomes = [], isLoading: incomesLoading } = useQuery({
     queryKey: ['outside-income'],
     queryFn: () => base44.entities.OutsideIncome.list('-created_date')
@@ -522,7 +527,7 @@ export default function OutsideIncome() {
               <Download className="w-4 h-4" />
               Export CSV
             </Button>
-            {selectedIncomes.length > 0 && (
+            {user?.role === 'admin' && selectedIncomes.length > 0 && (
               <Button
                 onClick={createInvoiceFromSelected}
                 disabled={!canCreateInvoice}
@@ -533,17 +538,19 @@ export default function OutsideIncome() {
                 Create Invoice ({selectedIncomes.length})
               </Button>
             )}
-            <Button
-              onClick={() => {
-                setEditingIncome(null);
-                setShowForm(true);
-              }}
-              className="bg-blue-600 hover:bg-blue-700"
-              disabled={providersLoading}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Income
-            </Button>
+            {user?.role === 'admin' && (
+              <Button
+                onClick={() => {
+                  setEditingIncome(null);
+                  setShowForm(true);
+                }}
+                className="bg-blue-600 hover:bg-blue-700"
+                disabled={providersLoading}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Income
+              </Button>
+            )}
           </div>
         </div>
 
@@ -593,7 +600,7 @@ export default function OutsideIncome() {
                 />
               </div>
 
-              {selectedIncomes.length > 0 && (
+              {selectedIncomes.length > 0 && user?.role === 'admin' && (
                 <div className="flex flex-col gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-slate-900">
@@ -757,26 +764,28 @@ export default function OutsideIncome() {
                             </Badge>
                           </td>
                           <td className="px-3 py-2 text-right no-print">
-                            <div className="flex gap-2 justify-end">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setEditingIncome(income);
-                                  setShowForm(true);
-                                }}
-                              >
-                                <Pencil className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setDeleteConfirm(income)}
-                                className="text-red-600 hover:text-red-700"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
+                            {user?.role === 'admin' && (
+                              <div className="flex gap-2 justify-end">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingIncome(income);
+                                    setShowForm(true);
+                                  }}
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setDeleteConfirm(income)}
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -788,7 +797,7 @@ export default function OutsideIncome() {
                       title="No income records found"
                       description={searchTerm ? "Try adjusting your search terms" : "Track external work and income"}
                       action={
-                        !searchTerm && (
+                        !searchTerm && user?.role === 'admin' && (
                           <Button
                             onClick={() => {
                               setEditingIncome(null);
