@@ -11,6 +11,7 @@ import { format, parseISO } from "date-fns";
 import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { formatDateToEST } from "@/components/DateUtils";
+import { useToast } from "@/components/ui/use-toast";
 import InvoiceForm from "../components/invoices/InvoiceForm";
 import EmptyState from "@/components/ui/EmptyState";
 import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
@@ -26,6 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export default function Invoices() {
+  const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingInvoice, setEditingInvoice] = useState(null);
@@ -73,6 +75,18 @@ export default function Invoices() {
     queryKey: ['payments'],
     queryFn: () => base44.entities.Payment.list()
   });
+
+  const handleAction = (action) => {
+    if (user?.role !== 'admin') {
+      toast({
+        variant: "destructive",
+        title: "Permission Denied",
+        description: "You do not have permission to perform this action.",
+      });
+      return;
+    }
+    action();
+  };
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -1013,16 +1027,14 @@ export default function Invoices() {
             onChange={handleQuickUploadFile}
           />
           <div className="flex gap-3 flex-wrap">
-            {user?.role === 'admin' && (
-              <Button
-                onClick={handleFixHartfordInvoices}
-                variant="outline"
-                disabled={fixingHartford}
-                className="gap-2"
-              >
-                {fixingHartford ? 'Fixing...' : 'Fix & Sync Data'}
-              </Button>
-            )}
+            <Button
+              onClick={() => handleAction(handleFixHartfordInvoices)}
+              variant="outline"
+              disabled={fixingHartford}
+              className="gap-2"
+            >
+              {fixingHartford ? 'Fixing...' : 'Fix & Sync Data'}
+            </Button>
             <Button
               onClick={handlePrint}
               variant="outline"
@@ -1031,19 +1043,17 @@ export default function Invoices() {
               <Printer className="w-4 h-4" />
               Print
             </Button>
-            {user?.role === 'admin' && (
-              <Button
-                onClick={() => {
-                  setEditingInvoice(null);
-                  setPreselectedIncomes([]);
-                  setShowForm(true);
-                }}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Create Invoice
-              </Button>
-            )}
+            <Button
+              onClick={() => handleAction(() => {
+                setEditingInvoice(null);
+                setPreselectedIncomes([]);
+                setShowForm(true);
+              })}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Create Invoice
+            </Button>
           </div>
         </div>
 
@@ -1089,22 +1099,20 @@ export default function Invoices() {
                     />
                     </div>
 
-                    {user?.role === 'admin' && (
-                      <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1">
                       {['Q1', 'Q2', 'Q3', 'Q4'].map(q => (
-                      <Button
-                        key={q}
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleMarkQuarterPaid(q)}
-                        disabled={bulkUpdateMutation.isPending}
-                        className="h-auto py-1 px-1 text-[10px] leading-3 whitespace-normal w-[50px] text-center border-slate-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
-                      >
-                        Pay Provider {q}
-                      </Button>
+                        <Button
+                          key={q}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleAction(() => handleMarkQuarterPaid(q))}
+                          disabled={bulkUpdateMutation.isPending}
+                          className="h-auto py-1 px-1 text-[10px] leading-3 whitespace-normal w-[50px] text-center border-slate-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
+                        >
+                          Pay Provider {q}
+                        </Button>
                       ))}
-                      </div>
-                    )}
+                    </div>
 
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-[180px] bg-white">
@@ -1137,7 +1145,7 @@ export default function Invoices() {
                 </div>
 
 
-              {selectedInvoices.length > 0 && user?.role === 'admin' && (
+              {selectedInvoices.length > 0 && (
                 <div className="flex flex-col xl:flex-row items-center justify-between gap-2 p-1.5 bg-blue-50 rounded-lg border border-blue-200 shadow-sm">
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="font-semibold text-slate-900 text-sm whitespace-nowrap">
@@ -1205,7 +1213,7 @@ export default function Invoices() {
                     </div>
 
                     <Button 
-                      onClick={handleBulkUpdate}
+                      onClick={() => handleAction(handleBulkUpdate)}
                       size="sm"
                       disabled={(!bulkDateProviderPaid && !bulkProviderPaid && !bulkStatusUpdate) || bulkUpdateMutation.isPending}
                       className="bg-blue-600 hover:bg-blue-700 h-9 whitespace-nowrap"
@@ -1342,25 +1350,22 @@ export default function Invoices() {
                           </Badge>
                         </td>
                         <td className="px-3 py-2 text-center no-print">
-                          {invoice.manual_status_override && user?.role === 'admin' && (
+                          {invoice.manual_status_override && (
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={async (e) => {
                                 e.stopPropagation();
-                                await base44.entities.Invoice.update(invoice.id, { manual_status_override: false });
-                                queryClient.invalidateQueries({ queryKey: ['invoices'] });
+                                handleAction(async () => {
+                                  await base44.entities.Invoice.update(invoice.id, { manual_status_override: false });
+                                  queryClient.invalidateQueries({ queryKey: ['invoices'] });
+                                });
                               }}
                               className="text-orange-600 hover:text-orange-700 h-6 w-6 p-0"
                               title="Click to allow automatic status updates"
                             >
                               🔒
                             </Button>
-                          )}
-                          {invoice.manual_status_override && user?.role !== 'admin' && (
-                            <span className="text-orange-600 h-6 w-6 p-0 flex items-center justify-center cursor-help" title="Manual status override active">
-                              🔒
-                            </span>
                           )}
                         </td>
                         <td className="px-3 py-2 text-right no-print">
@@ -1377,24 +1382,22 @@ export default function Invoices() {
                               </Button>
                             )}
 
-                            {user?.role === 'admin' && (
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => handleQuickUploadClick(invoice)}
-                                disabled={uploadingId === invoice.id}
-                                title="Upload Approved Invoice"
-                                className="text-teal-600 hover:text-teal-700"
-                              >
-                                <Upload className={`w-4 h-4 ${uploadingId === invoice.id ? 'animate-pulse' : ''}`} />
-                              </Button>
-                            )}
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleAction(() => handleQuickUploadClick(invoice))}
+                              disabled={uploadingId === invoice.id}
+                              title="Upload Approved Invoice"
+                              className="text-teal-600 hover:text-teal-700"
+                            >
+                              <Upload className={`w-4 h-4 ${uploadingId === invoice.id ? 'animate-pulse' : ''}`} />
+                            </Button>
 
-                            {user?.role === 'admin' && (invoice.program_group?.includes('UConn') || invoice.program_group?.includes('Manchester') || invoice.program_group?.includes('ECHN') || invoice.program_group === 'Hartford Hospital') && (
+                            {(invoice.program_group?.includes('UConn') || invoice.program_group?.includes('Manchester') || invoice.program_group?.includes('ECHN') || invoice.program_group === 'Hartford Hospital') && (
                               <Button 
                                 variant="ghost" 
                                 size="sm"
-                                onClick={() => handleSingleSyncToAirtable(invoice)}
+                                onClick={() => handleAction(() => handleSingleSyncToAirtable(invoice))}
                                 disabled={syncingAirtable}
                                 title="Sync to Airtable"
                                 className="text-indigo-600 hover:text-indigo-700 relative"
@@ -1418,16 +1421,14 @@ export default function Invoices() {
                               </Button>
                             )}
 
-                            {user?.role === 'admin' && (
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => setDeleteConfirm(invoice)}
-                                className="text-red-600 hover:text-red-700"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            )}
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleAction(() => setDeleteConfirm(invoice))}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
                           </div>
                         </td>
                       </tr>
@@ -1440,13 +1441,13 @@ export default function Invoices() {
                       title="No invoices found"
                       description={searchTerm ? "Try adjusting your search or filters" : "Create your first invoice to get started"}
                       action={
-                        !searchTerm && user?.role === 'admin' && (
+                        !searchTerm && (
                           <Button
-                            onClick={() => {
+                            onClick={() => handleAction(() => {
                               setEditingInvoice(null);
                               setPreselectedIncomes([]);
                               setShowForm(true);
-                            }}
+                            })}
                             className="bg-blue-600 hover:bg-blue-700 mt-4"
                           >
                             <Plus className="w-4 h-4 mr-2" />
