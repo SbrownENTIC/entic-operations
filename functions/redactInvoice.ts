@@ -4,6 +4,11 @@ import { PDFDocument, rgb } from 'npm:pdf-lib@1.17.1';
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
+        const user = await base44.auth.me();
+        if (!user || user.role !== 'admin') {
+             return Response.json({ error: 'Unauthorized: Admin access required' }, { status: 403 });
+        }
+
         const { invoice_id } = await req.json();
 
         if (!invoice_id) {

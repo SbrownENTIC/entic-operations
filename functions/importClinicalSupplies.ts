@@ -5,11 +5,10 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     
-    // For a public app, we might not have a logged-in user, 
-    // so we skip the base44.auth.me() check if we want to allow public access.
-    // However, to prevent abuse, we should ideally check for some secret or just rely on obscurity if that's the user's model.
-    // Given the user's prompt "public unlocked app", we will proceed without strict user auth 
-    // but use the service role to perform the database operations.
+    const user = await base44.auth.me();
+    if (!user || user.role !== 'admin') {
+      return Response.json({ error: 'Unauthorized: Admin access required' }, { status: 403 });
+    }
 
     const { csvContent } = await req.json();
 
