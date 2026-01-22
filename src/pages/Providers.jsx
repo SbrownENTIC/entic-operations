@@ -127,6 +127,21 @@ export default function Providers() {
         description: "Provider added successfully.",
       });
       return newProvider;
+    },
+    onError: (error) => {
+      if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
+        toast({
+          variant: "destructive",
+          title: "Permission Denied",
+          description: "You do not have permission to add new records."
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to add provider: " + error.message
+        });
+      }
     }
   });
 
@@ -140,6 +155,21 @@ export default function Providers() {
         title: "Success",
         description: "Provider updated successfully.",
       });
+    },
+    onError: (error) => {
+      if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
+        toast({
+          variant: "destructive",
+          title: "Permission Denied",
+          description: "You do not have permission to update records."
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to update provider: " + error.message
+        });
+      }
     }
   });
 
@@ -152,6 +182,21 @@ export default function Providers() {
         title: "Success",
         description: "Provider deleted successfully.",
       });
+    },
+    onError: (error) => {
+      if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
+        toast({
+          variant: "destructive",
+          title: "Permission Denied",
+          description: "You do not have permission to delete records."
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to delete provider: " + error.message
+        });
+      }
     }
   });
 

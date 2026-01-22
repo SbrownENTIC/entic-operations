@@ -14,6 +14,7 @@ import { formatDateToEST } from "@/components/DateUtils";
 import InvoiceForm from "../components/invoices/InvoiceForm";
 import EmptyState from "@/components/ui/EmptyState";
 import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
+import { useToast } from "@/components/ui/use-toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,6 +49,7 @@ export default function Invoices() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
+  const { toast } = useToast();
 
   const { data: user } = useQuery({
     queryKey: ['user'],
@@ -373,7 +375,21 @@ export default function Invoices() {
       setShowForm(false);
       setEditingInvoice(null);
       setPreselectedIncomes([]);
-
+    },
+    onError: (error) => {
+      if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
+        toast({
+          variant: "destructive",
+          title: "Permission Denied",
+          description: "You do not have permission to create invoices."
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to create invoice: " + error.message
+        });
+      }
     }
   });
 
@@ -422,7 +438,21 @@ export default function Invoices() {
       queryClient.invalidateQueries({ queryKey: ['outside-income'] });
       setShowForm(false);
       setEditingInvoice(null);
-
+    },
+    onError: (error) => {
+      if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
+        toast({
+          variant: "destructive",
+          title: "Permission Denied",
+          description: "You do not have permission to update invoices."
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to update invoice: " + error.message
+        });
+      }
     }
   });
 
@@ -452,8 +482,19 @@ export default function Invoices() {
       setDeleteConfirm(null);
     },
     onError: (error) => {
-      console.error("Delete failed", error);
-      alert(`Failed to delete invoice: ${error.message}`);
+      if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
+        toast({
+          variant: "destructive",
+          title: "Permission Denied",
+          description: "You do not have permission to delete invoices."
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: `Failed to delete invoice: ${error.message}`
+        });
+      }
     }
   });
 
@@ -474,6 +515,21 @@ export default function Invoices() {
       setBulkDateProviderPaid('');
       setBulkProviderPaid(false);
       setBulkStatusUpdate('');
+    },
+    onError: (error) => {
+      if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
+        toast({
+          variant: "destructive",
+          title: "Permission Denied",
+          description: "You do not have permission to update these invoices."
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to update invoices: " + error.message
+        });
+      }
     }
   });
 
