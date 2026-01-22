@@ -35,6 +35,11 @@ export default function Reminders() {
   const queryClient = useQueryClient();
   const location = useLocation();
 
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me()
+  });
+
   const { data: reminders = [], isLoading } = useQuery({
     queryKey: ['reminders'],
     queryFn: () => base44.entities.Reminder.list('send_date')
@@ -280,51 +285,55 @@ The Operations Team`;
             <p className="text-slate-600 text-sm">Manage automated email reminders, notifications, and office closures</p>
           </div>
           <div className="flex gap-2">
-            <Button
-              onClick={handleSyncToAirtable}
-              disabled={airtableSyncing}
-              variant="outline"
-              className="border-purple-300 text-purple-700 hover:bg-purple-50 gap-2"
-            >
-              {airtableSyncing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CloudUpload className="w-4 h-4" />}
-              Sync to Airtable
-            </Button>
-            <Button
-              onClick={async () => {
-                setTestingReminders(true);
-                setStatusMessage(null);
-                try {
-                  const response = await base44.functions.invoke('sendScheduledReminders', {});
-                  setStatusMessage({
-                    type: 'success',
-                    message: `✅ ${response.data.message}`
-                  });
-                } catch (error) {
-                  setStatusMessage({
-                    type: 'error',
-                    message: `❌ Error: ${error.message}`
-                  });
-                } finally {
-                  setTestingReminders(false);
-                  queryClient.invalidateQueries({ queryKey: ['reminders'] });
-                }
-              }}
-              disabled={testingReminders}
-              variant="outline"
-              className="border-green-600 text-green-700 hover:bg-green-50"
-            >
-              {testingReminders ? 'Running...' : 'Test Scheduled Reminders'}
-            </Button>
-            <Button
-              onClick={() => {
-                setEditingReminder(null);
-                setShowForm(true);
-              }}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Create Reminder
-            </Button>
+            {user?.role === 'admin' && (
+              <>
+                <Button
+                  onClick={handleSyncToAirtable}
+                  disabled={airtableSyncing}
+                  variant="outline"
+                  className="border-purple-300 text-purple-700 hover:bg-purple-50 gap-2"
+                >
+                  {airtableSyncing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CloudUpload className="w-4 h-4" />}
+                  Sync to Airtable
+                </Button>
+                <Button
+                  onClick={async () => {
+                    setTestingReminders(true);
+                    setStatusMessage(null);
+                    try {
+                      const response = await base44.functions.invoke('sendScheduledReminders', {});
+                      setStatusMessage({
+                        type: 'success',
+                        message: `✅ ${response.data.message}`
+                      });
+                    } catch (error) {
+                      setStatusMessage({
+                        type: 'error',
+                        message: `❌ Error: ${error.message}`
+                      });
+                    } finally {
+                      setTestingReminders(false);
+                      queryClient.invalidateQueries({ queryKey: ['reminders'] });
+                    }
+                  }}
+                  disabled={testingReminders}
+                  variant="outline"
+                  className="border-green-600 text-green-700 hover:bg-green-50"
+                >
+                  {testingReminders ? 'Running...' : 'Test Scheduled Reminders'}
+                </Button>
+                <Button
+                  onClick={() => {
+                    setEditingReminder(null);
+                    setShowForm(true);
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Reminder
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
@@ -484,45 +493,47 @@ The Operations Team`;
                         </Badge>
                       </td>
                       <td className="p-4 text-right">
-                        <div className="flex gap-2 justify-end">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleResetReminder(reminder)}
-                            disabled={resetReminderMutation.isPending}
-                            title="Reset last sent and times sent"
-                            className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
-                          >
-                            <RotateCcw className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleSendReminder(reminder)}
-                            disabled={sendReminderMutation.isPending || reminder.status !== 'active'}
-                            title="Send reminder now"
-                          >
-                            <Send className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => {
-                              setEditingReminder(reminder);
-                              setShowForm(true);
-                            }}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => setDeleteConfirm(reminder)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                        {user?.role === 'admin' && (
+                          <div className="flex gap-2 justify-end">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleResetReminder(reminder)}
+                              disabled={resetReminderMutation.isPending}
+                              title="Reset last sent and times sent"
+                              className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                            >
+                              <RotateCcw className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleSendReminder(reminder)}
+                              disabled={sendReminderMutation.isPending || reminder.status !== 'active'}
+                              title="Send reminder now"
+                            >
+                              <Send className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                setEditingReminder(reminder);
+                                setShowForm(true);
+                              }}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => setDeleteConfirm(reminder)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -534,7 +545,7 @@ The Operations Team`;
                     title="No reminders found"
                     description={searchTerm ? "Try adjusting your search terms" : "Set up automated email reminders"}
                     action={
-                      !searchTerm && (
+                      !searchTerm && user?.role === 'admin' && (
                         <Button
                           onClick={() => {
                             setEditingReminder(null);
