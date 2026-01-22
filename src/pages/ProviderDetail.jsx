@@ -18,6 +18,11 @@ export default function ProviderDetail() {
   const queryClient = useQueryClient();
   const [activeAction, setActiveAction] = useState(null);
 
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me()
+  });
+
   const { data: provider, isLoading: providerLoading } = useQuery({
     queryKey: ['provider', providerId],
     queryFn: async () => {
@@ -124,17 +129,19 @@ export default function ProviderDetail() {
           </div>
         </div>
 
-        <div className="flex gap-3 flex-wrap">
-          <Button onClick={() => setActiveAction('license')} className="bg-indigo-600 hover:bg-indigo-700">
-            <Plus className="w-4 h-4 mr-2" /> Add License
-          </Button>
-          <Button onClick={() => setActiveAction('privilege')} className="bg-indigo-600 hover:bg-indigo-700">
-            <Plus className="w-4 h-4 mr-2" /> Add Privilege
-          </Button>
-          <Button onClick={() => setActiveAction('cme')} className="bg-indigo-600 hover:bg-indigo-700">
-            <Plus className="w-4 h-4 mr-2" /> Add CME
-          </Button>
-        </div>
+        {user?.role === 'admin' && (
+          <div className="flex gap-3 flex-wrap">
+            <Button onClick={() => setActiveAction('license')} className="bg-indigo-600 hover:bg-indigo-700">
+              <Plus className="w-4 h-4 mr-2" /> Add License
+            </Button>
+            <Button onClick={() => setActiveAction('privilege')} className="bg-indigo-600 hover:bg-indigo-700">
+              <Plus className="w-4 h-4 mr-2" /> Add Privilege
+            </Button>
+            <Button onClick={() => setActiveAction('cme')} className="bg-indigo-600 hover:bg-indigo-700">
+              <Plus className="w-4 h-4 mr-2" /> Add CME
+            </Button>
+          </div>
+        )}
 
         <div className="grid md:grid-cols-3 gap-6">
           <Card className="border-slate-200 shadow-sm">

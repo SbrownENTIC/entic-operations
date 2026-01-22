@@ -60,6 +60,11 @@ export default function OnCallSchedule() {
   const { toast } = useToast();
   const location = useLocation();
 
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me()
+  });
+
   const { data: schedules = [], isLoading: schedulesLoading } = useQuery({
     queryKey: ['oncall-schedules'],
     queryFn: () => base44.entities.OnCallSchedule.list('-start_date')
@@ -603,16 +608,18 @@ export default function OnCallSchedule() {
               {viewMode === 'calendar' ? <List className="w-4 h-4" /> : <CalendarIcon className="w-4 h-4" />}
               {viewMode === 'calendar' ? 'List View' : 'Calendar View'}
             </Button>
-            <Button
-              onClick={() => {
-                setEditingSchedule(null);
-                setShowForm(true);
-              }}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Schedule
-            </Button>
+            {user?.role === 'admin' && (
+              <Button
+                onClick={() => {
+                  setEditingSchedule(null);
+                  setShowForm(true);
+                }}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Schedule
+              </Button>
+            )}
           </div>
         </div>
 
@@ -654,7 +661,7 @@ export default function OnCallSchedule() {
                   className="max-w-md border-slate-200"
                 />
               </div>
-              {selectedEntries.length > 0 && (
+              {selectedEntries.length > 0 && user?.role === 'admin' && (
                 <div className="flex flex-col gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-slate-900">
@@ -799,23 +806,25 @@ export default function OnCallSchedule() {
                         </td>
                         <td className="p-4 text-slate-600">{schedule.notes || '-'}</td>
                         <td className="p-4 text-right">
-                          <div className="flex gap-2 justify-end">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEditSchedule(schedule)}
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setDeleteConfirm(schedule)}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
+                          {user?.role === 'admin' && (
+                            <div className="flex gap-2 justify-end">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditSchedule(schedule)}
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setDeleteConfirm(schedule)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -927,8 +936,8 @@ export default function OnCallSchedule() {
                                 return (
                                   <div
                                     key={schedule.id}
-                                    onClick={() => handleEditSchedule(schedule)}
-                                    className={`absolute ${schedule.color} text-white text-xs px-1.5 py-1 rounded cursor-pointer hover:opacity-90 transition-opacity shadow-sm z-10 flex flex-col justify-center`}
+                                    onClick={() => user?.role === 'admin' && handleEditSchedule(schedule)}
+                                    className={`absolute ${schedule.color} text-white text-xs px-1.5 py-1 rounded ${user?.role === 'admin' ? 'cursor-pointer hover:opacity-90' : 'cursor-default'} transition-opacity shadow-sm z-10 flex flex-col justify-center`}
                                     style={style}
                                   >
                                     <div className="text-[9px] truncate leading-tight">

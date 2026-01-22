@@ -42,6 +42,11 @@ export default function AudiologySupplyOrders() {
   const [splittingOrder, setSplittingOrder] = useState(null);
   const queryClient = useQueryClient();
 
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me()
+  });
+
   const { data: orders = [], isLoading: ordersLoading } = useQuery({
     queryKey: ['audiology-supply-orders'],
     queryFn: () => base44.entities.AudiologySupplyOrder.list('-order_date', 1000)
@@ -289,16 +294,18 @@ export default function AudiologySupplyOrders() {
             <h1 className="text-2xl font-bold text-slate-900">Audiology Supply Orders</h1>
             <p className="text-slate-600 text-sm">Track audiology supply orders and deliveries (Oaktree Products)</p>
           </div>
-          <Button
-            onClick={() => {
-              setEditingOrder(null);
-              setShowForm(true);
-            }}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            New Order
-          </Button>
+          {user?.role === 'admin' && (
+            <Button
+              onClick={() => {
+                setEditingOrder(null);
+                setShowForm(true);
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              New Order
+            </Button>
+          )}
         </div>
 
         {showForm && (
@@ -348,7 +355,7 @@ export default function AudiologySupplyOrders() {
                   <SelectItem value="received">Received</SelectItem>
                 </SelectContent>
               </Select>
-              {selectedOrders.length > 0 && (
+              {user?.role === 'admin' && selectedOrders.length > 0 && (
                 <div className="flex gap-2">
                   <Button 
                     variant="outline" 
@@ -464,7 +471,7 @@ export default function AudiologySupplyOrders() {
                      </td>
                      <td className="p-4 text-right">
                        <div className="flex flex-col gap-2 items-end">
-                         {order.status !== 'order_placed' && order.status !== 'received' && (
+                         {user?.role === 'admin' && order.status !== 'order_placed' && order.status !== 'received' && (
                            <Button 
                              variant="outline"
                              size="sm"
@@ -481,7 +488,7 @@ export default function AudiologySupplyOrders() {
                              Mark Ordered
                            </Button>
                          )}
-                         {order.status !== 'received' && (
+                         {user?.role === 'admin' && order.status !== 'received' && (
                            <Button 
                              variant="outline"
                              size="sm"
@@ -502,32 +509,36 @@ export default function AudiologySupplyOrders() {
                            >
                              <ClipboardList className="w-4 h-4" />
                            </Button>
-                           <Button 
-                             variant="ghost" 
-                             size="sm"
-                             onClick={() => setSplittingOrder(order)}
-                             title="Split Order"
-                           >
-                             <Split className="w-4 h-4" />
-                           </Button>
-                           <Button 
-                             variant="ghost" 
-                             size="sm"
-                             onClick={() => {
-                               setEditingOrder(order);
-                               setShowForm(true);
-                             }}
-                           >
-                             <Pencil className="w-4 h-4" />
-                           </Button>
-                           <Button 
-                             variant="ghost" 
-                             size="sm"
-                             onClick={() => setDeletingOrder(order)}
-                             className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                           >
-                             <Trash2 className="w-4 h-4" />
-                           </Button>
+                           {user?.role === 'admin' && (
+                             <>
+                               <Button 
+                                 variant="ghost" 
+                                 size="sm"
+                                 onClick={() => setSplittingOrder(order)}
+                                 title="Split Order"
+                               >
+                                 <Split className="w-4 h-4" />
+                               </Button>
+                               <Button 
+                                 variant="ghost" 
+                                 size="sm"
+                                 onClick={() => {
+                                   setEditingOrder(order);
+                                   setShowForm(true);
+                                 }}
+                               >
+                                 <Pencil className="w-4 h-4" />
+                               </Button>
+                               <Button 
+                                 variant="ghost" 
+                                 size="sm"
+                                 onClick={() => setDeletingOrder(order)}
+                                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                               >
+                                 <Trash2 className="w-4 h-4" />
+                               </Button>
+                             </>
+                           )}
                          </div>
                        </div>
                      </td>
