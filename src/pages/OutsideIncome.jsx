@@ -20,6 +20,7 @@ import { parseISO, format } from "date-fns";
 import OutsideIncomeForm from "../components/income/OutsideIncomeForm";
 import EmptyState from "@/components/ui/EmptyState";
 import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
+import { useToast } from "@/components/ui/use-toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,6 +48,7 @@ export default function OutsideIncome() {
   const [fixingAmounts, setFixingAmounts] = useState(false); // New state variable
   const [linkMessage, setLinkMessage] = useState('');
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -174,6 +176,13 @@ export default function OutsideIncome() {
       queryClient.invalidateQueries({ queryKey: ['outside-income'] });
       setShowForm(false);
       setEditingIncome(null);
+    },
+    onError: (error) => {
+      if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
+        toast({ variant: "destructive", title: "Permission Denied", description: "You do not have permission to add income records." });
+      } else {
+        toast({ variant: "destructive", title: "Error", description: error.message });
+      }
     }
   });
 
@@ -183,6 +192,13 @@ export default function OutsideIncome() {
       queryClient.invalidateQueries({ queryKey: ['outside-income'] });
       setShowForm(false);
       setEditingIncome(null);
+    },
+    onError: (error) => {
+      if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
+        toast({ variant: "destructive", title: "Permission Denied", description: "You do not have permission to update income records." });
+      } else {
+        toast({ variant: "destructive", title: "Error", description: error.message });
+      }
     }
   });
 
@@ -191,6 +207,13 @@ export default function OutsideIncome() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['outside-income'] });
       setDeleteConfirm(null);
+    },
+    onError: (error) => {
+      if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
+        toast({ variant: "destructive", title: "Permission Denied", description: "You do not have permission to delete income records." });
+      } else {
+        toast({ variant: "destructive", title: "Error", description: error.message });
+      }
     }
   });
 
@@ -205,6 +228,13 @@ export default function OutsideIncome() {
       queryClient.invalidateQueries({ queryKey: ['outside-income'] });
       setSelectedIncomes([]);
       setBulkProviderId("");
+    },
+    onError: (error) => {
+      if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
+        toast({ variant: "destructive", title: "Permission Denied", description: "You do not have permission to update records." });
+      } else {
+        toast({ variant: "destructive", title: "Error", description: error.message });
+      }
     }
   });
 
@@ -217,6 +247,13 @@ export default function OutsideIncome() {
       queryClient.invalidateQueries({ queryKey: ['outside-income'] });
       setSelectedIncomes([]);
       setShowBulkDeleteConfirm(false);
+    },
+    onError: (error) => {
+      if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
+        toast({ variant: "destructive", title: "Permission Denied", description: "You do not have permission to delete records." });
+      } else {
+        toast({ variant: "destructive", title: "Error", description: error.message });
+      }
     }
   });
 

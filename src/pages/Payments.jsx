@@ -13,6 +13,7 @@ import PaymentForm from "../components/payments/PaymentForm";
 import PaymentDetailModal from "../components/payments/PaymentDetailModal";
 import EmptyState from "@/components/ui/EmptyState";
 import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
+import { useToast } from "@/components/ui/use-toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,6 +38,7 @@ export default function Payments() {
   const [fixingAllocations, setFixingAllocations] = useState(false);
   const [updateMessage, setUpdateMessage] = useState('');
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const location = useLocation();
 
   const { data: user } = useQuery({
@@ -260,6 +262,13 @@ export default function Payments() {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       setShowForm(false);
       setEditingPayment(null);
+    },
+    onError: (error) => {
+      if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
+        toast({ variant: "destructive", title: "Permission Denied", description: "You do not have permission to create payments." });
+      } else {
+        toast({ variant: "destructive", title: "Error", description: error.message });
+      }
     }
   });
 
@@ -310,6 +319,13 @@ export default function Payments() {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       setShowForm(false);
       setEditingPayment(null);
+    },
+    onError: (error) => {
+      if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
+        toast({ variant: "destructive", title: "Permission Denied", description: "You do not have permission to update payments." });
+      } else {
+        toast({ variant: "destructive", title: "Error", description: error.message });
+      }
     }
   });
 
@@ -323,6 +339,13 @@ export default function Payments() {
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       setDeleteConfirm(null);
+    },
+    onError: (error) => {
+      if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
+        toast({ variant: "destructive", title: "Permission Denied", description: "You do not have permission to delete payments." });
+      } else {
+        toast({ variant: "destructive", title: "Error", description: error.message });
+      }
     }
   });
 
@@ -372,6 +395,13 @@ export default function Payments() {
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       setViewingPayment(null);
+    },
+    onError: (error) => {
+      if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
+        toast({ variant: "destructive", title: "Permission Denied", description: "You do not have permission to unallocate payments." });
+      } else {
+        toast({ variant: "destructive", title: "Error", description: error.message });
+      }
     }
   });
 
