@@ -39,6 +39,11 @@ export default function Payments() {
   const queryClient = useQueryClient();
   const location = useLocation();
 
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me()
+  });
+
   const { data: payments = [], isLoading: paymentsLoading } = useQuery({
     queryKey: ['payments'],
     queryFn: () => base44.entities.Payment.list('-payment_date')
@@ -600,16 +605,18 @@ export default function Payments() {
               <Printer className="w-4 h-4" />
               Print
             </Button>
-            <Button
-              onClick={() => {
-                setEditingPayment(null);
-                setShowForm(true);
-              }}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Record Payment
-            </Button>
+            {user?.role === 'admin' && (
+              <Button
+                onClick={() => {
+                  setEditingPayment(null);
+                  setShowForm(true);
+                }}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Record Payment
+              </Button>
+            )}
           </div>
         </div>
 
@@ -838,24 +845,28 @@ export default function Payments() {
                             >
                               <Eye className="w-4 h-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setEditingPayment(payment);
-                                setShowForm(true);
-                              }}
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setDeleteConfirm(payment)}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                            {user?.role === 'admin' && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingPayment(payment);
+                                    setShowForm(true);
+                                  }}
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setDeleteConfirm(payment)}
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -868,7 +879,7 @@ export default function Payments() {
                       title="No payments found"
                       description={searchTerm ? "Try adjusting your search terms" : "Record your first payment"}
                       action={
-                        !searchTerm && (
+                        !searchTerm && user?.role === 'admin' && (
                           <Button
                             onClick={() => {
                               setEditingPayment(null);
