@@ -4,14 +4,29 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     
-    const user = await base44.auth.me();
-    if (!user || user.role !== 'admin') {
-        return Response.json({ error: 'Unauthorized: Admin access required' }, { status: 403 });
+    // Try to get authenticated user, but allow public requests
+    let user = null;
+    let requesterName = '';
+    let requesterEmail = '';
+    
+    try {
+      user = await base44.auth.me();
+      requesterName = user.full_name;
+      requesterEmail = user.email;
+    } catch (e) {
+      // Public request - user not authenticated
     }
-    const requesterName = user.full_name;
-    const requesterEmail = user.email;
 
-    const { location, requested_date, items, notes } = await req.json();
+    const { location, requested_date, items, notes, requester_name, requester_email } = await req.json();
+    
+    // For public requests, use provided name/email
+    if (!user) {
+      if (!requester_name || !requester_email) {
+        return Response.json({ error: 'Requester name and email are required' }, { status: 400 });
+      }
+      requesterName = requester_name;
+      requesterEmail = requester_email;
+    }
 
     if (!location || !items || items.length === 0) {
       return Response.json({ error: 'Location and items are required' }, { status: 400 });

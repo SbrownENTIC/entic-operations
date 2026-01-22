@@ -6,11 +6,6 @@ const NOTIFICATIONS_TABLE = 'tblVG6MUoSifOpHsh';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-
-    const user = await base44.auth.me();
-    if (!user || user.role !== 'admin') {
-        return Response.json({ error: 'Unauthorized: Admin access required' }, { status: 403 });
-    }
     
     const payload = await req.json();
     let itemsToProcess = [];

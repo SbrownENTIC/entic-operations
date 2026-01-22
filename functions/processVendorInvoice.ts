@@ -10,8 +10,8 @@ Deno.serve(async (req) => {
         }
 
         const user = await base44.auth.me();
-        if (!user || user.role !== 'admin') {
-            return Response.json({ error: 'Unauthorized: Admin access required' }, { status: 403 });
+        if (!user) {
+            return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         // 1. Define schema for extraction
