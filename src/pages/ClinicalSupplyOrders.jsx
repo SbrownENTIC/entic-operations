@@ -23,9 +23,22 @@ import SupplyOrderForm from "../components/supplies/SupplyOrderForm";
 import SplitOrderModal from "../components/supplies/SplitOrderModal";
 import EmptyState from "@/components/ui/EmptyState";
 import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
-
+import { useToast } from "@/components/ui/use-toast";
 
 export default function ClinicalSupplyOrders() {
+  const { toast } = useToast();
+
+  const handleAction = (action) => {
+    if (user?.role !== 'admin') {
+      toast({
+        variant: "destructive",
+        title: "Permission Denied",
+        description: "You do not have permission to perform this action.",
+      });
+      return;
+    }
+    action();
+  };
   const urlParams = new URLSearchParams(window.location.search);
   const filterParam = urlParams.get('filter');
   
@@ -326,18 +339,16 @@ export default function ClinicalSupplyOrders() {
             <h1 className="text-2xl font-bold text-slate-900">Clinical Supply Orders</h1>
             <p className="text-slate-600 text-sm">Track clinical supply orders and deliveries</p>
           </div>
-          {user?.role === 'admin' && (
             <Button
-              onClick={() => {
+              onClick={() => handleAction(() => {
                 setEditingOrder(null);
                 setShowForm(true);
-              }}
+              })}
               className="bg-blue-600 hover:bg-blue-700"
             >
               <Plus className="w-4 h-4 mr-2" />
               New Order
             </Button>
-          )}
         </div>
 
         {showForm && (
@@ -387,13 +398,13 @@ export default function ClinicalSupplyOrders() {
                   <SelectItem value="received">Received</SelectItem>
                 </SelectContent>
               </Select>
-              {user?.role === 'admin' && selectedOrders.length > 0 && (
+              {selectedOrders.length > 0 && (
                 <div className="flex gap-2">
                   <Button 
                     variant="outline" 
                     size="sm"
                     className="text-green-600 border-green-200 hover:bg-green-50"
-                    onClick={() => bulkMarkReceivedMutation.mutate(selectedOrders)}
+                    onClick={() => handleAction(() => bulkMarkReceivedMutation.mutate(selectedOrders))}
                     disabled={bulkMarkReceivedMutation.isPending}
                   >
                     <CheckCircle2 className="w-4 h-4 mr-2" />
@@ -402,7 +413,7 @@ export default function ClinicalSupplyOrders() {
                   <Button 
                     variant="destructive" 
                     size="sm"
-                    onClick={() => setBulkDeleteConfirm(true)}
+                    onClick={() => handleAction(() => setBulkDeleteConfirm(true))}
                   >
                     Delete Selected ({selectedOrders.length})
                   </Button>
@@ -503,28 +514,28 @@ export default function ClinicalSupplyOrders() {
                      </td>
                      <td className="p-4 text-right">
                        <div className="flex flex-col gap-2 items-end">
-                         {user?.role === 'admin' && order.status !== 'order_placed' && order.status !== 'received' && (
+                         {order.status !== 'order_placed' && order.status !== 'received' && (
                            <Button 
                              variant="outline"
                              size="sm"
-                             onClick={() => {
+                             onClick={() => handleAction(() => {
                                if (!order.order_number || order.order_number.trim() === '') {
                                  alert('Please ensure to update order number, before marking as ordered.');
                                  return;
                                }
                                markOrderedMutation.mutate(order);
-                             }}
+                             })}
                              className="text-blue-600 border-blue-600 hover:bg-blue-50 w-full"
                              disabled={markOrderedMutation.isPending}
                            >
                              Mark Ordered
                            </Button>
                          )}
-                         {user?.role === 'admin' && order.status !== 'received' && (
+                         {order.status !== 'received' && (
                            <Button 
                              variant="outline"
                              size="sm"
-                             onClick={() => markReceivedMutation.mutate(order)}
+                             onClick={() => handleAction(() => markReceivedMutation.mutate(order))}
                              className="text-green-600 border-green-600 hover:bg-green-50 w-full"
                              disabled={markReceivedMutation.isPending}
                            >
@@ -541,12 +552,10 @@ export default function ClinicalSupplyOrders() {
                            >
                              <ClipboardList className="w-4 h-4" />
                            </Button>
-                           {user?.role === 'admin' && (
-                             <>
                                <Button 
                                  variant="ghost" 
                                  size="sm"
-                                 onClick={() => setSplittingOrder(order)}
+                                 onClick={() => handleAction(() => setSplittingOrder(order))}
                                  title="Split Order"
                                >
                                  <Split className="w-4 h-4" />
@@ -554,23 +563,21 @@ export default function ClinicalSupplyOrders() {
                                <Button 
                                  variant="ghost" 
                                  size="sm"
-                                 onClick={() => {
+                                 onClick={() => handleAction(() => {
                                    setEditingOrder(order);
                                    setShowForm(true);
-                                 }}
+                                 })}
                                >
                                  <Pencil className="w-4 h-4" />
                                </Button>
                                <Button 
                                  variant="ghost" 
                                  size="sm"
-                                 onClick={() => setDeletingOrder(order)}
+                                 onClick={() => handleAction(() => setDeletingOrder(order))}
                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                >
                                  <Trash2 className="w-4 h-4" />
                                </Button>
-                             </>
-                           )}
                          </div>
                        </div>
                      </td>
@@ -584,12 +591,12 @@ export default function ClinicalSupplyOrders() {
                     title="No orders found"
                     description={searchTerm ? "Try adjusting your search terms" : "Create a new clinical supply order"}
                     action={
-                      !searchTerm && user?.role === 'admin' && (
+                      !searchTerm && (
                         <Button
-                          onClick={() => {
+                          onClick={() => handleAction(() => {
                             setEditingOrder(null);
                             setShowForm(true);
-                          }}
+                          })}
                           className="bg-blue-600 hover:bg-blue-700 mt-4"
                         >
                           <Plus className="w-4 h-4 mr-2" />
