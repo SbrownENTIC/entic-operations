@@ -9,8 +9,10 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'file_url is required' }, { status: 400 });
         }
 
-        // Auth check removed for public app
-        // const user = await base44.auth.me();
+        const user = await base44.auth.me();
+        if (!user || user.role !== 'admin') {
+            return Response.json({ error: 'Unauthorized: Admin access required' }, { status: 403 });
+        }
 
         // 1. Define schema for extraction
         const extractionSchema = {
