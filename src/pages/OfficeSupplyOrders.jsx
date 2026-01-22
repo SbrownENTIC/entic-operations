@@ -23,22 +23,8 @@ import SupplyOrderForm from "../components/supplies/SupplyOrderForm";
 import EmptyState from "@/components/ui/EmptyState";
 import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
 import { useLocation } from "react-router-dom";
-import { useToast } from "@/components/ui/use-toast";
 
 export default function OfficeSupplyOrders() {
-  const { toast } = useToast();
-
-  const handleAction = (action) => {
-    if (user?.role !== 'admin') {
-      toast({
-        variant: "destructive",
-        title: "Permission Denied",
-        description: "You do not have permission to perform this action.",
-      });
-      return;
-    }
-    action();
-  };
   const urlParams = new URLSearchParams(window.location.search);
   const filterParam = urlParams.get('filter');
   
@@ -214,16 +200,18 @@ export default function OfficeSupplyOrders() {
             <h1 className="text-2xl font-bold text-slate-900">Office Supply Orders</h1>
             <p className="text-slate-600 text-sm">Track office supply orders and deliveries</p>
           </div>
+          {user?.role === 'admin' && (
             <Button
-              onClick={() => handleAction(() => {
+              onClick={() => {
                 setEditingOrder(null);
                 setShowForm(true);
-              })}
+              }}
               className="bg-blue-600 hover:bg-blue-700"
             >
               <Plus className="w-4 h-4 mr-2" />
               New Order
             </Button>
+          )}
         </div>
 
         {showForm && (
@@ -342,28 +330,28 @@ export default function OfficeSupplyOrders() {
                      </td>
                      <td className="p-4 text-right">
                        <div className="flex flex-col gap-2 items-end">
-                         {order.status !== 'order_placed' && order.status !== 'received' && (
+                         {user?.role === 'admin' && order.status !== 'order_placed' && order.status !== 'received' && (
                            <Button 
                              variant="outline"
                              size="sm"
-                             onClick={() => handleAction(() => {
+                             onClick={() => {
                                if (!order.order_number || order.order_number.trim() === '') {
                                  alert('Please ensure to update order number, before marking as ordered.');
                                  return;
                                }
                                markOrderedMutation.mutate(order);
-                             })}
+                             }}
                              className="text-blue-600 border-blue-600 hover:bg-blue-50 w-full"
                              disabled={markOrderedMutation.isPending}
                            >
                              Mark Ordered
                            </Button>
                          )}
-                         {order.status !== 'received' && (
+                         {user?.role === 'admin' && order.status !== 'received' && (
                            <Button 
                              variant="outline"
                              size="sm"
-                             onClick={() => handleAction(() => markReceivedMutation.mutate(order))}
+                             onClick={() => markReceivedMutation.mutate(order)}
                              className="text-green-600 border-green-600 hover:bg-green-50 w-full"
                              disabled={markReceivedMutation.isPending}
                            >
@@ -380,24 +368,28 @@ export default function OfficeSupplyOrders() {
                            >
                              <ClipboardList className="w-4 h-4" />
                            </Button>
+                           {user?.role === 'admin' && (
+                             <>
                                <Button 
                                  variant="ghost" 
                                  size="sm"
-                                 onClick={() => handleAction(() => {
+                                 onClick={() => {
                                    setEditingOrder(order);
                                    setShowForm(true);
-                                 })}
+                                 }}
                                >
                                  <Pencil className="w-4 h-4" />
                                </Button>
                                <Button 
                                  variant="ghost" 
                                  size="sm"
-                                 onClick={() => handleAction(() => setDeletingOrder(order))}
+                                 onClick={() => setDeletingOrder(order)}
                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                >
                                  <Trash2 className="w-4 h-4" />
                                </Button>
+                             </>
+                           )}
                          </div>
                        </div>
                      </td>
@@ -411,12 +403,12 @@ export default function OfficeSupplyOrders() {
                     title="No orders found"
                     description={searchTerm ? "Try adjusting your search terms" : "Create a new office supply order"}
                     action={
-                      !searchTerm && (
+                      !searchTerm && user?.role === 'admin' && (
                         <Button
-                          onClick={() => handleAction(() => {
+                          onClick={() => {
                             setEditingOrder(null);
                             setShowForm(true);
-                          })}
+                          }}
                           className="bg-blue-600 hover:bg-blue-700 mt-4"
                         >
                           <Plus className="w-4 h-4 mr-2" />
