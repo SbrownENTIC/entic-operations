@@ -12,7 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { CheckCircle2, AlertCircle, FileText, Settings, Users, DollarSign, Calendar, ClipboardList, ShieldAlert, Package, CreditCard, Bell, Printer, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/use-toast";
 import { SyncHenryScheinButton, FixVendorDataButton, ForceRedactHenryButton, UpdateOaktreeInvoicesButton } from "@/components/documentation/MaintenanceButtons";
 
