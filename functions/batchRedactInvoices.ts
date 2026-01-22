@@ -3,6 +3,11 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
+
+        const user = await base44.auth.me();
+        if (!user || user.role !== 'admin') {
+            return Response.json({ error: 'Unauthorized: Admin access required' }, { status: 403 });
+        }
         
         // 1. Fetch all invoices that haven't been redacted yet
         // Note: 'redacted' might be null for old records, so check for not true
