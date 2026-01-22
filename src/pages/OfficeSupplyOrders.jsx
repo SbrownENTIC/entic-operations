@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2, Trash2, ClipboardList } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,6 +39,7 @@ export default function OfficeSupplyOrders() {
   const [sortDirection, setSortDirection] = useState('desc');
   const [summaryOrder, setSummaryOrder] = useState(null);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: user } = useQuery({
     queryKey: ['user'],
@@ -63,6 +65,13 @@ export default function OfficeSupplyOrders() {
       queryClient.invalidateQueries({ queryKey: ['supply-orders'] });
       setShowForm(false);
       setEditingOrder(null);
+    },
+    onError: (error) => {
+      if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
+        toast({ variant: "destructive", title: "Permission Denied", description: "You do not have permission to create orders." });
+      } else {
+        toast({ variant: "destructive", title: "Error", description: error.message });
+      }
     }
   });
 
@@ -72,6 +81,13 @@ export default function OfficeSupplyOrders() {
       queryClient.invalidateQueries({ queryKey: ['supply-orders'] });
       setShowForm(false);
       setEditingOrder(null);
+    },
+    onError: (error) => {
+      if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
+        toast({ variant: "destructive", title: "Permission Denied", description: "You do not have permission to update orders." });
+      } else {
+        toast({ variant: "destructive", title: "Error", description: error.message });
+      }
     }
   });
 
@@ -85,6 +101,13 @@ export default function OfficeSupplyOrders() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['supply-orders'] });
+    },
+    onError: (error) => {
+      if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
+        toast({ variant: "destructive", title: "Permission Denied", description: "You do not have permission to mark orders as received." });
+      } else {
+        toast({ variant: "destructive", title: "Error", description: error.message });
+      }
     }
   });
 
@@ -94,6 +117,13 @@ export default function OfficeSupplyOrders() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['supply-orders'] });
+    },
+    onError: (error) => {
+      if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
+        toast({ variant: "destructive", title: "Permission Denied", description: "You do not have permission to mark orders as ordered." });
+      } else {
+        toast({ variant: "destructive", title: "Error", description: error.message });
+      }
     }
   });
 
@@ -102,6 +132,13 @@ export default function OfficeSupplyOrders() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['supply-orders'] });
       setDeletingOrder(null);
+    },
+    onError: (error) => {
+      if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
+        toast({ variant: "destructive", title: "Permission Denied", description: "You do not have permission to delete orders." });
+      } else {
+        toast({ variant: "destructive", title: "Error", description: error.message });
+      }
     }
   });
 
