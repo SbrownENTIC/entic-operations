@@ -34,6 +34,12 @@ export default function ClinicalSupplyCatalog() {
 
   const queryClient = useQueryClient();
 
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me(),
+    retry: false
+  });
+
   const { data: supplies = [], isLoading } = useQuery({
     queryKey: ['supplies', 'clinical'],
     queryFn: () => base44.entities.Supply.filter({ category: 'clinical' })

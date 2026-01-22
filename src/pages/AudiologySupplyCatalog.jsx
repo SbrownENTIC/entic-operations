@@ -31,6 +31,12 @@ export default function AudiologySupplyCatalog() {
 
   const queryClient = useQueryClient();
 
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me(),
+    retry: false
+  });
+
   const { data: supplies = [], isLoading } = useQuery({
     queryKey: ['supplies', 'audiology'],
     queryFn: () => base44.entities.Supply.filter({ category: 'audiology' })

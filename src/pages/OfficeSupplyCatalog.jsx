@@ -38,6 +38,12 @@ export default function OfficeSupplyCatalog() {
 
   const queryClient = useQueryClient();
 
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me(),
+    retry: false
+  });
+
   const { data: supplies = [], isLoading } = useQuery({
     queryKey: ['supplies', 'office'],
     queryFn: () => base44.entities.Supply.filter({ category: 'office' })
