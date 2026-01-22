@@ -706,6 +706,7 @@ export default function Payments() {
               setEditingPayment(null);
             }}
             isLoading={createMutation.isPending || updateMutation.isPending}
+            isReadOnly={user?.role !== 'admin'}
           />
         )}
         </div>
@@ -940,6 +941,7 @@ export default function Payments() {
           providers={providers}
           onClose={() => setViewingPayment(null)}
           onUnallocate={handleUnallocate}
+          isReadOnly={user?.role !== 'admin'}
         />
       )}
 

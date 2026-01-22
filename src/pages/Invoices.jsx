@@ -1118,6 +1118,7 @@ export default function Invoices() {
               onSubmit={handleSubmit}
               onCancel={handleCancelForm}
               isLoading={createMutation.isPending || updateMutation.isPending}
+              isReadOnly={user?.role !== 'admin'}
             />
           </div>
         )}
