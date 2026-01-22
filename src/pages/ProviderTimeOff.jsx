@@ -14,6 +14,7 @@ import TimeOffForm from "../components/timeoff/TimeOffForm";
 import BulkSyncModal from "../components/timeoff/BulkSyncModal";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
+import { useToast } from "@/components/ui/use-toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,6 +52,7 @@ export default function ProviderTimeOff() {
   const [isExporting, setIsExporting] = useState(false);
   const calendarRef = React.useRef(null);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: user } = useQuery({
     queryKey: ['user'],
@@ -73,6 +75,13 @@ export default function ProviderTimeOff() {
       queryClient.invalidateQueries({ queryKey: ['provider-timeoff'] });
       setShowForm(false);
       setEditingTimeOff(null);
+    },
+    onError: (error) => {
+      if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
+        toast({ variant: "destructive", title: "Permission Denied", description: "You do not have permission to create time off entries." });
+      } else {
+        toast({ variant: "destructive", title: "Error", description: error.message });
+      }
     }
   });
 
@@ -82,6 +91,13 @@ export default function ProviderTimeOff() {
       queryClient.invalidateQueries({ queryKey: ['provider-timeoff'] });
       setShowForm(false);
       setEditingTimeOff(null);
+    },
+    onError: (error) => {
+      if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
+        toast({ variant: "destructive", title: "Permission Denied", description: "You do not have permission to update time off entries." });
+      } else {
+        toast({ variant: "destructive", title: "Error", description: error.message });
+      }
     }
   });
 
@@ -90,6 +106,13 @@ export default function ProviderTimeOff() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['provider-timeoff'] });
       setDeleteConfirm(null);
+    },
+    onError: (error) => {
+      if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
+        toast({ variant: "destructive", title: "Permission Denied", description: "You do not have permission to delete time off entries." });
+      } else {
+        toast({ variant: "destructive", title: "Error", description: error.message });
+      }
     }
   });
 
@@ -106,6 +129,13 @@ export default function ProviderTimeOff() {
       setBulkStatus('');
       setBulkProvider('');
       setBulkReason('');
+    },
+    onError: (error) => {
+      if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
+        toast({ variant: "destructive", title: "Permission Denied", description: "You do not have permission to update entries." });
+      } else {
+        toast({ variant: "destructive", title: "Error", description: error.message });
+      }
     }
   });
 

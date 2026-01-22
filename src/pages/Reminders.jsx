@@ -11,6 +11,7 @@ import ReminderForm from "../components/reminders/ReminderForm";
 import EmptyState from "@/components/ui/EmptyState";
 import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
 import { useLocation } from "react-router-dom";
+import { useToast } from "@/components/ui/use-toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +34,7 @@ export default function Reminders() {
   const [testingReminders, setTestingReminders] = useState(false);
   const [airtableSyncing, setAirtableSyncing] = useState(false);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const location = useLocation();
 
   const { data: user } = useQuery({
@@ -59,6 +61,13 @@ export default function Reminders() {
       queryClient.invalidateQueries({ queryKey: ['reminders'] });
       setShowForm(false);
       setEditingReminder(null);
+    },
+    onError: (error) => {
+      if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
+        toast({ variant: "destructive", title: "Permission Denied", description: "You do not have permission to create reminders." });
+      } else {
+        toast({ variant: "destructive", title: "Error", description: error.message });
+      }
     }
   });
 
@@ -68,6 +77,13 @@ export default function Reminders() {
       queryClient.invalidateQueries({ queryKey: ['reminders'] });
       setShowForm(false);
       setEditingReminder(null);
+    },
+    onError: (error) => {
+      if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
+        toast({ variant: "destructive", title: "Permission Denied", description: "You do not have permission to update reminders." });
+      } else {
+        toast({ variant: "destructive", title: "Error", description: error.message });
+      }
     }
   });
 
@@ -76,6 +92,13 @@ export default function Reminders() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reminders'] });
       setDeleteConfirm(null);
+    },
+    onError: (error) => {
+      if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
+        toast({ variant: "destructive", title: "Permission Denied", description: "You do not have permission to delete reminders." });
+      } else {
+        toast({ variant: "destructive", title: "Error", description: error.message });
+      }
     }
   });
 
@@ -170,6 +193,13 @@ The Operations Team`;
         message: '✅ Reminder reset successfully!'
       });
       setTimeout(() => setStatusMessage(null), 3000);
+    },
+    onError: (error) => {
+      if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
+        toast({ variant: "destructive", title: "Permission Denied", description: "You do not have permission to reset reminders." });
+      } else {
+        toast({ variant: "destructive", title: "Error", description: error.message });
+      }
     }
   });
 
