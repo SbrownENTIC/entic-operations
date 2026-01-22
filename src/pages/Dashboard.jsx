@@ -52,6 +52,11 @@ export default function Dashboard() {
     setDashboardConfig(newConfig);
   };
 
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me()
+  });
+
   const { data: providers = [], isLoading: providersLoading, isError: providersError } = useQuery({
     queryKey: ['providers'],
     queryFn: async () => {
