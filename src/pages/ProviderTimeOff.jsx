@@ -52,6 +52,11 @@ export default function ProviderTimeOff() {
   const calendarRef = React.useRef(null);
   const queryClient = useQueryClient();
 
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me()
+  });
+
   const { data: timeOffEntries = [], isLoading: timeOffLoading } = useQuery({
     queryKey: ['provider-timeoff'],
     queryFn: () => base44.entities.ProviderTimeOff.list('start_date')
@@ -483,24 +488,28 @@ export default function ProviderTimeOff() {
               <Download className="w-4 h-4" />
               {isExporting ? 'Exporting...' : 'Export'}
             </Button>
-            <Button
-              onClick={() => setShowSyncModal(true)}
-              variant="outline"
-              className="border-green-600 text-green-600 hover:bg-green-50 gap-2"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Bulk Sync
-            </Button>
-            <Button
-              onClick={() => {
-                setEditingTimeOff(null);
-                setShowForm(true);
-              }}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Entry
-            </Button>
+            {user?.role === 'admin' && (
+              <>
+                <Button
+                  onClick={() => setShowSyncModal(true)}
+                  variant="outline"
+                  className="border-green-600 text-green-600 hover:bg-green-50 gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Bulk Sync
+                </Button>
+                <Button
+                  onClick={() => {
+                    setEditingTimeOff(null);
+                    setShowForm(true);
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Entry
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
@@ -529,7 +538,7 @@ export default function ProviderTimeOff() {
                   className="max-w-md border-slate-200"
                 />
               </div>
-              {selectedEntries.length > 0 && (
+              {selectedEntries.length > 0 && user?.role === 'admin' && (
                 <div className="flex flex-col gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-slate-900">
@@ -728,26 +737,28 @@ export default function ProviderTimeOff() {
                           </Badge>
                         </td>
                         <td className="p-4 text-right">
-                          <div className="flex gap-2 justify-end">
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => {
-                                setEditingTimeOff(entry);
-                                setShowForm(true);
-                              }}
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => setDeleteConfirm(entry)}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
+                          {user?.role === 'admin' && (
+                            <div className="flex gap-2 justify-end">
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => {
+                                  setEditingTimeOff(entry);
+                                  setShowForm(true);
+                                }}
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => setDeleteConfirm(entry)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -916,30 +927,32 @@ export default function ProviderTimeOff() {
                       )}
                     </div>
                   </div>
-                  <div className="flex gap-1 pl-4">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => {
-                        setEditingTimeOff(entry);
-                        setShowForm(true);
-                        setViewingDayEntries(null); // Close the day entries modal when editing
-                      }}
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => {
-                        setDeleteConfirm(entry);
-                        setViewingDayEntries(null); // Close the day entries modal to show alert dialog
-                      }}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
+                  {user?.role === 'admin' && (
+                    <div className="flex gap-1 pl-4">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => {
+                          setEditingTimeOff(entry);
+                          setShowForm(true);
+                          setViewingDayEntries(null); // Close the day entries modal when editing
+                        }}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => {
+                          setDeleteConfirm(entry);
+                          setViewingDayEntries(null); // Close the day entries modal to show alert dialog
+                        }}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
