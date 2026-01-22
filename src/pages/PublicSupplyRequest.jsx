@@ -31,6 +31,13 @@ export default function PublicSupplyRequest() {
   const [submitStatus, setSubmitStatus] = useState(''); // 'success' or 'error'
   const [editingOrder, setEditingOrder] = useState(null);
   const [orderSearchTerm, setOrderSearchTerm] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    base44.auth.me()
+      .then(() => setIsAuthenticated(true))
+      .catch(() => setIsAuthenticated(false));
+  }, []);
 
   const { data: supplies = [] } = useQuery({
     queryKey: ['supplies'],
@@ -39,6 +46,7 @@ export default function PublicSupplyRequest() {
 
   const { data: todaysOrders = [], isLoading: ordersLoading } = useQuery({
     queryKey: ['todays-public-orders'],
+    enabled: isAuthenticated,
     queryFn: async () => {
       const allOrders = await base44.entities.SupplyOrder.list('-created_date', 200);
       
@@ -543,7 +551,7 @@ export default function PublicSupplyRequest() {
           </form>
         </Card>
 
-        {todaysOrders.length > 0 && (
+        {isAuthenticated && todaysOrders.length > 0 && (
           <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
             <CardHeader className="border-b border-slate-100">
               <CardTitle className="flex items-center gap-2">

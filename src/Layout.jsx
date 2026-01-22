@@ -179,6 +179,19 @@ function LayoutContent({ children, currentPageName }) {
     } else {
       document.title = "ENTIC Operations Center";
     }
+
+    // Access Control: Redirect unauthenticated users if not on public page
+    const checkAccess = async () => {
+      const isPublicPage = currentPageName === 'PublicSupplyRequest';
+      try {
+        await base44.auth.me();
+      } catch (error) {
+        if (!isPublicPage) {
+          base44.auth.redirectToLogin();
+        }
+      }
+    };
+    checkAccess();
   }, [currentPageName]);
 
   const [previousCount, setPreviousCount] = React.useState(0);
