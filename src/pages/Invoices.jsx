@@ -49,6 +49,11 @@ export default function Invoices() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me()
+  });
+
   const { data: invoices = [], isLoading: invoicesLoading } = useQuery({
     queryKey: ['invoices'],
     queryFn: () => base44.entities.Invoice.list('-invoice_date')
@@ -1008,14 +1013,16 @@ export default function Invoices() {
             onChange={handleQuickUploadFile}
           />
           <div className="flex gap-3 flex-wrap">
-            <Button
-              onClick={handleFixHartfordInvoices}
-              variant="outline"
-              disabled={fixingHartford}
-              className="gap-2"
-            >
-              {fixingHartford ? 'Fixing...' : 'Fix & Sync Data'}
-            </Button>
+            {user?.role === 'admin' && (
+              <Button
+                onClick={handleFixHartfordInvoices}
+                variant="outline"
+                disabled={fixingHartford}
+                className="gap-2"
+              >
+                {fixingHartford ? 'Fixing...' : 'Fix & Sync Data'}
+              </Button>
+            )}
             <Button
               onClick={handlePrint}
               variant="outline"
@@ -1024,17 +1031,19 @@ export default function Invoices() {
               <Printer className="w-4 h-4" />
               Print
             </Button>
-            <Button
-              onClick={() => {
-                setEditingInvoice(null);
-                setPreselectedIncomes([]);
-                setShowForm(true);
-              }}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Create Invoice
-            </Button>
+            {user?.role === 'admin' && (
+              <Button
+                onClick={() => {
+                  setEditingInvoice(null);
+                  setPreselectedIncomes([]);
+                  setShowForm(true);
+                }}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create Invoice
+              </Button>
+            )}
           </div>
         </div>
 
@@ -1080,20 +1089,22 @@ export default function Invoices() {
                     />
                     </div>
 
-                    <div className="flex items-center gap-1">
-                    {['Q1', 'Q2', 'Q3', 'Q4'].map(q => (
-                    <Button
-                      key={q}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleMarkQuarterPaid(q)}
-                      disabled={bulkUpdateMutation.isPending}
-                      className="h-auto py-1 px-1 text-[10px] leading-3 whitespace-normal w-[50px] text-center border-slate-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
-                    >
-                      Pay Provider {q}
-                    </Button>
-                    ))}
-                    </div>
+                    {user?.role === 'admin' && (
+                      <div className="flex items-center gap-1">
+                      {['Q1', 'Q2', 'Q3', 'Q4'].map(q => (
+                      <Button
+                        key={q}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleMarkQuarterPaid(q)}
+                        disabled={bulkUpdateMutation.isPending}
+                        className="h-auto py-1 px-1 text-[10px] leading-3 whitespace-normal w-[50px] text-center border-slate-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
+                      >
+                        Pay Provider {q}
+                      </Button>
+                      ))}
+                      </div>
+                    )}
 
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-[180px] bg-white">
@@ -1126,7 +1137,7 @@ export default function Invoices() {
                 </div>
 
 
-              {selectedInvoices.length > 0 && (
+              {selectedInvoices.length > 0 && user?.role === 'admin' && (
                 <div className="flex flex-col xl:flex-row items-center justify-between gap-2 p-1.5 bg-blue-50 rounded-lg border border-blue-200 shadow-sm">
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="font-semibold text-slate-900 text-sm whitespace-nowrap">
@@ -1331,7 +1342,7 @@ export default function Invoices() {
                           </Badge>
                         </td>
                         <td className="px-3 py-2 text-center no-print">
-                          {invoice.manual_status_override && (
+                          {invoice.manual_status_override && user?.role === 'admin' && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -1345,6 +1356,11 @@ export default function Invoices() {
                             >
                               🔒
                             </Button>
+                          )}
+                          {invoice.manual_status_override && user?.role !== 'admin' && (
+                            <span className="text-orange-600 h-6 w-6 p-0 flex items-center justify-center cursor-help" title="Manual status override active">
+                              🔒
+                            </span>
                           )}
                         </td>
                         <td className="px-3 py-2 text-right no-print">
@@ -1361,18 +1377,20 @@ export default function Invoices() {
                               </Button>
                             )}
 
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => handleQuickUploadClick(invoice)}
-                              disabled={uploadingId === invoice.id}
-                              title="Upload Approved Invoice"
-                              className="text-teal-600 hover:text-teal-700"
-                            >
-                              <Upload className={`w-4 h-4 ${uploadingId === invoice.id ? 'animate-pulse' : ''}`} />
-                            </Button>
+                            {user?.role === 'admin' && (
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleQuickUploadClick(invoice)}
+                                disabled={uploadingId === invoice.id}
+                                title="Upload Approved Invoice"
+                                className="text-teal-600 hover:text-teal-700"
+                              >
+                                <Upload className={`w-4 h-4 ${uploadingId === invoice.id ? 'animate-pulse' : ''}`} />
+                              </Button>
+                            )}
 
-                            {(invoice.program_group?.includes('UConn') || invoice.program_group?.includes('Manchester') || invoice.program_group?.includes('ECHN') || invoice.program_group === 'Hartford Hospital') && (
+                            {user?.role === 'admin' && (invoice.program_group?.includes('UConn') || invoice.program_group?.includes('Manchester') || invoice.program_group?.includes('ECHN') || invoice.program_group === 'Hartford Hospital') && (
                               <Button 
                                 variant="ghost" 
                                 size="sm"
@@ -1400,14 +1418,16 @@ export default function Invoices() {
                               </Button>
                             )}
 
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => setDeleteConfirm(invoice)}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                            {user?.role === 'admin' && (
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => setDeleteConfirm(invoice)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1420,7 +1440,7 @@ export default function Invoices() {
                       title="No invoices found"
                       description={searchTerm ? "Try adjusting your search or filters" : "Create your first invoice to get started"}
                       action={
-                        !searchTerm && (
+                        !searchTerm && user?.role === 'admin' && (
                           <Button
                             onClick={() => {
                               setEditingInvoice(null);
