@@ -35,7 +35,8 @@ import {
         MoreVertical,
         HelpCircle,
         Settings,
-        LogOut
+        LogOut,
+        Loader2
       } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -166,32 +167,49 @@ function LayoutContent({ children, currentPageName }) {
   const navigate = useNavigate();
   const { isDirty, setIsDirty } = useFormState();
   const [pendingNavigation, setPendingNavigation] = useState(null);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
   // Scroll to top on route change
   React.useEffect(() => {
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
-  // Update document title based on page
+  // Update document title and check auth
   React.useEffect(() => {
-    if (currentPageName === 'PublicSupplyRequest') {
-      document.title = "ENTIC Supply Order Form";
-    } else {
-      document.title = "ENTIC Operations Center";
-    }
+    const init = async () => {
+      // Title logic
+      if (currentPageName === 'PublicSupplyRequest') {
+        document.title = "ENTIC Supply Order Form";
+      } else {
+        document.title = "ENTIC Operations Center";
+      }
 
-    // Access Control: Redirect unauthenticated users if not on public page
-    const checkAccess = async () => {
+      // Auth logic
       const isPublicPage = currentPageName === 'PublicSupplyRequest';
+      if (isPublicPage) {
+        setIsAuthorized(true);
+        setIsLoadingAuth(false);
+        return;
+      }
+
       try {
         await base44.auth.me();
+        setIsAuthorized(true);
+        setIsLoadingAuth(false);
       } catch (error) {
+        // If not authenticated and not public page, redirect
         if (!isPublicPage) {
           base44.auth.redirectToLogin();
+          setIsAuthorized(false);
+          // We keep loading false to show nothing/loading until redirect kicks in
+          setIsLoadingAuth(false);
         }
       }
     };
-    checkAccess();
+
+    setIsLoadingAuth(true);
+    init();
   }, [currentPageName]);
 
   const [previousCount, setPreviousCount] = React.useState(0);
@@ -283,6 +301,20 @@ function LayoutContent({ children, currentPageName }) {
     }
     setPreviousCount(pendingOrders.length);
   }, [pendingOrders.length]);
+
+  // Show loading state while checking auth
+  if (isLoadingAuth) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-slate-50">
+        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+      </div>
+    );
+  }
+
+  // If check finished but not authorized (and not public page), don't render content (redirect happening)
+  if (!isAuthorized && currentPageName !== 'PublicSupplyRequest') {
+    return null;
+  }
 
   // Hide navigation for public pages
   if (currentPageName === 'PublicSupplyRequest') {
