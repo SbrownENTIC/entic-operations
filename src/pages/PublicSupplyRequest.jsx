@@ -40,8 +40,8 @@ export default function PublicSupplyRequest() {
   }, []);
 
   const { data: supplies = [] } = useQuery({
-    queryKey: ['supplies'],
-    queryFn: () => base44.entities.Supply.list()
+    queryKey: ['supplies', 'office'],
+    queryFn: () => base44.entities.Supply.filter({ category: 'office' })
   });
 
   const { data: todaysOrders = [], isLoading: ordersLoading } = useQuery({
