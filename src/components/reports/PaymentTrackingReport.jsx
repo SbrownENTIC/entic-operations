@@ -1,12 +1,14 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, Building2 } from "lucide-react";
+import { Download, Building2, Loader2 } from "lucide-react";
+import { base44 } from "@/api/base44Client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, parseISO } from "date-fns";
 
 export default function PaymentTrackingReport({ invoices, payments, providers, programLocations, outsideIncome, dateRange, formatCurrency, exportToCSV }) {
   const [selectedProgramGroup, setSelectedProgramGroup] = useState('all');
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const sortByMonth = (invoices) => {
     const monthOrder = {
@@ -26,47 +28,41 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
     });
   };
 
-  const exportToExcel = (data, filename) => {
-    // Add export date
-    const exportDate = format(new Date(), 'MMMM dd, yyyy');
-    const fullData = [
-      [`Exported: ${exportDate}`, '', '', '', '', '', '', '', ''],
-      ['', '', '', '', '', '', '', '', ''],
-      ...data
-    ];
-
-    let html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
-    html += '<head><meta charset="UTF-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Payment Tracking</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>';
-    html += '<table border="1" cellspacing="0" cellpadding="5">';
-
-    fullData.forEach(row => {
-      // Check for location header row to apply style
-      const isHeaderRow = row[0] && typeof row[0] === 'string' && (
-        row[0].endsWith(' - TRACKING') || 
-        row[0].endsWith(' - DIRECTORSHIP TRACKING') || 
-        row[0].endsWith(' - ON-CALL TRACKING')
-      );
+  const downloadBackendReport = async (sections) => {
+    try {
+      setIsGenerating(true);
+      const exportDate = format(new Date(), 'MMMM dd, yyyy');
       
-      const style = isHeaderRow ? 'style="background-color: #E0F7FA; font-weight: bold;"' : '';
-      
-      html += `<tr ${style}>`;
-      row.forEach(cell => {
-        html += `<td>${cell !== null && cell !== undefined ? cell : ''}</td>`;
+      const response = await base44.functions.invoke('generatePaymentTrackingReports', {
+        sections,
+        exportDate
       });
-      html += '</tr>';
-    });
 
-    html += '</table></body></html>';
+      if (response.data.error) throw new Error(response.data.error);
 
-    const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `${filename}_${format(new Date(), 'yyyy-MM-dd')}.xls`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      // Decode base64 and download zip
+      const byteCharacters = atob(response.data.zipContent);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/zip' });
+      
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Outside_Income_Payment_Tracking_Reports_${format(new Date(), 'yyyy-MM-dd')}.zip`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Failed to generate report:", error);
+      alert("Failed to generate report. Please try again.");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const generateReport = () => {
@@ -105,7 +101,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
       return true;
     });
 
-    const rows = [];
+    const sections = [];
 
     // Get unique program groups
     const invoiceGroups = [...new Set(filteredInvoices.map(inv => inv.program_group).filter(Boolean))];
@@ -125,95 +121,84 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
       const isDirectPayer = directPayers.includes(programGroup);
 
       if (isDirectPayer) {
-      rows.push([`${programGroup} - TRACKING`, '', '', '', '', '', '', '']);
-      rows.push(['', '', '', '', '', '', '', '']);
-      
-      const isNationsHearing = programGroup === 'Nations Hearing';
-      
-      if (isNationsHearing) {
-        rows.push(['Voucher Number', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Notes']);
-      } else {
-        rows.push(['Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', '', 'Notes']);
-      }
+        const isNationsHearing = programGroup === 'Nations Hearing';
+        const headers = isNationsHearing
+          ? ['Voucher Number', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Notes']
+          : ['Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', '', 'Notes'];
+          
+        const section = {
+          title: `${programGroup} - TRACKING`,
+          headers: headers,
+          rows: []
+        };
 
-      let groupTotal = { expected: 0, received: 0 };
+        // Process Direct Income Items
+        const processedItems = groupDirectIncome.map(item => {
+           const dateStr = item.work_dates?.[0] || item.created_date;
+           const dateObj = parseISO(dateStr);
+           const monthStr = format(dateObj, 'MMMM yyyy');
+           return { ...item, month: monthStr };
+        });
 
-      // Process Direct Income Items
-      const processedItems = groupDirectIncome.map(item => {
-         const dateStr = item.work_dates?.[0] || item.created_date;
-         const dateObj = parseISO(dateStr);
-         const monthStr = format(dateObj, 'MMMM yyyy');
-         return { ...item, month: monthStr };
-      });
+        // Sort using existing helper
+        sortByMonth(processedItems);
 
-      // Sort using existing helper
-      sortByMonth(processedItems);
+        processedItems.forEach(item => {
+           // Find payment info
+           let paymentDate = '';
+           let voucherNumber = '';
+           let paymentQuarter = '';
+           let amountReceived = 0;
 
-      processedItems.forEach(item => {
-         // Find payment info
-         let paymentDate = '';
-         let voucherNumber = '';
-         let paymentQuarter = '';
-         let amountReceived = 0;
-
-         payments.forEach(payment => {
-           payment.allocations?.forEach(allocation => {
-             if (allocation.outside_income_id === item.id) {
-               amountReceived += (allocation.amount || 0);
-               const pDate = parseISO(payment.payment_date);
-               paymentDate = format(pDate, 'MM/dd/yyyy');
-               const q = Math.floor(pDate.getMonth() / 3) + 1;
-               paymentQuarter = `Q${q} ${pDate.getFullYear()}`;
-               voucherNumber = payment.reference_number || '';
-             }
+           payments.forEach(payment => {
+             payment.allocations?.forEach(allocation => {
+               if (allocation.outside_income_id === item.id) {
+                 amountReceived += (allocation.amount || 0);
+                 const pDate = parseISO(payment.payment_date);
+                 paymentDate = format(pDate, 'MM/dd/yyyy');
+                 const q = Math.floor(pDate.getMonth() / 3) + 1;
+                 paymentQuarter = `Q${q} ${pDate.getFullYear()}`;
+                 voucherNumber = payment.reference_number || '';
+               }
+             });
            });
-         });
 
-         const expectedAmount = item.amount_due || item.total_amount || 0;
+           const expectedAmount = item.amount_due || item.total_amount || 0;
 
-         groupTotal.expected += expectedAmount;
-         groupTotal.received += amountReceived;
+           const cleanNotes = (notes) => {
+             if (!notes) return '';
+             const lower = notes.toLowerCase();
+             if (lower.includes('auto-generated') || lower.includes('auto-created')) return '';
+             return notes;
+           };
 
-         const cleanNotes = (notes) => {
-           if (!notes) return '';
-           const lower = notes.toLowerCase();
-           if (lower.includes('auto-generated') || lower.includes('auto-created')) return '';
-           return notes;
-         };
-
-         if (isNationsHearing) {
-           rows.push([
-             voucherNumber,
-             item.external_invoice_number || '-',
-             item.month,
-             formatCurrency(expectedAmount),
-             formatCurrency(amountReceived),
-             paymentDate,
-             paymentQuarter,
-             cleanNotes(item.notes)
-           ]);
-         } else {
-           rows.push([
-             item.external_invoice_number || '-',
-             item.month,
-             formatCurrency(expectedAmount),
-             formatCurrency(amountReceived),
-             paymentDate,
-             paymentQuarter,
-             voucherNumber,
-             '', // Date Paid Provider (N/A)
-             cleanNotes(item.notes)
-           ]);
-         }
-      });
-
-      if (isNationsHearing) {
-        rows.push(['TOTAL', '', '', formatCurrency(groupTotal.expected), formatCurrency(groupTotal.received), '', '', '']);
-      } else {
-        rows.push(['TOTAL', '', formatCurrency(groupTotal.expected), formatCurrency(groupTotal.received), '', '', '', '', '']);
-      }
-      rows.push(['', '', '', '', '', '', '', '', '', '']);
-      rows.push(['', '', '', '', '', '', '', '']);
+           if (isNationsHearing) {
+             section.rows.push([
+               voucherNumber,
+               item.external_invoice_number || '-',
+               item.month,
+               expectedAmount, // Pass number
+               amountReceived, // Pass number
+               paymentDate,
+               paymentQuarter,
+               cleanNotes(item.notes)
+             ]);
+           } else {
+             section.rows.push([
+               item.external_invoice_number || '-',
+               item.month,
+               expectedAmount, // Pass number
+               amountReceived, // Pass number
+               paymentDate,
+               paymentQuarter,
+               voucherNumber,
+               '', // Date Paid Provider (N/A)
+               cleanNotes(item.notes)
+             ]);
+           }
+        });
+        
+        sections.push(section);
 
       } else if (needsSeparation) {
         // Separate by program type
@@ -226,12 +211,12 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
 
         // DIRECTORSHIP SECTION
         if (directorshipLocation) {
-          rows.push([`${programGroup} - DIRECTORSHIP TRACKING`, '', '', '', '', '', '', '']);
-          rows.push(['', '', '', '', '', '', '', '']);
-          rows.push(['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', 'Date Paid Provider', 'Notes']);
+          const section = {
+            title: `${programGroup} - DIRECTORSHIP TRACKING`,
+            headers: ['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', 'Date Paid Provider', 'Notes'],
+            rows: []
+          };
 
-          const directorshipRate = programGroup === 'Hartford Hospital' ? 3250 : 1750;
-          
           const directorshipInvoices = groupInvoices.filter(inv => {
             // For Hartford Hospital, ONLY use invoice number
             if (programGroup === 'Hartford Hospital') {
@@ -265,8 +250,6 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
           // Sort by month
           sortByMonth(directorshipInvoices);
 
-          let directorshipTotal = { expected: 0, received: 0 };
-
           directorshipInvoices.forEach(invoice => {
             const provider = providers.find(p => p.id === invoice.staff_member_id);
             const providerName = provider?.full_name || 'Unknown';
@@ -292,16 +275,13 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
             const expectedAmount = invoice.amount_expected || invoice.total || 0;
             const receivedAmount = invoice.amount_received || 0;
             
-            directorshipTotal.expected += expectedAmount;
-            directorshipTotal.received += receivedAmount;
-
             const shouldHideNotes = invoice.auto_generated || (invoice.notes && (invoice.notes.toLowerCase().includes('auto-generated') || invoice.notes.toLowerCase().includes('auto-created')));
-            rows.push([
+            section.rows.push([
               providerName,
               invoice.invoice_number || '',
               invoice.month || '',
-              formatCurrency(expectedAmount),
-              formatCurrency(receivedAmount),
+              expectedAmount, // Number
+              receivedAmount, // Number
               paymentDate,
               paymentQuarter,
               voucherNumber,
@@ -309,16 +289,16 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
               [shouldHideNotes ? '' : (invoice.notes || ''), paymentNotes].filter(Boolean).join('; ')
             ]);
           });
-
-          rows.push(['TOTAL', '', '', formatCurrency(directorshipTotal.expected), formatCurrency(directorshipTotal.received), '', '', '', '', '']);
-          rows.push(['', '', '', '', '', '', '', '', '', '']);
+          sections.push(section);
         }
 
         // ON-CALL SECTION
         if (onCallLocation) {
-          rows.push([`${programGroup} - ON-CALL TRACKING`, '', '', '', '', '', '', '']);
-          rows.push(['', '', '', '', '', '', '', '']);
-          rows.push(['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', 'Date Paid Provider', 'Notes']);
+          const section = {
+            title: `${programGroup} - ON-CALL TRACKING`,
+            headers: ['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', 'Date Paid Provider', 'Notes'],
+            rows: []
+          };
 
           const onCallInvoices = groupInvoices.filter(inv => {
             // For Hartford Hospital, ONLY use invoice number
@@ -355,8 +335,6 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
           // Sort by month
           sortByMonth(onCallInvoices);
 
-          let onCallTotal = { expected: 0, received: 0 };
-
           onCallInvoices.forEach(invoice => {
             const provider = providers.find(p => p.id === invoice.staff_member_id);
             const providerName = provider?.full_name || 'Unknown';
@@ -382,16 +360,13 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
             const expectedAmount = invoice.amount_expected || invoice.total || 0;
             const receivedAmount = invoice.amount_received || 0;
 
-            onCallTotal.expected += expectedAmount;
-            onCallTotal.received += receivedAmount;
-
             const shouldHideNotes = invoice.auto_generated || (invoice.notes && (invoice.notes.toLowerCase().includes('auto-generated') || invoice.notes.toLowerCase().includes('auto-created')));
-            rows.push([
+            section.rows.push([
               providerName,
               invoice.invoice_number || '',
               invoice.month || '',
-              formatCurrency(expectedAmount),
-              formatCurrency(receivedAmount),
+              expectedAmount, // Number
+              receivedAmount, // Number
               paymentDate,
               paymentQuarter,
               voucherNumber,
@@ -399,21 +374,18 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
               [shouldHideNotes ? '' : (invoice.notes || ''), paymentNotes].filter(Boolean).join('; ')
             ]);
           });
-
-          rows.push(['TOTAL', '', '', formatCurrency(onCallTotal.expected), formatCurrency(onCallTotal.received), '', '', '', '', '']);
-          rows.push(['', '', '', '', '', '', '', '', '', '']);
-          rows.push(['', '', '', '', '', '', '', '']);
+          sections.push(section);
         }
 
       } else {
         // Standard tracking for other locations
-        rows.push([`${programGroup} - TRACKING`, '', '', '', '', '', '', '']);
-        rows.push(['', '', '', '', '', '', '', '']);
-        rows.push(['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', 'Date Paid Provider', 'Notes']);
+        const section = {
+          title: `${programGroup} - TRACKING`,
+          headers: ['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', 'Date Paid Provider', 'Notes'],
+          rows: []
+        };
 
         sortByMonth(groupInvoices);
-
-        let groupTotal = { expected: 0, received: 0 };
 
         groupInvoices.forEach(invoice => {
           const provider = providers.find(p => p.id === invoice.staff_member_id);
@@ -438,16 +410,13 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
           const expectedAmount = invoice.amount_expected || invoice.total || 0;
           const receivedAmount = invoice.amount_received || 0;
 
-          groupTotal.expected += expectedAmount;
-          groupTotal.received += receivedAmount;
-
           const shouldHideNotes = invoice.auto_generated || (invoice.notes && (invoice.notes.toLowerCase().includes('auto-generated') || invoice.notes.toLowerCase().includes('auto-created')));
-          rows.push([
+          section.rows.push([
             providerName,
             invoice.invoice_number || '',
             invoice.month || '',
-            formatCurrency(expectedAmount),
-            formatCurrency(receivedAmount),
+            expectedAmount, // Number
+            receivedAmount, // Number
             paymentDate,
             paymentQuarter,
             voucherNumber,
@@ -455,14 +424,11 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
             shouldHideNotes ? '' : (invoice.notes || '')
           ]);
         });
-
-        rows.push(['TOTAL', '', '', formatCurrency(groupTotal.expected), formatCurrency(groupTotal.received), '', '', '', '', '']);
-        rows.push(['', '', '', '', '', '', '', '', '', '']);
-        rows.push(['', '', '', '', '', '', '', '']);
+        sections.push(section);
       }
     });
 
-    exportToExcel(rows, 'payment_tracking_report');
+    downloadBackendReport(sections);
   };
 
   const directPayerOptions = ['Quinnipiac University', 'Nations Hearing'];
@@ -484,9 +450,9 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
               Track invoices by location with Directorship/On-Call breakdown for Hartford Hospital and St. Francis
             </p>
           </div>
-          <Button onClick={generateReport} className="gap-2">
-            <Download className="w-4 h-4" />
-            Export to CSV
+          <Button onClick={generateReport} className="gap-2" disabled={isGenerating}>
+            {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            {isGenerating ? 'Generating...' : 'Export Reports (ZIP)'}
           </Button>
         </div>
       </CardHeader>
