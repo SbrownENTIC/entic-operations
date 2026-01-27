@@ -59,7 +59,8 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
       document.body.removeChild(link);
     } catch (error) {
       console.error("Failed to generate report:", error);
-      alert("Failed to generate report. Please try again.");
+      const errorMessage = error.response?.data?.error || error.message || "Unknown error occurred";
+      alert(`Failed to generate report: ${errorMessage}`);
     } finally {
       setIsGenerating(false);
     }
@@ -428,8 +429,12 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
       }
     });
 
+    if (sections.length === 0) {
+       alert("No data found for the selected filters. Please adjust your filters and try again.");
+       return;
+    }
     downloadBackendReport(sections);
-  };
+    };
 
   const directPayerOptions = ['Quinnipiac University', 'Nations Hearing'];
   const relevantDirectIncome = outsideIncome.filter(inc => directPayerOptions.includes(inc.facility_name));
