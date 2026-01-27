@@ -29,24 +29,24 @@ Deno.serve(async (req) => {
             let sheetname = "Tracking";
 
             if (title.includes("Hartford Hospital")) {
-                filename = "Outside_Income_Payment_Tracking_Individual_Hartford_Hospital";
+                filename = "Outside_Income_Payment_Tracking_Hartford_Hospital";
                 if (title.includes("DIRECTORSHIP")) sheetname = "Directorship";
                 else if (title.includes("ON-CALL")) sheetname = "On-Call";
             } else if (title.includes("St. Francis")) {
-                filename = "Outside_Income_Payment_Tracking_Individual_St_Francis";
+                filename = "Outside_Income_Payment_Tracking_St_Francis";
                 if (title.includes("DIRECTORSHIP")) sheetname = "Directorship";
                 else if (title.includes("ON-CALL")) sheetname = "On-Call";
             } else if (title.includes("Manchester")) {
-                filename = "Outside_Income_Payment_Tracking_Individual_Manchester_ECHN";
+                filename = "Outside_Income_Payment_Tracking_Manchester_ECHN";
             } else if (title.includes("Quinnipiac")) {
-                filename = "Outside_Income_Payment_Tracking_Individual_Quinnipiac_University";
+                filename = "Outside_Income_Payment_Tracking_Quinnipiac_University";
             } else if (title.includes("UConn")) {
-                filename = "Outside_Income_Payment_Tracking_Individual_UConn";
+                filename = "Outside_Income_Payment_Tracking_UConn";
             } else if (title.includes("Nations Hearing")) {
-                filename = "Outside_Income_Payment_Tracking_Individual_Nations_Hearing";
+                filename = "Outside_Income_Payment_Tracking_Nations_Hearing";
             } else {
                 // Fallback for others
-                filename = `Outside_Income_Payment_Tracking_Individual_${title.split(' - ')[0].replace(/[^a-zA-Z0-9]/g, '_')}`;
+                filename = `Outside_Income_Payment_Tracking_${title.split(' - ')[0].replace(/[^a-zA-Z0-9]/g, '_')}`;
             }
 
             return { filename, sheetname };
