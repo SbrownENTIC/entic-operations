@@ -110,7 +110,11 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
     // Get unique program groups
     const invoiceGroups = [...new Set(filteredInvoices.map(inv => inv.program_group).filter(Boolean))];
     const directGroups = [...new Set(filteredDirectIncome.map(inc => inc.facility_name).filter(Boolean))];
-    const programGroups = [...new Set([...invoiceGroups, ...directGroups])].sort();
+    const programGroups = [...new Set([...invoiceGroups, ...directGroups])].sort((a, b) => {
+      if (a === 'Nations Hearing') return 1;
+      if (b === 'Nations Hearing') return -1;
+      return a.localeCompare(b);
+    });
 
     programGroups.forEach(programGroup => {
       const groupInvoices = filteredInvoices.filter(inv => inv.program_group === programGroup);
@@ -123,7 +127,14 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
       if (isDirectPayer) {
       rows.push([`${programGroup} - TRACKING`, '', '', '', '', '', '', '']);
       rows.push(['', '', '', '', '', '', '', '']);
-      rows.push(['Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', '', 'Notes']);
+      
+      const isNationsHearing = programGroup === 'Nations Hearing';
+      
+      if (isNationsHearing) {
+        rows.push(['Voucher Number', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Notes']);
+      } else {
+        rows.push(['Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', '', 'Notes']);
+      }
 
       let groupTotal = { expected: 0, received: 0 };
 
@@ -170,20 +181,37 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
            return notes;
          };
 
-         rows.push([
-           item.external_invoice_number || '-',
-           item.month,
-           formatCurrency(expectedAmount),
-           formatCurrency(amountReceived),
-           paymentDate,
-           paymentQuarter,
-           voucherNumber,
-           '', // Date Paid Provider (N/A)
-           cleanNotes(item.notes)
-         ]);
+         if (isNationsHearing) {
+           rows.push([
+             voucherNumber,
+             item.external_invoice_number || '-',
+             item.month,
+             formatCurrency(expectedAmount),
+             formatCurrency(amountReceived),
+             paymentDate,
+             paymentQuarter,
+             cleanNotes(item.notes)
+           ]);
+         } else {
+           rows.push([
+             item.external_invoice_number || '-',
+             item.month,
+             formatCurrency(expectedAmount),
+             formatCurrency(amountReceived),
+             paymentDate,
+             paymentQuarter,
+             voucherNumber,
+             '', // Date Paid Provider (N/A)
+             cleanNotes(item.notes)
+           ]);
+         }
       });
 
-      rows.push(['TOTAL', '', formatCurrency(groupTotal.expected), formatCurrency(groupTotal.received), '', '', '', '', '']);
+      if (isNationsHearing) {
+        rows.push(['TOTAL', '', '', formatCurrency(groupTotal.expected), formatCurrency(groupTotal.received), '', '', '']);
+      } else {
+        rows.push(['TOTAL', '', formatCurrency(groupTotal.expected), formatCurrency(groupTotal.received), '', '', '', '', '']);
+      }
       rows.push(['', '', '', '', '', '', '', '', '', '']);
       rows.push(['', '', '', '', '', '', '', '']);
 
