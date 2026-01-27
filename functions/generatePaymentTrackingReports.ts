@@ -15,7 +15,12 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { sections, exportDate } = await req.json();
+        const body = await req.json().catch(() => ({}));
+        const { sections, exportDate = new Date().toISOString().split('T')[0] } = body;
+
+        if (!sections || !Array.isArray(sections)) {
+            return Response.json({ error: "Missing or invalid 'sections' in payload. It must be an array." }, { status: 400 });
+        }
 
         // Map section titles to filenames and sheet names
         // Hartford Hospital - DIRECTORSHIP TRACKING -> Hartford_Hospital, Directorship
