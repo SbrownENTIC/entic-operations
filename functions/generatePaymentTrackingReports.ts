@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import ExcelJS from 'npm:exceljs';
 import JSZip from 'npm:jszip@3.10.1';
 
-export default async function handler(req) {
+Deno.serve(async (req) => {
     if (req.method !== 'POST') {
         return new Response('Method not allowed', { status: 405 });
     }
@@ -168,7 +168,15 @@ export default async function handler(req) {
             // Shorten to 31 chars max for Excel
             if (masterSheetName.length > 31) masterSheetName = masterSheetName.substring(0, 31);
             
-            const detailSheet = masterWorkbook.addWorksheet(masterSheetName);
+            // ExcelJS doesn't allow duplicate sheet names.
+            // If masterSheetName already exists, append a number
+            let uniqueMasterSheetName = masterSheetName;
+            let counter = 1;
+            while (masterWorkbook.getWorksheet(uniqueMasterSheetName)) {
+                uniqueMasterSheetName = `${masterSheetName} ${counter++}`;
+            }
+
+            const detailSheet = masterWorkbook.addWorksheet(uniqueMasterSheetName);
             
             // Add Export Date
             detailSheet.addRow([`Exported: ${exportDate}`]);
@@ -327,4 +335,4 @@ export default async function handler(req) {
     } catch (error) {
         return Response.json({ error: error.message, stack: error.stack }, { status: 500 });
     }
-}
+});
