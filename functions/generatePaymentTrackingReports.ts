@@ -170,6 +170,8 @@ Deno.serve(async (req) => {
             // So sheet names in Master should be unique.
             
             let masterSheetName = section.title.replace(' - TRACKING', '').replace(' - ', ' ');
+            // Remove invalid characters for Excel sheet names: * ? : \ / [ ]
+            masterSheetName = masterSheetName.replace(/[*?:\/\[\]]/g, ' ');
             // Shorten to 31 chars max for Excel
             if (masterSheetName.length > 31) masterSheetName = masterSheetName.substring(0, 31);
             
