@@ -405,7 +405,7 @@ export default function Dashboard() {
           if (lowerLoc.includes('hartford hospital')) expectedGroups.add('Hartford Hospital');
           else if (lowerLoc.includes('st. francis') || lowerLoc.includes('saint francis')) expectedGroups.add('St. Francis');
           else if (lowerLoc.includes('uconn')) expectedGroups.add('UConn');
-          else if (lowerLoc.includes('manchester') || lowerLoc.includes('echn')) expectedGroups.add('Manchester / ECHN');
+          else if (lowerLoc.includes('manchester') || lowerLoc.includes('echn')) expectedGroups.add('HH - Manchester/ECHN');
           else if (lowerLoc.includes('ccmc')) expectedGroups.add('CCMC');
           else if (lowerLoc.includes('bloomfield') || lowerLoc.includes('basc')) expectedGroups.add('Bloomfield');
         }
