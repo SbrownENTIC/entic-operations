@@ -53,6 +53,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
 
   const payerOptions = [
     'St. Francis',
+    'HH - Manchester/ECHN',
     'Manchester / ECHN',
     'UConn',
     'CCMC',
