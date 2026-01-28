@@ -405,7 +405,7 @@ export default function Dashboard() {
           if (lowerLoc.includes('hartford hospital')) expectedGroups.add('Hartford Hospital');
           else if (lowerLoc.includes('st. francis') || lowerLoc.includes('saint francis')) expectedGroups.add('St. Francis');
           else if (lowerLoc.includes('uconn')) expectedGroups.add('UConn');
-          else if (lowerLoc.includes('manchester') || lowerLoc.includes('echn')) expectedGroups.add('HH - Manchester/ECHN');
+          else if (lowerLoc.includes('manchester') || lowerLoc.includes('echn')) expectedGroups.add('Manchester / ECHN');
           else if (lowerLoc.includes('ccmc')) expectedGroups.add('CCMC');
           else if (lowerLoc.includes('bloomfield') || lowerLoc.includes('basc')) expectedGroups.add('Bloomfield');
         }
@@ -421,22 +421,11 @@ export default function Dashboard() {
 
     expectedGroups.forEach(group => {
       // 1. Check if waived (Global or Specific)
-      const isWaived = invoiceWaivers.some(w => {
-        const matchProvider = w.provider_id === provider.id;
-        const matchMonth = w.month === previousMonthStr;
-        if (!matchProvider || !matchMonth) return false;
-
-        if (!w.program_group || group === 'ANY') return true;
-        if (w.program_group === group) return true;
-
-        // Handle aliasing for Manchester
-        if ((group === 'HH - Manchester/ECHN' || group === 'Manchester / ECHN') && 
-            (w.program_group === 'HH - Manchester/ECHN' || w.program_group === 'Manchester / ECHN')) {
-            return true;
-        }
-
-        return false;
-      });
+      const isWaived = invoiceWaivers.some(w => 
+        w.provider_id === provider.id && 
+        w.month === previousMonthStr && 
+        (!w.program_group || w.program_group === group || (group === 'ANY'))
+      );
 
       if (isWaived) return; // Skip if waived
 
@@ -447,15 +436,7 @@ export default function Dashboard() {
         if (!matchProvider || !matchMonth) return false;
 
         if (group === 'ANY') return true;
-        if (inv.program_group === group) return true;
-
-        // Handle aliasing for Manchester
-        if ((group === 'HH - Manchester/ECHN' || group === 'Manchester / ECHN') && 
-            (inv.program_group === 'HH - Manchester/ECHN' || inv.program_group === 'Manchester / ECHN')) {
-            return true;
-        }
-
-        return false;
+        return inv.program_group === group;
       });
 
       if (hasInvoice) return; // Skip if invoice exists
@@ -467,19 +448,9 @@ export default function Dashboard() {
         if (!matchProvider || !matchMonth || !inc.invoice_id) return false;
 
         if (group === 'ANY') return true;
-
+        
         const linkedInvoice = invoices.find(inv => inv.id === inc.invoice_id);
-        if (!linkedInvoice) return false;
-
-        if (linkedInvoice.program_group === group) return true;
-
-        // Handle aliasing for Manchester
-        if ((group === 'HH - Manchester/ECHN' || group === 'Manchester / ECHN') && 
-            (linkedInvoice.program_group === 'HH - Manchester/ECHN' || linkedInvoice.program_group === 'Manchester / ECHN')) {
-            return true;
-        }
-
-        return false;
+        return linkedInvoice && linkedInvoice.program_group === group;
       });
 
       if (hasLinkedIncome) return;

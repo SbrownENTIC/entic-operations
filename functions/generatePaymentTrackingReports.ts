@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
                 if (title.includes("DIRECTORSHIP")) sheetname = "Directorship";
                 else if (title.includes("ON-CALL")) sheetname = "On-Call";
             } else if (title.includes("Manchester")) {
-                filename = "Outside_Income_Payment_Tracking_HH_Manchester_ECHN";
+                filename = "Outside_Income_Payment_Tracking_Manchester_ECHN";
             } else if (title.includes("Quinnipiac")) {
                 filename = "Outside_Income_Payment_Tracking_Quinnipiac_University";
             } else if (title.includes("UConn")) {
