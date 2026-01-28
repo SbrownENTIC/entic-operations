@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
-import { differenceInDays, parseISO, format, subMonths } from "date-fns";
+import { differenceInDays, parseISO, format, subMonths, startOfDay } from "date-fns";
 import { createPageUrl } from "@/utils";
 import FinancialDetailModal from "../components/dashboard/FinancialDetailModal";
 import { DashboardSkeleton } from "@/components/ui/LoadingSkeletons";
@@ -512,7 +512,7 @@ export default function Dashboard() {
   const activeProviders = providers.filter(p => p.status === 'active').length;
 
   // License expiration tracking
-  const today = new Date();
+  const today = startOfDay(new Date());
   const licensesExpiring60Days = licenses.filter(l => {
     const provider = providers.find(p => p.id === l.provider_id);
     if (provider?.status !== 'active') return false;
@@ -624,7 +624,7 @@ export default function Dashboard() {
 
   const overdueInvoices = invoices.filter(inv => {
     if (!inv.sent_to_vendor_at) return false;
-    const daysSinceSent = differenceInDays(today, parseISO(inv.sent_to_vendor_at));
+    const daysSinceSent = differenceInDays(today, parseISO(inv.sent_to_vendor_at)); // today is already startOfDay from previous edit
     return daysSinceSent > 30 && inv.status !== 'paid_to_entic' && inv.status !== 'provider_paid';
   }).length;
 

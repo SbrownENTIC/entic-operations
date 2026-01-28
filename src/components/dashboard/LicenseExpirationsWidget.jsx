@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { AlertCircle, Download, CheckCircle2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { differenceInDays, parseISO } from "date-fns";
+import { differenceInDays, parseISO, startOfDay } from "date-fns";
 
 function LicenseExpirationCard({ title, licenses, providers, severity, filterType }) {
   const severityColors = {
@@ -44,7 +44,7 @@ function LicenseExpirationCard({ title, licenses, providers, severity, filterTyp
             <div className="max-h-[200px] overflow-y-auto pr-1 space-y-1.5 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
               {licenses.map(license => {
                 const provider = providers.find(p => p.id === license.provider_id);
-                const daysUntil = differenceInDays(parseISO(license.expiration_date), new Date());
+                const daysUntil = differenceInDays(parseISO(license.expiration_date), startOfDay(new Date()));
                 return (
                   <Link 
                     key={license.id} 
