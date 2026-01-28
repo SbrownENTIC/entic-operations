@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
     const invoiceNumbers = validInvoices.map(i => i.invoice_number).join(', ') || "(No Invoice Numbers)";
 
     // Construct Email Content
-    const emailSubject = `Manchester ${invoiceMonth} Invoices`;
+    const emailSubject = `HH - Manchester/ECHN ${invoiceMonth} Invoices`;
     const toRecipient = "apacileo@echn.org";
     // Ensure these are the correct CCs
     const ccRecipients = "steve.brown@enticmd.com";
@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
         "Subject": emailSubject,
         "Body": emailBody,
         "From Name": 'ENTIC Operations Team',
-        "Reminder Name": `Manchester Invoices: ${invoiceNumbers}`,
+        "Reminder Name": `HH - Manchester/ECHN Invoices: ${invoiceNumbers}`,
         "Reminder Type": "Invoice Email",
         "Send Date": new Date().toISOString().split('T')[0],
         "Status": "Pending Email Send",

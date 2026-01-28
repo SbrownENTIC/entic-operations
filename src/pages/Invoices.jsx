@@ -657,7 +657,7 @@ export default function Invoices() {
 
     if (!isManchester && !isUConn && !isHartford) return;
 
-    const targetName = isManchester ? 'Manchester' : isHartford ? 'Hartford Hospital' : 'UConn';
+    const targetName = isManchester ? 'HH - Manchester/ECHN' : isHartford ? 'Hartford Hospital' : 'UConn';
     if (!window.confirm(`Sync ${targetName} invoice ${invoice.invoice_number} to Airtable?`)) return;
 
     if (!invoice.approved_invoice_url) {
@@ -762,7 +762,7 @@ export default function Invoices() {
     }
 
     const functionName = isManchester ? 'syncManchesterInvoiceToAirtable' : 'syncUConnInvoiceToAirtable';
-    const targetName = isManchester ? 'Manchester' : 'UConn';
+    const targetName = isManchester ? 'HH - Manchester/ECHN' : 'UConn';
 
     await base44.functions.invoke(functionName, {
         invoices: readyInvoices
