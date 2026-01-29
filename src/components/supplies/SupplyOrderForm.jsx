@@ -21,7 +21,7 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
   const [isPrinting, setIsPrinting] = useState(false);
   const [formData, setFormData] = useState({
     order_number: '',
-    vendor: category === 'clinical' ? 'Henry Schein' : category === 'audiology' ? 'Oaktree Products' : 'Staples',
+    vendor: category === 'clinical' ? 'Henry Schein' : category === 'audiology' ? 'Oaktree Products' : 'Staples Business',
     location: 'Glastonbury',
     order_date: '',
     status: 'order_placed',

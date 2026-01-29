@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
       location,
       order_date: requested_date || new Date().toISOString().split('T')[0],
       status,
-      vendor: analyzedItems[0]?.vendor || 'Staples',
+      vendor: analyzedItems[0]?.vendor || 'Staples Business',
       items: analyzedItems,
       subtotal,
       total_amount: total,
