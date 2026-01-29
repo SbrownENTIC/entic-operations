@@ -22,8 +22,8 @@ export default function StandardOperatingProcedures() {
   };
 
   // PUBLISHED LINKS
-  const appUrl = "https://enticmd-operations-team.base44.app"; 
-  const publicSupplyUrl = "https://enticmd-operations-team.base44.app/PublicSupplyRequest";
+  const appUrl = "https://entic.apps.alignflowsolutions.com"; 
+  const publicSupplyUrl = "https://entic.apps.alignflowsolutions.com/PublicSupplyRequest";
 
   return (
     <div className="flex h-full border rounded-lg overflow-hidden bg-white">
