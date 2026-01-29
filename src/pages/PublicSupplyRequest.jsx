@@ -46,36 +46,18 @@ export default function PublicSupplyRequest() {
 
   const { data: todaysOrders = [], isLoading: ordersLoading } = useQuery({
     queryKey: ['todays-public-orders'],
-    enabled: isAuthenticated,
     queryFn: async () => {
-      const allOrders = await base44.entities.SupplyOrder.list('-created_date', 200);
-      
-      // Get current date in EST as YYYY-MM-DD
-      const todayEST = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
-
-      return allOrders.filter(order => {
-        // Match if order_date is today
-        if (order.order_date === todayEST) return true;
-
-        // OR Match if created_date (in EST) is today
-        if (order.created_date) {
-          try {
-            const createdEST = new Date(order.created_date).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
-            if (createdEST === todayEST) return true;
-          } catch (e) {
-            console.warn('Date parsing error', e);
-          }
-        }
-        
-        return false;
-      });
+      // Use backend function to fetch orders securely for public users
+      const response = await base44.functions.invoke('getTodaysPublicOrders');
+      return response.data || [];
     },
     refetchInterval: 30000
   });
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }) => {
-      await base44.entities.SupplyOrder.update(id, data);
+      // Use backend function to update orders securely for public users
+      await base44.functions.invoke('updatePublicOrder', { id, data });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['todays-public-orders'] });
@@ -548,7 +530,7 @@ export default function PublicSupplyRequest() {
           </form>
         </Card>
 
-        {isAuthenticated && todaysOrders.length > 0 && (
+        {todaysOrders.length > 0 && (
           <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
             <CardHeader className="border-b border-slate-100">
               <CardTitle className="flex items-center gap-2">
@@ -556,7 +538,7 @@ export default function PublicSupplyRequest() {
                 Today's Orders
                 <Badge variant="outline" className="ml-2">{todaysOrders.length}</Badge>
               </CardTitle>
-              <p className="text-sm text-slate-600 mt-1">Orders can be edited until 10:00 PM UTC (5:00 PM EST)</p>
+              <p className="text-sm text-slate-600 mt-1">Orders can be edited until 5:00 PM EST</p>
               <div className="mt-3">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
