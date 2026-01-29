@@ -143,6 +143,9 @@ export default function PublicSupplyRequest() {
 
   const canEdit = (order) => {
     try {
+      // Only public form orders are editable
+      if (order.submission_source !== 'public_form') return false;
+
       const now = new Date();
       
       // Check if order date is today (UTC)

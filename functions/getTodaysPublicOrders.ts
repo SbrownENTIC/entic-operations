@@ -11,8 +11,8 @@ Deno.serve(async (req) => {
         const todayEST = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 
         const todaysOrders = allOrders.filter(order => {
-            // Must be submitted via public form
-            if (order.submission_source !== 'public_form') return false;
+            // Must be office category
+            if (order.category !== 'office') return false;
 
             // Match if order_date is today
             if (order.order_date === todayEST) return true;

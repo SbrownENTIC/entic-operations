@@ -151,7 +151,6 @@ export default function Dashboard() {
         const allOrders = await base44.entities.SupplyOrder.list('-order_date');
         return allOrders.filter(order => 
           (order.status === 'pending_review' || order.status === 'pending_fulfillment') &&
-          order.submission_source === 'public_form' &&
           order.category === 'office'
         );
       } catch (error) {

@@ -249,8 +249,8 @@ function LayoutContent({ children, currentPageName }) {
       const orders = await base44.entities.SupplyOrder.filter({ 
         status: { $in: ['pending_review', 'pending_fulfillment'] } 
       });
-      // Filter for office orders from public form
-      return orders.filter(o => o.submission_source === 'public_form' && o.category === 'office');
+      // Filter for office orders
+      return orders.filter(o => o.category === 'office');
     },
     refetchInterval: 30000
   });
