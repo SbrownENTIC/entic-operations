@@ -16,6 +16,10 @@ Deno.serve(async (req) => {
             return Response.json({ error: "Order not found" }, { status: 404 });
         }
 
+        if (order.submission_source !== 'public_form') {
+             return Response.json({ error: "Cannot edit system orders" }, { status: 403 });
+        }
+
         // Check time cutoff: 22:00 UTC
         const now = new Date();
         const hourUTC = now.getUTCHours();
