@@ -148,12 +148,24 @@ export default function PublicSupplyRequest() {
 
       const now = new Date();
       
-      // Check if order date is today (UTC)
-      if (order.order_date !== now.toISOString().split('T')[0]) return false;
+      // 1. Time check: Strictly before 22:00 UTC
+      if (now.getUTCHours() >= 22) return false;
 
-      // Check 22:00 UTC cutoff (5:00 PM EST)
-      return now.getUTCHours() < 22;
+      // 2. Date check: Order must be from today (UTC)
+      const todayUTC = now.toISOString().split('T')[0];
+      
+      // Check order_date
+      if (order.order_date === todayUTC) return true;
+      
+      // Fallback: Check created_date converted to UTC YYYY-MM-DD
+      if (order.created_date) {
+        const createdUTC = new Date(order.created_date).toISOString().split('T')[0];
+        if (createdUTC === todayUTC) return true;
+      }
+
+      return false;
     } catch (e) {
+      console.error("Edit check error", e);
       return false;
     }
   };

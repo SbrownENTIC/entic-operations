@@ -25,12 +25,20 @@ Deno.serve(async (req) => {
         const hourUTC = now.getUTCHours();
         const todayUTC = now.toISOString().split('T')[0];
         
-        // Check if order is from today (using order_date match with UTC date as per existing logic)
-        // If order_date matches today's date in YYYY-MM-DD format (UTC)
-        if (order.order_date !== todayUTC) {
+        // Check if order is from today (UTC)
+        let isToday = false;
+        if (order.order_date === todayUTC) {
+            isToday = true;
+        } else if (order.created_date) {
+            const createdUTC = new Date(order.created_date).toISOString().split('T')[0];
+            if (createdUTC === todayUTC) isToday = true;
+        }
+
+        if (!isToday) {
              return Response.json({ error: "Cannot edit past orders" }, { status: 403 });
         }
         
+        // Check 22:00 UTC cutoff
         if (hourUTC >= 22) {
             return Response.json({ error: "Edit cutoff time (5:00 PM EST) has passed" }, { status: 403 });
         }
