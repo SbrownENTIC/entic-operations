@@ -514,7 +514,16 @@ export default function PublicSupplyRequest() {
           </form>
         </Card>
 
-        {todaysOrders.length > 0 && (
+        {/* Orders Window Logic */}
+        {new Date().getUTCHours() >= 22 ? (
+          <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
+            <CardContent className="p-8 text-center text-slate-500">
+              <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p className="font-medium">Today's ordering window has closed</p>
+              <p className="text-sm">Orders could be submitted and edited until 5:00 PM EST.</p>
+            </CardContent>
+          </Card>
+        ) : todaysOrders.length > 0 && (
           <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
             <CardHeader className="border-b border-slate-100">
               <CardTitle className="flex items-center gap-2">

@@ -4,13 +4,8 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         
-        // Time cutoff check: 22:00 UTC
-        const now = new Date();
-        if (now.getUTCHours() >= 22) {
-            return Response.json([]);
-        }
-
         // Fetch recent orders via service role (admin access) to show on public page
+        const now = new Date();
         const allOrders = await base44.asServiceRole.entities.SupplyOrder.list('-created_date', 200);
         
         // Get current date in UTC
