@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
     // Create the supply order
     const orderData = {
       location,
-      order_date: requested_date || new Date().toISOString().split('T')[0],
+      order_date: new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' }),
       status,
       vendor: analyzedItems[0]?.vendor || 'Staples Business',
       items: analyzedItems,

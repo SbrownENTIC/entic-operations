@@ -5,11 +5,10 @@ Deno.serve(async (req) => {
         const base44 = createClientFromRequest(req);
         
         // Fetch recent orders via service role (admin access) to show on public page
-        const now = new Date();
         const allOrders = await base44.asServiceRole.entities.SupplyOrder.list('-created_date', 200);
         
-        // Get current date in UTC
-        const todayUTC = now.toISOString().split('T')[0];
+        // Get current date in America/New_York
+        const todayNY = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 
         const todaysOrders = allOrders.filter(order => {
             // Must be public form submission
@@ -21,18 +20,8 @@ Deno.serve(async (req) => {
             // Filter out merged orders
             if (order.status === 'merged') return false;
 
-            // Match if order_date is today (UTC)
-            if (order.order_date === todayUTC) return true;
-
-            // OR Match if created_date (in UTC) is today
-            if (order.created_date) {
-                try {
-                    const createdUTC = new Date(order.created_date).toISOString().split('T')[0];
-                    if (createdUTC === todayUTC) return true;
-                } catch (e) {
-                    // ignore parsing errors
-                }
-            }
+            // Match if order_date is today (NY)
+            if (order.order_date === todayNY) return true;
             
             return false;
         });
