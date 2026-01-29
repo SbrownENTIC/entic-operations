@@ -82,11 +82,15 @@ Deno.serve(async (req) => {
     const tax = primaryOrder.tax || 0;
     const total = subtotal + tax;
 
+    // Check if any of the orders involved was a public form submission
+    const hasPublicSource = orders.some(o => o.submission_source === 'public_form');
+
     // Update Primary Order
     const updateData = {
       items: mergedItems,
       subtotal: subtotal,
       total_amount: total,
+      submission_source: hasPublicSource ? 'public_form' : (primaryOrder.submission_source || 'system'),
       notes: (primaryOrder.notes || '') + (secondaryOrders.length > 0 ? `\n\n[Merged from orders: ${secondaryOrderNumbers.join(', ')}]` : '')
     };
 

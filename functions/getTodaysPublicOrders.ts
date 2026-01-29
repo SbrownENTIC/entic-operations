@@ -13,6 +13,9 @@ Deno.serve(async (req) => {
         const todaysOrders = allOrders.filter(order => {
             // Must be office category
             if (order.category !== 'office') return false;
+            
+            // Filter out merged orders
+            if (order.status === 'merged') return false;
 
             // Match if order_date is today
             if (order.order_date === todayEST) return true;
