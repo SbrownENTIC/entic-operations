@@ -141,38 +141,7 @@ export default function PublicSupplyRequest() {
     setFormData({ ...formData, items: newItems });
   };
 
-  const canEdit = (order) => {
-    try {
-      // Only public form orders are editable
-      if (order.submission_source !== 'public_form') return false;
-
-      const now = new Date();
-      
-      // 1. Time check: Strictly before 22:00 UTC
-      if (now.getUTCHours() >= 22) return false;
-
-      // 2. Date check: Order must be from today (UTC)
-      const todayUTC = now.toISOString().split('T')[0];
-      
-      // Check order_date
-      if (order.order_date === todayUTC) return true;
-      
-      // Fallback: Check created_date converted to UTC YYYY-MM-DD
-      if (order.created_date) {
-        const createdUTC = new Date(order.created_date).toISOString().split('T')[0];
-        if (createdUTC === todayUTC) return true;
-      }
-
-      return false;
-    } catch (e) {
-      console.error("Edit check error", e);
-      return false;
-    }
-  };
-
   const handleEditOrder = (order) => {
-    if (!canEdit(order)) return;
-    
     // Check if order has already been placed
     if (order.status === 'order_placed' || order.status === 'partially_received' || order.status === 'received') {
       setSubmitStatus('error');
@@ -553,7 +522,7 @@ export default function PublicSupplyRequest() {
                 Today's Orders
                 <Badge variant="outline" className="ml-2">{todaysOrders.length}</Badge>
               </CardTitle>
-              <p className="text-sm text-slate-600 mt-1">Orders can be edited until 5:00 PM EST</p>
+              <p className="text-sm text-slate-600 mt-1">Orders are visible and editable until 5:00 PM EST (22:00 UTC)</p>
               <div className="mt-3">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -620,13 +589,11 @@ export default function PublicSupplyRequest() {
                         </div>
                         <Button
                           onClick={() => handleEditOrder(order)}
-                          disabled={!canEdit(order)}
                           size="sm"
-                          variant={canEdit(order) ? "default" : "ghost"}
-                          className={canEdit(order) ? "" : "opacity-50 cursor-not-allowed"}
+                          variant="default"
                         >
                           <Edit className="w-4 h-4 mr-1" />
-                          {canEdit(order) ? 'Edit' : 'Locked'}
+                          Edit
                         </Button>
                       </div>
                     </div>

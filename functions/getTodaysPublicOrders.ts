@@ -4,27 +4,36 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         
+        // Time cutoff check: 22:00 UTC
+        const now = new Date();
+        if (now.getUTCHours() >= 22) {
+            return Response.json([]);
+        }
+
         // Fetch recent orders via service role (admin access) to show on public page
         const allOrders = await base44.asServiceRole.entities.SupplyOrder.list('-created_date', 200);
         
-        // Get current date in EST as YYYY-MM-DD
-        const todayEST = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+        // Get current date in UTC
+        const todayUTC = now.toISOString().split('T')[0];
 
         const todaysOrders = allOrders.filter(order => {
+            // Must be public form submission
+            if (order.submission_source !== 'public_form') return false;
+
             // Must be office category
             if (order.category !== 'office') return false;
             
             // Filter out merged orders
             if (order.status === 'merged') return false;
 
-            // Match if order_date is today
-            if (order.order_date === todayEST) return true;
+            // Match if order_date is today (UTC)
+            if (order.order_date === todayUTC) return true;
 
-            // OR Match if created_date (in EST) is today
+            // OR Match if created_date (in UTC) is today
             if (order.created_date) {
                 try {
-                    const createdEST = new Date(order.created_date).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
-                    if (createdEST === todayEST) return true;
+                    const createdUTC = new Date(order.created_date).toISOString().split('T')[0];
+                    if (createdUTC === todayUTC) return true;
                 } catch (e) {
                     // ignore parsing errors
                 }
