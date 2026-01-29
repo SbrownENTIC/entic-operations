@@ -14,13 +14,6 @@ import { Plus, Trash2, Search, Check, CheckCircle, AlertCircle, HeartPulse, X, I
 import { format, isToday, parseISO } from "date-fns";
 
 export default function PublicSupplyRequest() {
-  // Redirect base44.app domain to custom domain
-  React.useEffect(() => {
-    if (window.location.hostname.endsWith('base44.app')) {
-      window.location.href = 'https://entic.apps.alignflowsolutions.com/PublicSupplyRequest';
-    }
-  }, []);
-
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     location: '', // No default location - user must select
