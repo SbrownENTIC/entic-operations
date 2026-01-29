@@ -61,16 +61,13 @@ export default function TodaysOrders() {
       const now = new Date();
       const createdDate = parseISO(order.created_date);
       
-      // Check if order was created today
-      if (!isToday(createdDate)) {
+      // Check if order was created today (UTC)
+      if (createdDate.toISOString().split('T')[0] !== now.toISOString().split('T')[0]) {
         return false;
       }
 
-      // Check if it's before 5 PM EST
-      const estTime = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
-      const hour = estTime.getHours();
-      
-      return hour < 17; // Before 5 PM
+      // Check 22:00 UTC cutoff (5:00 PM EST)
+      return now.getUTCHours() < 22;
     } catch (e) {
       return false;
     }
@@ -130,7 +127,7 @@ export default function TodaysOrders() {
       <div className="max-w-7xl mx-auto space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Today's Orders</h1>
-          <p className="text-slate-600 mt-1">View and edit orders placed today (until 5 PM EST)</p>
+          <p className="text-slate-600 mt-1">View and edit orders placed today (until 10:00 PM UTC / 5:00 PM EST)</p>
         </div>
 
         <Card className="border-slate-200 shadow-sm">
@@ -219,11 +216,11 @@ export default function TodaysOrders() {
 
         {!canEdit(orders[0]) && orders.length > 0 && (
           <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="font-medium text-orange-900">Editing Disabled</p>
-              <p className="text-sm text-orange-700">Orders can only be edited before 5 PM EST on the day they were placed.</p>
-            </div>
+          <AlertCircle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium text-orange-900">Editing Disabled</p>
+            <p className="text-sm text-orange-700">Orders can only be edited before 10:00 PM UTC (5:00 PM EST) on the day they were placed.</p>
+          </div>
           </div>
         )}
       </div>

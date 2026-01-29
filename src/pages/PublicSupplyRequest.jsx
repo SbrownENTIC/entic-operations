@@ -14,6 +14,13 @@ import { Plus, Trash2, Search, Check, CheckCircle, AlertCircle, HeartPulse, X, I
 import { format, isToday, parseISO } from "date-fns";
 
 export default function PublicSupplyRequest() {
+  // Redirect base44.app domain to custom domain
+  React.useEffect(() => {
+    if (window.location.hostname.endsWith('base44.app')) {
+      window.location.href = 'https://entic.apps.alignflowsolutions.com/PublicSupplyRequest';
+    }
+  }, []);
+
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     location: '', // No default location - user must select
@@ -162,15 +169,12 @@ export default function PublicSupplyRequest() {
   const canEdit = (order) => {
     try {
       const now = new Date();
-      const nowESTString = now.toLocaleDateString('en-CA', { timeZone: 'America/New_York' }); // YYYY-MM-DD
       
-      // Compare order_date to today in EST
-      if (order.order_date !== nowESTString) return false;
+      // Check if order date is today (UTC)
+      if (order.order_date !== now.toISOString().split('T')[0]) return false;
 
-      // Check time (5 PM EST cutoff)
-      // Get current hour in EST
-      const hourEST = parseInt(now.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour12: false, hour: '2-digit' }), 10);
-      return hourEST < 17; // Before 5 PM
+      // Check 22:00 UTC cutoff (5:00 PM EST)
+      return now.getUTCHours() < 22;
     } catch (e) {
       return false;
     }
@@ -559,7 +563,7 @@ export default function PublicSupplyRequest() {
                 Today's Orders
                 <Badge variant="outline" className="ml-2">{todaysOrders.length}</Badge>
               </CardTitle>
-              <p className="text-sm text-slate-600 mt-1">Orders can be edited until 5 PM EST</p>
+              <p className="text-sm text-slate-600 mt-1">Orders can be edited until 10:00 PM UTC (5:00 PM EST)</p>
               <div className="mt-3">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
