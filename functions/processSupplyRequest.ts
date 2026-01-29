@@ -107,7 +107,8 @@ Deno.serve(async (req) => {
       subtotal,
       total_amount: total,
       notes,
-      review_flags: flags
+      review_flags: flags,
+      submission_source: 'public_form'
     };
 
     const order = await base44.asServiceRole.entities.SupplyOrder.create(orderData);

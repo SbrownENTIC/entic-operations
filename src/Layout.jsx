@@ -246,9 +246,11 @@ function LayoutContent({ children, currentPageName }) {
     queryKey: ['pending-review-orders'],
     queryFn: async () => {
       // Use $in operator to fetch both statuses in a single request
-      return await base44.entities.SupplyOrder.filter({ 
+      const orders = await base44.entities.SupplyOrder.filter({ 
         status: { $in: ['pending_review', 'pending_fulfillment'] } 
       });
+      // Filter for office orders from public form
+      return orders.filter(o => o.submission_source === 'public_form' && o.category === 'office');
     },
     refetchInterval: 30000
   });
