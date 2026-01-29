@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2, Trash2, ClipboardList } from "lucide-react";
+import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2, Trash2, ClipboardList, Merge } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
 import {
   AlertDialog,
@@ -38,6 +39,8 @@ export default function OfficeSupplyOrders() {
   const [sortField, setSortField] = useState('order_date');
   const [sortDirection, setSortDirection] = useState('desc');
   const [summaryOrder, setSummaryOrder] = useState(null);
+  const [selectedOrders, setSelectedOrders] = useState([]);
+  const [isMerging, setIsMerging] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -142,6 +145,58 @@ export default function OfficeSupplyOrders() {
     }
   });
 
+  const handleMergeOrders = async () => {
+    if (selectedOrders.length < 2) return;
+    
+    // Client-side validation
+    const ordersToMerge = orders.filter(o => selectedOrders.includes(o.id));
+    const location = ordersToMerge[0]?.location;
+    const sameLocation = ordersToMerge.every(o => o.location === location);
+    
+    if (!sameLocation) {
+      toast({ variant: "destructive", title: "Merge Failed", description: "All selected orders must be for the same location." });
+      return;
+    }
+
+    const validStatuses = ['pending_review', 'pending_fulfillment'];
+    const invalidStatus = ordersToMerge.some(o => !validStatuses.includes(o.status));
+    
+    if (invalidStatus) {
+       toast({ variant: "destructive", title: "Merge Failed", description: "Only pending orders can be merged." });
+       return;
+    }
+
+    if (!confirm(`Are you sure you want to merge ${selectedOrders.length} orders? This will combine items into the oldest order and archive the rest.`)) {
+      return;
+    }
+
+    setIsMerging(true);
+    try {
+      const response = await base44.functions.invoke('mergeSupplyOrders', { orderIds: selectedOrders });
+      toast({ title: "Success", description: response.data.message });
+      setSelectedOrders([]);
+      queryClient.invalidateQueries({ queryKey: ['supply-orders'] });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: error.message || "Failed to merge orders" });
+    } finally {
+      setIsMerging(false);
+    }
+  };
+
+  const toggleSelectOrder = (orderId) => {
+    setSelectedOrders(prev => 
+      prev.includes(orderId) ? prev.filter(id => id !== orderId) : [...prev, orderId]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedOrders.length === filteredOrders.length) {
+      setSelectedOrders([]);
+    } else {
+      setSelectedOrders(filteredOrders.map(o => o.id));
+    }
+  };
+
   const handleSubmit = (data) => {
     if (editingOrder) {
       updateMutation.mutate({ id: editingOrder.id, data });
@@ -237,18 +292,31 @@ export default function OfficeSupplyOrders() {
             <h1 className="text-2xl font-bold text-slate-900">Office Supply Orders</h1>
             <p className="text-slate-600 text-sm">Track office supply orders and deliveries</p>
           </div>
-          {user?.role === 'admin' && (
-            <Button
-              onClick={() => {
-                setEditingOrder(null);
-                setShowForm(true);
-              }}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              New Order
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {selectedOrders.length > 1 && user?.role === 'admin' && (
+              <Button
+                onClick={handleMergeOrders}
+                disabled={isMerging}
+                variant="outline"
+                className="bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"
+              >
+                <Merge className="w-4 h-4 mr-2" />
+                Merge ({selectedOrders.length})
+              </Button>
+            )}
+            {user?.role === 'admin' && (
+              <Button
+                onClick={() => {
+                  setEditingOrder(null);
+                  setShowForm(true);
+                }}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                New Order
+              </Button>
+            )}
+          </div>
         </div>
 
         {showForm && (
@@ -305,6 +373,13 @@ export default function OfficeSupplyOrders() {
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                   <tr>
+                    <th className="p-4 w-12 bg-slate-50">
+                      <Checkbox 
+                        checked={filteredOrders.length > 0 && selectedOrders.length === filteredOrders.length}
+                        onCheckedChange={toggleSelectAll}
+                        aria-label="Select all"
+                      />
+                    </th>
                     <th className="text-left p-4 text-sm font-semibold text-slate-700 bg-slate-50 w-16">
                       #
                     </th>
@@ -349,7 +424,14 @@ export default function OfficeSupplyOrders() {
                 </thead>
                 <tbody>
                   {sortedOrders.map((order, index) => (
-                   <tr key={order.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                   <tr key={order.id} className={`border-b border-slate-100 transition-colors ${selectedOrders.includes(order.id) ? 'bg-blue-50/50' : 'hover:bg-slate-50'}`}>
+                     <td className="p-4">
+                       <Checkbox 
+                         checked={selectedOrders.includes(order.id)}
+                         onCheckedChange={() => toggleSelectOrder(order.id)}
+                         aria-label={`Select order ${order.order_number}`}
+                       />
+                     </td>
                      <td className="p-4 text-slate-500 font-medium">{index + 1}</td>
                      <td className="p-4 font-medium text-slate-900">{order.order_number || '-'}</td>
                      <td className="p-4 text-slate-600">{order.vendor}</td>
