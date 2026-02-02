@@ -961,7 +961,7 @@ export default function Invoices() {
       invoice.linkedProviderNames?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       invoice.month?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesNoIncomeFilter = !filterNoIncome || (!invoice.hasOutsideIncome && !(invoice.program_group === 'St. Francis' && new Date(invoice.invoice_date) < new Date('2025-08-01')));
+    const matchesNoIncomeFilter = !filterNoIncome || (!invoice.hasOutsideIncome && !(invoice.program_group?.includes('St. Francis') && new Date(invoice.invoice_date) < new Date('2025-08-01')));
     const matchesStatus = statusFilter === 'all' || statusFilter.split(',').includes(invoice.status);
     
     return matchesSearch && matchesNoIncomeFilter && matchesStatus;
