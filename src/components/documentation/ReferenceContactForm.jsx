@@ -9,8 +9,21 @@ import { Plus, Trash2, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 
+const FACILITIES = [
+  "Bloomfield Ambulatory Surgery Center (BASC)",
+  "Connecticut Children’s Medical Center (CCMC)",
+  "Connecticut Surgery Center (CTSC)",
+  "Constitution Surgery Alliance",
+  "Hartford Hospital",
+  "Integrated Practice Management Solutions (IPMS)",
+  "St. Francis Hospital / Trinity Health",
+  "UConn Health"
+];
+
 export default function ReferenceContactForm({ open, onOpenChange, contact, section }) {
   const queryClient = useQueryClient();
+  const [isCustomFacility, setIsCustomFacility] = React.useState(false);
+  
   const { register, control, handleSubmit, reset, setValue, watch } = useForm({
     defaultValues: {
       facility: "",
@@ -22,6 +35,8 @@ export default function ReferenceContactForm({ open, onOpenChange, contact, sect
     }
   });
 
+  const currentFacility = watch("facility");
+
   const { fields, append, remove } = useFieldArray({
     control,
     name: "emails"
@@ -29,6 +44,9 @@ export default function ReferenceContactForm({ open, onOpenChange, contact, sect
 
   React.useEffect(() => {
     if (contact) {
+      const isKnown = FACILITIES.includes(contact.facility);
+      setIsCustomFacility(!isKnown && !!contact.facility);
+      
       reset({
         facility: contact.facility || "",
         contact_person: contact.contact_person || "",
@@ -40,6 +58,7 @@ export default function ReferenceContactForm({ open, onOpenChange, contact, sect
         section: contact.section || section || "credentialing"
       });
     } else {
+      setIsCustomFacility(false);
       reset({
         facility: "",
         contact_person: "",
@@ -92,7 +111,48 @@ export default function ReferenceContactForm({ open, onOpenChange, contact, sect
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label>Facility / Organization</Label>
-            <Input {...register("facility", { required: true })} placeholder="e.g. Hartford Hospital" />
+            {!isCustomFacility ? (
+              <Select 
+                value={FACILITIES.includes(currentFacility) ? currentFacility : ""} 
+                onValueChange={(val) => {
+                  if (val === "other") {
+                    setIsCustomFacility(true);
+                    setValue("facility", "");
+                  } else {
+                    setValue("facility", val);
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a facility..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {FACILITIES.map(f => (
+                    <SelectItem key={f} value={f}>{f}</SelectItem>
+                  ))}
+                  <SelectItem value="other">Other / Create New...</SelectItem>
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="flex gap-2">
+                <Input 
+                  {...register("facility", { required: true })} 
+                  placeholder="Enter facility name..." 
+                  autoFocus
+                />
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  onClick={() => {
+                    setIsCustomFacility(false);
+                    setValue("facility", "");
+                  }}
+                  title="Back to list"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">

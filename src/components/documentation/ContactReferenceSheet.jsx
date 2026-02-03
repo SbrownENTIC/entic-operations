@@ -34,8 +34,25 @@ export default function ContactReferenceSheet() {
     }
   });
 
-  const credentialingContacts = contacts.filter(c => c.section === 'credentialing').sort((a, b) => a.facility.localeCompare(b.facility));
-  const fluContacts = contacts.filter(c => c.section === 'flu').sort((a, b) => a.facility.localeCompare(b.facility));
+  const credentialingContacts = contacts.filter(c => c.section === 'credentialing');
+  const fluContacts = contacts.filter(c => c.section === 'flu');
+
+  const groupByFacility = (list) => {
+    const grouped = {};
+    list.forEach(item => {
+      const facility = item.facility || "Other";
+      if (!grouped[facility]) grouped[facility] = [];
+      grouped[facility].push(item);
+    });
+    // Sort groups alphabetically
+    return Object.keys(grouped).sort().reduce((acc, key) => {
+      acc[key] = grouped[key];
+      return acc;
+    }, {});
+  };
+
+  const groupedCredentialing = groupByFacility(credentialingContacts);
+  const groupedFlu = groupByFacility(fluContacts);
 
   const handleEdit = (contact) => {
     setSelectedContact(contact);
@@ -86,56 +103,64 @@ export default function ContactReferenceSheet() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {credentialingContacts.map((item) => (
-                <TableRow key={item.id} className="group">
-                  <TableCell className="font-medium align-top">
-                    <div className="flex items-start gap-2">
-                      <Building2 className="w-4 h-4 text-slate-400 mt-1 shrink-0" />
-                      {item.facility}
-                    </div>
-                  </TableCell>
-                  <TableCell className="align-top">
-                    {(item.contact_person) && (
-                      <div className="flex items-start gap-2 font-medium text-slate-900">
-                        <User className="w-4 h-4 text-slate-400 mt-1 shrink-0" />
-                        <div>
-                          {item.contact_person}
-                          {item.title && <div className="text-xs text-slate-500 font-normal">{item.title}</div>}
-                        </div>
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell className="align-top">
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-2">
-                        {item.phone && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Phone className="w-3 h-3 text-slate-400" />
-                            <span>{item.phone}</span>
+              {Object.entries(groupedCredentialing).map(([facility, groupItems]) => (
+                <React.Fragment key={facility}>
+                  {groupItems.map((item, index) => (
+                    <TableRow key={item.id} className="group">
+                      {index === 0 && (
+                        <TableCell rowSpan={groupItems.length} className="font-medium align-top bg-slate-50/30 border-r w-[30%]">
+                          <div className="flex items-start gap-2 sticky top-4">
+                            <Building2 className="w-4 h-4 text-slate-400 mt-1 shrink-0" />
+                            {facility}
                           </div>
-                        )}
-                        {item.emails && item.emails.map((email, i) => (
-                          <div key={i} className="flex items-center gap-2 text-sm">
-                            <Mail className="w-3 h-3 text-slate-400" />
-                            <a href={`mailto:${email}`} className="text-blue-600 hover:underline break-all">
-                              {email}
-                            </a>
-                          </div>
-                        ))}
-                      </div>
-                      {isAdmin && (
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity no-print">
-                          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleEdit(item)}>
-                            <Pencil className="w-3 h-3 text-blue-600" />
-                          </Button>
-                          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setContactToDelete(item)}>
-                            <Trash2 className="w-3 h-3 text-red-600" />
-                          </Button>
-                        </div>
+                        </TableCell>
                       )}
-                    </div>
-                  </TableCell>
-                </TableRow>
+                      <TableCell className="align-top w-[25%]">
+                        {(item.contact_person) ? (
+                          <div className="flex items-start gap-2 font-medium text-slate-900">
+                            <User className="w-4 h-4 text-slate-400 mt-1 shrink-0" />
+                            <div>
+                              {item.contact_person}
+                              {item.title && <div className="text-xs text-slate-500 font-normal">{item.title}</div>}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 italic text-sm">General Contact</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="align-top w-[45%]">
+                        <div className="flex justify-between items-start">
+                          <div className="space-y-2">
+                            {item.phone && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <Phone className="w-3 h-3 text-slate-400" />
+                                <span>{item.phone}</span>
+                              </div>
+                            )}
+                            {item.emails && item.emails.map((email, i) => (
+                              <div key={i} className="flex items-center gap-2 text-sm">
+                                <Mail className="w-3 h-3 text-slate-400" />
+                                <a href={`mailto:${email}`} className="text-blue-600 hover:underline break-all">
+                                  {email}
+                                </a>
+                              </div>
+                            ))}
+                          </div>
+                          {isAdmin && (
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity no-print">
+                              <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleEdit(item)}>
+                                <Pencil className="w-3 h-3 text-blue-600" />
+                              </Button>
+                              <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setContactToDelete(item)}>
+                                <Trash2 className="w-3 h-3 text-red-600" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </React.Fragment>
               ))}
             </TableBody>
           </Table>
@@ -164,39 +189,48 @@ export default function ContactReferenceSheet() {
           <CardContent className="p-0 flex-1">
             <Table>
               <TableBody>
-                {fluContacts.map((item) => (
-                  <TableRow key={item.id} className="group">
-                    <TableCell className="font-medium w-[50%] align-top">
-                      <div className="flex items-start gap-2">
-                        <Building2 className="w-4 h-4 text-slate-400 mt-1 shrink-0" />
-                        {item.facility}
-                      </div>
-                    </TableCell>
-                    <TableCell className="align-top">
-                      <div className="flex justify-between items-start">
-                        <div className="space-y-1">
-                          {item.emails && item.emails.map((email, i) => (
-                            <div key={i} className="flex items-center gap-2 text-sm">
-                              <Mail className="w-3 h-3 text-slate-400" />
-                              <a href={`mailto:${email}`} className="text-blue-600 hover:underline break-all">
-                                {email}
-                              </a>
+                {Object.entries(groupedFlu).map(([facility, groupItems]) => (
+                  <React.Fragment key={facility}>
+                    {groupItems.map((item, index) => (
+                      <TableRow key={item.id} className="group">
+                        {index === 0 && (
+                          <TableCell rowSpan={groupItems.length} className="font-medium align-top bg-slate-50/30 border-r w-[50%]">
+                            <div className="flex items-start gap-2 sticky top-4">
+                              <Building2 className="w-4 h-4 text-slate-400 mt-1 shrink-0" />
+                              {facility}
                             </div>
-                          ))}
-                        </div>
-                        {isAdmin && (
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity no-print">
-                            <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleEdit(item)}>
-                              <Pencil className="w-3 h-3 text-blue-600" />
-                            </Button>
-                            <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setContactToDelete(item)}>
-                              <Trash2 className="w-3 h-3 text-red-600" />
-                            </Button>
-                          </div>
+                          </TableCell>
                         )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                        <TableCell className="align-top">
+                          <div className="flex justify-between items-start">
+                            <div className="space-y-1">
+                              {item.contact_person && (
+                                <div className="text-sm font-medium mb-1">{item.contact_person}</div>
+                              )}
+                              {item.emails && item.emails.map((email, i) => (
+                                <div key={i} className="flex items-center gap-2 text-sm">
+                                  <Mail className="w-3 h-3 text-slate-400" />
+                                  <a href={`mailto:${email}`} className="text-blue-600 hover:underline break-all">
+                                    {email}
+                                  </a>
+                                </div>
+                              ))}
+                            </div>
+                            {isAdmin && (
+                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity no-print">
+                                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleEdit(item)}>
+                                  <Pencil className="w-3 h-3 text-blue-600" />
+                                </Button>
+                                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setContactToDelete(item)}>
+                                  <Trash2 className="w-3 h-3 text-red-600" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </React.Fragment>
                 ))}
               </TableBody>
             </Table>
