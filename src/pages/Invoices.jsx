@@ -41,6 +41,7 @@ export default function Invoices() {
   const [bulkStatusUpdate, setBulkStatusUpdate] = useState('');
   const [filterNoIncome, setFilterNoIncome] = useState(false);
   const [fixingHartford, setFixingHartford] = useState(false);
+  const [regeneratingUConn, setRegeneratingUConn] = useState(false);
   const [syncingMonths, setSyncingMonths] = useState(false);
   const [fixMessage, setFixMessage] = useState('');
   const [syncingAirtable, setSyncingAirtable] = useState(false);
@@ -861,6 +862,21 @@ export default function Invoices() {
     }
     };
 
+  const handleRegenerateUConn = async () => {
+    setRegeneratingUConn(true);
+    setFixMessage('');
+    try {
+      const response = await base44.functions.invoke('fixUConnInvoices', {});
+      const successCount = response.data.results.filter(r => r.success).length;
+      setFixMessage(`Regenerated ${successCount} invoices as Excel.`);
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    } catch (error) {
+      setFixMessage('Error: ' + error.message);
+    } finally {
+      setRegeneratingUConn(false);
+    }
+  };
+
 
 
     const handleInvoiceNumberClick = (invoice) => {
@@ -1086,7 +1102,15 @@ export default function Invoices() {
               >
                 {fixingHartford ? 'Fixing...' : 'Fix & Sync Data'}
               </Button>
-            )}
+              <Button
+                onClick={handleRegenerateUConn}
+                variant="outline"
+                disabled={regeneratingUConn}
+                className="gap-2"
+              >
+                {regeneratingUConn ? 'Regenerating...' : 'Regenerate UConn (72-74)'}
+              </Button>
+              )}
             <Button
               onClick={handlePrint}
               variant="outline"
