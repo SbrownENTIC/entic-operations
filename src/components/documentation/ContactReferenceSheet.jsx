@@ -210,7 +210,7 @@ export default function ContactReferenceSheet() {
                               {item.emails && item.emails.map((email, i) => (
                                 <div key={i} className="flex items-center gap-2 text-sm">
                                   <Mail className="w-3 h-3 text-slate-400" />
-                                  <a href={`mailto:${email}`} className="text-blue-600 hover:underline break-all">
+                                  <a href={`mailto:${email}`} className="text-blue-600 hover:underline whitespace-nowrap">
                                     {email}
                                   </a>
                                 </div>
