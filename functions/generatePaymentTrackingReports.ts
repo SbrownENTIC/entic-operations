@@ -276,14 +276,14 @@ Deno.serve(async (req) => {
             const wb = new ExcelJS.Workbook();
             
             for (const { sheetname, section } of items) {
-                let sheet = wb.getWorksheet(sheetname);
-                if (!sheet) {
-                    sheet = wb.addWorksheet(sheetname);
-                    sheet.addRow([`Exported: ${exportDate}`]);
-                } else {
-                    sheet.addRow([]);
-                    sheet.addRow([]);
+                let uniqueSheetName = sheetname;
+                let counter = 1;
+                while (wb.getWorksheet(uniqueSheetName)) {
+                    uniqueSheetName = `${sheetname} ${counter++}`;
                 }
+                const sheet = wb.addWorksheet(uniqueSheetName);
+                
+                sheet.addRow([`Exported: ${exportDate}`]);
                 
                 const titleRow = sheet.addRow([section.title]);
                 titleRow.getCell(1).style = titleStyle;
