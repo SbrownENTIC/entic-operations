@@ -104,18 +104,28 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
 
     const sections = [];
 
-    // Get unique program groups
-    const invoiceGroups = [...new Set(filteredInvoices.map(inv => inv.program_group).filter(Boolean))];
-    const directGroups = [...new Set(filteredDirectIncome.map(inc => inc.facility_name).filter(Boolean))];
-    const programGroups = [...new Set([...invoiceGroups, ...directGroups])].sort((a, b) => {
+    // Helper to normalize program names (combines Manchester variations)
+    const normalizeGroup = (name) => {
+        if (!name) return '';
+        const lower = name.toLowerCase();
+        if (lower.includes('manchester') || lower.includes('echn')) return 'Manchester / ECHN';
+        return name;
+    };
+
+    // Get unique normalized program groups
+    const programGroups = new Set();
+    filteredInvoices.forEach(inv => programGroups.add(normalizeGroup(inv.program_group)));
+    filteredDirectIncome.forEach(inc => programGroups.add(normalizeGroup(inc.facility_name)));
+
+    const sortedGroups = [...programGroups].filter(Boolean).sort((a, b) => {
       if (a === 'Nations Hearing') return 1;
       if (b === 'Nations Hearing') return -1;
       return a.localeCompare(b);
     });
 
-    programGroups.forEach(programGroup => {
-      const groupInvoices = filteredInvoices.filter(inv => inv.program_group === programGroup);
-      const groupDirectIncome = filteredDirectIncome.filter(inc => inc.facility_name === programGroup);
+    sortedGroups.forEach(programGroup => {
+      const groupInvoices = filteredInvoices.filter(inv => normalizeGroup(inv.program_group) === programGroup);
+      const groupDirectIncome = filteredDirectIncome.filter(inc => normalizeGroup(inc.facility_name) === programGroup);
 
       // Hartford Hospital and St. Francis need Directorship/On-Call separation
       const needsSeparation = programGroup === 'Hartford Hospital' || programGroup === 'St. Francis';
