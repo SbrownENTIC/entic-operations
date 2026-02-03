@@ -276,7 +276,12 @@ Deno.serve(async (req) => {
             const wb = new ExcelJS.Workbook();
             
             for (const { sheetname, section } of items) {
-                const sheet = wb.addWorksheet(sheetname);
+                let uniqueSheetName = sheetname;
+                let counter = 1;
+                while (wb.getWorksheet(uniqueSheetName)) {
+                    uniqueSheetName = `${sheetname} ${counter++}`;
+                }
+                const sheet = wb.addWorksheet(uniqueSheetName);
                 
                 sheet.addRow([`Exported: ${exportDate}`]);
                 
