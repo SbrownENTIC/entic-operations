@@ -1094,6 +1094,7 @@ export default function Invoices() {
           />
           <div className="flex gap-3 flex-wrap">
             {user?.role === 'admin' && (
+              <>
               <Button
                 onClick={handleFixHartfordInvoices}
                 variant="outline"
@@ -1110,6 +1111,7 @@ export default function Invoices() {
               >
                 {regeneratingUConn ? 'Regenerating...' : 'Regenerate UConn (72-74)'}
               </Button>
+              </>
               )}
             <Button
               onClick={handlePrint}
