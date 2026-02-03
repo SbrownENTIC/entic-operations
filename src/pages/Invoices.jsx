@@ -152,7 +152,7 @@ export default function Invoices() {
 
       if (isUConn || isManchester) {
           try {
-            const functionName = isManchester ? 'generateManchesterPDF' : 'generateUConnPDF';
+            const functionName = isManchester ? 'generateManchesterPDF' : 'generateUConnExcel';
             const response = await base44.functions.invoke(functionName, { 
                 invoice_id: invoice.id, 
                 save_to_record: true 
@@ -798,33 +798,41 @@ export default function Invoices() {
 
   const handleGeneratePDF = async (invoice) => {
     try {
-      let functionName = 'generateUConnPDF';
-      
+      let functionName = 'generateUConnExcel';
+      let isExcel = true;
+
       // Check if it's a Manchester/ECHN invoice
       if (invoice.program_group && (
           invoice.program_group.toLowerCase().includes('manchester') || 
           invoice.program_group.toLowerCase().includes('echn')
       )) {
         functionName = 'generateManchesterPDF';
+        isExcel = false;
       }
 
       const response = await base44.functions.invoke(functionName, { invoice_id: invoice.id });
-      
-      if (response.data && response.data.pdf_base64) {
+
+      const base64Data = response.data?.file_base64 || response.data?.pdf_base64;
+
+      if (base64Data) {
         // Convert Base64 to Blob
-        const byteCharacters = atob(response.data.pdf_base64);
+        const byteCharacters = atob(base64Data);
         const byteNumbers = new Array(byteCharacters.length);
         for (let i = 0; i < byteCharacters.length; i++) {
           byteNumbers[i] = byteCharacters.charCodeAt(i);
         }
         const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: 'application/pdf' });
+        const mimeType = isExcel 
+          ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+          : 'application/pdf';
+
+        const blob = new Blob([byteArray], { type: mimeType });
 
         // Trigger Download
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = response.data.filename || `Invoice_${invoice.invoice_number || 'draft'}.pdf`;
+        a.download = response.data.filename || `Invoice_${invoice.invoice_number || 'draft'}.${isExcel ? 'xlsx' : 'pdf'}`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -833,8 +841,8 @@ export default function Invoices() {
         throw new Error("Invalid response format");
       }
     } catch (error) {
-      console.error("Error generating PDF:", error);
-      alert("Failed to generate PDF. Please try again.");
+      console.error("Error generating invoice:", error);
+      alert("Failed to generate invoice. Please try again.");
     }
   };
 
@@ -1065,7 +1073,7 @@ export default function Invoices() {
             type="file"
             ref={fileInputRef}
             className="hidden"
-            accept=".pdf,.doc,.docx"
+            accept=".pdf,.doc,.docx,.xls,.xlsx"
             onChange={handleQuickUploadFile}
           />
           <div className="flex gap-3 flex-wrap">
