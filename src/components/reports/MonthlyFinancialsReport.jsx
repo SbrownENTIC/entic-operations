@@ -3,11 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, parseISO, getYear, getMonth } from "date-fns";
 import { Calendar, DollarSign } from "lucide-react";
+import PaymentDetailModal from "@/components/payments/PaymentDetailModal";
 
-export default function MonthlyFinancialsReport({ payments, formatCurrency }) {
+export default function MonthlyFinancialsReport({ payments, invoices = [], providers = [], formatCurrency }) {
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear.toString());
   const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth() + 1).toString()); // 1-12
+  const [selectedPayment, setSelectedPayment] = useState(null);
 
   const years = Array.from({ length: 5 }, (_, i) => (currentYear - i).toString());
   const months = [
@@ -133,7 +135,14 @@ export default function MonthlyFinancialsReport({ payments, formatCurrency }) {
                           {payment.payment_month || '-'}
                         </td>
                         <td className="p-3 font-medium text-slate-900">{payment.payer || '-'}</td>
-                        <td className="p-3 text-slate-600">{payment.reference_number || '-'}</td>
+                        <td className="p-3 text-slate-600">
+                          <button
+                            onClick={() => setSelectedPayment(payment)}
+                            className="text-blue-600 hover:text-blue-800 hover:underline font-medium text-left"
+                          >
+                            {payment.reference_number || '(No Ref)'}
+                          </button>
+                        </td>
                         <td className="p-3 text-slate-600 capitalize">
                           {(payment.payment_method || '').replace('_', ' ')}
                         </td>
@@ -153,6 +162,16 @@ export default function MonthlyFinancialsReport({ payments, formatCurrency }) {
           </div>
         </div>
       </CardContent>
+
+      {selectedPayment && (
+        <PaymentDetailModal
+          payment={selectedPayment}
+          invoices={invoices}
+          providers={providers}
+          onClose={() => setSelectedPayment(null)}
+          isReadOnly={true}
+        />
+      )}
     </Card>
   );
 }

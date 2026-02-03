@@ -1318,6 +1318,8 @@ export default function Reports() {
           <TabsContent value="monthly-financials">
             <MonthlyFinancialsReport 
               payments={payments}
+              invoices={invoices}
+              providers={providers}
               formatCurrency={formatCurrency}
             />
           </TabsContent>
