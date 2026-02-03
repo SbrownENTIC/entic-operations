@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Printer, AlertCircle, FileDown, CloudUpload, Upload } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Printer, AlertCircle, FileDown, CloudUpload, Upload, FileSpreadsheet } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, parseISO } from "date-fns";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -1461,10 +1461,14 @@ export default function Invoices() {
                                 variant="ghost" 
                                 size="sm"
                                 onClick={() => handleGeneratePDF(invoice)}
-                                title="Generate PDF"
-                                className="text-blue-600 hover:text-blue-700"
+                                title={invoice.program_group?.toLowerCase().includes('uconn') ? "Generate Excel File" : "Generate PDF"}
+                                className={invoice.program_group?.toLowerCase().includes('uconn') ? "text-green-600 hover:text-green-700" : "text-blue-600 hover:text-blue-700"}
                               >
-                                <FileDown className="w-4 h-4" />
+                                {invoice.program_group?.toLowerCase().includes('uconn') ? (
+                                  <FileSpreadsheet className="w-4 h-4" />
+                                ) : (
+                                  <FileDown className="w-4 h-4" />
+                                )}
                               </Button>
                             )}
 
