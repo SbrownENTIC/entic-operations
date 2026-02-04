@@ -5,22 +5,12 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, AlertTriangle, Pencil, ArrowUpDown, ArrowUp, ArrowDown, CloudUpload, RefreshCw, TestTube, Trash2 } from "lucide-react";
+import { Plus, Search, AlertTriangle, Pencil, ArrowUpDown, ArrowUp, ArrowDown, CloudUpload, RefreshCw, TestTube } from "lucide-react";
 import { differenceInDays, format, parseISO } from "date-fns";
 import { useLocation } from "react-router-dom";
 import LicenseForm from "../components/licenses/LicenseForm";
 import EmptyState from "@/components/ui/EmptyState";
 import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 export default function Licenses() {
   const [showForm, setShowForm] = useState(false);
@@ -31,9 +21,6 @@ export default function Licenses() {
   const [sortDirection, setSortDirection] = useState('asc');
   const [airtableSyncing, setAirtableSyncing] = useState(false);
   const [airtableMessage, setAirtableMessage] = useState('');
-  const [selectedLicenses, setSelectedLicenses] = useState([]);
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   const queryClient = useQueryClient();
   const location = useLocation();
 
@@ -103,27 +90,6 @@ export default function Licenses() {
       queryClient.invalidateQueries({ queryKey: ['licenses'] });
       setShowForm(false);
       setEditingLicense(null);
-    }
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.License.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['licenses'] });
-      setDeleteConfirm(null);
-      setSelectedLicenses(prev => prev.filter(licId => licId !== deleteConfirm?.id));
-    }
-  });
-
-  const bulkDeleteMutation = useMutation({
-    mutationFn: async (ids) => {
-      const promises = ids.map(id => base44.entities.License.delete(id));
-      await Promise.all(promises);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['licenses'] });
-      setSelectedLicenses([]);
-      setBulkDeleteConfirm(false);
     }
   });
 
@@ -245,16 +211,6 @@ export default function Licenses() {
           <div className="flex gap-3">
             {user?.role === 'admin' && (
               <>
-                {selectedLicenses.length > 0 && (
-                  <Button
-                    onClick={() => setBulkDeleteConfirm(true)}
-                    variant="destructive"
-                    className="gap-2"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Delete Selected ({selectedLicenses.length})
-                  </Button>
-                )}
                 <Button
                   onClick={handleSyncToAirtable}
                   disabled={airtableSyncing}
@@ -322,16 +278,6 @@ export default function Licenses() {
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                   <tr>
-                    {user?.role === 'admin' && (
-                      <th className="p-4 w-10">
-                        <input
-                          type="checkbox"
-                          checked={sortedLicenses.length > 0 && selectedLicenses.length === sortedLicenses.length}
-                          onChange={(e) => handleSelectAll(e.target.checked)}
-                          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                        />
-                      </th>
-                    )}
                     <th 
                       className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                       onClick={() => handleSort('providerName')}
@@ -378,16 +324,6 @@ export default function Licenses() {
 
                     return (
                       <tr key={license.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                        {user?.role === 'admin' && (
-                          <td className="p-4">
-                            <input
-                              type="checkbox"
-                              checked={selectedLicenses.includes(license.id)}
-                              onChange={(e) => handleSelectLicense(license.id, e.target.checked)}
-                              className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                            />
-                          </td>
-                        )}
                         <td className="p-4">
                           <p className="font-medium text-slate-900">{license.provider?.full_name}</p>
                         </td>
@@ -422,26 +358,16 @@ export default function Licenses() {
                         </td>
                         <td className="p-4 text-right">
                           {user?.role === 'admin' && (
-                            <div className="flex items-center justify-end gap-1">
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => {
-                                  setEditingLicense(license);
-                                  setShowForm(true);
-                                }}
-                              >
-                                <Pencil className="w-4 h-4" />
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => setDeleteConfirm(license)}
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                setEditingLicense(license);
+                                setShowForm(true);
+                              }}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
                           )}
                         </td>
                       </tr>
@@ -476,46 +402,6 @@ export default function Licenses() {
         </Card>
         </div>
       </div>
-
-      <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete License</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this license for {deleteConfirm?.provider?.full_name}? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deleteMutation.mutate(deleteConfirm.id)}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={bulkDeleteConfirm} onOpenChange={setBulkDeleteConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Multiple Licenses</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete {selectedLicenses.length} selected licenses? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => bulkDeleteMutation.mutate(selectedLicenses)}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Delete All
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
