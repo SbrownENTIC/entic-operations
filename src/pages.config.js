@@ -57,7 +57,6 @@ import Dashboard from './pages/Dashboard';
 import DocumentManagement from './pages/DocumentManagement';
 import Home from './pages/Home';
 import Invoices from './pages/Invoices';
-import Licenses from './pages/Licenses';
 import OfficeSupplyCatalog from './pages/OfficeSupplyCatalog';
 import OfficeSupplyOrders from './pages/OfficeSupplyOrders';
 import OnCallSchedule from './pages/OnCallSchedule';
@@ -75,6 +74,7 @@ import SupplyOrderDetail from './pages/SupplyOrderDetail';
 import SupplyRequest from './pages/SupplyRequest';
 import SystemDocumentation from './pages/SystemDocumentation';
 import TodaysOrders from './pages/TodaysOrders';
+import Licenses from './pages/Licenses';
 import __Layout from './Layout.jsx';
 
 
@@ -89,7 +89,6 @@ export const PAGES = {
     "DocumentManagement": DocumentManagement,
     "Home": Home,
     "Invoices": Invoices,
-    "Licenses": Licenses,
     "OfficeSupplyCatalog": OfficeSupplyCatalog,
     "OfficeSupplyOrders": OfficeSupplyOrders,
     "OnCallSchedule": OnCallSchedule,
@@ -107,6 +106,7 @@ export const PAGES = {
     "SupplyRequest": SupplyRequest,
     "SystemDocumentation": SystemDocumentation,
     "TodaysOrders": TodaysOrders,
+    "Licenses": Licenses,
 }
 
 export const pagesConfig = {

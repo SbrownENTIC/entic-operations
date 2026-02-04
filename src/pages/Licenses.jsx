@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, AlertTriangle, Pencil, ArrowUpDown, ArrowUp, ArrowDown, CloudUpload, RefreshCw, TestTube } from "lucide-react";
+import { Plus, Search, AlertTriangle, Pencil, ArrowUpDown, ArrowUp, ArrowDown, CloudUpload, RefreshCw, TestTube, Trash2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { differenceInDays, format, parseISO } from "date-fns";
 import { useLocation } from "react-router-dom";
 import LicenseForm from "../components/licenses/LicenseForm";
@@ -21,6 +22,7 @@ export default function Licenses() {
   const [sortDirection, setSortDirection] = useState('asc');
   const [airtableSyncing, setAirtableSyncing] = useState(false);
   const [airtableMessage, setAirtableMessage] = useState('');
+  const [selectedIds, setSelectedIds] = useState(new Set());
   const queryClient = useQueryClient();
   const location = useLocation();
 
@@ -92,6 +94,42 @@ export default function Licenses() {
       setEditingLicense(null);
     }
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (ids) => {
+      await Promise.all(ids.map(id => base44.entities.License.delete(id)));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['licenses'] });
+      setSelectedIds(new Set());
+    }
+  });
+
+  const handleDeleteSelected = () => {
+    if (selectedIds.size === 0) return;
+    
+    if (window.confirm(`Are you sure you want to delete ${selectedIds.size} license(s)? This action cannot be undone.`)) {
+      deleteMutation.mutate(Array.from(selectedIds));
+    }
+  };
+
+  const toggleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedIds(new Set(filteredLicenses.map(l => l.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const toggleSelectOne = (id, checked) => {
+    const newSelected = new Set(selectedIds);
+    if (checked) {
+      newSelected.add(id);
+    } else {
+      newSelected.delete(id);
+    }
+    setSelectedIds(newSelected);
+  };
 
   const handleSubmit = (data) => {
     if (editingLicense) {
@@ -211,6 +249,17 @@ export default function Licenses() {
           <div className="flex gap-3">
             {user?.role === 'admin' && (
               <>
+                {selectedIds.size > 0 && (
+                  <Button
+                    onClick={handleDeleteSelected}
+                    variant="destructive"
+                    className="gap-2"
+                    disabled={deleteMutation.isPending}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete ({selectedIds.size})
+                  </Button>
+                )}
                 <Button
                   onClick={handleSyncToAirtable}
                   disabled={airtableSyncing}
@@ -278,6 +327,15 @@ export default function Licenses() {
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                   <tr>
+                    {user?.role === 'admin' && (
+                      <th className="w-12 p-4">
+                        <Checkbox 
+                          checked={filteredLicenses.length > 0 && selectedIds.size === filteredLicenses.length}
+                          onCheckedChange={toggleSelectAll}
+                          aria-label="Select all"
+                        />
+                      </th>
+                    )}
                     <th 
                       className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                       onClick={() => handleSort('providerName')}
@@ -324,6 +382,15 @@ export default function Licenses() {
 
                     return (
                       <tr key={license.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        {user?.role === 'admin' && (
+                          <td className="p-4">
+                            <Checkbox 
+                              checked={selectedIds.has(license.id)}
+                              onCheckedChange={(checked) => toggleSelectOne(license.id, checked)}
+                              aria-label={`Select license for ${license.provider?.full_name}`}
+                            />
+                          </td>
+                        )}
                         <td className="p-4">
                           <p className="font-medium text-slate-900">{license.provider?.full_name}</p>
                         </td>
