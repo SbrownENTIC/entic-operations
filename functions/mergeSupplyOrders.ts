@@ -64,6 +64,10 @@ Deno.serve(async (req) => {
     const primaryOrder = sortedOrders[0];
     const secondaryOrders = sortedOrders.slice(1);
 
+    // Get the latest order date to ensure visibility on "Today's Orders"
+    const allDates = orders.map(o => o.order_date).sort().reverse();
+    const latestDate = allDates[0];
+
     // Merge Items
     let mergedItems = [...(primaryOrder.items || [])];
     const secondaryOrderNumbers = [];
@@ -90,6 +94,7 @@ Deno.serve(async (req) => {
       items: mergedItems,
       subtotal: subtotal,
       total_amount: total,
+      order_date: latestDate, // Update date to ensure it remains visible on "Today's Orders" view
       submission_source: hasPublicSource ? 'public_form' : (primaryOrder.submission_source || 'system'),
       notes: (primaryOrder.notes || '') + (secondaryOrders.length > 0 ? `\n\n[Merged from orders: ${secondaryOrderNumbers.join(', ')}]` : '')
     };
