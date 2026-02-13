@@ -309,11 +309,21 @@ export default function Dashboard() {
       });
     });
 
-    const items = invoices.map(inv => ({
-      ...inv,
-      type: 'invoice',
-      amount_received: invoiceAllocations[inv.id] || 0
-    }));
+    const items = invoices.map(inv => {
+      let programGroup = inv.program_group;
+
+      // Normalize inconsistent Manchester/ECHN names
+      if (programGroup === 'HH - Manchester / ECHN' || programGroup === 'HH - Manchester/ECHN') {
+        programGroup = 'HH- Manchester/ECHN';
+      }
+
+      return {
+        ...inv,
+        program_group: programGroup,
+        type: 'invoice',
+        amount_received: invoiceAllocations[inv.id] || 0
+      };
+    });
 
     // Add standalone Outside Income items (direct payers) that are not linked to an invoice
     // Only include known direct payers and Hartford/St. Francis (for directorships etc) to avoid double-counting invoiced programs
