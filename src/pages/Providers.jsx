@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Pencil, Trash2, CheckCircle, XCircle, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, CheckCircle, XCircle, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { format, parseISO } from "date-fns";
@@ -34,6 +35,8 @@ export default function Providers() {
   const [sortDirection, setSortDirection] = useState('asc');
   const [checkingTerminations, setCheckingTerminations] = useState(false);
   const [terminationMessage, setTerminationMessage] = useState('');
+  const [selectedProviders, setSelectedProviders] = useState([]);
+  const [isSyncing, setIsSyncing] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const location = useLocation();
@@ -231,6 +234,69 @@ export default function Providers() {
     }
   };
 
+  const handleSyncToAirtable = async () => {
+    if (selectedProviders.length === 0) return;
+    
+    setIsSyncing(true);
+    try {
+      const response = await base44.functions.invoke('manualSyncProvidersToAirtable', { 
+        provider_ids: selectedProviders 
+      });
+      
+      const { success, failed, skipped } = response.data;
+      
+      if (success.length > 0) {
+        toast({
+          title: "Sync Complete",
+          description: `Successfully synced ${success.length} provider(s) to Airtable.`,
+        });
+      }
+      
+      if (failed.length > 0) {
+        toast({
+          variant: "destructive",
+          title: "Sync Issues",
+          description: `Failed to sync ${failed.length} provider(s). Check console for details.`,
+        });
+        console.error("Failed syncs:", failed);
+      }
+
+      if (skipped.length > 0) {
+        toast({
+          variant: "warning",
+          title: "Sync Skipped",
+          description: `${skipped.length} provider(s) skipped (no matching Airtable record found).`,
+        });
+      }
+
+      setSelectedProviders([]);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Sync Error",
+        description: "Failed to sync providers: " + error.message
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedProviders.length === sortedProviders.length) {
+      setSelectedProviders([]);
+    } else {
+      setSelectedProviders(sortedProviders.map(p => p.id));
+    }
+  };
+
+  const toggleSelectProvider = (id) => {
+    if (selectedProviders.includes(id)) {
+      setSelectedProviders(selectedProviders.filter(pId => pId !== id));
+    } else {
+      setSelectedProviders([...selectedProviders, id]);
+    }
+  };
+
 
 
   // Calculate current flu season
@@ -292,6 +358,17 @@ export default function Providers() {
             <p className="text-slate-600 text-sm">Manage provider information and credentials</p>
           </div>
           <div className="flex gap-2">
+            {selectedProviders.length > 0 && user?.role === 'admin' && (
+              <Button
+                onClick={handleSyncToAirtable}
+                variant="outline"
+                className="gap-2 border-blue-200 text-blue-700 hover:bg-blue-50"
+                disabled={isSyncing}
+              >
+                <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                Sync to Airtable ({selectedProviders.length})
+              </Button>
+            )}
             {user?.role === 'admin' && (
               <Button
                 onClick={() => {
@@ -346,6 +423,14 @@ export default function Providers() {
                   return (
                     <div key={provider.id} className="bg-white rounded-lg border border-slate-200 shadow-sm p-4 space-y-3">
                       <div className="flex items-start gap-3">
+                        {user?.role === 'admin' && (
+                          <div className="pt-1">
+                            <Checkbox 
+                              checked={selectedProviders.includes(provider.id)}
+                              onCheckedChange={() => toggleSelectProvider(provider.id)}
+                            />
+                          </div>
+                        )}
                         <div className="flex-1">
                           <div className="flex justify-between items-start">
                             <div>
@@ -488,6 +573,14 @@ export default function Providers() {
                     
                     return (
                       <tr key={provider.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        {user?.role === 'admin' && (
+                          <td className="p-4">
+                            <Checkbox 
+                              checked={selectedProviders.includes(provider.id)}
+                              onCheckedChange={() => toggleSelectProvider(provider.id)}
+                            />
+                          </td>
+                        )}
                         <td className="p-4">
                                   <Link 
                                     to={`${createPageUrl("ProviderDetail")}?id=${provider.id}`}
