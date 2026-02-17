@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
                 }
 
                 // 1. Find the record in Airtable by Work Email
-                const filterFormula = `{Work Email} = '${email}'`;
+                const filterFormula = `LOWER({Work Email}) = '${email.toLowerCase()}'`;
                 const listUrl = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(TABLE_NAME)}?filterByFormula=${encodeURIComponent(filterFormula)}`;
 
                 const listRes = await fetch(listUrl, {
