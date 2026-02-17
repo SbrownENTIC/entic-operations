@@ -250,7 +250,7 @@ export default function Payments() {
 
       let status = data.status;
       if (Math.abs(unallocated) < 0.01 && totalAllocated > 0 && status === 'pending') {
-        status = 'cleared';
+        status = 'entic_paid';
       }
 
       const normalizedUnallocated = Math.abs(unallocated) < 0.01 ? 0 : unallocated;
