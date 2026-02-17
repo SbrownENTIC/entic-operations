@@ -523,7 +523,14 @@ export default function Providers() {
               <table className="w-full hidden md:table bg-white">
                 <thead className="sticky top-0 bg-slate-50 border-b border-slate-200 z-10">
                   <tr>
-
+                    {user?.role === 'admin' && (
+                      <th className="w-12 p-4 text-left bg-slate-50">
+                        <Checkbox 
+                          checked={sortedProviders.length > 0 && selectedProviders.length === sortedProviders.length}
+                          onCheckedChange={toggleSelectAll}
+                        />
+                      </th>
+                    )}
                     <th 
                       className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                       onClick={() => handleSort('full_name')}
