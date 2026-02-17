@@ -105,7 +105,7 @@ export default function PaymentDetailModal({ payment, invoices, providers, onClo
                   </div>
                   <div>
                     <p className="text-sm text-slate-500">Status</p>
-                    <Badge className={payment.status === 'cleared' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
+                    <Badge className={(payment.status === 'cleared' || payment.status === 'entic_paid') ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
                       {payment.status === 'entic_paid' ? 'ENTIC Paid' : payment.status}
                     </Badge>
                   </div>
