@@ -14,8 +14,8 @@ export default function ReportingPeriodsPanel({ selectedMonth, onRefresh }) {
   const [detailModalOpen, setDetailModalOpen] = useState(false);
 
   // Parse dates as local dates only (YYYY-MM-DD format, no timezone conversion)
-  const [monthYear, monthDay] = selectedMonth.split('-');
-  const monthDate = new Date(parseInt(monthYear), parseInt(monthYear.split('-')[1]) - 1, 1);
+  const [year, month] = selectedMonth.split('-').map(Number);
+  const monthDate = new Date(year, month - 1, 1);
   const monthStart = startOfMonth(monthDate);
   const monthEnd = endOfMonth(monthDate);
 
