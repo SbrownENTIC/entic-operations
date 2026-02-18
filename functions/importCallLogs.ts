@@ -9,75 +9,72 @@ export default Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized. Only admins can upload call logs.' }, { status: 403 });
     }
 
-    const { records, month: payloadMonth } = await req.json();
+    const { records, month } = await req.json();
+
+    if (!month) {
+        return Response.json({ error: 'Month is required.' }, { status: 400 });
+    }
 
     if (!records || !Array.isArray(records)) {
       return Response.json({ error: 'Invalid data format. Expected array of records.' }, { status: 400 });
     }
 
-    const results = {
-      imported: 0,
-      updated: 0,
-      skipped: 0,
-      errors: []
-    };
-
-    // If a target month is provided for the whole batch, we can optionally clear old data
-    // But safely, we will just upsert based on User + Month
+    // 1. Delete existing records for this month
+    // Fetch IDs first
+    // Since we might have many records, we need to be careful. But usually < 100 users.
+    const existing = await base44.entities.CallLog.filter({ month }, {}, 1000);
     
+    // Delete in parallel
+    await Promise.all(existing.map(r => base44.entities.CallLog.delete(r.id)));
+
+    // 2. Insert new records
+    // Dedup by user in the incoming batch (last one wins or first one? User said "Reject duplicate user entries")
+    const uniqueRecords = {};
+    const skippedUsers = [];
+
     for (const record of records) {
-      // Use payload month if record doesn't have it, or override if needed
-      const recordMonth = payloadMonth || record.month;
+        if (!record.user) continue;
+        
+        if (uniqueRecords[record.user]) {
+            skippedUsers.push(record.user);
+            continue;
+        }
 
-      // Validate required fields
-      if (!record.user || !recordMonth) {
-        results.errors.push(`Missing required fields (user or month) for record: ${JSON.stringify(record)}`);
-        continue;
-      }
-
-      // Build filter for existence check
-      const filter = {
-        user: record.user,
-        month: recordMonth
-      };
-      
-      // If week_ending exists, include it in uniqueness check (for legacy/weekly uploads)
-      if (record.week_ending) {
-        filter.week_ending = record.week_ending;
-      }
-
-      // Check for existing record
-      const existing = await base44.entities.CallLog.filter(filter);
-
-      const dataToSave = {
-        month: recordMonth,
-        week_ending: record.week_ending || null, // Optional now
-        user: record.user,
-        extension: record.extension || '',
-        total_calls: Number(record.total_calls) || 0,
-        inbound_calls: Number(record.inbound_calls) || 0,
-        outbound_calls: Number(record.outbound_calls) || 0,
-        answered_calls: Number(record.answered_calls) || 0,
-        missed_calls: Number(record.missed_calls) || 0,
-        voicemail_calls: Number(record.voicemail_calls) || 0,
-        total_duration_minutes: Number(record.total_duration_minutes) || 0,
-        inbound_duration_minutes: Number(record.inbound_duration_minutes) || 0,
-        outbound_duration_minutes: Number(record.outbound_duration_minutes) || 0
-      };
-
-      if (existing.length > 0) {
-        // Update existing record (Upsert behavior)
-        const idToUpdate = existing[0].id;
-        await base44.entities.CallLog.update(idToUpdate, dataToSave);
-        results.updated++;
-      } else {
-        // Create new record
-        await base44.entities.CallLog.create(dataToSave);
-        results.imported++;
-      }
+        uniqueRecords[record.user] = {
+            month: month,
+            user: record.user,
+            extension: record.extension || '',
+            total_calls: Number(record.total_calls) || 0,
+            inbound_calls: Number(record.inbound_calls) || 0,
+            outbound_calls: Number(record.outbound_calls) || 0,
+            answered_calls: Number(record.answered_calls) || 0,
+            missed_calls: Number(record.missed_calls) || 0,
+            voicemail_calls: Number(record.voicemail_calls) || 0,
+            total_duration_seconds: Number(record.total_duration_seconds) || 0,
+            inbound_duration_seconds: Number(record.inbound_duration_seconds) || 0,
+            outbound_duration_seconds: Number(record.outbound_duration_seconds) || 0,
+            uploaded_at: new Date().toISOString(),
+            uploaded_by: user.email
+        };
     }
 
-    return Response.json(results);
+    const recordsToCreate = Object.values(uniqueRecords);
+    
+    // Batch create if possible, or parallel create
+    // base44 sdk usually supports create one by one.
+    // If bulkCreate exists use it, otherwise Promise.all
+    // Assuming we don't have bulkCreate explicitly documented in my instructions but typically it's create_entity_records tool which is for me, not SDK.
+    // The SDK instructions say: base44.entities.Todo.bulkCreate(...)
+    
+    if (recordsToCreate.length > 0) {
+        await base44.entities.CallLog.bulkCreate(recordsToCreate);
+    }
+
+    return Response.json({
+      imported: recordsToCreate.length,
+      skipped: skippedUsers.length,
+      deleted_old_records: existing.length
+    });
 
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

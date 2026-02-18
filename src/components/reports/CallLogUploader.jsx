@@ -18,15 +18,15 @@ export default function CallLogUploader({ onUploadSuccess }) {
     if (typeof duration === 'string') {
       const parts = duration.split(':').map(Number);
       if (parts.length === 3) {
-        return parts[0] * 60 + parts[1] + parts[2] / 60;
+        return parts[0] * 3600 + parts[1] * 60 + parts[2];
       }
       if (parts.length === 2) {
-        return parts[0] * 60 + parts[1]; // Assume HH:MM or MM:SS? Standard call log usually HH:MM:SS, but sometimes partial
+        return parts[0] * 3600 + parts[1] * 60; // Assume HH:MM
       }
     }
     // Handle number (Excel sometimes exports time as fraction of day)
     if (typeof duration === 'number') {
-      return duration * 24 * 60; // Convert days to minutes
+      return Math.round(duration * 24 * 3600); // Convert days to seconds
     }
     return 0;
   };
@@ -95,9 +95,9 @@ export default function CallLogUploader({ onUploadSuccess }) {
             missed_calls: Number(row["Missed Calls"]) || 0,
             answered_calls: Number(row["Answered Calls"]) || 0,
             voicemail_calls: Number(row["Voicemail Calls"]) || 0,
-            total_duration_minutes: parseDuration(row["Total Call Duration"]),
-            inbound_duration_minutes: parseDuration(row["Inbound Call Duration"]),
-            outbound_duration_minutes: parseDuration(row["Outbound Call Duration"]),
+            total_duration_seconds: parseDuration(row["Total Call Duration"]),
+            inbound_duration_seconds: parseDuration(row["Inbound Call Duration"]),
+            outbound_duration_seconds: parseDuration(row["Outbound Call Duration"]),
         })).filter(r => r.user && r.user !== 'User'); // Filter out empty or header rows if any
 
         // 4. Send to backend

@@ -10,10 +10,10 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import CallLogUploader from './CallLogUploader';
 import { format, subMonths, startOfMonth } from 'date-fns';
 
-// Helper to format minutes to HH:MM:SS
-const formatDuration = (minutes) => {
-  if (!minutes) return "00:00:00";
-  const totalSeconds = Math.floor(minutes * 60);
+// Helper to format seconds to HH:MM:SS
+const formatDuration = (seconds) => {
+  if (!seconds) return "00:00:00";
+  const totalSeconds = Math.floor(seconds);
   const hours = Math.floor(totalSeconds / 3600);
   const mins = Math.floor((totalSeconds % 3600) / 60);
   const secs = totalSeconds % 60;
@@ -46,7 +46,6 @@ export default function CallLogDashboard({ user }) {
 
   const summary = data?.summary || {};
   const userBreakdown = data?.user_breakdown || [];
-  const trend = data?.trend || [];
 
   const handleExport = () => {
     if (!userBreakdown.length) return;
@@ -66,9 +65,9 @@ export default function CallLogDashboard({ user }) {
         u.answered_calls,
         u.missed_calls,
         u.voicemail_calls,
-        formatDuration(u.total_duration_minutes),
+        formatDuration(u.total_duration_seconds),
         u.answer_rate_percent.toFixed(1),
-        formatDuration(u.avg_call_duration_minutes)
+        formatDuration(u.avg_call_duration_seconds)
       ].join(','))
     ].join('\n');
 
@@ -130,35 +129,16 @@ export default function CallLogDashboard({ user }) {
         <MetricCard title="Total Calls" value={summary.total_calls} icon={Phone} color="text-blue-600" />
         <MetricCard title="Inbound" value={summary.inbound_calls} icon={PhoneIncoming} color="text-green-600" />
         <MetricCard title="Outbound" value={summary.outbound_calls} icon={PhoneOutgoing} color="text-purple-600" />
-        <MetricCard title="Total Duration" value={formatDuration(summary.total_duration_minutes)} icon={Clock} color="text-slate-600" />
+        <MetricCard title="Total Duration" value={formatDuration(summary.total_duration_seconds)} icon={Clock} color="text-slate-600" />
         
         <MetricCard title="Answered" value={summary.answered_calls} icon={CheckCircleIcon} color="text-teal-600" />
         <MetricCard title="Missed" value={summary.missed_calls} icon={PhoneMissed} color="text-red-600" />
         <MetricCard title="Answer Rate" value={`${(summary.answer_rate_percent || 0).toFixed(1)}%`} icon={PercentIcon} color="text-indigo-600" />
-        <MetricCard title="Avg Duration" value={formatDuration(summary.avg_call_duration_minutes)} icon={Clock} color="text-orange-600" />
+        <MetricCard title="Avg Duration" value={formatDuration(summary.avg_call_duration_seconds)} icon={Clock} color="text-orange-600" />
       </div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Weekly Trend</CardTitle>
-          </CardHeader>
-          <CardContent className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={trend}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="total_calls" stroke="#8884d8" name="Total Calls" />
-                <Line type="monotone" dataKey="answered_calls" stroke="#82ca9d" name="Answered" />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
         <Card>
           <CardHeader>
             <CardTitle>Answered vs Missed</CardTitle>
@@ -236,13 +216,13 @@ export default function CallLogDashboard({ user }) {
                     <TableCell className="text-right">{user.outbound_calls}</TableCell>
                     <TableCell className="text-right">{user.answered_calls}</TableCell>
                     <TableCell className="text-right">{user.missed_calls}</TableCell>
-                    <TableCell className="text-right font-mono text-xs">{formatDuration(user.total_duration_minutes)}</TableCell>
+                    <TableCell className="text-right font-mono text-xs">{formatDuration(user.total_duration_seconds)}</TableCell>
                     <TableCell className="text-right">
                       <span className={`px-2 py-1 rounded text-xs ${user.answer_rate_percent >= 80 ? 'bg-green-100 text-green-800' : user.answer_rate_percent >= 50 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
                         {user.answer_rate_percent.toFixed(1)}%
                       </span>
                     </TableCell>
-                    <TableCell className="text-right font-mono text-xs">{formatDuration(user.avg_call_duration_minutes)}</TableCell>
+                    <TableCell className="text-right font-mono text-xs">{formatDuration(user.avg_call_duration_seconds)}</TableCell>
                   </TableRow>
                 ))}
                 {userBreakdown.length === 0 && (
