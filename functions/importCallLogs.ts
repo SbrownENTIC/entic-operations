@@ -69,7 +69,8 @@ export default Deno.serve(async (req) => {
             outbound_duration_seconds: Number(record.outbound_duration_seconds) || 0,
             uploaded_at: new Date().toISOString(),
             uploaded_by: user.email,
-            source_file_name: fileName || ''
+            source_file_name: fileName || '',
+            period_detection_type: detectionType || 'manual'
         };
     }
 
