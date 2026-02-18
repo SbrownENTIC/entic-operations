@@ -63,21 +63,56 @@ export default function CallLogDashboard({ user }) {
   const handleExportFormat = async (exportFormat) => {
     setIsExporting(true);
     try {
-      const monthDate = new Date(selectedMonth);
-      const startDate = monthDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-      const endDate = new Date(monthDate);
-      endDate.setMonth(endDate.getMonth() + 1);
-      endDate.setDate(endDate.getDate() - 1);
-      const endDateStr = endDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      // Fetch reporting periods for the selected month to get stored dates
+      const periods = await base44.entities.CallLogPeriod.filter({});
+      const [year, month] = selectedMonth.split('-').map(Number);
+      const monthDate = new Date(year, month - 1, 1);
+      const monthEnd = new Date(year, month, 0);
       
-      const reportTitle = format(monthDate, 'MMMM yyyy') + ' - Call Log';
+      // Find any period overlapping with selected month
+      const relevantPeriod = periods.find(p => {
+        const pStart = new Date(p.reporting_period_start + 'T00:00:00');
+        const pEnd = new Date(p.reporting_period_end + 'T00:00:00');
+        return pStart <= monthEnd && pEnd >= monthDate;
+      });
+      
+      // Use stored dates from CallLogPeriod if available, otherwise use month boundaries
+      let startDate = selectedMonth; // YYYY-MM-DD format
+      let endDate = selectedMonth.substring(0, 7) + '-' + String(new Date(year, month, 0).getDate()).padStart(2, '0'); // Last day of month
+      let status = 'Monthly'; // Default status
+      
+      if (relevantPeriod) {
+        startDate = relevantPeriod.reporting_period_start;
+        endDate = relevantPeriod.reporting_period_end;
+        // Determine status from date range
+        const [sy, sm, sd] = startDate.split('-').map(Number);
+        const [ey, em, ed] = endDate.split('-').map(Number);
+        if (sd === 1 && sm === em && sy === ey) {
+          const lastDay = new Date(ey, em, 0).getDate();
+          if (ed === lastDay) {
+            status = 'Monthly';
+          }
+        }
+        const dayDiff = Math.floor((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1;
+        if (dayDiff <= 5 && status !== 'Monthly') {
+          status = 'Weekly';
+        } else if (status !== 'Monthly') {
+          status = 'Custom Range';
+        }
+      }
+      
+      // Generate report title based on status
+      let reportTitle = 'Call Log';
+      if (status === 'Monthly') {
+        reportTitle = format(monthDate, 'MMMM yyyy') + ' - Call Log';
+      }
       
       if (exportFormat === 'pdf') {
-        await generatePDFExport(summary, userBreakdown, reportTitle, startDate, endDateStr);
+        await generatePDFExport(summary, userBreakdown, reportTitle, startDate, endDate, status);
       } else if (exportFormat === 'excel') {
-        await generateExcelExport(summary, userBreakdown, reportTitle, startDate, endDateStr);
+        await generateExcelExport(summary, userBreakdown, reportTitle, startDate, endDate, status);
       } else if (exportFormat === 'csv') {
-        await generateCSVExport(userBreakdown, reportTitle, startDate, endDateStr);
+        await generateCSVExport(userBreakdown, reportTitle, startDate, endDate);
       }
     } finally {
       setIsExporting(false);
