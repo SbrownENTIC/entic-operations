@@ -96,6 +96,7 @@ export default Deno.serve(async (req) => {
     
     if (recordsToInsert.length > 0) {
         await base44.entities.CallLogPeriod.bulkCreate(recordsToInsert);
+        console.log(`[IMPORT] Successfully imported ${recordsToInsert.length} records for period ${startDate} to ${endDate}`);
     }
 
     return Response.json({
