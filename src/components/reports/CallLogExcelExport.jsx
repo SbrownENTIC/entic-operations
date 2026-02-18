@@ -9,22 +9,21 @@ const formatDuration = (seconds) => {
   return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 };
 
+const formatDateForDisplay = (dateStr) => {
+  const [y, m, d] = dateStr.split('-');
+  return `${m}/${d}/${y}`;
+};
+
 const getAnswerRateColor = (rate) => {
-  if (rate >= 85) return 'FFD9D9D9'; // Green background
-  if (rate >= 70) return 'FFFFFFE0'; // Yellow background
+  if (rate >= 80) return 'FFD9D9D9'; // Green background
+  if (rate >= 50) return 'FFFFFFE0'; // Yellow background
   return 'FFFFE0E0'; // Red background
 };
 
 export async function generateExcelExport(summary, userBreakdown, reportTitle, startDate, endDate, status) {
   const workbook = XLSX.utils.book_new();
   
-  // Format dates for filename/display (YYYY-MM-DD to MM/DD/YYYY)
-  const formatDateForDisplay = (dateStr) => {
-    const [y, m, d] = dateStr.split('-');
-    return `${m}/${d}/${y}`;
-  };
-  
-  // ===== DATA SHEET =====
+  // ===== FILE AND SHEET NAMING =====
   let sheetName = 'Call Log';
   let fileName = reportTitle;
   
@@ -45,24 +44,27 @@ export async function generateExcelExport(summary, userBreakdown, reportTitle, s
   
   let rowIndex = 0;
   
-  // Row 1: Title
+  // Row 1: Title (bold, 16pt)
   ws_data[rowIndex] = [reportTitle];
   rowIndex++;
   
-  // Row 2: Reporting Period (convert YYYY-MM-DD to MM/DD/YYYY)
-  const startFormatted = startDate.split('-').reverse().join('/');
-  const endFormatted = endDate.split('-').reverse().join('/');
+  // Row 2: Reporting Period with MM/DD/YYYY format
+  const startFormatted = formatDateForDisplay(startDate);
+  const endFormatted = formatDateForDisplay(endDate);
   ws_data[rowIndex] = [`Reporting Period: ${startFormatted} – ${endFormatted}`];
   rowIndex++;
   
   // Row 3: Generated On
-  ws_data[rowIndex] = [`Generated On: ${new Date().toLocaleString()}`];
+  const now = new Date();
+  const timestamp = `${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getDate().toString().padStart(2, '0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+  ws_data[rowIndex] = [`Generated On: ${timestamp}`];
   rowIndex++;
   
   // Blank row
   rowIndex++;
   
-  // KPI Summary Section
+  // ===== KPI SUMMARY SECTION =====
+  const kpiStartRow = rowIndex;
   const kpiHeaderRow = rowIndex;
   ws_data[rowIndex] = ['Metric', 'Value'];
   rowIndex++;
@@ -77,7 +79,7 @@ export async function generateExcelExport(summary, userBreakdown, reportTitle, s
   rowIndex++;
   ws_data[rowIndex] = ['Missed', summary.missed_calls];
   rowIndex++;
-  ws_data[rowIndex] = ['Answer Rate (%)', (summary.answer_rate_percent || 0).toFixed(1)];
+  ws_data[rowIndex] = ['Answer Rate (%)', (summary.answer_rate_percent || 0)];
   rowIndex++;
   ws_data[rowIndex] = ['Total Duration', formatDuration(summary.total_duration_seconds)];
   rowIndex++;
@@ -87,7 +89,7 @@ export async function generateExcelExport(summary, userBreakdown, reportTitle, s
   // Blank row
   rowIndex++;
   
-  // User Breakdown Table Header
+  // ===== USER BREAKDOWN TABLE =====
   const tableHeaderRow = rowIndex;
   ws_data[rowIndex] = [
     'User',
@@ -116,7 +118,7 @@ export async function generateExcelExport(summary, userBreakdown, reportTitle, s
       user.answered_calls,
       user.missed_calls,
       formatDuration(user.total_duration_seconds),
-      user.answer_rate_percent.toFixed(1),
+      user.answer_rate_percent,
       formatDuration(user.avg_call_duration_seconds)
     ];
     rowIndex++;
@@ -125,13 +127,17 @@ export async function generateExcelExport(summary, userBreakdown, reportTitle, s
   // Convert to sheet
   const dataSheet = XLSX.utils.aoa_to_sheet(ws_data);
   
-  // Apply formatting
-  // Title - bold, larger font
+  // ===== APPLY FORMATTING =====
+  
+  // Title - bold, 16pt font
   if (dataSheet['A1']) {
-    dataSheet['A1'].s = { font: { bold: true, sz: 16 }, alignment: { horizontal: 'left', vertical: 'center' } };
+    dataSheet['A1'].s = { 
+      font: { bold: true, sz: 16 }, 
+      alignment: { horizontal: 'left', vertical: 'center' } 
+    };
   }
   
-  // KPI Header - bold with gray background
+  // KPI Header Row - bold with light gray background and borders
   for (let i = 0; i < 2; i++) {
     const cell = XLSX.utils.encode_cell({ r: kpiHeaderRow, c: i });
     dataSheet[cell] = dataSheet[cell] || { t: 's', v: '' };
@@ -142,7 +148,20 @@ export async function generateExcelExport(summary, userBreakdown, reportTitle, s
     };
   }
   
-  // Table Header - bold with gray background
+  // KPI Data Rows - light card-style background with borders
+  for (let idx = kpiHeaderRow + 1; idx < kpiStartRow + 9; idx++) {
+    for (let i = 0; i < 2; i++) {
+      const cell = XLSX.utils.encode_cell({ r: idx, c: i });
+      if (dataSheet[cell]) {
+        dataSheet[cell].s = {
+          fill: { fgColor: { rgb: 'FFFAFBFC' } },
+          border: { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } }
+        };
+      }
+    }
+  }
+  
+  // Table Header Row - bold with light gray background and borders
   for (let i = 0; i < 9; i++) {
     const cell = XLSX.utils.encode_cell({ r: tableHeaderRow, c: i });
     dataSheet[cell] = dataSheet[cell] || { t: 's', v: '' };
@@ -153,7 +172,7 @@ export async function generateExcelExport(summary, userBreakdown, reportTitle, s
     };
   }
   
-  // User rows - alternating shading and answer rate coloring
+  // User Data Rows - alternating shading, answer rate coloring, and borders
   sortedUsers.forEach((user, idx) => {
     const rowNum = tableHeaderRow + 1 + idx;
     const isEvenRow = idx % 2 === 0;
@@ -163,20 +182,21 @@ export async function generateExcelExport(summary, userBreakdown, reportTitle, s
       const cell = XLSX.utils.encode_cell({ r: rowNum, c: i });
       dataSheet[cell] = dataSheet[cell] || { t: 's', v: '' };
       const baseStyle = {
-        fill: { fgColor: { rgb: backgroundColor } },
         border: { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } }
       };
       
       // Answer rate color coding (column 7, 0-indexed)
       if (i === 7) {
         baseStyle.fill = { fgColor: { rgb: getAnswerRateColor(user.answer_rate_percent) } };
+      } else {
+        baseStyle.fill = { fgColor: { rgb: backgroundColor } };
       }
       
       dataSheet[cell].s = baseStyle;
     }
   });
   
-  // Set column widths
+  // ===== COLUMN FORMATTING =====
   dataSheet['!cols'] = [
     { wch: 20 }, // User
     { wch: 12 }, // Total Calls
@@ -189,7 +209,42 @@ export async function generateExcelExport(summary, userBreakdown, reportTitle, s
     { wch: 15 }  // Average Duration
   ];
   
-  // Freeze header row
+  // Apply data type formatting to columns
+  for (let row = tableHeaderRow + 1; row < tableHeaderRow + 1 + sortedUsers.length; row++) {
+    // Total Calls, Inbound, Outbound, Answered, Missed (columns 1-5)
+    for (let col = 1; col <= 5; col++) {
+      const cell = XLSX.utils.encode_cell({ r: row, c: col });
+      if (dataSheet[cell]) {
+        dataSheet[cell].t = 'n'; // Number type
+      }
+    }
+    
+    // Answer Rate column (column 7) - percentage format with 1 decimal place
+    const answerRateCell = XLSX.utils.encode_cell({ r: row, c: 7 });
+    if (dataSheet[answerRateCell]) {
+      dataSheet[answerRateCell].t = 'n';
+      dataSheet[answerRateCell].s = {
+        ...(dataSheet[answerRateCell].s || {}),
+        numFmt: '0.0"%"'
+      };
+    }
+  }
+  
+  // Format duration columns (6 and 8) as hh:mm:ss
+  for (let row = tableHeaderRow + 1; row < tableHeaderRow + 1 + sortedUsers.length; row++) {
+    // Total Duration (column 6) and Average Duration (column 8)
+    for (const col of [6, 8]) {
+      const cell = XLSX.utils.encode_cell({ r: row, c: col });
+      if (dataSheet[cell]) {
+        dataSheet[cell].s = {
+          ...(dataSheet[cell].s || {}),
+          numFmt: '[h]:mm:ss'
+        };
+      }
+    }
+  }
+  
+  // Freeze header row (freeze up to table header row + 1 row)
   dataSheet['!freeze'] = { xSplit: 0, ySplit: tableHeaderRow + 1 };
   
   XLSX.utils.book_append_sheet(workbook, dataSheet, sheetName);
