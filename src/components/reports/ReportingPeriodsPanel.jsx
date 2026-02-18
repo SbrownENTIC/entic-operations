@@ -172,10 +172,10 @@ export default function ReportingPeriodsPanel({ selectedMonth, onRefresh }) {
                   return (
                     <TableRow key={period.key} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
                       <TableCell className="font-medium">
-                        {format(new Date(period.reporting_period_start), 'MMM d, yyyy')}
+                        {period.reporting_period_start}
                       </TableCell>
                       <TableCell>
-                        {format(new Date(period.reporting_period_end), 'MMM d, yyyy')}
+                        {period.reporting_period_end}
                       </TableCell>
                       <TableCell className="text-sm text-slate-600">
                         {firstRecord?.uploaded_at ? format(new Date(firstRecord.uploaded_at), 'MMM d, yyyy') : '-'}
