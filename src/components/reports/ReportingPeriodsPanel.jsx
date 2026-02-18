@@ -25,8 +25,11 @@ export default function ReportingPeriodsPanel({ selectedMonth, onRefresh }) {
     queryFn: async () => {
       const periods = await base44.entities.CallLogPeriod.filter({});
       return periods.filter(p => {
-        const periodStart = new Date(p.reporting_period_start);
-        const periodEnd = new Date(p.reporting_period_end);
+        // Parse dates as local dates (no timezone conversion)
+        const [startYear, startMonth, startDay] = p.reporting_period_start.split('-');
+        const [endYear, endMonth, endDay] = p.reporting_period_end.split('-');
+        const periodStart = new Date(parseInt(startYear), parseInt(startMonth) - 1, parseInt(startDay));
+        const periodEnd = new Date(parseInt(endYear), parseInt(endMonth) - 1, parseInt(endDay));
         // Check if period overlaps with the selected month
         return periodStart <= monthEnd && periodEnd >= monthStart;
       });
