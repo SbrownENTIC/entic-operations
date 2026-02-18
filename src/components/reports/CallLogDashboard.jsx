@@ -5,9 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Download, RefreshCw, Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed, Clock, Voicemail } from "lucide-react";
+import { Download, RefreshCw, Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed, Clock, Voicemail, Loader2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import CallLogUploader from './CallLogUploader';
+import ExportFormatDialog from './ExportFormatDialog';
+import { generatePDFExport, generateExcelExport } from './CallLogPDFExport';
 import { format, subMonths, startOfMonth } from 'date-fns';
 
 // Helper to format seconds to HH:MM:SS
@@ -25,6 +27,8 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 export default function CallLogDashboard({ user }) {
   const [selectedMonth, setSelectedMonth] = useState(format(startOfMonth(new Date()), 'yyyy-MM-01'));
   const [selectedUser, setSelectedUser] = useState('all');
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   
   // Generate last 12 months for dropdown
   const months = Array.from({ length: 12 }, (_, i) => {
@@ -49,36 +53,52 @@ export default function CallLogDashboard({ user }) {
   // Filter out users with zero calls as per requirement
   const userBreakdown = rawUserBreakdown.filter(u => u.total_calls > 0);
 
-  const handleExport = () => {
+  const handleExportClick = () => {
     if (!userBreakdown.length) return;
-    
-    const headers = [
-      'User', 'Total Calls', 'Inbound', 'Outbound', 'Answered', 'Missed', 'Voicemail', 
-      'Total Duration', 'Answer Rate %', 'Avg Duration'
-    ];
-    
-    const csvContent = [
-      headers.join(','),
-      ...userBreakdown.map(u => [
-        `"${u.user}"`,
-        u.total_calls,
-        u.inbound_calls,
-        u.outbound_calls,
-        u.answered_calls,
-        u.missed_calls,
-        u.voicemail_calls,
-        formatDuration(u.total_duration_seconds),
-        u.answer_rate_percent.toFixed(1),
-        formatDuration(u.avg_call_duration_seconds)
-      ].join(','))
-    ].join('\n');
+    setExportDialogOpen(true);
+  };
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `call_logs_${selectedMonth}.csv`;
-    link.click();
+  const handleExportFormat = async (format) => {
+    setIsExporting(true);
+    try {
+      if (format === 'pdf') {
+        await generatePDFExport(summary, userBreakdown, selectedMonth);
+      } else if (format === 'excel') {
+        await generateExcelExport(summary, userBreakdown, selectedMonth);
+      } else if (format === 'csv') {
+        // Raw CSV export
+        const headers = [
+          'User', 'Total Calls', 'Inbound', 'Outbound', 'Answered', 'Missed', 'Voicemail', 
+          'Total Duration', 'Answer Rate %', 'Avg Duration'
+        ];
+        
+        const csvContent = [
+          headers.join(','),
+          ...userBreakdown.map(u => [
+            `"${u.user}"`,
+            u.total_calls,
+            u.inbound_calls,
+            u.outbound_calls,
+            u.answered_calls,
+            u.missed_calls,
+            u.voicemail_calls,
+            formatDuration(u.total_duration_seconds),
+            u.answer_rate_percent.toFixed(1),
+            formatDuration(u.avg_call_duration_seconds)
+          ].join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `call_logs_${selectedMonth}.csv`;
+        link.click();
+      }
+    } finally {
+      setIsExporting(false);
+      setExportDialogOpen(false);
+    }
   };
 
   const pieData = [
@@ -116,8 +136,18 @@ export default function CallLogDashboard({ user }) {
             <RefreshCw className="w-4 h-4" />
           </Button>
 
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="w-4 h-4 mr-2" /> Export CSV
+          <Button variant="outline" onClick={handleExportClick} disabled={isExporting}>
+            {isExporting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Exporting...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4 mr-2" />
+                Export Report
+              </>
+            )}
           </Button>
         </div>
       </div>
@@ -239,6 +269,13 @@ export default function CallLogDashboard({ user }) {
           </div>
         </CardContent>
       </Card>
+
+      <ExportFormatDialog 
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        onExport={handleExportFormat}
+        isLoading={isExporting}
+      />
     </div>
   );
 }
