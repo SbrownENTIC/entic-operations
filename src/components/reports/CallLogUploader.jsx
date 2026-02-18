@@ -9,7 +9,9 @@ import { base44 } from "@/api/base44Client";
 export default function CallLogUploader({ onUploadSuccess }) {
   const [isUploading, setIsUploading] = useState(false);
   const [results, setResults] = useState(null);
-  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [fileName, setFileName] = useState('');
   const { toast } = useToast();
 
   const parseDuration = (duration) => {
@@ -31,15 +33,52 @@ export default function CallLogUploader({ onUploadSuccess }) {
     return 0;
   };
 
-  const handleFileUpload = async (event) => {
+  const parseFilenameDate = (name) => {
+    // Look for patterns like MM.DD.YY_MM.DD.YY or similar
+    // Regex for MM.DD.YY
+    const regex = /(\d{2})\.(\d{2})\.(\d{2})_(\d{2})\.(\d{2})\.(\d{2})/;
+    const match = name.match(regex);
+    
+    if (match) {
+        const [_, m1, d1, y1, m2, d2, y2] = match;
+        // Assume 20xx for year
+        const start = `20${y1}-${m1}-${d1}`;
+        const end = `20${y2}-${m2}-${d2}`;
+        return { start, end };
+    }
+    return null;
+  };
+
+  const handleFileSelect = (event) => {
     const file = event.target.files[0];
     if (!file) return;
+    
+    setFileName(file.name);
+    const dates = parseFilenameDate(file.name);
+    
+    if (dates) {
+        setStartDate(dates.start);
+        setEndDate(dates.end);
+        toast({
+            title: "Dates Detected",
+            description: `Reporting period detected: ${dates.start} to ${dates.end}`
+        });
+    }
+    
+    // Store file for upload step
+    setFileToUpload(file);
+  };
 
-    if (!selectedMonth) {
+  const [fileToUpload, setFileToUpload] = useState(null);
+
+  const handleUpload = async () => {
+    if (!fileToUpload) return;
+
+    if (!startDate || !endDate) {
         toast({
             variant: "destructive",
-            title: "Month Required",
-            description: "Please select the reporting month before uploading."
+            title: "Dates Required",
+            description: "Please specify the reporting period start and end dates."
         });
         return;
     }
@@ -49,7 +88,7 @@ export default function CallLogUploader({ onUploadSuccess }) {
 
     try {
         // 1. Upload the file
-        const { file_url } = await base44.integrations.Core.UploadFile({ file: file });
+        const { file_url } = await base44.integrations.Core.UploadFile({ file: fileToUpload });
 
         // 2. Extract data
         const extractionResult = await base44.integrations.Core.ExtractDataFromUploadedFile({
@@ -82,11 +121,7 @@ export default function CallLogUploader({ onUploadSuccess }) {
         }
 
         // 3. Transform data
-        const monthDate = new Date(selectedMonth + "-01");
-        const monthStr = monthDate.toISOString().split('T')[0];
-
         const records = rawData.map(row => ({
-            month: monthStr,
             user: row["User"],
             extension: String(row["Ext(s)"] || ""),
             total_calls: Number(row["Total Calls"]) || 0,
@@ -98,27 +133,34 @@ export default function CallLogUploader({ onUploadSuccess }) {
             total_duration_seconds: parseDuration(row["Total Call Duration"]),
             inbound_duration_seconds: parseDuration(row["Inbound Call Duration"]),
             outbound_duration_seconds: parseDuration(row["Outbound Call Duration"]),
-        })).filter(r => r.user && r.user !== 'User'); // Filter out empty or header rows if any
+        })).filter(r => r.user && r.user !== 'User');
 
         // 4. Send to backend
         const response = await base44.functions.invoke('importCallLogs', { 
             records,
-            month: monthStr
+            startDate,
+            endDate,
+            fileName: fileToUpload.name
         });
         
         const data = response.data;
         setResults(data);
         
-        if (data.imported > 0 || data.updated > 0) {
+        if (data.imported > 0) {
             toast({
                 title: "Import Successful",
-                description: `Imported: ${data.imported}, Updated: ${data.updated}, Skipped: ${data.skipped}`
+                description: `Imported: ${data.imported}, Skipped (Duplicates): ${data.skipped}`
             });
             if (onUploadSuccess) onUploadSuccess();
+            // Reset
+            setFileToUpload(null);
+            setFileName('');
+            setStartDate('');
+            setEndDate('');
         } else {
             toast({
                 title: "Import Complete",
-                description: "No records were changed.",
+                description: `No new records imported. Skipped: ${data.skipped}`,
                 variant: "warning"
             });
         }
@@ -132,7 +174,6 @@ export default function CallLogUploader({ onUploadSuccess }) {
         });
     } finally {
         setIsUploading(false);
-        event.target.value = '';
     }
   };
 
@@ -146,44 +187,84 @@ export default function CallLogUploader({ onUploadSuccess }) {
       </CardHeader>
       <CardContent>
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-slate-700">Select Report Period</label>
-            <input 
-                type="month" 
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-            />
-          </div>
+          
+          {!fileToUpload ? (
+            <div className="flex items-center gap-4 p-8 border-2 border-dashed border-slate-200 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
+              <div className="flex-1 text-center">
+                <input
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  onChange={handleFileSelect}
+                  disabled={isUploading}
+                  id="file-upload"
+                  className="hidden"
+                />
+                <label 
+                  htmlFor="file-upload" 
+                  className="cursor-pointer flex flex-col items-center justify-center gap-2"
+                >
+                  <FileUp className="w-10 h-10 text-slate-400" />
+                  <span className="text-sm font-medium text-slate-700">
+                    Click to select Call Log file
+                  </span>
+                  <span className="text-xs text-slate-500">
+                    Supported: .xlsx, .xls, .csv
+                  </span>
+                </label>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-100 rounded-md">
+                <div className="flex items-center gap-2">
+                    <FileUp className="w-5 h-5 text-blue-600" />
+                    <span className="font-medium text-sm text-blue-900">{fileName}</span>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => { setFileToUpload(null); setStartDate(''); setEndDate(''); }}>
+                    Change
+                </Button>
+              </div>
 
-          <div className="flex items-center gap-4 p-4 border-2 border-dashed border-slate-200 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
-            <div className="flex-1 text-center">
-              <input
-                type="file"
-                accept=".csv,.xlsx,.xls"
-                onChange={handleFileUpload}
-                disabled={isUploading}
-                id="file-upload"
-                className="hidden"
-              />
-              <label 
-                htmlFor="file-upload" 
-                className={`cursor-pointer flex flex-col items-center justify-center gap-2 ${isUploading ? 'opacity-50' : ''}`}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-slate-700">Start Date</label>
+                    <input 
+                        type="date"
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                    />
+                </div>
+                <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-slate-700">End Date</label>
+                    <input 
+                        type="date"
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                    />
+                </div>
+              </div>
+
+              <Button 
+                onClick={handleUpload} 
+                disabled={isUploading || !startDate || !endDate}
+                className="w-full bg-blue-600 hover:bg-blue-700"
               >
                 {isUploading ? (
-                  <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                    <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                    </>
                 ) : (
-                  <FileUp className="w-8 h-8 text-slate-400" />
+                    <>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Import Data
+                    </>
                 )}
-                <span className="text-sm font-medium text-slate-700">
-                  {isUploading ? "Uploading..." : "Click to select Excel/CSV file"}
-                </span>
-                <span className="text-xs text-slate-500">
-                  Supported: .xlsx, .xls, .csv
-                </span>
-              </label>
+              </Button>
             </div>
-          </div>
+          )}
 
           {results && (
             <div className="space-y-2">

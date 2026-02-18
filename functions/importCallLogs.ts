@@ -9,28 +9,21 @@ export default Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized. Only admins can upload call logs.' }, { status: 403 });
     }
 
-    const { records, month } = await req.json();
+    const { records, startDate, endDate, fileName } = await req.json();
 
-    if (!month) {
-        return Response.json({ error: 'Month is required.' }, { status: 400 });
+    if (!startDate || !endDate) {
+        return Response.json({ error: 'Start date and end date are required.' }, { status: 400 });
     }
 
     if (!records || !Array.isArray(records)) {
       return Response.json({ error: 'Invalid data format. Expected array of records.' }, { status: 400 });
     }
 
-    // 1. Delete existing records for this month
-    // Fetch IDs first
-    // Since we might have many records, we need to be careful. But usually < 100 users.
-    const existing = await base44.entities.CallLog.filter({ month }, {}, 1000);
-    
-    // Delete in parallel
-    await Promise.all(existing.map(r => base44.entities.CallLog.delete(r.id)));
-
-    // 2. Insert new records
-    // Dedup by user in the incoming batch (last one wins or first one? User said "Reject duplicate user entries")
+    // Insert new records
+    // Dedup by user in the incoming batch
     const uniqueRecords = {};
-    const skippedUsers = [];
+    const skippedUsers = []; // Duplicates in the file
+    const skippedDbDuplicates = []; // Duplicates in DB
 
     for (const record of records) {
         if (!record.user) continue;
@@ -41,7 +34,8 @@ export default Deno.serve(async (req) => {
         }
 
         uniqueRecords[record.user] = {
-            month: month,
+            reporting_period_start: startDate,
+            reporting_period_end: endDate,
             user: record.user,
             extension: record.extension || '',
             total_calls: Number(record.total_calls) || 0,
@@ -54,26 +48,39 @@ export default Deno.serve(async (req) => {
             inbound_duration_seconds: Number(record.inbound_duration_seconds) || 0,
             outbound_duration_seconds: Number(record.outbound_duration_seconds) || 0,
             uploaded_at: new Date().toISOString(),
-            uploaded_by: user.email
+            uploaded_by: user.email,
+            source_file_name: fileName || ''
         };
     }
 
-    const recordsToCreate = Object.values(uniqueRecords);
+    // Check against DB for duplicates (same user, same period)
+    const recordsToInsert = [];
     
-    // Batch create if possible, or parallel create
-    // base44 sdk usually supports create one by one.
-    // If bulkCreate exists use it, otherwise Promise.all
-    // Assuming we don't have bulkCreate explicitly documented in my instructions but typically it's create_entity_records tool which is for me, not SDK.
-    // The SDK instructions say: base44.entities.Todo.bulkCreate(...)
+    // We can't efficiently check all in one query if there are many users, but we can check by period
+    // Since this is per-file upload, checking by period should be fine
+    const existingInPeriod = await base44.entities.CallLogPeriod.filter({
+        reporting_period_start: startDate,
+        reporting_period_end: endDate
+    }, {}, 1000);
+
+    const existingUsersSet = new Set(existingInPeriod.map(r => r.user));
+
+    for (const record of Object.values(uniqueRecords)) {
+        if (existingUsersSet.has(record.user)) {
+            skippedDbDuplicates.push(record.user);
+        } else {
+            recordsToInsert.push(record);
+        }
+    }
     
-    if (recordsToCreate.length > 0) {
-        await base44.entities.CallLog.bulkCreate(recordsToCreate);
+    if (recordsToInsert.length > 0) {
+        await base44.entities.CallLogPeriod.bulkCreate(recordsToInsert);
     }
 
     return Response.json({
-      imported: recordsToCreate.length,
-      skipped: skippedUsers.length,
-      deleted_old_records: existing.length
+      imported: recordsToInsert.length,
+      skipped: skippedUsers.length + skippedDbDuplicates.length,
+      db_duplicates: skippedDbDuplicates.length
     });
 
   } catch (error) {
