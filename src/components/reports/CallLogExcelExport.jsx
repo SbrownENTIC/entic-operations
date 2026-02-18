@@ -17,7 +17,7 @@ const formatDateForDisplay = (dateStr) => {
 export async function generateExcelExport(summary, userBreakdown, reportTitle, startDate, endDate, status) {
   const workbook = XLSX.utils.book_new();
   
-  // ===== FILE AND SHEET NAMING =====
+  // ===== SHEET NAMING =====
   let sheetName = 'Call Log';
   let fileName = reportTitle;
   
@@ -29,29 +29,25 @@ export async function generateExcelExport(summary, userBreakdown, reportTitle, s
     const startFormatted = formatDateForDisplay(startDate);
     const endFormatted = formatDateForDisplay(endDate);
     fileName = `Call Log - ${startFormatted} to ${endFormatted}`;
-    sheetName = 'Call Log';
   }
   
   const ws_data = [];
   let rowIndex = 0;
   
-  // Row 1: Title (will be merged)
+  // ===== HEADER SECTION =====
   ws_data[rowIndex] = [reportTitle];
   const titleRow = rowIndex;
   rowIndex++;
   
-  // Row 2: Reporting Period
   const startFormatted = formatDateForDisplay(startDate);
   const endFormatted = formatDateForDisplay(endDate);
   ws_data[rowIndex] = [`Reporting Period: ${startFormatted} – ${endFormatted}`];
   const periodRow = rowIndex;
   rowIndex++;
   
-  // Row 3: Generated On
   const now = new Date();
   const timestamp = `${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getDate().toString().padStart(2, '0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
   ws_data[rowIndex] = [`Generated On: ${timestamp}`];
-  const generatedRow = rowIndex;
   rowIndex++;
   
   // Blank row
@@ -59,7 +55,6 @@ export async function generateExcelExport(summary, userBreakdown, reportTitle, s
   
   // ===== KPI SUMMARY SECTION =====
   const kpiStartRow = rowIndex;
-  const kpiHeaderRow = rowIndex;
   ws_data[rowIndex] = ['Metric', 'Value'];
   rowIndex++;
   
@@ -84,7 +79,7 @@ export async function generateExcelExport(summary, userBreakdown, reportTitle, s
   // Blank row
   rowIndex++;
   
-  // ===== USER BREAKDOWN TABLE =====
+  // ===== DATA TABLE =====
   const tableHeaderRow = rowIndex;
   ws_data[rowIndex] = [
     'User',
@@ -99,7 +94,7 @@ export async function generateExcelExport(summary, userBreakdown, reportTitle, s
   ];
   rowIndex++;
   
-  // User data rows (sorted by total_calls descending, filtered for > 0)
+  // Filter & sort users
   const sortedUsers = userBreakdown
     .filter(u => u.total_calls > 0)
     .sort((a, b) => b.total_calls - a.total_calls);
@@ -122,201 +117,183 @@ export async function generateExcelExport(summary, userBreakdown, reportTitle, s
   const tableDataEndRow = rowIndex - 1;
   
   // Convert to sheet
-  const dataSheet = XLSX.utils.aoa_to_sheet(ws_data);
+  const ws = XLSX.utils.aoa_to_sheet(ws_data);
   
-  // ===== DISABLE GRIDLINES =====
-  dataSheet.pageSetupView = { gridLines: false };
+  // ===== STYLING =====
+  const titleCellRef = XLSX.utils.encode_cell({ r: titleRow, c: 0 });
+  const periodCellRef = XLSX.utils.encode_cell({ r: periodRow, c: 0 });
+  const generatedCellRef = XLSX.utils.encode_cell({ r: rowIndex - sortedUsers.length - 4, c: 0 });
   
-  // ===== TITLE SECTION FORMATTING =====
+  // Ensure cells exist
+  if (!ws[titleCellRef]) ws[titleCellRef] = { t: 's', v: reportTitle };
+  if (!ws[periodCellRef]) ws[periodCellRef] = { t: 's', v: `Reporting Period: ${startFormatted} – ${endFormatted}` };
   
-  // Merge title across columns (A1:I1)
-  if (!dataSheet['!merges']) {
-    dataSheet['!merges'] = [];
-  }
-  dataSheet['!merges'].push({ s: { r: titleRow, c: 0 }, e: { r: titleRow, c: 8 } });
+  // Title: 18pt bold, dark blue, thick bottom border
+  ws[titleCellRef].s = {
+    font: { bold: true, sz: 18, color: { rgb: 'FF1F4E79' } },
+    alignment: { horizontal: 'left', vertical: 'center' },
+    border: { bottom: { style: 'medium', color: { rgb: 'FF1F4E79' } } }
+  };
   
-  // Title styling - 18pt, bold, dark blue, thick bottom border
-  if (dataSheet['A1']) {
-    dataSheet['A1'].s = {
-      font: { bold: true, sz: 18, color: { rgb: 'FF1F4E79' } },
-      alignment: { horizontal: 'left', vertical: 'center', wrapText: false },
-      border: {
-        bottom: { style: 'medium', color: { rgb: 'FF1F4E79' } }
-      }
-    };
-  }
+  // Period: bold label
+  ws[periodCellRef].s = {
+    font: { bold: true, sz: 11, color: { rgb: 'FF333333' } },
+    alignment: { horizontal: 'left', vertical: 'center' }
+  };
   
-  // Reporting Period - bold label
-  if (dataSheet['A2']) {
-    dataSheet['A2'].s = {
+  // Generated: subtle gray
+  ws[generatedCellRef].s = {
+    font: { sz: 10, color: { rgb: 'FF666666' } },
+    alignment: { horizontal: 'left', vertical: 'center' }
+  };
+  
+  // KPI Header: white text on dark blue background
+  const kpiMetricHeader = XLSX.utils.encode_cell({ r: kpiStartRow, c: 0 });
+  const kpiValueHeader = XLSX.utils.encode_cell({ r: kpiStartRow, c: 1 });
+  
+  if (!ws[kpiMetricHeader]) ws[kpiMetricHeader] = { t: 's', v: 'Metric' };
+  if (!ws[kpiValueHeader]) ws[kpiValueHeader] = { t: 's', v: 'Value' };
+  
+  const kpiHeaderStyle = {
+    font: { bold: true, color: { rgb: 'FFFFFFFF' }, sz: 11 },
+    fill: { fgColor: { rgb: 'FF1F4E79' } },
+    border: {
+      top: { style: 'thin', color: { rgb: 'FF1F4E79' } },
+      bottom: { style: 'thin', color: { rgb: 'FF1F4E79' } },
+      left: { style: 'thin', color: { rgb: 'FF1F4E79' } },
+      right: { style: 'thin', color: { rgb: 'FF1F4E79' } }
+    },
+    alignment: { horizontal: 'center', vertical: 'center' }
+  };
+  
+  ws[kpiMetricHeader].s = kpiHeaderStyle;
+  ws[kpiValueHeader].s = kpiHeaderStyle;
+  
+  // KPI Data rows: light gray value column, subtle borders
+  for (let r = kpiStartRow + 1; r <= kpiEndRow; r++) {
+    const metricCell = XLSX.utils.encode_cell({ r, c: 0 });
+    const valueCell = XLSX.utils.encode_cell({ r, c: 1 });
+    
+    if (!ws[metricCell]) ws[metricCell] = { t: 's', v: '' };
+    if (!ws[valueCell]) ws[valueCell] = { t: 's', v: '' };
+    
+    ws[metricCell].s = {
       font: { bold: true, sz: 11, color: { rgb: 'FF333333' } },
+      fill: { fgColor: { rgb: 'FFFAFBFC' } },
+      border: {
+        top: { style: 'thin', color: { rgb: 'FFD3D3D3' } },
+        bottom: { style: 'thin', color: { rgb: 'FFD3D3D3' } },
+        left: { style: 'thin', color: { rgb: 'FFD3D3D3' } },
+        right: { style: 'thin', color: { rgb: 'FFD3D3D3' } }
+      },
       alignment: { horizontal: 'left', vertical: 'center' }
     };
-  }
-  
-  // Generated On - subtle gray, 10pt
-  if (dataSheet['A3']) {
-    dataSheet['A3'].s = {
-      font: { sz: 10, color: { rgb: 'FF666666' } },
-      alignment: { horizontal: 'left', vertical: 'center' }
-    };
-  }
-  
-  // ===== KPI SUMMARY CARD SECTION =====
-  // Header row with dark blue background
-  for (let i = 0; i < 2; i++) {
-    const cell = XLSX.utils.encode_cell({ r: kpiHeaderRow, c: i });
-    dataSheet[cell] = dataSheet[cell] || { t: 's', v: '' };
-    dataSheet[cell].s = {
-      font: { bold: true, color: { rgb: 'FFFFFFFF' }, sz: 11 },
-      fill: { fgColor: { rgb: 'FF1F4E79' } },
-      border: { 
-        top: { style: 'thin', color: { rgb: 'FF1F4E79' } },
-        bottom: { style: 'thin', color: { rgb: 'FF1F4E79' } },
-        left: { style: 'thin', color: { rgb: 'FF1F4E79' } },
-        right: { style: 'thin', color: { rgb: 'FF1F4E79' } }
+    
+    ws[valueCell].s = {
+      font: { bold: false, sz: 14, color: { rgb: 'FF000000' } },
+      fill: { fgColor: { rgb: 'FFF2F2F2' } },
+      border: {
+        top: { style: 'thin', color: { rgb: 'FFD3D3D3' } },
+        bottom: { style: 'thin', color: { rgb: 'FFD3D3D3' } },
+        left: { style: 'thin', color: { rgb: 'FFD3D3D3' } },
+        right: { style: 'thin', color: { rgb: 'FFD3D3D3' } }
       },
-      alignment: { horizontal: i === 0 ? 'left' : 'right', vertical: 'center' }
+      alignment: { horizontal: 'right', vertical: 'center' }
     };
   }
   
-  // KPI Data Rows - card style with light gray value column
-  for (let idx = kpiHeaderRow + 1; idx <= kpiEndRow; idx++) {
-    for (let i = 0; i < 2; i++) {
-      const cell = XLSX.utils.encode_cell({ r: idx, c: i });
-      if (dataSheet[cell]) {
-        dataSheet[cell].s = {
-          font: { 
-            bold: i === 0, 
-            color: i === 0 ? { rgb: 'FF333333' } : { rgb: 'FF000000' },
-            sz: i === 0 ? 11 : 14
-          },
-          fill: { fgColor: { rgb: i === 1 ? 'FFF2F2F2' : 'FFFAFBFC' } },
-          border: { 
-            top: { style: 'thin', color: { rgb: 'FFD3D3D3' } },
-            bottom: { style: 'thin', color: { rgb: 'FFD3D3D3' } },
-            left: { style: 'thin', color: { rgb: 'FFD3D3D3' } },
-            right: { style: 'thin', color: { rgb: 'FFD3D3D3' } }
-          },
-          alignment: { horizontal: i === 0 ? 'left' : 'right', vertical: 'center' }
-        };
-      }
-    }
+  // TABLE HEADER: white text on dark blue
+  const tableHeaderStyle = {
+    font: { bold: true, color: { rgb: 'FFFFFFFF' }, sz: 11 },
+    fill: { fgColor: { rgb: 'FF1F4E79' } },
+    border: {
+      top: { style: 'thin', color: { rgb: 'FF1F4E79' } },
+      bottom: { style: 'thin', color: { rgb: 'FF1F4E79' } },
+      left: { style: 'thin', color: { rgb: 'FF1F4E79' } },
+      right: { style: 'thin', color: { rgb: 'FF1F4E79' } }
+    },
+    alignment: { horizontal: 'center', vertical: 'center' }
+  };
+  
+  for (let c = 0; c < 9; c++) {
+    const cell = XLSX.utils.encode_cell({ r: tableHeaderRow, c });
+    if (!ws[cell]) ws[cell] = { t: 's', v: '' };
+    ws[cell].s = tableHeaderStyle;
   }
   
-  // ===== DATA TABLE AS STRUCTURED EXCEL TABLE =====
-  
-  // Table Header Row - white text on dark blue
-  for (let i = 0; i < 9; i++) {
-    const cell = XLSX.utils.encode_cell({ r: tableHeaderRow, c: i });
-    dataSheet[cell] = dataSheet[cell] || { t: 's', v: '' };
-    dataSheet[cell].s = {
-      font: { bold: true, color: { rgb: 'FFFFFFFF' }, sz: 11 },
-      fill: { fgColor: { rgb: 'FF1F4E79' } },
-      border: { 
-        top: { style: 'thin', color: { rgb: 'FF1F4E79' } },
-        bottom: { style: 'thin', color: { rgb: 'FF1F4E79' } },
-        left: { style: 'thin', color: { rgb: 'FF1F4E79' } },
-        right: { style: 'thin', color: { rgb: 'FF1F4E79' } }
-      },
-      alignment: { horizontal: i === 0 ? 'left' : 'center', vertical: 'center' }
-    };
-  }
-  
-  // User Data Rows - alternating shading with thin borders
+  // DATA ROWS: alternating shades with conditional answer rate coloring
   sortedUsers.forEach((user, idx) => {
     const rowNum = tableDataStartRow + idx;
     const isEvenRow = idx % 2 === 0;
-    const backgroundColor = isEvenRow ? 'FFFFFFFF' : 'FFFFF9FAFB';
+    const bgColor = isEvenRow ? 'FFFFFFFF' : 'FFFFF9FAFB';
     
-    for (let i = 0; i < 9; i++) {
-      const cell = XLSX.utils.encode_cell({ r: rowNum, c: i });
-      dataSheet[cell] = dataSheet[cell] || { t: 's', v: '' };
+    for (let c = 0; c < 9; c++) {
+      const cell = XLSX.utils.encode_cell({ r: rowNum, c });
+      if (!ws[cell]) ws[cell] = { t: c > 0 ? 'n' : 's', v: '' };
       
-      // Special handling for answer rate column
-      let cellFill = { fgColor: { rgb: backgroundColor } };
-      if (i === 7) {
+      let cellBg = { fgColor: { rgb: bgColor } };
+      
+      // Conditional formatting for Answer Rate (column 7)
+      if (c === 7) {
         const rate = user.answer_rate_percent || 0;
         if (rate >= 90) {
-          cellFill = { fgColor: { rgb: 'FFE8F5E9' } }; // Subtle green
+          cellBg = { fgColor: { rgb: 'FFE8F5E9' } };
         } else if (rate >= 70) {
-          cellFill = { fgColor: { rgb: 'FFF9F5E9' } }; // Subtle yellow
+          cellBg = { fgColor: { rgb: 'FFF9F5E9' } };
         } else {
-          cellFill = { fgColor: { rgb: 'FFFFE9E9' } }; // Subtle red
+          cellBg = { fgColor: { rgb: 'FFFFE9E9' } };
         }
       }
       
-      dataSheet[cell].s = {
-        border: { 
+      ws[cell].s = {
+        font: { sz: 10, color: { rgb: 'FF000000' } },
+        fill: cellBg,
+        border: {
           top: { style: 'thin', color: { rgb: 'FFE0E0E0' } },
           bottom: { style: 'thin', color: { rgb: 'FFE0E0E0' } },
           left: { style: 'thin', color: { rgb: 'FFE0E0E0' } },
           right: { style: 'thin', color: { rgb: 'FFE0E0E0' } }
         },
-        fill: cellFill,
-        alignment: { horizontal: i === 0 ? 'left' : 'right', vertical: 'center' },
-        font: { sz: 10 }
+        alignment: { horizontal: c === 0 ? 'left' : 'right', vertical: 'center' }
       };
+      
+      // Number formatting
+      if (c >= 1 && c <= 5) {
+        ws[cell].z = '#,##0';
+      } else if (c === 7) {
+        ws[cell].z = '0.0';
+      }
     }
   });
   
-  // ===== COLUMN WIDTHS & FORMATTING =====
-  dataSheet['!cols'] = [
-    { wch: 25 }, // User
-    { wch: 14 }, // Total Calls
-    { wch: 12 }, // Inbound
-    { wch: 12 }, // Outbound
-    { wch: 12 }, // Answered
-    { wch: 12 }, // Missed
-    { wch: 18 }, // Total Duration
-    { wch: 15 }, // Answer Rate
-    { wch: 18 }  // Average Duration
+  // ===== COLUMN WIDTHS =====
+  ws['!cols'] = [
+    { wch: 25 },
+    { wch: 14 },
+    { wch: 12 },
+    { wch: 12 },
+    { wch: 12 },
+    { wch: 12 },
+    { wch: 18 },
+    { wch: 15 },
+    { wch: 18 }
   ];
   
-  // Apply data type and number formatting
-  for (let row = tableDataStartRow; row <= tableDataEndRow; row++) {
-    // Total Calls, Inbound, Outbound, Answered, Missed (columns 1-5) - number with comma separator
-    for (let col = 1; col <= 5; col++) {
-      const cell = XLSX.utils.encode_cell({ r: row, c: col });
-      if (dataSheet[cell]) {
-        dataSheet[cell].t = 'n';
-        dataSheet[cell].s = {
-          ...(dataSheet[cell].s || {}),
-          numFmt: '#,##0'
-        };
-      }
-    }
-    
-    // Answer Rate (column 7) - percentage format with 1 decimal place
-    const answerRateCell = XLSX.utils.encode_cell({ r: row, c: 7 });
-    if (dataSheet[answerRateCell]) {
-      dataSheet[answerRateCell].t = 'n';
-      dataSheet[answerRateCell].s = {
-        ...(dataSheet[answerRateCell].s || {}),
-        numFmt: '0.0"%"'
-      };
-    }
-  }
+  // ===== MERGE TITLE CELL =====
+  ws['!merges'] = [
+    { s: { r: titleRow, c: 0 }, e: { r: titleRow, c: 8 } }
+  ];
   
-  // Format duration columns (6 and 8) as hh:mm:ss
-  for (let row = tableDataStartRow; row <= tableDataEndRow; row++) {
-    for (const col of [6, 8]) {
-      const cell = XLSX.utils.encode_cell({ r: row, c: col });
-      if (dataSheet[cell]) {
-        dataSheet[cell].s = {
-          ...(dataSheet[cell].s || {}),
-          numFmt: '[h]:mm:ss'
-        };
-      }
-    }
-  }
+  // ===== FREEZE PANES & HIDE GRIDLINES =====
+  ws['!freeze'] = { xSplit: 0, ySplit: tableHeaderRow + 1 };
+  ws.pageSetupView = { gridLines: false, pageBreakPreview: false };
   
-  // ===== FREEZE HEADER ROW & HIDE GRIDLINES =====
-  dataSheet['!freeze'] = { xSplit: 0, ySplit: tableHeaderRow + 1 };
-  dataSheet.pageSetupView = { gridLines: false };
+  // ===== PAGE SETUP =====
+  ws['!print'] = {
+    gridLines: false,
+    headings: false
+  };
   
-  XLSX.utils.book_append_sheet(workbook, dataSheet, sheetName);
-  
-  // Download the file
+  XLSX.utils.book_append_sheet(workbook, ws, sheetName);
   XLSX.writeFile(workbook, `${fileName}.xlsx`);
 }
