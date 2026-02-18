@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Trash2, RotateCcw, Eye } from "lucide-react";
+import { Trash2, Eye } from "lucide-react";
 import { format, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval } from 'date-fns';
 import ReportingPeriodDetailModal from './ReportingPeriodDetailModal.jsx';
 
