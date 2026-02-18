@@ -48,24 +48,45 @@ export default function ReportingPeriodDetailModal({ open, onOpenChange, period,
   };
 
   const handleSave = async () => {
+    // Validate dates
+    const newErrors = {};
+    
+    if (!isValidDate(formData.reporting_period_start)) {
+      newErrors.start = "Invalid calendar date";
+    }
+    if (!isValidDate(formData.reporting_period_end)) {
+      newErrors.end = "Invalid calendar date";
+    }
+    
+    const startDate = new Date(formData.reporting_period_start);
+    const endDate = new Date(formData.reporting_period_end);
+    if (startDate > endDate) {
+      newErrors.date = "Start date must be before end date";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
     setIsSaving(true);
     try {
-      // Only update editable fields
+      // When manually edited, set period_detection_type to "manual"
       const updateData = {
         reporting_period_start: formData.reporting_period_start,
         reporting_period_end: formData.reporting_period_end,
-        notes: formData.notes || '',
-        period_status: periodStatus,
+        period_detection_type: "manual"
       };
 
       await base44.entities.CallLogPeriod.update(formData.id, updateData);
       
       toast({
         title: "Success",
-        description: "Reporting period updated successfully."
+        description: "Reporting period updated successfully. Detection type set to manual."
       });
       
       setIsEditing(false);
+      setErrors({});
       onRefresh?.();
       onOpenChange(false);
     } catch (error) {
