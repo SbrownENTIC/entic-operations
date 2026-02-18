@@ -64,11 +64,13 @@ export default function ReportingPeriodsPanel({ selectedMonth, onRefresh }) {
     return unique.sort((a, b) => new Date(a.reporting_period_start) - new Date(b.reporting_period_start));
   }, [allPeriods]);
 
-  // Display periods as stored (no calculations)
+  // Display periods as stored (no calculations, no timezone conversion)
   const periodsWithStatus = useMemo(() => {
     return uniquePeriods.map(p => {
-      const start = new Date(p.reporting_period_start);
-      const end = new Date(p.reporting_period_end);
+      const [startYear, startMonth, startDay] = p.reporting_period_start.split('-');
+      const [endYear, endMonth, endDay] = p.reporting_period_end.split('-');
+      const start = new Date(parseInt(startYear), parseInt(startMonth) - 1, parseInt(startDay));
+      const end = new Date(parseInt(endYear), parseInt(endMonth) - 1, parseInt(endDay));
       
       const dayDiff = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end days
 
