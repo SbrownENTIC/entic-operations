@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,8 +7,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Trash2, RotateCcw, Eye } from "lucide-react";
 import { format, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval } from 'date-fns';
+import ReportingPeriodDetailModal from './ReportingPeriodDetailModal.jsx';
 
 export default function ReportingPeriodsPanel({ selectedMonth, onRefresh }) {
+  const [selectedPeriod, setSelectedPeriod] = useState(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+
   const monthDate = new Date(selectedMonth);
   const monthStart = startOfMonth(monthDate);
   const monthEnd = endOfMonth(monthDate);
@@ -199,6 +203,10 @@ export default function ReportingPeriodsPanel({ selectedMonth, onRefresh }) {
                           <Button 
                             variant="ghost" 
                             size="sm"
+                            onClick={() => {
+                              setSelectedPeriod(firstRecord);
+                              setDetailModalOpen(true);
+                            }}
                             title="View details"
                             className="h-8 w-8 p-0"
                           >
@@ -230,6 +238,16 @@ export default function ReportingPeriodsPanel({ selectedMonth, onRefresh }) {
             </Table>
           </div>
         )}
+
+        <ReportingPeriodDetailModal 
+          open={detailModalOpen}
+          onOpenChange={setDetailModalOpen}
+          period={selectedPeriod}
+          onRefresh={() => {
+            refetch();
+            if (onRefresh) onRefresh();
+          }}
+        />
       </CardContent>
     </Card>
   );
