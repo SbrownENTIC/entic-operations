@@ -167,39 +167,27 @@ export async function generatePDFExport(summary, userBreakdown, reportTitle, sta
   }
 }
 
-export async function generateExcelExport(summary, userBreakdown, selectedMonth) {
+export async function generateCSVExport(userBreakdown, reportTitle, startDate, endDate) {
   const lines = [
-    ['Ear, Nose & Throat Institute of CT'],
-    ['Monthly Call Log Report'],
+    [reportTitle],
+    [`Reporting Period: ${startDate} – ${endDate}`],
+    [`Generated: ${new Date().toLocaleString()}`],
     [],
-    ['Reporting Period:', `${selectedMonth}`],
-    ['Generated:', new Date().toLocaleString()],
-    [],
-    ['KEY PERFORMANCE INDICATORS'],
-    [],
-    ['Metric', 'Value'],
-    ['Total Calls', summary.total_calls],
-    ['Inbound', summary.inbound_calls],
-    ['Outbound', summary.outbound_calls],
-    ['Answered', summary.answered_calls],
-    ['Missed', summary.missed_calls],
-    ['Answer Rate (%)', (summary.answer_rate_percent || 0).toFixed(1)],
-    ['Total Duration', formatDuration(summary.total_duration_seconds)],
-    ['Average Duration', formatDuration(summary.avg_call_duration_seconds)],
-    [],
-    ['USER BREAKDOWN'],
     ['User', 'Total Calls', 'Inbound', 'Outbound', 'Answered', 'Missed', 'Duration (HH:MM:SS)', 'Answer Rate (%)', 'Avg Duration (HH:MM:SS)'],
-    ...userBreakdown.map(u => [
-      u.user,
-      u.total_calls,
-      u.inbound_calls,
-      u.outbound_calls,
-      u.answered_calls,
-      u.missed_calls,
-      formatDuration(u.total_duration_seconds),
-      u.answer_rate_percent.toFixed(1),
-      formatDuration(u.avg_call_duration_seconds)
-    ])
+    ...userBreakdown
+      .filter(u => u.total_calls > 0)
+      .sort((a, b) => b.total_calls - a.total_calls)
+      .map(u => [
+        u.user,
+        u.total_calls,
+        u.inbound_calls,
+        u.outbound_calls,
+        u.answered_calls,
+        u.missed_calls,
+        formatDuration(u.total_duration_seconds),
+        u.answer_rate_percent.toFixed(1),
+        formatDuration(u.avg_call_duration_seconds)
+      ])
   ];
 
   const csv = lines.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
@@ -207,7 +195,7 @@ export async function generateExcelExport(summary, userBreakdown, selectedMonth)
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `call_logs_${selectedMonth}.csv`;
+  link.download = `${reportTitle}.csv`;
   link.click();
   URL.revokeObjectURL(url);
 }
