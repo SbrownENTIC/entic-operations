@@ -174,26 +174,12 @@ export default function ReportingPeriodDetailModal({ open, onOpenChange, period,
             </div>
           </div>
 
-          {/* Period Status */}
+          {/* Detection Type (read-only) */}
           <div className="space-y-2">
-            <Label className="font-semibold">Report Period Type</Label>
-            {isEditing ? (
-              <Select value={periodStatus} onValueChange={setPeriodStatus}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="auto">Auto-Detect</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="custom">Custom Range</SelectItem>
-                </SelectContent>
-              </Select>
-            ) : (
-              <div className="p-2 bg-slate-50 rounded text-sm">
-                {periodStatus === 'auto' ? 'Auto-Detect' : periodStatus.charAt(0).toUpperCase() + periodStatus.slice(1)}
-              </div>
-            )}
+            <Label className="font-semibold">Detection Type</Label>
+            <div className="p-2 bg-slate-50 rounded text-sm">
+              {formData.period_detection_type === 'manual' ? 'Manual (locked)' : 'Auto-Detected'}
+            </div>
           </div>
 
           {/* Stats Summary */}
