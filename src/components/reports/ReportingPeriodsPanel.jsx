@@ -131,9 +131,13 @@ export default function ReportingPeriodsPanel({ selectedMonth, onRefresh }) {
 
   const handleDelete = async (id) => {
     if (confirm('Delete this reporting period?')) {
-      await base44.entities.CallLogPeriod.delete(id);
-      refetch();
-      if (onRefresh) onRefresh();
+      try {
+        await base44.entities.CallLogPeriod.delete(id);
+        refetch();
+        if (onRefresh) onRefresh();
+      } catch (error) {
+        alert('Failed to delete reporting period: ' + (error.message || 'Unknown error'));
+      }
     }
   };
 
@@ -180,7 +184,7 @@ export default function ReportingPeriodsPanel({ selectedMonth, onRefresh }) {
                 {periodsWithStatus.map((period, idx) => {
                   const firstRecord = period.records[0];
                   return (
-                    <TableRow key={period.key} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                    <TableRow key={firstRecord.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
                       <TableCell className="font-medium">
                         {new Date(period.reporting_period_start + 'T00:00:00').toLocaleDateString('en-US')}
                       </TableCell>
