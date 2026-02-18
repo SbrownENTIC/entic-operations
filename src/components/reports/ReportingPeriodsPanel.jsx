@@ -167,8 +167,8 @@ export default function ReportingPeriodsPanel({ selectedMonth, onRefresh }) {
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-100 hover:bg-slate-100">
-                  <TableHead className="font-semibold">Period Start</TableHead>
-                  <TableHead className="font-semibold">Period End</TableHead>
+                  <TableHead className="font-semibold">Start Date</TableHead>
+                  <TableHead className="font-semibold">End Date</TableHead>
                   <TableHead className="font-semibold">Upload Date</TableHead>
                   <TableHead className="font-semibold">Uploaded By</TableHead>
                   <TableHead className="font-semibold">Source File</TableHead>
