@@ -18,89 +18,81 @@ export default function CallLogUploader({ onUploadSuccess }) {
     setIsUploading(true);
     setResults(null);
 
-    try {
-      // 1. Upload file to Base44 storage
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      
-      // 2. Extract data from Excel/CSV
-      const extractionSchema = {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            user: { type: "string", description: "Name of the user or agent" },
-            week_ending: { type: "string", description: "Date of week ending (YYYY-MM-DD)" },
-            extension: { type: "string" },
-            total_calls: { type: "number" },
-            inbound_calls: { type: "number" },
-            outbound_calls: { type: "number" },
-            answered_calls: { type: "number" },
-            missed_calls: { type: "number" },
-            voicemail_calls: { type: "number" },
-            total_duration_minutes: { type: "number" },
-            inbound_duration_minutes: { type: "number" },
-            outbound_duration_minutes: { type: "number" }
-          },
-          required: ["user"]
-        }
-      };
-
-      const { output } = await base44.integrations.Core.ExtractDataFromUploadedFile({
-        file_url,
-        json_schema: extractionSchema
-      });
-
-      if (!output || !Array.isArray(output)) {
-        throw new Error("Failed to extract data from file. Please ensure columns match the expected format.");
-      }
-
-      // 3. Process records (calculate month, ensure numeric values)
-      const records = output.map(record => {
-        const cleanRecord = { ...record };
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const text = e.target.result;
+        const rows = text.split('\n');
+        const headers = rows[0].split(',').map(h => h.trim().toLowerCase().replace(/['"]+/g, ''));
         
-        // Handle week_ending date parsing
-        if (cleanRecord.week_ending) {
-           const d = new Date(cleanRecord.week_ending);
-           if (!isNaN(d.getTime())) {
-               cleanRecord.week_ending = d.toISOString().split('T')[0];
-               // Calculate month (1st of month) based on week ending
-               const m = new Date(d.getFullYear(), d.getMonth(), 1);
-               cleanRecord.month = m.toISOString().split('T')[0];
-           }
+        const records = [];
+        
+        // Basic CSV parsing (not handling embedded commas in quotes for simplicity, as per requirements/time)
+        // A more robust solution would use a library if needed.
+        
+        for (let i = 1; i < rows.length; i++) {
+          if (!rows[i].trim()) continue;
+          
+          const values = rows[i].split(',').map(v => v.trim().replace(/['"]+/g, ''));
+          const record = {};
+          
+          headers.forEach((header, index) => {
+            // Map common CSV headers to entity fields
+            let field = header;
+            if (header.includes('week') && header.includes('ending')) field = 'week_ending';
+            if (header.includes('total') && header.includes('duration')) field = 'total_duration_minutes';
+            // ... add other mappings as necessary or rely on user matching CSV headers to schema
+            
+            // Simple direct mapping fallback
+            record[field] = values[index];
+          });
+          
+          // Basic cleanup/validation logic
+          if (record.week_ending) {
+             // Ensure date format YYYY-MM-DD
+             const d = new Date(record.week_ending);
+             if (!isNaN(d.getTime())) {
+                 record.week_ending = d.toISOString().split('T')[0];
+                 // Calculate month (1st of month)
+                 const m = new Date(d.getFullYear(), d.getMonth(), 1);
+                 record.month = m.toISOString().split('T')[0];
+             }
+          }
+
+          records.push(record);
         }
 
-        return cleanRecord;
-      });
+        const response = await base44.functions.invoke('importCallLogs', { records });
+        setResults(response.data);
+        
+        if (response.data.imported > 0) {
+          toast({
+            title: "Import Successful",
+            description: `Imported ${response.data.imported} records. Skipped ${response.data.skipped} duplicates.`
+          });
+          if (onUploadSuccess) onUploadSuccess();
+        } else if (response.data.skipped > 0) {
+             toast({
+            title: "Import Complete",
+            description: `Skipped ${response.data.skipped} duplicates. No new records imported.`,
+            variant: "warning"
+          });
+        }
 
-      // 4. Import to database
-      const response = await base44.functions.invoke('importCallLogs', { records });
-      setResults(response.data);
-      
-      if (response.data.imported > 0) {
+      } catch (error) {
+        console.error("Upload error:", error);
         toast({
-          title: "Import Successful",
-          description: `Imported ${response.data.imported} records. Skipped ${response.data.skipped} duplicates.`
+          variant: "destructive",
+          title: "Upload Failed",
+          description: error.message || "Failed to parse or upload file."
         });
-        if (onUploadSuccess) onUploadSuccess();
-      } else if (response.data.skipped > 0) {
-           toast({
-          title: "Import Complete",
-          description: `Skipped ${response.data.skipped} duplicates. No new records imported.`,
-          variant: "warning"
-        });
+      } finally {
+        setIsUploading(false);
+        // Reset file input
+        event.target.value = '';
       }
-
-    } catch (error) {
-      console.error("Upload error:", error);
-      toast({
-        variant: "destructive",
-        title: "Upload Failed",
-        description: error.message || "Failed to process file."
-      });
-    } finally {
-      setIsUploading(false);
-      event.target.value = '';
-    }
+    };
+    reader.readAsText(file);
   };
 
   return (
@@ -117,7 +109,7 @@ export default function CallLogUploader({ onUploadSuccess }) {
             <div className="flex-1 text-center">
               <input
                 type="file"
-                accept=".xlsx,.xls,.csv"
+                accept=".csv"
                 onChange={handleFileUpload}
                 disabled={isUploading}
                 id="file-upload"
@@ -133,10 +125,10 @@ export default function CallLogUploader({ onUploadSuccess }) {
                   <FileUp className="w-8 h-8 text-slate-400" />
                 )}
                 <span className="text-sm font-medium text-slate-700">
-                  {isUploading ? "Processing..." : "Click to select Excel or CSV file"}
+                  {isUploading ? "Uploading..." : "Click to select CSV file"}
                 </span>
                 <span className="text-xs text-slate-500">
-                  Supports .xlsx, .xls, and .csv formats
+                  Headers must match: user, week_ending, total_calls, etc.
                 </span>
               </label>
             </div>
