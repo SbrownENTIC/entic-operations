@@ -43,7 +43,7 @@ export default function ReportingPeriodsPanel({ selectedMonth, onRefresh }) {
     const unique = [];
 
     allPeriods.forEach(p => {
-      const key = `${p.reporting_period_start}-${p.reporting_period_end}`;
+      const key = `${p.reporting_period_start}|${p.reporting_period_end}`;
       if (!seen.has(key)) {
         seen.set(key, []);
       }
@@ -51,7 +51,7 @@ export default function ReportingPeriodsPanel({ selectedMonth, onRefresh }) {
     });
 
     seen.forEach((records, key) => {
-      const [start, end] = key.split('-');
+      const [start, end] = key.split('|');
       unique.push({
         key,
         reporting_period_start: start,
