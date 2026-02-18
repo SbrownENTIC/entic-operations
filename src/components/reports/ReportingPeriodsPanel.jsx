@@ -102,9 +102,11 @@ export default function ReportingPeriodsPanel({ selectedMonth, onRefresh }) {
     const coveredDays = new Set();
 
     periodsWithStatus.forEach(p => {
+      const [startYear, startMonth, startDay] = p.reporting_period_start.split('-');
+      const [endYear, endMonth, endDay] = p.reporting_period_end.split('-');
       const periodDays = eachDayOfInterval({
-        start: new Date(p.reporting_period_start),
-        end: new Date(p.reporting_period_end),
+        start: new Date(parseInt(startYear), parseInt(startMonth) - 1, parseInt(startDay)),
+        end: new Date(parseInt(endYear), parseInt(endMonth) - 1, parseInt(endDay)),
       });
       periodDays.forEach(d => coveredDays.add(d.toDateString()));
     });
