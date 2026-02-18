@@ -45,7 +45,9 @@ export default function CallLogDashboard({ user }) {
   });
 
   const summary = data?.summary || {};
-  const userBreakdown = data?.user_breakdown || [];
+  const rawUserBreakdown = data?.user_breakdown || [];
+  // Filter out users with zero calls as per requirement
+  const userBreakdown = rawUserBreakdown.filter(u => u.total_calls > 0);
 
   const handleExport = () => {
     if (!userBreakdown.length) return;

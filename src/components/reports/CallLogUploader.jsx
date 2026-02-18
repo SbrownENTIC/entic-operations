@@ -160,7 +160,7 @@ export default function CallLogUploader({ onUploadSuccess }) {
             <div className="flex-1 text-center">
               <input
                 type="file"
-                accept=".xlsx,.xls,.csv"
+                accept=".csv,.xlsx,.xls"
                 onChange={handleFileUpload}
                 disabled={isUploading}
                 id="file-upload"
