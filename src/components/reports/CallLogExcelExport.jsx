@@ -14,12 +14,6 @@ const formatDateForDisplay = (dateStr) => {
   return `${m}/${d}/${y}`;
 };
 
-const getAnswerRateColor = (rate) => {
-  if (rate >= 80) return 'FFD9EDD9'; // Light green background
-  if (rate >= 50) return 'FFFEF3CD'; // Light yellow background
-  return 'FFF8D7DA'; // Light red background
-};
-
 export async function generateExcelExport(summary, userBreakdown, reportTitle, startDate, endDate, status) {
   const workbook = XLSX.utils.book_new();
   
@@ -28,12 +22,10 @@ export async function generateExcelExport(summary, userBreakdown, reportTitle, s
   let fileName = reportTitle;
   
   if (status === 'Monthly') {
-    // Extract month/year from reportTitle (e.g., "December 2025 - Call Log")
     const monthYear = reportTitle.replace(' - Call Log', '');
     sheetName = monthYear;
     fileName = `${monthYear} - Call Log`;
   } else {
-    // Weekly or Custom Range
     const startFormatted = formatDateForDisplay(startDate);
     const endFormatted = formatDateForDisplay(endDate);
     fileName = `Call Log - ${startFormatted} to ${endFormatted}`;
@@ -41,23 +33,25 @@ export async function generateExcelExport(summary, userBreakdown, reportTitle, s
   }
   
   const ws_data = [];
-  
   let rowIndex = 0;
   
-  // Row 1: Title (bold, 16pt)
+  // Row 1: Title (will be merged)
   ws_data[rowIndex] = [reportTitle];
+  const titleRow = rowIndex;
   rowIndex++;
   
-  // Row 2: Reporting Period with MM/DD/YYYY format
+  // Row 2: Reporting Period
   const startFormatted = formatDateForDisplay(startDate);
   const endFormatted = formatDateForDisplay(endDate);
   ws_data[rowIndex] = [`Reporting Period: ${startFormatted} – ${endFormatted}`];
+  const periodRow = rowIndex;
   rowIndex++;
   
   // Row 3: Generated On
   const now = new Date();
   const timestamp = `${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getDate().toString().padStart(2, '0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
   ws_data[rowIndex] = [`Generated On: ${timestamp}`];
+  const generatedRow = rowIndex;
   rowIndex++;
   
   // Blank row
@@ -84,6 +78,7 @@ export async function generateExcelExport(summary, userBreakdown, reportTitle, s
   ws_data[rowIndex] = ['Total Duration', formatDuration(summary.total_duration_seconds)];
   rowIndex++;
   ws_data[rowIndex] = ['Average Duration', formatDuration(summary.avg_call_duration_seconds)];
+  const kpiEndRow = rowIndex;
   rowIndex++;
   
   // Blank row
@@ -109,7 +104,8 @@ export async function generateExcelExport(summary, userBreakdown, reportTitle, s
     .filter(u => u.total_calls > 0)
     .sort((a, b) => b.total_calls - a.total_calls);
   
-  sortedUsers.forEach((user, idx) => {
+  const tableDataStartRow = rowIndex;
+  sortedUsers.forEach((user) => {
     ws_data[rowIndex] = [
       user.user,
       user.total_calls,
@@ -123,131 +119,176 @@ export async function generateExcelExport(summary, userBreakdown, reportTitle, s
     ];
     rowIndex++;
   });
+  const tableDataEndRow = rowIndex - 1;
   
   // Convert to sheet
   const dataSheet = XLSX.utils.aoa_to_sheet(ws_data);
   
-  // ===== APPLY FORMATTING =====
+  // ===== DISABLE GRIDLINES =====
+  dataSheet.pageSetup = { paperSize: XLSX.SheetNames.includes(sheetName) ? 1 : 9 };
+  dataSheet['!outline'] = { summaryBelow: false, summaryRight: false };
   
-  // Title - bold, 16pt, dark blue text, light gray background
+  // ===== TITLE SECTION FORMATTING =====
+  
+  // Merge title across columns (A1:I1)
+  if (!dataSheet['!merges']) {
+    dataSheet['!merges'] = [];
+  }
+  dataSheet['!merges'].push({ s: { r: titleRow, c: 0 }, e: { r: titleRow, c: 8 } });
+  
+  // Title styling - 18pt, bold, dark blue, thick bottom border
   if (dataSheet['A1']) {
-    dataSheet['A1'].s = { 
-      font: { bold: true, sz: 16, color: { rgb: 'FF1F4E79' } },
-      fill: { fgColor: { rgb: 'FFF0F0F0' } },
-      alignment: { horizontal: 'left', vertical: 'center' } 
+    dataSheet['A1'].s = {
+      font: { bold: true, sz: 18, color: { rgb: 'FF1F4E79' } },
+      alignment: { horizontal: 'left', vertical: 'center', wrapText: false },
+      border: {
+        bottom: { style: 'medium', color: { rgb: 'FF1F4E79' } }
+      }
     };
   }
   
-  // Row 2 (Reporting Period) - bold label
+  // Reporting Period - bold label
   if (dataSheet['A2']) {
     dataSheet['A2'].s = {
-      font: { bold: true, sz: 11 },
+      font: { bold: true, sz: 11, color: { rgb: 'FF333333' } },
       alignment: { horizontal: 'left', vertical: 'center' }
     };
   }
   
-  // Row 3 (Generated On) - subtle gray, smaller font
+  // Generated On - subtle gray, 10pt
   if (dataSheet['A3']) {
     dataSheet['A3'].s = {
-      font: { sz: 10, color: { rgb: 'FF808080' } },
+      font: { sz: 10, color: { rgb: 'FF666666' } },
       alignment: { horizontal: 'left', vertical: 'center' }
     };
   }
   
-  // KPI Header Row - bold, dark blue background, white text
+  // ===== KPI SUMMARY CARD SECTION =====
+  // Header row with dark blue background
   for (let i = 0; i < 2; i++) {
     const cell = XLSX.utils.encode_cell({ r: kpiHeaderRow, c: i });
     dataSheet[cell] = dataSheet[cell] || { t: 's', v: '' };
     dataSheet[cell].s = {
-      font: { bold: true, color: { rgb: 'FFFFFFFF' } },
+      font: { bold: true, color: { rgb: 'FFFFFFFF' }, sz: 11 },
       fill: { fgColor: { rgb: 'FF1F4E79' } },
-      border: { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } },
+      border: { 
+        top: { style: 'thin', color: { rgb: 'FF1F4E79' } },
+        bottom: { style: 'thin', color: { rgb: 'FF1F4E79' } },
+        left: { style: 'thin', color: { rgb: 'FF1F4E79' } },
+        right: { style: 'thin', color: { rgb: 'FF1F4E79' } }
+      },
       alignment: { horizontal: i === 0 ? 'left' : 'right', vertical: 'center' }
     };
   }
   
-  // KPI Data Rows - light card-style background with borders, proper alignment
-  for (let idx = kpiHeaderRow + 1; idx < kpiStartRow + 9; idx++) {
+  // KPI Data Rows - card style with light gray value column
+  for (let idx = kpiHeaderRow + 1; idx <= kpiEndRow; idx++) {
     for (let i = 0; i < 2; i++) {
       const cell = XLSX.utils.encode_cell({ r: idx, c: i });
       if (dataSheet[cell]) {
-        const isBoldMetric = i === 0;
         dataSheet[cell].s = {
-          font: { bold: isBoldMetric, color: isBoldMetric ? { rgb: 'FF404040' } : undefined, sz: 11 },
+          font: { 
+            bold: i === 0, 
+            color: i === 0 ? { rgb: 'FF333333' } : { rgb: 'FF000000' },
+            sz: i === 0 ? 11 : 14
+          },
           fill: { fgColor: { rgb: i === 1 ? 'FFF2F2F2' : 'FFFAFBFC' } },
-          border: { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } },
+          border: { 
+            top: { style: 'thin', color: { rgb: 'FFD3D3D3' } },
+            bottom: { style: 'thin', color: { rgb: 'FFD3D3D3' } },
+            left: { style: 'thin', color: { rgb: 'FFD3D3D3' } },
+            right: { style: 'thin', color: { rgb: 'FFD3D3D3' } }
+          },
           alignment: { horizontal: i === 0 ? 'left' : 'right', vertical: 'center' }
         };
       }
     }
   }
   
-  // Table Header Row - bold, white font, dark blue background
+  // ===== DATA TABLE AS STRUCTURED EXCEL TABLE =====
+  
+  // Table Header Row - white text on dark blue
   for (let i = 0; i < 9; i++) {
     const cell = XLSX.utils.encode_cell({ r: tableHeaderRow, c: i });
     dataSheet[cell] = dataSheet[cell] || { t: 's', v: '' };
     dataSheet[cell].s = {
       font: { bold: true, color: { rgb: 'FFFFFFFF' }, sz: 11 },
       fill: { fgColor: { rgb: 'FF1F4E79' } },
-      border: { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } },
-      alignment: { horizontal: i === 0 ? 'left' : 'right', vertical: 'center' }
+      border: { 
+        top: { style: 'thin', color: { rgb: 'FF1F4E79' } },
+        bottom: { style: 'thin', color: { rgb: 'FF1F4E79' } },
+        left: { style: 'thin', color: { rgb: 'FF1F4E79' } },
+        right: { style: 'thin', color: { rgb: 'FF1F4E79' } }
+      },
+      alignment: { horizontal: i === 0 ? 'left' : 'center', vertical: 'center' }
     };
   }
   
-  // User Data Rows - alternating shading, answer rate coloring, and borders with alignment
+  // User Data Rows - alternating shading with thin borders
   sortedUsers.forEach((user, idx) => {
-    const rowNum = tableHeaderRow + 1 + idx;
+    const rowNum = tableDataStartRow + idx;
     const isEvenRow = idx % 2 === 0;
     const backgroundColor = isEvenRow ? 'FFFFFFFF' : 'FFFFF9FAFB';
     
     for (let i = 0; i < 9; i++) {
       const cell = XLSX.utils.encode_cell({ r: rowNum, c: i });
       dataSheet[cell] = dataSheet[cell] || { t: 's', v: '' };
-      const baseStyle = {
-        border: { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } },
+      
+      // Special handling for answer rate column
+      let cellFill = { fgColor: { rgb: backgroundColor } };
+      if (i === 7) {
+        const rate = user.answer_rate_percent || 0;
+        if (rate >= 90) {
+          cellFill = { fgColor: { rgb: 'FFE8F5E9' } }; // Subtle green
+        } else if (rate >= 70) {
+          cellFill = { fgColor: { rgb: 'FFF9F5E9' } }; // Subtle yellow
+        } else {
+          cellFill = { fgColor: { rgb: 'FFFFE9E9' } }; // Subtle red
+        }
+      }
+      
+      dataSheet[cell].s = {
+        border: { 
+          top: { style: 'thin', color: { rgb: 'FFE0E0E0' } },
+          bottom: { style: 'thin', color: { rgb: 'FFE0E0E0' } },
+          left: { style: 'thin', color: { rgb: 'FFE0E0E0' } },
+          right: { style: 'thin', color: { rgb: 'FFE0E0E0' } }
+        },
+        fill: cellFill,
         alignment: { horizontal: i === 0 ? 'left' : 'right', vertical: 'center' },
         font: { sz: 10 }
       };
-      
-      // Answer rate color coding (column 7, 0-indexed)
-      if (i === 7) {
-        baseStyle.fill = { fgColor: { rgb: getAnswerRateColor(user.answer_rate_percent) } };
-      } else {
-        baseStyle.fill = { fgColor: { rgb: backgroundColor } };
-      }
-      
-      dataSheet[cell].s = baseStyle;
     }
   });
   
-  // ===== COLUMN SIZING =====
+  // ===== COLUMN WIDTHS & FORMATTING =====
   dataSheet['!cols'] = [
-    { wch: 22 }, // User
+    { wch: 25 }, // User
     { wch: 14 }, // Total Calls
     { wch: 12 }, // Inbound
     { wch: 12 }, // Outbound
     { wch: 12 }, // Answered
     { wch: 12 }, // Missed
-    { wch: 16 }, // Total Duration
+    { wch: 18 }, // Total Duration
     { wch: 15 }, // Answer Rate
-    { wch: 16 }  // Average Duration
+    { wch: 18 }  // Average Duration
   ];
   
-  // Apply data type formatting to columns
-  for (let row = tableHeaderRow + 1; row < tableHeaderRow + 1 + sortedUsers.length; row++) {
+  // Apply data type and number formatting
+  for (let row = tableDataStartRow; row <= tableDataEndRow; row++) {
     // Total Calls, Inbound, Outbound, Answered, Missed (columns 1-5) - number with comma separator
     for (let col = 1; col <= 5; col++) {
       const cell = XLSX.utils.encode_cell({ r: row, c: col });
       if (dataSheet[cell]) {
-        dataSheet[cell].t = 'n'; // Number type
+        dataSheet[cell].t = 'n';
         dataSheet[cell].s = {
           ...(dataSheet[cell].s || {}),
-          numFmt: '#,##0' // Comma separator
+          numFmt: '#,##0'
         };
       }
     }
     
-    // Answer Rate column (column 7) - percentage format with 1 decimal place
+    // Answer Rate (column 7) - percentage format with 1 decimal place
     const answerRateCell = XLSX.utils.encode_cell({ r: row, c: 7 });
     if (dataSheet[answerRateCell]) {
       dataSheet[answerRateCell].t = 'n';
@@ -258,8 +299,8 @@ export async function generateExcelExport(summary, userBreakdown, reportTitle, s
     }
   }
   
-  // Format duration columns (6 and 8) as hh:mm:ss time format
-  for (let row = tableHeaderRow + 1; row < tableHeaderRow + 1 + sortedUsers.length; row++) {
+  // Format duration columns (6 and 8) as hh:mm:ss
+  for (let row = tableDataStartRow; row <= tableDataEndRow; row++) {
     for (const col of [6, 8]) {
       const cell = XLSX.utils.encode_cell({ r: row, c: col });
       if (dataSheet[cell]) {
@@ -271,8 +312,9 @@ export async function generateExcelExport(summary, userBreakdown, reportTitle, s
     }
   }
   
-  // Freeze header row and title section (freeze up to table header row + 1 row)
+  // ===== FREEZE HEADER ROW & HIDE GRIDLINES =====
   dataSheet['!freeze'] = { xSplit: 0, ySplit: tableHeaderRow + 1 };
+  dataSheet.pageSetupView = { gridLines: false };
   
   XLSX.utils.book_append_sheet(workbook, dataSheet, sheetName);
   
