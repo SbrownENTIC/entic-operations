@@ -37,36 +37,9 @@ export default function ReportingPeriodsPanel({ selectedMonth, onRefresh }) {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Get unique periods and process them
-  const uniquePeriods = useMemo(() => {
-    const seen = new Map();
-    const unique = [];
-
-    allPeriods.forEach(p => {
-      const key = `${p.reporting_period_start}|${p.reporting_period_end}`;
-      if (!seen.has(key)) {
-        seen.set(key, []);
-      }
-      seen.get(key).push(p);
-    });
-
-    seen.forEach((records, key) => {
-      const [start, end] = key.split('|');
-      unique.push({
-        key,
-        reporting_period_start: start,
-        reporting_period_end: end,
-        records,
-        isDuplicate: records.length > 1,
-      });
-    });
-
-    return unique.sort((a, b) => new Date(a.reporting_period_start) - new Date(b.reporting_period_start));
-  }, [allPeriods]);
-
   // Display periods as stored (no calculations, no timezone conversion)
   const periodsWithStatus = useMemo(() => {
-    return uniquePeriods.map(p => {
+    return allPeriods.map(p => {
       const [startYear, startMonth, startDay] = p.reporting_period_start.split('-').map(Number);
       const [endYear, endMonth, endDay] = p.reporting_period_end.split('-').map(Number);
       const start = new Date(startYear, startMonth - 1, startDay);
@@ -92,8 +65,8 @@ export default function ReportingPeriodsPanel({ selectedMonth, onRefresh }) {
       }
 
       return { ...p, status };
-    });
-  }, [uniquePeriods]);
+    }).sort((a, b) => new Date(a.reporting_period_start) - new Date(b.reporting_period_start));
+  }, [allPeriods]);
 
   // Calculate month completeness
   const completenessInfo = useMemo(() => {
