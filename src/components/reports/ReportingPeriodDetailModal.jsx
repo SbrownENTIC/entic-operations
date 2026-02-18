@@ -25,14 +25,23 @@ export default function ReportingPeriodDetailModal({ open, onOpenChange, period,
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState(period || {});
-  const [periodStatus, setPeriodStatus] = useState('auto');
+  const [errors, setErrors] = useState({});
   const { toast } = useToast();
 
   React.useEffect(() => {
     setFormData(period || {});
     setIsEditing(false);
-    setPeriodStatus('auto');
+    setErrors({});
   }, [period, open]);
+
+  // Validate date is valid calendar date
+  const isValidDate = (dateStr) => {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    return date.getFullYear() === year && 
+           date.getMonth() === month - 1 && 
+           date.getDate() === day;
+  };
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
