@@ -13,7 +13,8 @@ export default function ReportingPeriodsPanel({ selectedMonth, onRefresh }) {
   const [selectedPeriod, setSelectedPeriod] = useState(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
 
-  const monthDate = new Date(selectedMonth);
+  // Parse the date string without timezone conversion
+  const monthDate = new Date(selectedMonth + 'T00:00:00');
   const monthStart = startOfMonth(monthDate);
   const monthEnd = endOfMonth(monthDate);
 
