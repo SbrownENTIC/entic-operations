@@ -59,7 +59,30 @@ export default function CallLogDashboard({ user }) {
     setExportDialogOpen(true);
   };
 
-
+  const handleExportFormat = async (exportFormat) => {
+    setIsExporting(true);
+    try {
+      const monthDate = new Date(selectedMonth);
+      const startDate = monthDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      const endDate = new Date(monthDate);
+      endDate.setMonth(endDate.getMonth() + 1);
+      endDate.setDate(endDate.getDate() - 1);
+      const endDateStr = endDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      
+      const reportTitle = format(monthDate, 'MMMM yyyy') + ' - Call Log';
+      
+      if (exportFormat === 'pdf') {
+        await generatePDFExport(summary, userBreakdown, reportTitle, startDate, endDateStr);
+      } else if (exportFormat === 'excel') {
+        await generateExcelExport(summary, userBreakdown, reportTitle, startDate, endDateStr);
+      } else if (exportFormat === 'csv') {
+        await generateCSVExport(userBreakdown, reportTitle, startDate, endDateStr);
+      }
+    } finally {
+      setIsExporting(false);
+      setExportDialogOpen(false);
+    }
+  };
 
   const pieData = [
     { name: 'Answered', value: summary.answered_calls || 0 },
