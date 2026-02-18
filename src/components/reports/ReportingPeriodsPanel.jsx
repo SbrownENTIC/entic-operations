@@ -60,6 +60,19 @@ export default function ReportingPeriodsPanel({ selectedMonth, onRefresh }) {
   // Calculate status for each period
   const periodsWithStatus = useMemo(() => {
     return uniquePeriods.map(p => {
+      const firstRecord = p.records[0];
+      
+      // Check if manual override is set
+      if (firstRecord?.period_status && firstRecord.period_status !== 'auto') {
+        const statusMap = {
+          monthly: 'Full Month',
+          weekly: 'Weekly',
+          custom: 'Custom Range'
+        };
+        return { ...p, status: statusMap[firstRecord.period_status] || 'Custom Range' };
+      }
+
+      // Auto-detect status
       const start = new Date(p.reporting_period_start);
       const end = new Date(p.reporting_period_end);
       
