@@ -178,7 +178,7 @@ export default function ReportingPeriodsPanel({ selectedMonth, onRefresh }) {
                         {period.reporting_period_end}
                       </TableCell>
                       <TableCell className="text-sm text-slate-600">
-                        {firstRecord?.uploaded_at ? format(new Date(firstRecord.uploaded_at), 'MMM d, yyyy') : '-'}
+                        {firstRecord?.uploaded_at ? new Date(firstRecord.uploaded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}
                       </TableCell>
                       <TableCell className="text-sm text-slate-600">
                         {firstRecord?.uploaded_by || '-'}
