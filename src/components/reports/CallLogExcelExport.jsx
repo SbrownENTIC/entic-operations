@@ -15,11 +15,25 @@ const getAnswerRateColor = (rate) => {
   return 'FFFFE0E0'; // Red background
 };
 
-export async function generateExcelExport(summary, userBreakdown, reportTitle, startDate, endDate) {
+export async function generateExcelExport(summary, userBreakdown, reportTitle, startDate, endDate, status) {
   const workbook = XLSX.utils.book_new();
   
   // ===== DATA SHEET =====
-  const dataSheetName = reportTitle.replace(' - Call Log', ''); // e.g., "December 2025"
+  // Use reportTitle directly; if status is Monthly, it already includes month/year
+  // Otherwise build from dates
+  let sheetName = 'Call Log';
+  let fileName = reportTitle;
+  
+  if (status === 'Monthly') {
+    // Extract month/year from reportTitle (e.g., "December 2025 - Call Log")
+    const monthYear = reportTitle.replace(' - Call Log', '');
+    sheetName = monthYear;
+    fileName = `${monthYear} - Call Log`;
+  } else {
+    // Weekly or Custom Range
+    fileName = 'Call Log';
+  }
+  
   const ws_data = [];
   
   let rowIndex = 0;
@@ -28,8 +42,10 @@ export async function generateExcelExport(summary, userBreakdown, reportTitle, s
   ws_data[rowIndex] = [reportTitle];
   rowIndex++;
   
-  // Row 2: Reporting Period
-  ws_data[rowIndex] = [`Reporting Period: ${startDate} – ${endDate}`];
+  // Row 2: Reporting Period (convert YYYY-MM-DD to MM/DD/YYYY)
+  const startFormatted = startDate.split('-').reverse().join('/');
+  const endFormatted = endDate.split('-').reverse().join('/');
+  ws_data[rowIndex] = [`Reporting Period: ${startFormatted} – ${endFormatted}`];
   rowIndex++;
   
   // Row 3: Generated On
