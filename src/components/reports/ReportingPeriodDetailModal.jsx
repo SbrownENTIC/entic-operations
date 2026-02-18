@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { format } from 'date-fns';
 import {
   Select,
@@ -71,6 +71,19 @@ export default function ReportingPeriodDetailModal({ open, onOpenChange, period,
 
     setIsSaving(true);
     try {
+      // Check for duplicate date range (exclude current record by ID)
+      const allPeriods = await base44.entities.CallLogPeriod.filter({});
+      const isDuplicate = allPeriods.some(p => 
+        p.id !== formData.id && 
+        p.reporting_period_start === formData.reporting_period_start &&
+        p.reporting_period_end === formData.reporting_period_end
+      );
+
+      if (isDuplicate) {
+        setErrors({ duplicate: "A reporting period with this date range already exists." });
+        return;
+      }
+
       // When manually edited, set period_detection_type to "manual"
       const updateData = {
         reporting_period_start: formData.reporting_period_start,
@@ -82,7 +95,7 @@ export default function ReportingPeriodDetailModal({ open, onOpenChange, period,
       
       toast({
         title: "Success",
-        description: "Reporting period updated successfully. Detection type set to manual."
+        description: "Reporting period updated successfully."
       });
       
       setIsEditing(false);
@@ -149,6 +162,13 @@ export default function ReportingPeriodDetailModal({ open, onOpenChange, period,
           </div>
 
           {errors.date && <p className="text-xs text-red-600">{errors.date}</p>}
+          
+          {errors.duplicate && (
+            <div className="flex gap-2 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <div>{errors.duplicate}</div>
+            </div>
+          )}
 
           {/* Upload Date (read-only) */}
           <div className="space-y-2">
