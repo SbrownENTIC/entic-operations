@@ -135,12 +135,17 @@ export default function CallLogUploader({ onUploadSuccess }) {
             outbound_duration_seconds: parseDuration(row["Outbound Call Duration"]),
         })).filter(r => r.user && r.user !== 'User');
 
-        // 4. Send to backend
+        // 4. Determine if dates were auto-detected
+        const detectionType = fileName ? 
+          (parseFilenameDate(fileName) ? 'auto' : 'manual') : 'manual';
+
+        // 5. Send to backend
         const response = await base44.functions.invoke('importCallLogs', { 
             records,
             startDate,
             endDate,
-            fileName: fileToUpload.name
+            fileName: fileToUpload.name,
+            detectionType
         });
         
         const data = response.data;
