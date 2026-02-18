@@ -37,9 +37,25 @@ export default function ReportingPeriodsPanel({ selectedMonth, onRefresh }) {
     staleTime: 5 * 60 * 1000,
   });
 
+  // Group periods by start date, end date, and source file
+  const groupedPeriods = useMemo(() => {
+    const groups = new Map();
+    
+    allPeriods.forEach(p => {
+      const key = `${p.reporting_period_start}|${p.reporting_period_end}|${p.source_file_name || 'unknown'}`;
+      if (!groups.has(key)) {
+        groups.set(key, p); // Store first record in group
+      }
+    });
+    
+    return Array.from(groups.values()).sort((a, b) => 
+      new Date(a.reporting_period_start) - new Date(b.reporting_period_start)
+    );
+  }, [allPeriods]);
+
   // Display periods as stored (no calculations, no timezone conversion)
   const periodsWithStatus = useMemo(() => {
-    return allPeriods.map(p => {
+    return groupedPeriods.map(p => {
       const [startYear, startMonth, startDay] = p.reporting_period_start.split('-').map(Number);
       const [endYear, endMonth, endDay] = p.reporting_period_end.split('-').map(Number);
       const start = new Date(startYear, startMonth - 1, startDay);
@@ -65,8 +81,8 @@ export default function ReportingPeriodsPanel({ selectedMonth, onRefresh }) {
       }
 
       return { ...p, status };
-    }).sort((a, b) => new Date(a.reporting_period_start) - new Date(b.reporting_period_start));
-  }, [allPeriods]);
+    });
+  }, [groupedPeriods]);
 
   // Calculate month completeness
   const completenessInfo = useMemo(() => {
