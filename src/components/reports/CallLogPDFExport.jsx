@@ -17,7 +17,7 @@ const getAnswerRateColor = (rate) => {
   return 'bg-red-100 text-red-800';
 };
 
-export async function generatePDFExport(summary, userBreakdown, selectedMonth) {
+export async function generatePDFExport(summary, userBreakdown, reportTitle, startDate, endDate) {
   // Create a temporary div to render the report
   const tempDiv = document.createElement('div');
   tempDiv.style.position = 'absolute';
@@ -25,16 +25,6 @@ export async function generatePDFExport(summary, userBreakdown, selectedMonth) {
   tempDiv.style.width = '1200px';
   tempDiv.style.backgroundColor = 'white';
   tempDiv.style.padding = '40px';
-  
-  // Parse month for date range
-  const monthDate = new Date(selectedMonth);
-  const startDate = monthDate;
-  const endDate = new Date(monthDate);
-  endDate.setMonth(endDate.getMonth() + 1);
-  endDate.setDate(endDate.getDate() - 1);
-  
-  const startStr = startDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-  const endStr = endDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   
   // Create HTML content
   tempDiv.innerHTML = `
@@ -44,12 +34,12 @@ export async function generatePDFExport(summary, userBreakdown, selectedMonth) {
       <div style="margin-bottom: 40px; border-bottom: 2px solid #e5e7eb; padding-bottom: 20px;">
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
           <div>
-            <h1 style="margin: 0 0 5px 0; font-size: 28px; font-weight: 700; color: #1f2937;">Monthly Call Log Report</h1>
+            <h1 style="margin: 0 0 5px 0; font-size: 28px; font-weight: 700; color: #1f2937;">${reportTitle}</h1>
             <p style="margin: 0; font-size: 14px; color: #6b7280;">Ear, Nose & Throat Institute of CT</p>
           </div>
           <div style="text-align: right; font-size: 12px; color: #6b7280;">
             <p style="margin: 0;">Generated: ${new Date().toLocaleString()}</p>
-            <p style="margin: 5px 0 0 0;">Period: ${startStr} – ${endStr}</p>
+            <p style="margin: 5px 0 0 0;">Period: ${startDate} – ${endDate}</p>
           </div>
         </div>
       </div>
