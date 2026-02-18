@@ -185,8 +185,8 @@ export async function generateExcelExport(summary, userBreakdown, reportTitle, s
   // Freeze header row
   dataSheet['!freeze'] = { xSplit: 0, ySplit: tableHeaderRow + 1 };
   
-  XLSX.utils.book_append_sheet(workbook, dataSheet, dataSheetName);
+  XLSX.utils.book_append_sheet(workbook, dataSheet, sheetName);
   
-  // Write file
-  XLSX.writeFile(workbook, `${reportTitle}.xlsx`);
+  // Write file with correct filename
+  XLSX.writeFile(workbook, `${fileName}.xlsx`);
 }
