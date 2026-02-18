@@ -608,6 +608,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="cleared">Cleared</SelectItem>
                     <SelectItem value="reversed">Reversed</SelectItem>
                     <SelectItem value="entic_paid">ENTIC Paid</SelectItem>
                   </SelectContent>

@@ -195,9 +195,9 @@ export default function Payments() {
         const unallocated = roundToTwo((payment.total_amount || 0) - totalAllocated);
 
         let newStatus = payment.status;
-        if (Math.abs(unallocated) < 0.01 && totalAllocated > 0 && (payment.status === 'pending' || payment.status === 'cleared')) {
-          newStatus = 'entic_paid';
-        } else if (unallocated > 0.01 && (payment.status === 'cleared' || payment.status === 'entic_paid')) {
+        if (Math.abs(unallocated) < 0.01 && totalAllocated > 0 && payment.status === 'pending') {
+          newStatus = 'cleared';
+        } else if (unallocated > 0.01 && payment.status === 'cleared') {
           newStatus = 'pending';
         }
 
@@ -250,7 +250,7 @@ export default function Payments() {
 
       let status = data.status;
       if (Math.abs(unallocated) < 0.01 && totalAllocated > 0 && status === 'pending') {
-        status = 'entic_paid';
+        status = 'cleared';
       }
 
       const normalizedUnallocated = Math.abs(unallocated) < 0.01 ? 0 : unallocated;
@@ -305,8 +305,8 @@ export default function Payments() {
 
       let status = data.status;
       if (Math.abs(unallocated) < 0.01 && totalAllocated > 0 && status === 'pending') {
-        status = 'entic_paid';
-      } else if (unallocated > 0.01 && (status === 'cleared' || status === 'entic_paid')) {
+        status = 'cleared';
+      } else if (unallocated > 0.01 && status === 'cleared') {
         status = 'pending';
       }
 
@@ -403,7 +403,7 @@ export default function Payments() {
 
       let status = payment.status;
       if (Math.abs(unallocated) < 0.01 && totalAllocated > 0) {
-        status = 'entic_paid';
+        status = 'cleared';
       } else if (unallocated > 0.01) {
         status = 'pending';
       }
@@ -642,9 +642,9 @@ export default function Payments() {
 
   const statusColors = {
     pending: "bg-yellow-100 text-yellow-800",
-    cleared: "bg-green-100 text-green-800", // Legacy support
+    cleared: "bg-green-100 text-green-800",
     reversed: "bg-red-100 text-red-800",
-    entic_paid: "bg-green-100 text-green-800"
+    entic_paid: "bg-blue-100 text-blue-800"
   };
 
   return (
@@ -684,6 +684,9 @@ export default function Payments() {
                 <DropdownMenuContent>
                   <DropdownMenuItem onClick={() => handleBulkStatusUpdate('pending')}>
                     Mark as Pending
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleBulkStatusUpdate('cleared')}>
+                    Mark as Cleared
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleBulkStatusUpdate('reversed')}>
                     Mark as Reversed
