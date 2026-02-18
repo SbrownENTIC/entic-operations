@@ -83,10 +83,10 @@ export default function ReportingPeriodsPanel({ selectedMonth, onRefresh }) {
         }
       }
       
-      // Check if Weekly: date difference <= 7 days
+      // Check if Weekly: date difference <= 5 days (5 days or less)
       if (status === 'Custom Range') {
         const dayDiff = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
-        if (dayDiff <= 7) {
+        if (dayDiff <= 5) {
           status = 'Weekly';
         }
       }
