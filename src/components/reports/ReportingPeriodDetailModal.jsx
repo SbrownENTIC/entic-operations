@@ -71,19 +71,6 @@ export default function ReportingPeriodDetailModal({ open, onOpenChange, period,
 
     setIsSaving(true);
     try {
-      // Check for duplicate date range (exclude current record by ID)
-      const allPeriods = await base44.entities.CallLogPeriod.filter({});
-      const isDuplicate = allPeriods.some(p => 
-        p.id !== formData.id && 
-        p.reporting_period_start === formData.reporting_period_start &&
-        p.reporting_period_end === formData.reporting_period_end
-      );
-
-      if (isDuplicate) {
-        setErrors({ duplicate: "A reporting period with this date range already exists." });
-        return;
-      }
-
       // When manually edited, set period_detection_type to "manual"
       const updateData = {
         reporting_period_start: formData.reporting_period_start,
