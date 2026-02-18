@@ -154,7 +154,7 @@ export default function CallLogUploader({ onUploadSuccess }) {
         if (data.imported > 0) {
             toast({
                 title: "Import Successful",
-                description: `Imported: ${data.imported}, Skipped (Duplicates): ${data.skipped}`
+                description: `Imported: ${data.imported} records. Detection: ${detectionType}`
             });
             if (onUploadSuccess) onUploadSuccess();
             // Reset
