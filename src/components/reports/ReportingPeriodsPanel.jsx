@@ -154,79 +154,60 @@ export default function ReportingPeriodsPanel({ selectedMonth, onRefresh }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {periodsWithStatus.map((period, idx) => {
-                  const firstRecord = period.records[0];
-                  return (
-                    <TableRow key={firstRecord.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                      <TableCell className="font-medium">
-                        {new Date(period.reporting_period_start + 'T00:00:00').toLocaleDateString('en-US')}
-                      </TableCell>
-                      <TableCell>
-                        {new Date(period.reporting_period_end + 'T00:00:00').toLocaleDateString('en-US')}
-                      </TableCell>
-                      <TableCell className="text-sm text-slate-600">
-                        {firstRecord?.uploaded_at ? new Date(firstRecord.uploaded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}
-                      </TableCell>
-                      <TableCell className="text-sm text-slate-600">
-                        {firstRecord?.uploaded_by || '-'}
-                      </TableCell>
-                      <TableCell className="text-sm text-slate-600 max-w-xs truncate" title={firstRecord?.source_file_name}>
-                        {firstRecord?.source_file_name || '-'}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1 items-center flex-wrap">
-                          <Badge 
-                            variant="outline"
-                            className={period.status === 'Monthly' ? 'bg-green-50 text-green-700 border-green-200' : 
-                                      period.status === 'Weekly' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                      'bg-slate-100 text-slate-700 border-slate-200'}
-                          >
-                            {period.status}
-                          </Badge>
-                          {period.isDuplicate && (
-                            <Badge className="bg-red-100 text-red-700 border-red-200">
-                              <AlertCircle className="w-3 h-3 mr-1" />
-                              Duplicate
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex gap-1 justify-end">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => {
-                              setSelectedPeriod(firstRecord);
-                              setDetailModalOpen(true);
-                            }}
-                            title="View details"
-                            className="h-8 w-8 p-0"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            title="Recalculate month"
-                            className="h-8 w-8 p-0"
-                          >
-                            <RotateCcw className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleDelete(firstRecord?.id)}
-                            title="Delete period"
-                            className="h-8 w-8 p-0 hover:text-red-600"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                {periodsWithStatus.map((period, idx) => (
+                  <TableRow key={period.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                    <TableCell className="font-medium">
+                      {new Date(period.reporting_period_start + 'T00:00:00').toLocaleDateString('en-US')}
+                    </TableCell>
+                    <TableCell>
+                      {new Date(period.reporting_period_end + 'T00:00:00').toLocaleDateString('en-US')}
+                    </TableCell>
+                    <TableCell className="text-sm text-slate-600">
+                      {period?.uploaded_at ? new Date(period.uploaded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}
+                    </TableCell>
+                    <TableCell className="text-sm text-slate-600">
+                      {period?.uploaded_by || '-'}
+                    </TableCell>
+                    <TableCell className="text-sm text-slate-600 max-w-xs truncate" title={period?.source_file_name}>
+                      {period?.source_file_name || '-'}
+                    </TableCell>
+                    <TableCell>
+                      <Badge 
+                        variant="outline"
+                        className={period.status === 'Monthly' ? 'bg-green-50 text-green-700 border-green-200' : 
+                                  period.status === 'Weekly' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                  'bg-slate-100 text-slate-700 border-slate-200'}
+                      >
+                        {period.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex gap-1 justify-end">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedPeriod(period);
+                            setDetailModalOpen(true);
+                          }}
+                          title="View details"
+                          className="h-8 w-8 p-0"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleDelete(period?.id)}
+                          title="Delete period"
+                          className="h-8 w-8 p-0 hover:text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </div>
