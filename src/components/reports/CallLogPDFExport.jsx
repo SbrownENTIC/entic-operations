@@ -17,7 +17,7 @@ const getAnswerRateColor = (rate) => {
   return 'bg-red-100 text-red-800';
 };
 
-export async function generatePDFExport(summary, userBreakdown, reportTitle, startDate, endDate) {
+export async function generatePDFExport(summary, userBreakdown, reportTitle, startDate, endDate, status) {
   // Create a temporary div to render the report
   const tempDiv = document.createElement('div');
   tempDiv.style.position = 'absolute';
