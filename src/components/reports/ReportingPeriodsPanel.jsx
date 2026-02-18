@@ -182,10 +182,10 @@ export default function ReportingPeriodsPanel({ selectedMonth, onRefresh }) {
                   return (
                     <TableRow key={period.key} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
                       <TableCell className="font-medium">
-                        {period.reporting_period_start}
+                        {new Date(period.reporting_period_start + 'T00:00:00').toLocaleDateString('en-US')}
                       </TableCell>
                       <TableCell>
-                        {period.reporting_period_end}
+                        {new Date(period.reporting_period_end + 'T00:00:00').toLocaleDateString('en-US')}
                       </TableCell>
                       <TableCell className="text-sm text-slate-600">
                         {firstRecord?.uploaded_at ? new Date(firstRecord.uploaded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}
