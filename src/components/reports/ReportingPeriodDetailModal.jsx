@@ -124,7 +124,7 @@ export default function ReportingPeriodDetailModal({ open, onOpenChange, period,
               </>
             ) : (
               <div className="p-2 bg-slate-50 rounded text-sm">
-                {formData.reporting_period_start ? format(new Date(formData.reporting_period_start), 'MMMM d, yyyy') : '-'}
+                {formData.reporting_period_start || '-'}
               </div>
             )}
           </div>
