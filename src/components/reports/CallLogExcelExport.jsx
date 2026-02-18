@@ -125,8 +125,7 @@ export async function generateExcelExport(summary, userBreakdown, reportTitle, s
   const dataSheet = XLSX.utils.aoa_to_sheet(ws_data);
   
   // ===== DISABLE GRIDLINES =====
-  dataSheet.pageSetup = { paperSize: XLSX.SheetNames.includes(sheetName) ? 1 : 9 };
-  dataSheet['!outline'] = { summaryBelow: false, summaryRight: false };
+  dataSheet.pageSetupView = { gridLines: false };
   
   // ===== TITLE SECTION FORMATTING =====
   
