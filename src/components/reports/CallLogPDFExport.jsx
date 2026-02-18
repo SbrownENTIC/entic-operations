@@ -161,7 +161,7 @@ export async function generatePDFExport(summary, userBreakdown, reportTitle, sta
       heightLeft -= pageHeight - 20;
     }
 
-    pdf.save(`call_logs_${selectedMonth}.pdf`);
+    pdf.save(`${reportTitle}.pdf`);
   } finally {
     document.body.removeChild(tempDiv);
   }
