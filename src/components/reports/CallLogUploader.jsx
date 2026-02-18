@@ -9,90 +9,131 @@ import { base44 } from "@/api/base44Client";
 export default function CallLogUploader({ onUploadSuccess }) {
   const [isUploading, setIsUploading] = useState(false);
   const [results, setResults] = useState(null);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
   const { toast } = useToast();
+
+  const parseDuration = (duration) => {
+    if (!duration) return 0;
+    // Handle "HH:MM:SS" string
+    if (typeof duration === 'string') {
+      const parts = duration.split(':').map(Number);
+      if (parts.length === 3) {
+        return parts[0] * 60 + parts[1] + parts[2] / 60;
+      }
+      if (parts.length === 2) {
+        return parts[0] * 60 + parts[1]; // Assume HH:MM or MM:SS? Standard call log usually HH:MM:SS, but sometimes partial
+      }
+    }
+    // Handle number (Excel sometimes exports time as fraction of day)
+    if (typeof duration === 'number') {
+      return duration * 24 * 60; // Convert days to minutes
+    }
+    return 0;
+  };
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
+    if (!selectedMonth) {
+        toast({
+            variant: "destructive",
+            title: "Month Required",
+            description: "Please select the reporting month before uploading."
+        });
+        return;
+    }
+
     setIsUploading(true);
     setResults(null);
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const text = e.target.result;
-        const rows = text.split('\n');
-        const headers = rows[0].split(',').map(h => h.trim().toLowerCase().replace(/['"]+/g, ''));
-        
-        const records = [];
-        
-        // Basic CSV parsing (not handling embedded commas in quotes for simplicity, as per requirements/time)
-        // A more robust solution would use a library if needed.
-        
-        for (let i = 1; i < rows.length; i++) {
-          if (!rows[i].trim()) continue;
-          
-          const values = rows[i].split(',').map(v => v.trim().replace(/['"]+/g, ''));
-          const record = {};
-          
-          headers.forEach((header, index) => {
-            // Map common CSV headers to entity fields
-            let field = header;
-            if (header.includes('week') && header.includes('ending')) field = 'week_ending';
-            if (header.includes('total') && header.includes('duration')) field = 'total_duration_minutes';
-            // ... add other mappings as necessary or rely on user matching CSV headers to schema
-            
-            // Simple direct mapping fallback
-            record[field] = values[index];
-          });
-          
-          // Basic cleanup/validation logic
-          if (record.week_ending) {
-             // Ensure date format YYYY-MM-DD
-             const d = new Date(record.week_ending);
-             if (!isNaN(d.getTime())) {
-                 record.week_ending = d.toISOString().split('T')[0];
-                 // Calculate month (1st of month)
-                 const m = new Date(d.getFullYear(), d.getMonth(), 1);
-                 record.month = m.toISOString().split('T')[0];
-             }
-          }
+    try {
+        // 1. Upload the file
+        const { file_url } = await base44.integrations.Core.UploadFile({ file: file });
 
-          records.push(record);
+        // 2. Extract data
+        const extractionResult = await base44.integrations.Core.ExtractDataFromUploadedFile({
+            file_url,
+            json_schema: {
+                type: "object",
+                properties: {
+                    "User": { type: "string" },
+                    "Ext(s)": { type: ["string", "number"] },
+                    "Total Calls": { type: "number" },
+                    "Total Call Duration": { type: ["string", "number"] },
+                    "Inbound Calls": { type: "number" },
+                    "Inbound Call Duration": { type: ["string", "number"] },
+                    "Outbound Calls": { type: "number" },
+                    "Outbound Call Duration": { type: ["string", "number"] },
+                    "Missed Calls": { type: "number" },
+                    "Answered Calls": { type: "number" },
+                    "Voicemail Calls": { type: "number" }
+                }
+            }
+        });
+
+        if (extractionResult.status === "error") {
+            throw new Error(extractionResult.details || "Failed to extract data");
         }
 
-        const response = await base44.functions.invoke('importCallLogs', { records });
-        setResults(response.data);
-        
-        if (response.data.imported > 0) {
-          toast({
-            title: "Import Successful",
-            description: `Imported ${response.data.imported} records. Skipped ${response.data.skipped} duplicates.`
-          });
-          if (onUploadSuccess) onUploadSuccess();
-        } else if (response.data.skipped > 0) {
-             toast({
-            title: "Import Complete",
-            description: `Skipped ${response.data.skipped} duplicates. No new records imported.`,
-            variant: "warning"
-          });
+        const rawData = extractionResult.output;
+        if (!rawData || !Array.isArray(rawData)) {
+            throw new Error("No data found in file or invalid format");
         }
 
-      } catch (error) {
+        // 3. Transform data
+        const monthDate = new Date(selectedMonth + "-01");
+        const monthStr = monthDate.toISOString().split('T')[0];
+
+        const records = rawData.map(row => ({
+            month: monthStr,
+            user: row["User"],
+            extension: String(row["Ext(s)"] || ""),
+            total_calls: Number(row["Total Calls"]) || 0,
+            inbound_calls: Number(row["Inbound Calls"]) || 0,
+            outbound_calls: Number(row["Outbound Calls"]) || 0,
+            missed_calls: Number(row["Missed Calls"]) || 0,
+            answered_calls: Number(row["Answered Calls"]) || 0,
+            voicemail_calls: Number(row["Voicemail Calls"]) || 0,
+            total_duration_minutes: parseDuration(row["Total Call Duration"]),
+            inbound_duration_minutes: parseDuration(row["Inbound Call Duration"]),
+            outbound_duration_minutes: parseDuration(row["Outbound Call Duration"]),
+        })).filter(r => r.user && r.user !== 'User'); // Filter out empty or header rows if any
+
+        // 4. Send to backend
+        const response = await base44.functions.invoke('importCallLogs', { 
+            records,
+            month: monthStr
+        });
+        
+        const data = response.data;
+        setResults(data);
+        
+        if (data.imported > 0 || data.updated > 0) {
+            toast({
+                title: "Import Successful",
+                description: `Imported: ${data.imported}, Updated: ${data.updated}, Skipped: ${data.skipped}`
+            });
+            if (onUploadSuccess) onUploadSuccess();
+        } else {
+            toast({
+                title: "Import Complete",
+                description: "No records were changed.",
+                variant: "warning"
+            });
+        }
+
+    } catch (error) {
         console.error("Upload error:", error);
         toast({
-          variant: "destructive",
-          title: "Upload Failed",
-          description: error.message || "Failed to parse or upload file."
+            variant: "destructive",
+            title: "Upload Failed",
+            description: error.message || "Failed to process file."
         });
-      } finally {
+    } finally {
         setIsUploading(false);
-        // Reset file input
         event.target.value = '';
-      }
-    };
-    reader.readAsText(file);
+    }
   };
 
   return (
@@ -105,11 +146,21 @@ export default function CallLogUploader({ onUploadSuccess }) {
       </CardHeader>
       <CardContent>
         <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-slate-700">Select Report Period</label>
+            <input 
+                type="month" 
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+            />
+          </div>
+
           <div className="flex items-center gap-4 p-4 border-2 border-dashed border-slate-200 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
             <div className="flex-1 text-center">
               <input
                 type="file"
-                accept=".csv"
+                accept=".xlsx,.xls,.csv"
                 onChange={handleFileUpload}
                 disabled={isUploading}
                 id="file-upload"
@@ -125,10 +176,10 @@ export default function CallLogUploader({ onUploadSuccess }) {
                   <FileUp className="w-8 h-8 text-slate-400" />
                 )}
                 <span className="text-sm font-medium text-slate-700">
-                  {isUploading ? "Uploading..." : "Click to select CSV file"}
+                  {isUploading ? "Uploading..." : "Click to select Excel/CSV file"}
                 </span>
                 <span className="text-xs text-slate-500">
-                  Headers must match: user, week_ending, total_calls, etc.
+                  Supported: .xlsx, .xls, .csv
                 </span>
               </label>
             </div>
@@ -136,13 +187,13 @@ export default function CallLogUploader({ onUploadSuccess }) {
 
           {results && (
             <div className="space-y-2">
-              <Alert variant={results.errors && results.errors.length > 0 ? "destructive" : "default"} className={results.imported > 0 ? "bg-green-50 border-green-200" : ""}>
-                 {results.imported > 0 ? <CheckCircle className="h-4 w-4 text-green-600" /> : <AlertCircle className="h-4 w-4" />}
+              <Alert variant={results.errors && results.errors.length > 0 ? "destructive" : "default"} className={(results.imported > 0 || results.updated > 0) ? "bg-green-50 border-green-200" : ""}>
+                 {(results.imported > 0 || results.updated > 0) ? <CheckCircle className="h-4 w-4 text-green-600" /> : <AlertCircle className="h-4 w-4" />}
                 <AlertTitle>
-                    {results.imported > 0 ? "Import Complete" : "Import Status"}
+                    {(results.imported > 0 || results.updated > 0) ? "Import Complete" : "Import Status"}
                 </AlertTitle>
                 <AlertDescription>
-                  Imported: {results.imported} | Skipped: {results.skipped}
+                  Imported: {results.imported} | Updated: {results.updated} | Skipped: {results.skipped}
                   {results.errors && results.errors.length > 0 && (
                     <div className="mt-2 text-xs opacity-90 max-h-24 overflow-auto">
                       <strong>Errors:</strong>

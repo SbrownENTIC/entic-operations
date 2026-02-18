@@ -9,7 +9,7 @@ export default Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized. Only admins can upload call logs.' }, { status: 403 });
     }
 
-    const { records } = await req.json();
+    const { records, month: payloadMonth } = await req.json();
 
     if (!records || !Array.isArray(records)) {
       return Response.json({ error: 'Invalid data format. Expected array of records.' }, { status: 400 });
@@ -17,32 +17,41 @@ export default Deno.serve(async (req) => {
 
     const results = {
       imported: 0,
+      updated: 0,
       skipped: 0,
       errors: []
     };
 
+    // If a target month is provided for the whole batch, we can optionally clear old data
+    // But safely, we will just upsert based on User + Month
+    
     for (const record of records) {
+      // Use payload month if record doesn't have it, or override if needed
+      const recordMonth = payloadMonth || record.month;
+
       // Validate required fields
-      if (!record.user || !record.week_ending || !record.month) {
-        results.errors.push(`Missing required fields for record: ${JSON.stringify(record)}`);
+      if (!record.user || !recordMonth) {
+        results.errors.push(`Missing required fields (user or month) for record: ${JSON.stringify(record)}`);
         continue;
       }
 
-      // Check for duplicates (same user + week_ending)
-      const existing = await base44.entities.CallLog.filter({
+      // Build filter for existence check
+      const filter = {
         user: record.user,
-        week_ending: record.week_ending
-      });
-
-      if (existing.length > 0) {
-        results.skipped++;
-        continue;
+        month: recordMonth
+      };
+      
+      // If week_ending exists, include it in uniqueness check (for legacy/weekly uploads)
+      if (record.week_ending) {
+        filter.week_ending = record.week_ending;
       }
 
-      // Create record
-      await base44.entities.CallLog.create({
-        month: record.month,
-        week_ending: record.week_ending,
+      // Check for existing record
+      const existing = await base44.entities.CallLog.filter(filter);
+
+      const dataToSave = {
+        month: recordMonth,
+        week_ending: record.week_ending || null, // Optional now
         user: record.user,
         extension: record.extension || '',
         total_calls: Number(record.total_calls) || 0,
@@ -54,9 +63,18 @@ export default Deno.serve(async (req) => {
         total_duration_minutes: Number(record.total_duration_minutes) || 0,
         inbound_duration_minutes: Number(record.inbound_duration_minutes) || 0,
         outbound_duration_minutes: Number(record.outbound_duration_minutes) || 0
-      });
+      };
 
-      results.imported++;
+      if (existing.length > 0) {
+        // Update existing record (Upsert behavior)
+        const idToUpdate = existing[0].id;
+        await base44.entities.CallLog.update(idToUpdate, dataToSave);
+        results.updated++;
+      } else {
+        // Create new record
+        await base44.entities.CallLog.create(dataToSave);
+        results.imported++;
+      }
     }
 
     return Response.json(results);
