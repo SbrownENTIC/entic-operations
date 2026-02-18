@@ -303,19 +303,11 @@ export async function generateExcelExport(summary, userBreakdown, reportTitle, s
   
   // ===== PAGE SETUP - LANDSCAPE, FIT TO ONE PAGE =====
   ws['!pageSetup'] = {
-    paperSize: XLSX.Sheet.STD_PAPER_SIZE.LETTER,
+    paperSize: 1,
     orientation: 'landscape',
     fitToPage: true,
     fitToHeight: 0,
-    fitToWidth: 1,
-    margins: {
-      left: 0.5,
-      right: 0.5,
-      top: 0.75,
-      bottom: 0.75,
-      header: 0.5,
-      footer: 0.5
-    }
+    fitToWidth: 1
   };
   
   ws['!pageMargins'] = { left: 0.5, right: 0.5, top: 0.75, bottom: 0.75, header: 0.5, footer: 0.5 };
