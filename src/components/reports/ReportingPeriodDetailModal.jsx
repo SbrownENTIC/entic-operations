@@ -110,9 +110,9 @@ export default function ReportingPeriodDetailModal({ open, onOpenChange, period,
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Period Start */}
+          {/* Start Date */}
           <div className="space-y-2">
-            <Label className="font-semibold">Period Start</Label>
+            <Label className="font-semibold">Start Date</Label>
             {isEditing ? (
               <>
                 <Input
@@ -124,14 +124,14 @@ export default function ReportingPeriodDetailModal({ open, onOpenChange, period,
               </>
             ) : (
               <div className="p-2 bg-slate-50 rounded text-sm">
-                {formData.reporting_period_start || '-'}
+                {formData.reporting_period_start ? new Date(formData.reporting_period_start + 'T00:00:00').toLocaleDateString('en-US') : '-'}
               </div>
             )}
           </div>
 
-          {/* Period End */}
+          {/* End Date */}
           <div className="space-y-2">
-            <Label className="font-semibold">Period End</Label>
+            <Label className="font-semibold">End Date</Label>
             {isEditing ? (
               <>
                 <Input
@@ -143,7 +143,7 @@ export default function ReportingPeriodDetailModal({ open, onOpenChange, period,
               </>
             ) : (
               <div className="p-2 bg-slate-50 rounded text-sm">
-                {formData.reporting_period_end || '-'}
+                {formData.reporting_period_end ? new Date(formData.reporting_period_end + 'T00:00:00').toLocaleDateString('en-US') : '-'}
               </div>
             )}
           </div>
