@@ -9,10 +9,30 @@ export default Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized. Only admins can upload call logs.' }, { status: 403 });
     }
 
-    const { records, startDate, endDate, fileName } = await req.json();
+    const { records, startDate, endDate, fileName, detectionType } = await req.json();
 
     if (!startDate || !endDate) {
         return Response.json({ error: 'Start date and end date are required.' }, { status: 400 });
+    }
+
+    // Validate dates are valid calendar dates
+    const isValidDate = (dateStr) => {
+        const [year, month, day] = dateStr.split('-').map(Number);
+        const date = new Date(year, month - 1, day);
+        return date.getFullYear() === year && 
+               date.getMonth() === month - 1 && 
+               date.getDate() === day;
+    };
+
+    if (!isValidDate(startDate) || !isValidDate(endDate)) {
+        return Response.json({ error: 'Invalid calendar date.' }, { status: 400 });
+    }
+
+    // Log auto-detect
+    if (detectionType === 'auto') {
+        console.log(`[AUTO-DETECT] Dates auto-detected from filename: ${startDate} to ${endDate}`);
+    } else {
+        console.log(`[MANUAL-ENTRY] Dates manually entered: ${startDate} to ${endDate}`);
     }
 
     if (!records || !Array.isArray(records)) {
