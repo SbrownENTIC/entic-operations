@@ -13,16 +13,25 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
 import { format } from 'date-fns';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function ReportingPeriodDetailModal({ open, onOpenChange, period, onRefresh }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState(period || {});
+  const [periodStatus, setPeriodStatus] = useState('auto');
   const { toast } = useToast();
 
   React.useEffect(() => {
     setFormData(period || {});
     setIsEditing(false);
+    setPeriodStatus('auto');
   }, [period, open]);
 
   const handleChange = (field, value) => {
@@ -37,6 +46,7 @@ export default function ReportingPeriodDetailModal({ open, onOpenChange, period,
         reporting_period_start: formData.reporting_period_start,
         reporting_period_end: formData.reporting_period_end,
         notes: formData.notes || '',
+        period_status: periodStatus,
       };
 
       await base44.entities.CallLogPeriod.update(formData.id, updateData);
@@ -124,6 +134,28 @@ export default function ReportingPeriodDetailModal({ open, onOpenChange, period,
             <div className="p-2 bg-slate-50 rounded text-sm text-slate-600 truncate">
               {formData.source_file_name || '-'}
             </div>
+          </div>
+
+          {/* Period Status */}
+          <div className="space-y-2">
+            <Label className="font-semibold">Report Period Type</Label>
+            {isEditing ? (
+              <Select value={periodStatus} onValueChange={setPeriodStatus}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">Auto-Detect</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="custom">Custom Range</SelectItem>
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="p-2 bg-slate-50 rounded text-sm">
+                {periodStatus === 'auto' ? 'Auto-Detect' : periodStatus.charAt(0).toUpperCase() + periodStatus.slice(1)}
+              </div>
+            )}
           </div>
 
           {/* Stats Summary */}
