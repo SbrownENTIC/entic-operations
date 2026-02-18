@@ -67,21 +67,31 @@ export default function ReportingPeriodsPanel({ selectedMonth, onRefresh }) {
   // Display periods as stored (no calculations, no timezone conversion)
   const periodsWithStatus = useMemo(() => {
     return uniquePeriods.map(p => {
-      const [startYear, startMonth, startDay] = p.reporting_period_start.split('-');
-      const [endYear, endMonth, endDay] = p.reporting_period_end.split('-');
-      const start = new Date(parseInt(startYear), parseInt(startMonth) - 1, parseInt(startDay));
-      const end = new Date(parseInt(endYear), parseInt(endMonth) - 1, parseInt(endDay));
+      const [startYear, startMonth, startDay] = p.reporting_period_start.split('-').map(Number);
+      const [endYear, endMonth, endDay] = p.reporting_period_end.split('-').map(Number);
+      const start = new Date(startYear, startMonth - 1, startDay);
+      const end = new Date(endYear, endMonth - 1, endDay);
       
-      const dayDiff = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end days
-
-      let displayType = 'Custom Range';
-      if (dayDiff === 7) {
-        displayType = 'Weekly';
-      } else if (dayDiff === 30 || dayDiff === 31) {
-        displayType = 'Monthly';
+      // Determine status based on date range logic
+      let status = 'Custom Range';
+      
+      // Check if Monthly: start = first day of month AND end = last day of same month
+      if (startDay === 1 && startMonth === endMonth && startYear === endYear) {
+        const lastDayOfMonth = new Date(endYear, endMonth, 0).getDate();
+        if (endDay === lastDayOfMonth) {
+          status = 'Monthly';
+        }
+      }
+      
+      // Check if Weekly: date difference <= 7 days
+      if (status === 'Custom Range') {
+        const dayDiff = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
+        if (dayDiff <= 7) {
+          status = 'Weekly';
+        }
       }
 
-      return { ...p, displayType };
+      return { ...p, status };
     });
   }, [uniquePeriods]);
 
