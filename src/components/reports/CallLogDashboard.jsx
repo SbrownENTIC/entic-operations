@@ -8,8 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Download, RefreshCw, Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed, Clock, Voicemail, Loader2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import CallLogUploader from './CallLogUploader';
-import ExportFormatDialog from './ExportFormatDialog';
-import { generatePDFExport, generateExcelExport } from './CallLogPDFExport';
+import ExportFormatDialog from './ExportFormatDialog.jsx';
+import { generatePDFExport, generateExcelExport } from './CallLogPDFExport.jsx';
 import { format, subMonths, startOfMonth } from 'date-fns';
 
 // Helper to format seconds to HH:MM:SS
