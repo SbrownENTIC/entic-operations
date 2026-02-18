@@ -114,11 +114,14 @@ export default function ReportingPeriodDetailModal({ open, onOpenChange, period,
           <div className="space-y-2">
             <Label className="font-semibold">Period Start</Label>
             {isEditing ? (
-              <Input
-                type="date"
-                value={formData.reporting_period_start || ''}
-                onChange={(e) => handleChange('reporting_period_start', e.target.value)}
-              />
+              <>
+                <Input
+                  type="date"
+                  value={formData.reporting_period_start || ''}
+                  onChange={(e) => handleChange('reporting_period_start', e.target.value)}
+                />
+                {errors.start && <p className="text-xs text-red-600">{errors.start}</p>}
+              </>
             ) : (
               <div className="p-2 bg-slate-50 rounded text-sm">
                 {formData.reporting_period_start ? format(new Date(formData.reporting_period_start), 'MMMM d, yyyy') : '-'}
@@ -130,17 +133,22 @@ export default function ReportingPeriodDetailModal({ open, onOpenChange, period,
           <div className="space-y-2">
             <Label className="font-semibold">Period End</Label>
             {isEditing ? (
-              <Input
-                type="date"
-                value={formData.reporting_period_end || ''}
-                onChange={(e) => handleChange('reporting_period_end', e.target.value)}
-              />
+              <>
+                <Input
+                  type="date"
+                  value={formData.reporting_period_end || ''}
+                  onChange={(e) => handleChange('reporting_period_end', e.target.value)}
+                />
+                {errors.end && <p className="text-xs text-red-600">{errors.end}</p>}
+              </>
             ) : (
               <div className="p-2 bg-slate-50 rounded text-sm">
                 {formData.reporting_period_end ? format(new Date(formData.reporting_period_end), 'MMMM d, yyyy') : '-'}
               </div>
             )}
           </div>
+
+          {errors.date && <p className="text-xs text-red-600">{errors.date}</p>}
 
           {/* Upload Date (read-only) */}
           <div className="space-y-2">
