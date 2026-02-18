@@ -11,6 +11,11 @@ const formatDuration = (seconds) => {
   return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 };
 
+const formatDateForDisplay = (dateStr) => {
+  const [y, m, d] = dateStr.split('-');
+  return `${m}/${d}/${y}`;
+};
+
 const getAnswerRateColor = (rate) => {
   if (rate >= 85) return 'bg-green-100 text-green-800';
   if (rate >= 70) return 'bg-yellow-100 text-yellow-800';
