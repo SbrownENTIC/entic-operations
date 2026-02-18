@@ -18,9 +18,13 @@ const getAnswerRateColor = (rate) => {
 export async function generateExcelExport(summary, userBreakdown, reportTitle, startDate, endDate, status) {
   const workbook = XLSX.utils.book_new();
   
+  // Format dates for filename/display (YYYY-MM-DD to MM/DD/YYYY)
+  const formatDateForDisplay = (dateStr) => {
+    const [y, m, d] = dateStr.split('-');
+    return `${m}/${d}/${y}`;
+  };
+  
   // ===== DATA SHEET =====
-  // Use reportTitle directly; if status is Monthly, it already includes month/year
-  // Otherwise build from dates
   let sheetName = 'Call Log';
   let fileName = reportTitle;
   
@@ -31,7 +35,10 @@ export async function generateExcelExport(summary, userBreakdown, reportTitle, s
     fileName = `${monthYear} - Call Log`;
   } else {
     // Weekly or Custom Range
-    fileName = 'Call Log';
+    const startFormatted = formatDateForDisplay(startDate);
+    const endFormatted = formatDateForDisplay(endDate);
+    fileName = `Call Log - ${startFormatted} to ${endFormatted}`;
+    sheetName = 'Call Log';
   }
   
   const ws_data = [];
