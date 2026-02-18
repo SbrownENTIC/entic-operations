@@ -9,6 +9,7 @@ import { Download, RefreshCw, Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed, 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import CallLogUploader from './CallLogUploader';
 import ExportFormatDialog from './ExportFormatDialog.jsx';
+import ReportingPeriodsPanel from './ReportingPeriodsPanel.jsx';
 import { generatePDFExport, generateCSVExport } from './CallLogPDFExport.jsx';
 import { generateExcelExport } from './CallLogExcelExport.jsx';
 import { format, subMonths, startOfMonth } from 'date-fns';
@@ -138,6 +139,9 @@ export default function CallLogDashboard({ user }) {
       {user?.role === 'admin' && (
         <CallLogUploader onUploadSuccess={refetch} />
       )}
+
+      {/* Reporting Periods Panel */}
+      <ReportingPeriodsPanel selectedMonth={selectedMonth} onRefresh={refetch} />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
