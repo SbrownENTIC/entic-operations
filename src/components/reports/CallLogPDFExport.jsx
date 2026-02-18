@@ -44,7 +44,7 @@ export async function generatePDFExport(summary, userBreakdown, reportTitle, sta
           </div>
           <div style="text-align: right; font-size: 12px; color: #6b7280;">
             <p style="margin: 0;">Generated: ${new Date().toLocaleString()}</p>
-            <p style="margin: 5px 0 0 0;">Period: ${startDate.split('-').reverse().join('/')} – ${endDate.split('-').reverse().join('/')}</p>
+            <p style="margin: 5px 0 0 0;">Period: ${formatDateForDisplay(startDate)} – ${formatDateForDisplay(endDate)}</p>
           </div>
         </div>
       </div>
