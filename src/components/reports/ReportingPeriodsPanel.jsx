@@ -25,7 +25,9 @@ export default function ReportingPeriodsPanel({ selectedMonth, onRefresh }) {
       const periods = await base44.entities.CallLogPeriod.filter({});
       return periods.filter(p => {
         const periodStart = new Date(p.reporting_period_start);
-        return isWithinInterval(periodStart, { start: monthStart, end: monthEnd });
+        const periodEnd = new Date(p.reporting_period_end);
+        // Check if period overlaps with the selected month
+        return periodStart <= monthEnd && periodEnd >= monthStart;
       });
     },
     staleTime: 5 * 60 * 1000,
