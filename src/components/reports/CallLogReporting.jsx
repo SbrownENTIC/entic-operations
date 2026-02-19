@@ -212,7 +212,6 @@ export default function CallLogReporting() {
     queryClient.invalidateQueries({ queryKey: ["call-log-periods"] });
     if (selectedPeriod?.id === deleteDialogPeriod.id) {
       setSelectedPeriod(null);
-      setView("list");
     }
     setDeleteDialogPeriod(null);
     setDeleting(false);
