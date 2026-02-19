@@ -52,9 +52,10 @@ const REQUIRED_NORMALIZED = [
   "outbound calls",
   "answered calls",
   "missed calls",
-  "total call duration",
-  "inbound call duration",
-  "outbound call duration"
+  "voicemail calls",
+  "total call duration (minutes)",
+  "inbound call duration (minutes)",
+  "outbound call duration (minutes)"
 ];
 
 // ---- File parsing ----
