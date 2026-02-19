@@ -33,6 +33,9 @@ export default function Payments() {
   const [editingPayment, setEditingPayment] = useState(null);
   const [viewingPayment, setViewingPayment] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [selectedPaymentIds, setSelectedPaymentIds] = useState(new Set());
+  const [bulkStatus, setBulkStatus] = useState("");
+  const [bulkUpdating, setBulkUpdating] = useState(false);
   const [sortField, setSortField] = useState('payment_date');
   const [sortDirection, setSortDirection] = useState('desc');
   const [filterUnallocated, setFilterUnallocated] = useState(false);
