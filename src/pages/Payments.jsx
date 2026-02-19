@@ -456,6 +456,36 @@ export default function Payments() {
     }
   };
 
+  const handleBulkStatusUpdate = async () => {
+    if (!bulkStatus || selectedPaymentIds.size === 0) return;
+    setBulkUpdating(true);
+    for (const id of selectedPaymentIds) {
+      await base44.entities.Payment.update(id, { status: bulkStatus });
+    }
+    queryClient.invalidateQueries({ queryKey: ['payments'] });
+    setSelectedPaymentIds(new Set());
+    setBulkStatus("");
+    setBulkUpdating(false);
+    toast({ title: "Success", description: `Updated ${selectedPaymentIds.size} payment(s) to "${bulkStatus}".` });
+  };
+
+  const toggleSelectPayment = (id) => {
+    setSelectedPaymentIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedPaymentIds.size === sortedPayments.length) {
+      setSelectedPaymentIds(new Set());
+    } else {
+      setSelectedPaymentIds(new Set(sortedPayments.map(p => p.id)));
+    }
+  };
+
   const handleUnallocate = (allocation) => {
     if (viewingPayment) {
       unallocateMutation.mutate({
