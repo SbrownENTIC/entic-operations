@@ -496,95 +496,64 @@ export default function CallLogReporting() {
         </Card>
       )}
 
-      {/* Periods list */}
-      <Card className="border-slate-200 shadow-sm">
-        <CardContent className="p-0">
-          {periodsLoading ? (
-            <div className="flex items-center justify-center py-12 text-slate-500 gap-2">
-              <Loader2 className="w-5 h-5 animate-spin" /> Loading periods...
-            </div>
-          ) : periods.length === 0 ? (
-            <div className="py-12 text-center text-slate-400">
-              <Phone className="w-10 h-10 mx-auto mb-3 opacity-40" />
-              <p>No call log periods uploaded yet.</p>
-            </div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 border-b border-slate-200">
-                <tr>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-700">Start Date</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-700">End Date</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-700">Status</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-700">File</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-700">Uploaded At</th>
-                  <th className="px-4 py-3 w-16"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {periods.map((period, i) => (
-                  <tr
-                    key={period.id}
-                    className={`border-b border-slate-100 cursor-pointer transition-colors ${
-                      selectedPeriod?.id === period.id
-                        ? "bg-blue-50 border-l-2 border-l-blue-500"
-                        : `hover:bg-blue-50/50 ${i % 2 !== 0 ? "bg-slate-50/30" : ""}`
-                    }`}
-                    onClick={() => setSelectedPeriod(selectedPeriod?.id === period.id ? null : period)}
-                  >
-                    <td className="px-4 py-3 font-medium text-slate-800">{formatDate(period.reporting_period_start)}</td>
-                    <td className="px-4 py-3 text-slate-700">{formatDate(period.reporting_period_end)}</td>
-                    <td className="px-4 py-3">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[period.status] || "bg-slate-100 text-slate-700"}`}>
-                        {period.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-500 max-w-[180px] truncate">{period.source_file_name || "—"}</td>
-                    <td className="px-4 py-3 text-xs text-slate-500">
-                      {period.uploaded_at
-                        ? new Date(period.uploaded_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-                        : "—"}
-                    </td>
-                    <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-slate-400 hover:text-red-600"
-                        onClick={() => setDeleteDialogPeriod(period)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </CardContent>
-      </Card>
+      {/* Reporting Period Dropdown */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <label className="text-sm font-semibold text-slate-700 whitespace-nowrap">Reporting Period</label>
+        {periodsLoading ? (
+          <div className="flex items-center gap-2 text-slate-500 text-sm">
+            <Loader2 className="w-4 h-4 animate-spin" /> Loading...
+          </div>
+        ) : periods.length === 0 ? (
+          <p className="text-sm text-slate-400">No periods uploaded yet.</p>
+        ) : (
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <select
+              value={selectedPeriod?.id || ""}
+              onChange={e => {
+                const p = periods.find(p => p.id === e.target.value);
+                setSelectedPeriod(p || null);
+              }}
+              className="border border-slate-300 rounded-md px-3 py-2 text-sm text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[220px]"
+            >
+              {periods.map(p => (
+                <option key={p.id} value={p.id}>{formatPeriodLabel(p)}</option>
+              ))}
+            </select>
+            {selectedPeriod && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-slate-400 hover:text-red-600 shrink-0"
+                title="Delete this period"
+                onClick={() => setDeleteDialogPeriod(selectedPeriod)}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
 
-      {/* Inline Detail Panel */}
+      {/* Dashboard – always visible once a period is selected */}
       {selectedPeriod && (
-        <div className="space-y-4 border-t-2 border-blue-200 pt-4">
-          {/* Detail header */}
+        <div className="space-y-4">
+          {/* Period info bar */}
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex-1">
-              <h3 className="text-lg font-bold text-slate-900">
-                {formatDate(selectedPeriod.reporting_period_start)} – {formatDate(selectedPeriod.reporting_period_end)}
-              </h3>
-              {selectedPeriod.source_file_name && (
-                <p className="text-xs text-slate-500 mt-0.5">{selectedPeriod.source_file_name}</p>
-              )}
-            </div>
             <span className={`text-xs font-semibold px-2 py-1 rounded-full ${STATUS_COLORS[selectedPeriod.status] || "bg-slate-100 text-slate-700"}`}>
               {selectedPeriod.status}
             </span>
-            <Button variant="outline" size="sm" onClick={exportPeriodCSV} className="gap-2">
-              <Download className="w-4 h-4" /> Export CSV
-            </Button>
+            {selectedPeriod.source_file_name && (
+              <span className="text-xs text-slate-400">{selectedPeriod.source_file_name}</span>
+            )}
+            <div className="ml-auto">
+              <Button variant="outline" size="sm" onClick={exportPeriodCSV} className="gap-2">
+                <Download className="w-4 h-4" /> Export CSV
+              </Button>
+            </div>
           </div>
 
           {summariesLoading ? (
-            <div className="flex items-center justify-center py-12 text-slate-500 gap-2">
+            <div className="flex items-center justify-center py-16 text-slate-500 gap-2">
               <Loader2 className="w-5 h-5 animate-spin" /> Loading...
             </div>
           ) : (
@@ -592,14 +561,15 @@ export default function CallLogReporting() {
               {/* Summary metric cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                  { label: "Total Calls",    value: totalCalls.toLocaleString(),           color: "text-slate-900" },
-                  { label: "Inbound",        value: totalInbound.toLocaleString(),          color: "text-blue-700" },
-                  { label: "Outbound",       value: totalOutbound.toLocaleString(),         color: "text-indigo-700" },
-                  { label: "Answered",       value: totalAnswered.toLocaleString(),         color: "text-green-700" },
-                  { label: "Missed",         value: totalMissed.toLocaleString(),           color: "text-red-600" },
-                  { label: "Answer Rate",    value: (totalCalls > 0 ? (overallAnswerRate * 100).toFixed(1) : "0.0") + "%", color: overallAnswerRate >= 0.8 ? "text-green-700" : overallAnswerRate >= 0.5 ? "text-yellow-700" : "text-red-600" },
-                  { label: "Total Duration", value: secondsToHHMMSS(totalDurationSec),     color: "text-slate-700" },
-                  { label: "Avg Duration",   value: secondsToHHMMSS(overallAvgDurationSec),color: "text-slate-700" },
+                  { label: "Total Calls",    value: totalCalls.toLocaleString(),            color: "text-slate-900" },
+                  { label: "Inbound",        value: totalInbound.toLocaleString(),           color: "text-blue-700" },
+                  { label: "Outbound",       value: totalOutbound.toLocaleString(),          color: "text-indigo-700" },
+                  { label: "Answered",       value: totalAnswered.toLocaleString(),          color: "text-green-700" },
+                  { label: "Missed",         value: totalMissed.toLocaleString(),            color: "text-red-600" },
+                  { label: "Answer Rate",    value: (totalCalls > 0 ? (overallAnswerRate * 100).toFixed(1) : "0.0") + "%",
+                    color: overallAnswerRate >= 0.8 ? "text-green-700" : overallAnswerRate >= 0.5 ? "text-yellow-700" : "text-red-600" },
+                  { label: "Total Duration", value: secondsToHHMMSS(totalDurationSec),      color: "text-slate-700" },
+                  { label: "Avg Duration",   value: secondsToHHMMSS(overallAvgDurationSec), color: "text-slate-700" },
                 ].map(m => (
                   <Card key={m.label} className="border-slate-200 shadow-sm">
                     <CardContent className="p-4">
