@@ -98,6 +98,23 @@ function readCSV(file) {
   });
 }
 
+function formatPeriodLabel(period) {
+  if (!period) return "";
+  const start = period.reporting_period_start;
+  const end = period.reporting_period_end;
+  if (period.status === "Monthly") {
+    const d = new Date(start + "T12:00:00");
+    return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  }
+  // Weekly or Custom
+  const fmtShort = (str) => {
+    if (!str) return "";
+    const [y, m, day] = str.split("-");
+    return `${parseInt(m, 10)}/${parseInt(day, 10)}/${y}`;
+  };
+  return `${fmtShort(start)} – ${fmtShort(end)}`;
+}
+
 const STATUS_COLORS = {
   Monthly: "bg-blue-100 text-blue-800",
   Weekly: "bg-green-100 text-green-800",
