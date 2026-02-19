@@ -151,51 +151,60 @@ export default function CallLogReporting() {
   const resetUpload = () => {
     setShowUpload(false);
     setUploadFile(null);
+    setWorkbook(null);
+    setSheetNames([]);
+    setSelectedSheet("");
     setUploadError("");
     setPeriodStart("");
     setPeriodEnd("");
+    setReplaceConfirm(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleFileSelect = (e) => {
+  const handleFileSelect = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setUploadFile(file);
     setUploadError("");
+    setWorkbook(null);
+    setSheetNames([]);
+    setSelectedSheet("");
+
+    const isXlsx = file.name.toLowerCase().endsWith(".xlsx");
+    if (isXlsx) {
+      try {
+        const wb = await readWorkbook(file);
+        setWorkbook(wb);
+        if (wb.SheetNames.length > 1) {
+          setSheetNames(wb.SheetNames);
+          setSelectedSheet(""); // user must choose
+        } else {
+          setSheetNames(wb.SheetNames);
+          setSelectedSheet(wb.SheetNames[0]); // auto-select single sheet
+        }
+      } catch {
+        setUploadError("Failed to read Excel file.");
+      }
+    }
+    // CSV: no sheet selection needed
   };
 
-  const handleUpload = async () => {
-    setUploadError("");
-    if (!uploadFile)    { setUploadError("Please select a file."); return; }
-    if (!periodStart)   { setUploadError("Reporting Period Start Date is required."); return; }
-    if (!periodEnd)     { setUploadError("Reporting Period End Date is required."); return; }
-    if (periodEnd < periodStart) { setUploadError("End date must be on or after start date."); return; }
-
-    setUploading(true);
-    let rows;
-    try {
-      rows = await parseFile(uploadFile);
-    } catch {
-      setUploadError("Failed to parse file. Please check the file format.");
-      setUploading(false);
-      return;
+  const validateAndGetRows = () => {
+    const isXlsx = uploadFile?.name.toLowerCase().endsWith(".xlsx");
+    if (isXlsx) {
+      if (!workbook) return { error: "Failed to read workbook." };
+      const sheet = selectedSheet || workbook.SheetNames[0];
+      const rows = parseSheet(workbook, sheet);
+      if (!rows || rows.length === 0) return { error: "Selected worksheet contains no data rows." };
+      const normalizedHeaders = Object.keys(rows[0]).map(normalizeHeader);
+      const missing = REQUIRED_NORMALIZED.filter(h => !normalizedHeaders.includes(h));
+      if (missing.length > 0) return { error: "Invalid worksheet format. Required headers are missing." };
+      return { rows };
     }
+    return null; // CSV handled async in handleUpload
+  };
 
-    if (!rows || rows.length === 0) {
-      setUploadError("File contains no data rows.");
-      setUploading(false);
-      return;
-    }
-
-    // Client-side header validation (normalized)
-    const normalizedHeaders = Object.keys(rows[0]).map(normalizeHeader);
-    const missing = REQUIRED_NORMALIZED.filter(h => !normalizedHeaders.includes(h));
-    if (missing.length > 0) {
-      setUploadError(`Invalid file format. Required headers missing: ${missing.join(", ")}`);
-      setUploading(false);
-      return;
-    }
-
+  const submitUpload = async (rows) => {
     try {
       const response = await base44.functions.invoke("processCallLog", {
         rows,
@@ -211,8 +220,16 @@ export default function CallLogReporting() {
         return;
       }
 
-      queryClient.invalidateQueries({ queryKey: ["call-log-periods"] });
+      // Refresh periods and auto-select the new/replaced period
+      await queryClient.invalidateQueries({ queryKey: ["call-log-periods"] });
       queryClient.invalidateQueries({ queryKey: ["call-log-summaries"] });
+
+      // Fetch fresh periods list to find the new record
+      const freshPeriods = await base44.entities.CallLogPeriod.list("-uploaded_at");
+      const newPeriod = freshPeriods.find(p =>
+        p.reporting_period_start === periodStart && p.reporting_period_end === periodEnd
+      );
+      if (newPeriod) setSelectedPeriod(newPeriod);
 
       toast({
         title: result.is_replacement ? "Period Replaced" : "Upload Successful",
@@ -224,6 +241,72 @@ export default function CallLogReporting() {
       setUploadError(err.message || "Upload failed.");
     }
     setUploading(false);
+  };
+
+  const handleUpload = async () => {
+    setUploadError("");
+    if (!uploadFile)  { setUploadError("Please select a file."); return; }
+    if (!periodStart) { setUploadError("Reporting Period Start Date is required."); return; }
+    if (!periodEnd)   { setUploadError("Reporting Period End Date is required."); return; }
+    if (periodEnd < periodStart) { setUploadError("End date must be on or after start date."); return; }
+
+    const isXlsx = uploadFile.name.toLowerCase().endsWith(".xlsx");
+    if (isXlsx && sheetNames.length > 1 && !selectedSheet) {
+      setUploadError("Please select a worksheet to import.");
+      return;
+    }
+
+    setUploading(true);
+    let rows;
+
+    if (isXlsx) {
+      const result = validateAndGetRows();
+      if (result?.error) {
+        setUploadError(result.error);
+        setUploading(false);
+        return;
+      }
+      rows = result.rows;
+    } else {
+      try {
+        rows = await readCSV(uploadFile);
+      } catch {
+        setUploadError("Failed to parse CSV file.");
+        setUploading(false);
+        return;
+      }
+      if (!rows || rows.length === 0) {
+        setUploadError("File contains no data rows.");
+        setUploading(false);
+        return;
+      }
+      const normalizedHeaders = Object.keys(rows[0]).map(normalizeHeader);
+      const missing = REQUIRED_NORMALIZED.filter(h => !normalizedHeaders.includes(h));
+      if (missing.length > 0) {
+        setUploadError("Invalid worksheet format. Required headers are missing.");
+        setUploading(false);
+        return;
+      }
+    }
+
+    // Check for duplicate period client-side before submitting
+    const duplicate = periods.find(
+      p => p.reporting_period_start === periodStart && p.reporting_period_end === periodEnd
+    );
+    if (duplicate) {
+      setReplaceConfirm({ rows });
+      setUploading(false);
+      return;
+    }
+
+    await submitUpload(rows);
+  };
+
+  const handleConfirmReplace = async () => {
+    if (!replaceConfirm) return;
+    setReplaceConfirm(null);
+    setUploading(true);
+    await submitUpload(replaceConfirm.rows);
   };
 
   const handleDelete = async () => {
