@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Upload, Phone, ArrowLeft, AlertCircle, CheckCircle, Loader2, Download, Trash2 } from "lucide-react";
+import { Upload, Phone, AlertCircle, CheckCircle, Loader2, Download, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
