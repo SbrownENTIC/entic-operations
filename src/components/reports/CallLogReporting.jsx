@@ -128,6 +128,20 @@ export default function CallLogReporting() {
     queryFn: () => base44.entities.CallLogPeriod.list("-uploaded_at")
   });
 
+  // Auto-select default period on load
+  React.useEffect(() => {
+    if (!periods.length || selectedPeriod) return;
+    const now = new Date();
+    const currentMonth = now.getMonth(); // 0-indexed
+    const currentYear = now.getFullYear();
+    const monthly = periods.find(p => {
+      if (p.status !== "Monthly") return false;
+      const d = new Date(p.reporting_period_start + "T12:00:00");
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    });
+    setSelectedPeriod(monthly || periods[0]);
+  }, [periods]);
+
   const { data: userSummaries = [], isLoading: summariesLoading } = useQuery({
     queryKey: ["call-log-summaries", selectedPeriod?.id],
     queryFn: () => base44.entities.CallLogUserSummary.filter({ period_id: selectedPeriod.id }),
