@@ -1335,6 +1335,10 @@ export default function Reports() {
               formatCurrency={formatCurrency}
             />
           </TabsContent>
+
+          <TabsContent value="call-log">
+            <CallLogReporting />
+          </TabsContent>
         </Tabs>
 
 
