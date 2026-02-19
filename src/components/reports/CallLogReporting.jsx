@@ -160,7 +160,8 @@ export default function CallLogReporting() {
   const [deleting, setDeleting] = useState(false);
   const [replaceConfirm, setReplaceConfirm] = useState(null); // holds { rows, periodStart, periodEnd } pending confirmation
   const [sortCol, setSortCol] = useState("user");
-  const [sortDir, setSortDir] = useState("asc"); // "asc" | "desc" | null (null = default)
+  const [sortDir, setSortDir] = useState("asc"); // "asc" | "desc"
+  const [userSearch, setUserSearch] = useState("");
 
   const { data: periods = [], isLoading: periodsLoading } = useQuery({
     queryKey: ["call-log-periods"],
