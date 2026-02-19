@@ -112,12 +112,16 @@ export default function CallLogReporting() {
   const [selectedPeriod, setSelectedPeriod] = useState(null);
   const [showUpload, setShowUpload] = useState(false);
   const [uploadFile, setUploadFile] = useState(null);
+  const [workbook, setWorkbook] = useState(null);        // parsed XLSX workbook (for multi-sheet)
+  const [sheetNames, setSheetNames] = useState([]);      // list of sheet names from workbook
+  const [selectedSheet, setSelectedSheet] = useState(""); // chosen sheet name
   const [periodStart, setPeriodStart] = useState("");
   const [periodEnd, setPeriodEnd] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [deleteDialogPeriod, setDeleteDialogPeriod] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [replaceConfirm, setReplaceConfirm] = useState(null); // holds { rows, periodStart, periodEnd } pending confirmation
 
   const { data: periods = [], isLoading: periodsLoading } = useQuery({
     queryKey: ["call-log-periods"],
