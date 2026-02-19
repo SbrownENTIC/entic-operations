@@ -359,8 +359,12 @@ export default function CallLogReporting() {
                 {periods.map((period, i) => (
                   <tr
                     key={period.id}
-                    className={`border-b border-slate-100 hover:bg-blue-50/50 cursor-pointer transition-colors ${i % 2 !== 0 ? "bg-slate-50/30" : ""}`}
-                    onClick={() => { setSelectedPeriod(period); setView("detail"); }}
+                    className={`border-b border-slate-100 cursor-pointer transition-colors ${
+                      selectedPeriod?.id === period.id
+                        ? "bg-blue-50 border-l-2 border-l-blue-500"
+                        : `hover:bg-blue-50/50 ${i % 2 !== 0 ? "bg-slate-50/30" : ""}`
+                    }`}
+                    onClick={() => setSelectedPeriod(selectedPeriod?.id === period.id ? null : period)}
                   >
                     <td className="px-4 py-3 font-medium text-slate-800">{formatDate(period.reporting_period_start)}</td>
                     <td className="px-4 py-3 text-slate-700">{formatDate(period.reporting_period_end)}</td>
@@ -392,6 +396,105 @@ export default function CallLogReporting() {
           )}
         </CardContent>
       </Card>
+
+      {/* Inline Detail Panel */}
+      {selectedPeriod && (
+        <div className="space-y-4 border-t-2 border-blue-200 pt-4">
+          {/* Detail header */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-slate-900">
+                {formatDate(selectedPeriod.reporting_period_start)} – {formatDate(selectedPeriod.reporting_period_end)}
+              </h3>
+              {selectedPeriod.source_file_name && (
+                <p className="text-xs text-slate-500 mt-0.5">{selectedPeriod.source_file_name}</p>
+              )}
+            </div>
+            <span className={`text-xs font-semibold px-2 py-1 rounded-full ${STATUS_COLORS[selectedPeriod.status] || "bg-slate-100 text-slate-700"}`}>
+              {selectedPeriod.status}
+            </span>
+            <Button variant="outline" size="sm" onClick={exportPeriodCSV} className="gap-2">
+              <Download className="w-4 h-4" /> Export CSV
+            </Button>
+          </div>
+
+          {summariesLoading ? (
+            <div className="flex items-center justify-center py-12 text-slate-500 gap-2">
+              <Loader2 className="w-5 h-5 animate-spin" /> Loading...
+            </div>
+          ) : (
+            <>
+              {/* Summary metric cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { label: "Total Calls",    value: totalCalls.toLocaleString(),           color: "text-slate-900" },
+                  { label: "Inbound",        value: totalInbound.toLocaleString(),          color: "text-blue-700" },
+                  { label: "Outbound",       value: totalOutbound.toLocaleString(),         color: "text-indigo-700" },
+                  { label: "Answered",       value: totalAnswered.toLocaleString(),         color: "text-green-700" },
+                  { label: "Missed",         value: totalMissed.toLocaleString(),           color: "text-red-600" },
+                  { label: "Answer Rate",    value: (totalCalls > 0 ? (overallAnswerRate * 100).toFixed(1) : "0.0") + "%", color: overallAnswerRate >= 0.8 ? "text-green-700" : overallAnswerRate >= 0.5 ? "text-yellow-700" : "text-red-600" },
+                  { label: "Total Duration", value: secondsToHHMMSS(totalDurationSec),     color: "text-slate-700" },
+                  { label: "Avg Duration",   value: secondsToHHMMSS(overallAvgDurationSec),color: "text-slate-700" },
+                ].map(m => (
+                  <Card key={m.label} className="border-slate-200 shadow-sm">
+                    <CardContent className="p-4">
+                      <p className="text-xs font-medium text-slate-500 mb-1">{m.label}</p>
+                      <p className={`text-2xl font-bold ${m.color}`}>{m.value}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* User breakdown table */}
+              <Card className="border-slate-200 shadow-sm">
+                <CardHeader className="border-b border-slate-100 py-3 px-4">
+                  <CardTitle className="text-sm font-semibold text-slate-700">User Breakdown — {activeSummaries.length} users</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                          {["User","Total Calls","Inbound","Outbound","Answered","Missed","Duration (HH:MM:SS)","Answer Rate","Avg Duration (HH:MM:SS)"].map(h => (
+                            <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-slate-600 whitespace-nowrap">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {activeSummaries.map((u, i) => {
+                          const ar = u.answered != null && u.total_calls ? u.answered / u.total_calls : (u.answer_rate || 0);
+                          return (
+                            <tr key={u.id} className={`border-b border-slate-100 ${i % 2 !== 0 ? "bg-slate-50/50" : ""}`}>
+                              <td className="px-4 py-2.5 font-medium text-slate-800">{u.user}</td>
+                              <td className="px-4 py-2.5 text-slate-700">{(u.total_calls || 0).toLocaleString()}</td>
+                              <td className="px-4 py-2.5 text-blue-700">{(u.inbound || 0).toLocaleString()}</td>
+                              <td className="px-4 py-2.5 text-indigo-700">{(u.outbound || 0).toLocaleString()}</td>
+                              <td className="px-4 py-2.5 text-green-700">{(u.answered || 0).toLocaleString()}</td>
+                              <td className="px-4 py-2.5 text-red-600">{(u.missed || 0).toLocaleString()}</td>
+                              <td className="px-4 py-2.5 text-slate-600">{secondsToHHMMSS(u.total_duration_seconds)}</td>
+                              <td className="px-4 py-2.5">
+                                <span className={`font-semibold ${ar >= 0.8 ? "text-green-700" : ar >= 0.5 ? "text-yellow-700" : "text-red-600"}`}>
+                                  {(ar * 100).toFixed(1)}%
+                                </span>
+                              </td>
+                              <td className="px-4 py-2.5 text-slate-600">{secondsToHHMMSS(u.avg_duration_seconds)}</td>
+                            </tr>
+                          );
+                        })}
+                        {activeSummaries.length === 0 && (
+                          <tr>
+                            <td colSpan={9} className="px-4 py-8 text-center text-slate-400">No user data for this period.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </div>
+      )}
 
       <AlertDialog open={!!deleteDialogPeriod} onOpenChange={open => !open && setDeleteDialogPeriod(null)}>
         <AlertDialogContent>
