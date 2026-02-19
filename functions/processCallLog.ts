@@ -78,15 +78,22 @@ Deno.serve(async (req) => {
     // Build normalized header map from first row
     const headerMap = buildHeaderMap(rows[0]);
 
-    // Validate required headers
-    const missing = REQUIRED_NORMALIZED.filter(h => !headerMap[h]);
+    // Validate required headers - return debug info always
+    const missing = REQUIRED_NORMALIZED.filter(h => !(h in headerMap));
+    const debugInfo = {
+      seen_keys: Object.keys(rows[0]),
+      normalized_keys: Object.keys(headerMap),
+      required: REQUIRED_NORMALIZED,
+      missing
+    };
     if (missing.length > 0) {
       return Response.json({
         error: `Invalid file format. Required headers missing: ${missing.join(', ')}`,
-        debug_seen_headers: Object.keys(rows[0]),
-        debug_normalized: Object.keys(headerMap)
+        debug: debugInfo
       }, { status: 400 });
     }
+    // Temp: return debug info on success path too to verify headers seen
+    // return Response.json({ debug: debugInfo });
 
     // Helper to safely get a value by normalized header name
     const get = (row, normalizedName) => row[headerMap[normalizedName]];
