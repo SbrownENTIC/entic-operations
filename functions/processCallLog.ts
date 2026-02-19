@@ -82,7 +82,9 @@ Deno.serve(async (req) => {
     const missing = REQUIRED_NORMALIZED.filter(h => !headerMap[h]);
     if (missing.length > 0) {
       return Response.json({
-        error: `Invalid file format. Required headers missing: ${missing.join(', ')}`
+        error: `Invalid file format. Required headers missing: ${missing.join(', ')}`,
+        debug_seen_headers: Object.keys(rows[0]),
+        debug_normalized: Object.keys(headerMap)
       }, { status: 400 });
     }
 
