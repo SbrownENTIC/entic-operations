@@ -389,16 +389,16 @@ export default function CallLogReporting() {
     document.body.removeChild(link);
   };
 
-  // ---- LIST + INLINE DETAIL VIEW ----
+  // ---- DROPDOWN DASHBOARD VIEW ----
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
             <Phone className="w-5 h-5 text-blue-600" />
             Call Log Reporting
           </h2>
-          <p className="text-sm text-slate-500 mt-0.5">Upload raw Vonage exports and view reporting periods</p>
+          <p className="text-sm text-slate-500 mt-0.5">Vonage call analytics by reporting period</p>
         </div>
         <Button onClick={() => setShowUpload(true)} className="gap-2 bg-blue-600 hover:bg-blue-700">
           <Upload className="w-4 h-4" /> Upload Call Log
