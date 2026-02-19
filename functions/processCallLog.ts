@@ -1,41 +1,59 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
-const REQUIRED_HEADERS = [
-  "User",
-  "Total Calls",
-  "Inbound",
-  "Outbound",
-  "Answered",
-  "Missed",
-  "Total Call Duration (Minutes)",
-  "Inbound Call Duration (Minutes)",
-  "Outbound Call Duration (Minutes)"
+// Normalize a header string: lowercase + collapse whitespace
+function normalizeHeader(h) {
+  return String(h).toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+// Build a lookup map from normalized header -> actual key in the row object
+function buildHeaderMap(sampleRow) {
+  const map = {};
+  for (const key of Object.keys(sampleRow)) {
+    map[normalizeHeader(key)] = key;
+  }
+  return map;
+}
+
+// Required logical field names (normalized)
+const REQUIRED_NORMALIZED = [
+  "user",
+  "total calls",
+  "inbound calls",
+  "outbound calls",
+  "answered calls",
+  "missed calls",
+  "total call duration",
+  "inbound call duration",
+  "outbound call duration"
 ];
 
+// Parse HH:MM:SS or MM:SS or plain number → seconds
+function parseDurationToSeconds(val) {
+  if (val === null || val === undefined || val === '') return 0;
+  const s = String(val).trim();
+  if (s === '') return 0;
+  if (/^\d+(\.\d+)?$/.test(s)) return Math.round(parseFloat(s)); // plain numeric seconds
+  const parts = s.split(':').map(Number);
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  return 0;
+}
+
 function classifyPeriod(startStr, endStr) {
-  const start = new Date(startStr + "T00:00:00");
-  const end = new Date(endStr + "T00:00:00");
+  const [sy, sm, sd] = startStr.split('-').map(Number);
+  const [ey, em, ed] = endStr.split('-').map(Number);
 
-  // Monthly: starts on first day of a month and ends on last day of same month
-  const isFirstDay = start.getDate() === 1;
-  const nextDay = new Date(end);
-  nextDay.setDate(nextDay.getDate() + 1);
-  const isLastDay = nextDay.getDate() === 1 && nextDay.getMonth() === end.getMonth() + 1 % 12 || nextDay.getDate() === 1;
-  const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
-
-  if (isFirstDay && sameMonth) {
-    // Check if end is actually the last day of the month
-    const lastDayOfMonth = new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate();
-    if (end.getDate() === lastDayOfMonth) {
-      return "Monthly";
-    }
+  // Monthly: starts on 1st, ends on last day of same month
+  if (sd === 1 && sy === ey && sm === em) {
+    const lastDay = new Date(sy, sm, 0).getDate(); // day 0 of next month = last day of this month
+    if (ed === lastDay) return "Monthly";
   }
 
-  // Weekly: inclusive duration <= 5 days means end - start <= 4 days
+  // Weekly: inclusive duration <= 5 days
+  const start = new Date(sy, sm - 1, sd);
+  const end = new Date(ey, em - 1, ed);
   const diffDays = Math.round((end - start) / (1000 * 60 * 60 * 24));
-  if (diffDays <= 4) {
-    return "Weekly";
-  }
+  if (diffDays <= 4) return "Weekly";
 
   return "Custom Range";
 }
@@ -53,23 +71,29 @@ Deno.serve(async (req) => {
     if (!periodStart || !periodEnd) {
       return Response.json({ error: 'Reporting period start and end dates are required.' }, { status: 400 });
     }
-
     if (!rows || rows.length === 0) {
       return Response.json({ error: 'No data rows provided.' }, { status: 400 });
     }
 
-    // Validate headers from the first row keys
-    const headers = Object.keys(rows[0]);
-    const missingHeaders = REQUIRED_HEADERS.filter(h => !headers.includes(h));
-    if (missingHeaders.length > 0) {
-      return Response.json({ error: 'Invalid file format. Required headers missing.' }, { status: 400 });
+    // Build normalized header map from first row
+    const headerMap = buildHeaderMap(rows[0]);
+
+    // Validate required headers
+    const missing = REQUIRED_NORMALIZED.filter(h => !headerMap[h]);
+    if (missing.length > 0) {
+      return Response.json({
+        error: `Invalid file format. Required headers missing: ${missing.join(', ')}`
+      }, { status: 400 });
     }
+
+    // Helper to safely get a value by normalized header name
+    const get = (row, normalizedName) => row[headerMap[normalizedName]];
 
     // Aggregate by user
     const aggregated = {};
     for (const row of rows) {
-      const userName = (row["User"] || "").trim();
-      if (!userName) continue; // skip blank user rows
+      const userName = String(get(row, 'user') || '').trim();
+      if (!userName) continue;
 
       const key = userName.toLowerCase();
       if (!aggregated[key]) {
@@ -80,47 +104,46 @@ Deno.serve(async (req) => {
           outbound: 0,
           answered: 0,
           missed: 0,
-          total_duration_minutes: 0,
-          inbound_duration_minutes: 0,
-          outbound_duration_minutes: 0
+          total_duration_seconds: 0,
+          inbound_duration_seconds: 0,
+          outbound_duration_seconds: 0
         };
       }
 
-      aggregated[key].total_calls += Number(row["Total Calls"]) || 0;
-      aggregated[key].inbound += Number(row["Inbound"]) || 0;
-      aggregated[key].outbound += Number(row["Outbound"]) || 0;
-      aggregated[key].answered += Number(row["Answered"]) || 0;
-      aggregated[key].missed += Number(row["Missed"]) || 0;
-      aggregated[key].total_duration_minutes += Number(row["Total Call Duration (Minutes)"]) || 0;
-      aggregated[key].inbound_duration_minutes += Number(row["Inbound Call Duration (Minutes)"]) || 0;
-      aggregated[key].outbound_duration_minutes += Number(row["Outbound Call Duration (Minutes)"]) || 0;
+      aggregated[key].total_calls           += Number(get(row, 'total calls')) || 0;
+      aggregated[key].inbound               += Number(get(row, 'inbound calls')) || 0;
+      aggregated[key].outbound              += Number(get(row, 'outbound calls')) || 0;
+      aggregated[key].answered              += Number(get(row, 'answered calls')) || 0;
+      aggregated[key].missed                += Number(get(row, 'missed calls')) || 0;
+      aggregated[key].total_duration_seconds    += parseDurationToSeconds(get(row, 'total call duration'));
+      aggregated[key].inbound_duration_seconds  += parseDurationToSeconds(get(row, 'inbound call duration'));
+      aggregated[key].outbound_duration_seconds += parseDurationToSeconds(get(row, 'outbound call duration'));
     }
 
     // Compute derived metrics
     const userSummaries = Object.values(aggregated).map(u => ({
       ...u,
       answer_rate: u.total_calls > 0 ? u.answered / u.total_calls : 0,
-      avg_duration_minutes: u.total_calls > 0 ? u.total_duration_minutes / u.total_calls : 0
+      avg_duration_seconds: u.total_calls > 0 ? u.total_duration_seconds / u.total_calls : 0
     }));
 
-    // Classify the period
     const status = classifyPeriod(periodStart, periodEnd);
 
-    // Check for duplicate period (same start + end)
+    // Check for duplicate period
     const existingPeriods = await base44.asServiceRole.entities.CallLogPeriod.filter({
       reporting_period_start: periodStart,
       reporting_period_end: periodEnd
     });
 
     let periodId;
-    if (existingPeriods && existingPeriods.length > 0) {
-      // Replace: delete old user summaries for this period
+    const isReplacement = existingPeriods && existingPeriods.length > 0;
+
+    if (isReplacement) {
       periodId = existingPeriods[0].id;
       const oldSummaries = await base44.asServiceRole.entities.CallLogUserSummary.filter({ period_id: periodId });
       for (const s of oldSummaries) {
         await base44.asServiceRole.entities.CallLogUserSummary.delete(s.id);
       }
-      // Update the period record
       await base44.asServiceRole.entities.CallLogPeriod.update(periodId, {
         source_file_name: fileName,
         uploaded_by: user.email,
@@ -128,7 +151,6 @@ Deno.serve(async (req) => {
         status
       });
     } else {
-      // Create new period
       const period = await base44.asServiceRole.entities.CallLogPeriod.create({
         reporting_period_start: periodStart,
         reporting_period_end: periodEnd,
@@ -140,7 +162,6 @@ Deno.serve(async (req) => {
       periodId = period.id;
     }
 
-    // Bulk create user summaries
     for (const summary of userSummaries) {
       await base44.asServiceRole.entities.CallLogUserSummary.create({
         period_id: periodId,
@@ -153,7 +174,7 @@ Deno.serve(async (req) => {
       period_id: periodId,
       status,
       users_imported: userSummaries.length,
-      is_replacement: existingPeriods && existingPeriods.length > 0
+      is_replacement: isReplacement
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
