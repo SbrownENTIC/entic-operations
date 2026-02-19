@@ -159,6 +159,8 @@ export default function CallLogReporting() {
   const [deleteDialogPeriod, setDeleteDialogPeriod] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [replaceConfirm, setReplaceConfirm] = useState(null); // holds { rows, periodStart, periodEnd } pending confirmation
+  const [sortCol, setSortCol] = useState("user");
+  const [sortDir, setSortDir] = useState("asc"); // "asc" | "desc" | null (null = default)
 
   const { data: periods = [], isLoading: periodsLoading } = useQuery({
     queryKey: ["call-log-periods"],
