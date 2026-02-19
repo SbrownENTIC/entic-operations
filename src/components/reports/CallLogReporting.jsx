@@ -144,6 +144,9 @@ export default function CallLogReporting() {
   const [selectedPeriodId, setSelectedPeriodId] = useState(null);
   const [showUpload, setShowUpload] = useState(false);
   const [uploadFile, setUploadFile] = useState(null);
+  const [parsedWorkbook, setParsedWorkbook] = useState(null); // { sheetNames, workbook }
+  const [sheetNames, setSheetNames] = useState([]);
+  const [selectedSheet, setSelectedSheet] = useState("");
   const [periodStart, setPeriodStart] = useState("");
   const [periodEnd, setPeriodEnd] = useState("");
   const [uploading, setUploading] = useState(false);
