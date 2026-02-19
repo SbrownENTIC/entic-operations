@@ -59,36 +59,56 @@ const REQUIRED_NORMALIZED = [
 ];
 
 // ---- File parsing ----
-function readWorkbook(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: "array" });
-        resolve(workbook);
-      } catch (err) {
-        reject(err);
-      }
-    };
-    reader.onerror = reject;
-    reader.readAsArrayBuffer(file);
+
+/** Reads an xlsx/xls file with ExcelJS and returns { workbook, sheetNames } */
+async function readWorkbookFile(file) {
+  const buffer = await file.arrayBuffer();
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(buffer);
+  const sheetNames = wb.worksheets.map(s => s.name);
+  return { workbook: wb, sheetNames };
+}
+
+/** Converts an ExcelJS worksheet to an array-of-objects (like XLSX sheet_to_json) */
+function sheetToJson(worksheet) {
+  const rows = [];
+  let headers = [];
+  worksheet.eachRow({ includeEmpty: false }, (row, rowNum) => {
+    const values = row.values.slice(1); // row.values is 1-indexed with undefined at [0]
+    if (rowNum === 1) {
+      headers = values.map(v => (v == null ? "" : String(v)));
+    } else {
+      const obj = {};
+      headers.forEach((h, i) => {
+        let val = values[i];
+        if (val == null) val = "";
+        else if (typeof val === "object" && val.result != null) val = val.result; // formula cell
+        else if (typeof val === "object" && val.text != null) val = val.text;    // rich text
+        obj[h] = val;
+      });
+      rows.push(obj);
+    }
   });
+  return rows;
 }
 
-function parseSheet(workbook, sheetName) {
-  const sheet = workbook.Sheets[sheetName];
-  return XLSX.utils.sheet_to_json(sheet, { defval: "" });
-}
-
+/** Parses a CSV file into array-of-objects */
 function readCSV(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const workbook = XLSX.read(e.target.result, { type: "string" });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        resolve(XLSX.utils.sheet_to_json(sheet, { defval: "" }));
+        const text = e.target.result;
+        const lines = text.split(/\r?\n/).filter(l => l.trim());
+        if (!lines.length) { resolve([]); return; }
+        const headers = lines[0].split(",").map(h => h.replace(/^"|"$/g, "").trim());
+        const rows = lines.slice(1).map(line => {
+          const cols = line.split(",").map(c => c.replace(/^"|"$/g, "").trim());
+          const obj = {};
+          headers.forEach((h, i) => { obj[h] = cols[i] ?? ""; });
+          return obj;
+        });
+        resolve(rows);
       } catch (err) {
         reject(err);
       }
