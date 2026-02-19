@@ -776,6 +776,33 @@ export default function Payments() {
                   {filterUnallocated ? "Showing Unallocated" : "Show Unallocated Only"}
                 </Button>
               </div>
+              {selectedPaymentIds.size > 0 && (
+                <div className="flex items-center gap-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                  <span className="text-sm font-medium text-blue-800">{selectedPaymentIds.size} selected</span>
+                  <Select value={bulkStatus} onValueChange={setBulkStatus}>
+                    <SelectTrigger className="w-44 h-8 text-xs">
+                      <SelectValue placeholder="Set status..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="cleared">Cleared</SelectItem>
+                      <SelectItem value="reversed">Reversed</SelectItem>
+                      <SelectItem value="entic_paid">ENTIC Paid</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    size="sm"
+                    onClick={handleBulkStatusUpdate}
+                    disabled={!bulkStatus || bulkUpdating}
+                    className="h-8 text-xs bg-blue-600 hover:bg-blue-700"
+                  >
+                    {bulkUpdating ? "Updating..." : "Apply"}
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setSelectedPaymentIds(new Set())}>
+                    Clear
+                  </Button>
+                </div>
+              )}
             </CardHeader>
             <CardContent className="p-0 card-content flex-1 overflow-hidden">
               <div className="overflow-auto h-full print:max-h-none print:overflow-visible">
