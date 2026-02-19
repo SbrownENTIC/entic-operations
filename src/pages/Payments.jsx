@@ -876,8 +876,14 @@ export default function Payments() {
                       <tbody>
                     {sortedPayments.map((payment, index) => (
                       <tr key={payment.id} className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${
-                        payment.unallocated_amount > 0 ? 'bg-orange-50/30' : ''
+                        selectedPaymentIds.has(payment.id) ? 'bg-blue-50' : payment.unallocated_amount > 0 ? 'bg-orange-50/30' : ''
                       }`}>
+                        <td className="px-3 py-2 no-print">
+                          <Checkbox
+                            checked={selectedPaymentIds.has(payment.id)}
+                            onCheckedChange={() => toggleSelectPayment(payment.id)}
+                          />
+                        </td>
                         <td className="px-3 py-2 text-xs text-slate-500 font-medium">
                           {index + 1}
                         </td>
