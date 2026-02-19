@@ -193,30 +193,65 @@ export default function CallLogReporting() {
   const resetUpload = () => {
     setShowUpload(false);
     setUploadFile(null);
+    setParsedWorkbook(null);
+    setSheetNames([]);
+    setSelectedSheet("");
     setUploadError("");
     setPeriodStart("");
     setPeriodEnd("");
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleFileSelect = (e) => {
+  const handleFileSelect = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setUploadFile(file);
     setUploadError("");
+    setParsedWorkbook(null);
+    setSheetNames([]);
+    setSelectedSheet("");
+
+    const isCSV = file.name.toLowerCase().endsWith(".csv");
+    if (!isCSV) {
+      try {
+        const wb = await readWorkbook(file);
+        setParsedWorkbook(wb);
+        setSheetNames(wb.sheetNames);
+        // Auto-select if only one sheet
+        if (wb.sheetNames.length === 1) {
+          setSelectedSheet(wb.sheetNames[0]);
+        }
+      } catch {
+        setUploadError("Failed to read workbook. Please check the file format.");
+      }
+    }
+    // CSV: no sheet selection needed
   };
 
   const handleUpload = async () => {
     setUploadError("");
-    if (!uploadFile)    { setUploadError("Please select a file."); return; }
-    if (!periodStart)   { setUploadError("Reporting Period Start Date is required."); return; }
-    if (!periodEnd)     { setUploadError("Reporting Period End Date is required."); return; }
+    if (!uploadFile)  { setUploadError("Please select a file."); return; }
+    if (!periodStart) { setUploadError("Reporting Period Start Date is required."); return; }
+    if (!periodEnd)   { setUploadError("Reporting Period End Date is required."); return; }
     if (periodEnd < periodStart) { setUploadError("End date must be on or after start date."); return; }
+
+    const isCSV = uploadFile.name.toLowerCase().endsWith(".csv");
+
+    // Require sheet selection for multi-sheet xlsx
+    if (!isCSV && sheetNames.length > 1 && !selectedSheet) {
+      setUploadError("Please select a worksheet to import.");
+      return;
+    }
 
     setUploading(true);
     let rows;
     try {
-      rows = await parseFile(uploadFile);
+      if (isCSV) {
+        rows = await parseCSV(uploadFile);
+      } else {
+        const sheetToUse = selectedSheet || sheetNames[0];
+        rows = parseSheetFromWorkbook(parsedWorkbook.workbook, sheetToUse);
+      }
     } catch {
       setUploadError("Failed to parse file. Please check the file format.");
       setUploading(false);
@@ -232,7 +267,7 @@ export default function CallLogReporting() {
     const normalizedHeaders = Object.keys(rows[0]).map(normalizeHeader);
     const missing = REQUIRED_NORMALIZED.filter(h => !normalizedHeaders.includes(h));
     if (missing.length > 0) {
-      setUploadError(`Invalid file format. Required headers missing: ${missing.join(", ")}`);
+      setUploadError("Invalid worksheet format. Required headers are missing.");
       setUploading(false);
       return;
     }
