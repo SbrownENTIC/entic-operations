@@ -1,10 +1,10 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Upload, Phone, AlertCircle, CheckCircle, Loader2, Download, Trash2 } from "lucide-react";
+import { Upload, Phone, AlertCircle, CheckCircle, Loader2, Download, Trash2, ChevronDown } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,6 +15,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import * as XLSX from "https://esm.sh/xlsx@0.18.5";
 
@@ -38,6 +45,20 @@ function formatDate(str) {
   const [y, m, d] = str.split("-");
   const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   return `${months[parseInt(m, 10) - 1]} ${parseInt(d, 10)}, ${y}`;
+}
+
+const MONTH_NAMES = [
+  "January","February","March","April","May","June",
+  "July","August","September","October","November","December"
+];
+
+function periodLabel(period) {
+  if (!period) return "";
+  if (period.status === "Monthly") {
+    const [y, m] = (period.reporting_period_start || "").split("-");
+    if (y && m) return `${MONTH_NAMES[parseInt(m, 10) - 1]} ${y}`;
+  }
+  return `${period.reporting_period_start} to ${period.reporting_period_end}`;
 }
 
 // ---- Header normalization ----
@@ -78,18 +99,26 @@ function parseFile(file) {
   });
 }
 
-const STATUS_COLORS = {
-  Monthly: "bg-blue-100 text-blue-800",
-  Weekly: "bg-green-100 text-green-800",
-  "Custom Range": "bg-purple-100 text-purple-800"
-};
+// Pick default period: current month if exists, else most recent
+function pickDefaultPeriod(periods) {
+  if (!periods || periods.length === 0) return null;
+  const now = new Date();
+  const thisYear = now.getFullYear();
+  const thisMonth = now.getMonth() + 1;
+  const currentMonthPeriod = periods.find(p => {
+    if (p.status !== "Monthly") return false;
+    const [y, m] = (p.reporting_period_start || "").split("-");
+    return parseInt(y, 10) === thisYear && parseInt(m, 10) === thisMonth;
+  });
+  return currentMonthPeriod || periods[0];
+}
 
 export default function CallLogReporting() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef(null);
 
-  const [selectedPeriod, setSelectedPeriod] = useState(null);
+  const [selectedPeriodId, setSelectedPeriodId] = useState(null);
   const [showUpload, setShowUpload] = useState(false);
   const [uploadFile, setUploadFile] = useState(null);
   const [periodStart, setPeriodStart] = useState("");
@@ -98,30 +127,41 @@ export default function CallLogReporting() {
   const [uploadError, setUploadError] = useState("");
   const [deleteDialogPeriod, setDeleteDialogPeriod] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [defaultSet, setDefaultSet] = useState(false);
 
   const { data: periods = [], isLoading: periodsLoading } = useQuery({
     queryKey: ["call-log-periods"],
     queryFn: () => base44.entities.CallLogPeriod.list("-uploaded_at")
   });
 
+  // Auto-select default period on first load
+  useEffect(() => {
+    if (!defaultSet && periods.length > 0) {
+      const def = pickDefaultPeriod(periods);
+      if (def) setSelectedPeriodId(def.id);
+      setDefaultSet(true);
+    }
+  }, [periods, defaultSet]);
+
+  const selectedPeriod = periods.find(p => p.id === selectedPeriodId) || null;
+
   const { data: userSummaries = [], isLoading: summariesLoading } = useQuery({
-    queryKey: ["call-log-summaries", selectedPeriod?.id],
-    queryFn: () => base44.entities.CallLogUserSummary.filter({ period_id: selectedPeriod.id }),
-    enabled: !!selectedPeriod?.id
+    queryKey: ["call-log-summaries", selectedPeriodId],
+    queryFn: () => base44.entities.CallLogUserSummary.filter({ period_id: selectedPeriodId }),
+    enabled: !!selectedPeriodId
   });
 
   const activeSummaries = userSummaries
     .filter(u => (u.total_calls || 0) > 0)
     .sort((a, b) => (b.total_calls || 0) - (a.total_calls || 0));
 
-  // Aggregate summary totals
   const totalCalls    = activeSummaries.reduce((s, u) => s + (u.total_calls || 0), 0);
   const totalInbound  = activeSummaries.reduce((s, u) => s + (u.inbound || 0), 0);
   const totalOutbound = activeSummaries.reduce((s, u) => s + (u.outbound || 0), 0);
   const totalAnswered = activeSummaries.reduce((s, u) => s + (u.answered || 0), 0);
   const totalMissed   = activeSummaries.reduce((s, u) => s + (u.missed || 0), 0);
   const totalDurationSec = activeSummaries.reduce((s, u) => s + (u.total_duration_seconds || 0), 0);
-  const overallAnswerRate   = totalCalls > 0 ? totalAnswered / totalCalls : 0;
+  const overallAnswerRate = totalCalls > 0 ? totalAnswered / totalCalls : 0;
   const overallAvgDurationSec = totalCalls > 0 ? totalDurationSec / totalCalls : 0;
 
   const resetUpload = () => {
@@ -163,7 +203,6 @@ export default function CallLogReporting() {
       return;
     }
 
-    // Client-side header validation (normalized)
     const normalizedHeaders = Object.keys(rows[0]).map(normalizeHeader);
     const missing = REQUIRED_NORMALIZED.filter(h => !normalizedHeaders.includes(h));
     if (missing.length > 0) {
@@ -187,8 +226,13 @@ export default function CallLogReporting() {
         return;
       }
 
-      queryClient.invalidateQueries({ queryKey: ["call-log-periods"] });
-      queryClient.invalidateQueries({ queryKey: ["call-log-summaries"] });
+      // Refresh periods, then auto-select the newly uploaded period
+      await queryClient.invalidateQueries({ queryKey: ["call-log-periods"] });
+      await queryClient.invalidateQueries({ queryKey: ["call-log-summaries"] });
+
+      if (result.period_id) {
+        setSelectedPeriodId(result.period_id);
+      }
 
       toast({
         title: result.is_replacement ? "Period Replaced" : "Upload Successful",
@@ -211,8 +255,9 @@ export default function CallLogReporting() {
     }
     await base44.entities.CallLogPeriod.delete(deleteDialogPeriod.id);
     queryClient.invalidateQueries({ queryKey: ["call-log-periods"] });
-    if (selectedPeriod?.id === deleteDialogPeriod.id) {
-      setSelectedPeriod(null);
+    if (selectedPeriodId === deleteDialogPeriod.id) {
+      setSelectedPeriodId(null);
+      setDefaultSet(false); // allow re-auto-select next available
     }
     setDeleteDialogPeriod(null);
     setDeleting(false);
@@ -251,16 +296,16 @@ export default function CallLogReporting() {
     document.body.removeChild(link);
   };
 
-  // ---- LIST + INLINE DETAIL VIEW ----
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
             <Phone className="w-5 h-5 text-blue-600" />
             Call Log Reporting
           </h2>
-          <p className="text-sm text-slate-500 mt-0.5">Upload raw Vonage exports and view reporting periods</p>
+          <p className="text-sm text-slate-500 mt-0.5">Upload Vonage exports and view call metrics by period</p>
         </div>
         <Button onClick={() => setShowUpload(true)} className="gap-2 bg-blue-600 hover:bg-blue-700">
           <Upload className="w-4 h-4" /> Upload Call Log
@@ -275,7 +320,6 @@ export default function CallLogReporting() {
               <h3 className="font-semibold text-slate-800">Upload Vonage Call Log Export</h3>
               <Button variant="ghost" size="sm" onClick={resetUpload}>✕</Button>
             </div>
-
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <label className="text-xs font-medium text-slate-700 block mb-1">
@@ -290,7 +334,6 @@ export default function CallLogReporting() {
                 <Input type="date" value={periodEnd} onChange={e => setPeriodEnd(e.target.value)} />
               </div>
             </div>
-
             <div>
               <label className="text-xs font-medium text-slate-700 block mb-1">
                 File (.xlsx or .csv) <span className="text-red-500">*</span>
@@ -308,18 +351,15 @@ export default function CallLogReporting() {
                 </p>
               )}
             </div>
-
             <div className="text-xs text-slate-500 bg-white/60 border border-slate-200 rounded p-2.5">
               <strong>Required Vonage headers:</strong> User, Total Calls, Inbound Calls, Outbound Calls, Answered Calls, Missed Calls, Voicemail Calls, Total call Duration (Minutes), Inbound Call Duration (Minutes), Outbound call Duration (Minutes)<br />
               <span className="text-slate-400">Header matching is case-insensitive. Duration columns must be the numeric minutes columns.</span>
             </div>
-
             {uploadError && (
               <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
                 <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" /> {uploadError}
               </div>
             )}
-
             <div className="flex gap-2">
               <Button onClick={handleUpload} disabled={uploading} className="gap-2 bg-blue-600 hover:bg-blue-700">
                 {uploading
@@ -332,168 +372,156 @@ export default function CallLogReporting() {
         </Card>
       )}
 
-      {/* Periods list */}
+      {/* Period Selector */}
       <Card className="border-slate-200 shadow-sm">
-        <CardContent className="p-0">
-          {periodsLoading ? (
-            <div className="flex items-center justify-center py-12 text-slate-500 gap-2">
-              <Loader2 className="w-5 h-5 animate-spin" /> Loading periods...
+        <CardContent className="p-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-2 flex-1 min-w-[220px]">
+              <label className="text-sm font-semibold text-slate-700 whitespace-nowrap">Select Reporting Period</label>
+              {periodsLoading ? (
+                <div className="flex items-center gap-2 text-slate-400 text-sm">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Loading...
+                </div>
+              ) : periods.length === 0 ? (
+                <span className="text-sm text-slate-400">No periods available</span>
+              ) : (
+                <Select value={selectedPeriodId || ""} onValueChange={setSelectedPeriodId}>
+                  <SelectTrigger className="w-64">
+                    <SelectValue placeholder="Choose a period..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {periods.map(p => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {periodLabel(p)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
-          ) : periods.length === 0 ? (
-            <div className="py-12 text-center text-slate-400">
-              <Phone className="w-10 h-10 mx-auto mb-3 opacity-40" />
-              <p>No call log periods uploaded yet.</p>
-            </div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 border-b border-slate-200">
-                <tr>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-700">Start Date</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-700">End Date</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-700">Status</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-700">File</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-700">Uploaded At</th>
-                  <th className="px-4 py-3 w-16"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {periods.map((period, i) => (
-                  <tr
-                    key={period.id}
-                    className={`border-b border-slate-100 cursor-pointer transition-colors ${
-                      selectedPeriod?.id === period.id
-                        ? "bg-blue-50 border-l-2 border-l-blue-500"
-                        : `hover:bg-blue-50/50 ${i % 2 !== 0 ? "bg-slate-50/30" : ""}`
-                    }`}
-                    onClick={() => setSelectedPeriod(selectedPeriod?.id === period.id ? null : period)}
-                  >
-                    <td className="px-4 py-3 font-medium text-slate-800">{formatDate(period.reporting_period_start)}</td>
-                    <td className="px-4 py-3 text-slate-700">{formatDate(period.reporting_period_end)}</td>
-                    <td className="px-4 py-3">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[period.status] || "bg-slate-100 text-slate-700"}`}>
-                        {period.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-500 max-w-[180px] truncate">{period.source_file_name || "—"}</td>
-                    <td className="px-4 py-3 text-xs text-slate-500">
-                      {period.uploaded_at
-                        ? new Date(period.uploaded_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-                        : "—"}
-                    </td>
-                    <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-slate-400 hover:text-red-600"
-                        onClick={() => setDeleteDialogPeriod(period)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+            {selectedPeriod && (
+              <div className="flex items-center gap-2 ml-auto">
+                <Button variant="outline" size="sm" className="gap-1.5" onClick={exportPeriodCSV}>
+                  <Download className="w-3.5 h-3.5" /> Export CSV
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-red-500 hover:text-red-700 hover:bg-red-50 gap-1.5"
+                  onClick={() => setDeleteDialogPeriod(selectedPeriod)}
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Delete
+                </Button>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
-      {/* Inline Detail Panel */}
-      {selectedPeriod && (
-        <div className="space-y-4 border-t-2 border-blue-200 pt-4">
-          {/* Detail header */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex-1">
-              <h3 className="text-lg font-bold text-slate-900">
-                {formatDate(selectedPeriod.reporting_period_start)} – {formatDate(selectedPeriod.reporting_period_end)}
-              </h3>
-              {selectedPeriod.source_file_name && (
-                <p className="text-xs text-slate-500 mt-0.5">{selectedPeriod.source_file_name}</p>
-              )}
-            </div>
-            <span className={`text-xs font-semibold px-2 py-1 rounded-full ${STATUS_COLORS[selectedPeriod.status] || "bg-slate-100 text-slate-700"}`}>
-              {selectedPeriod.status}
-            </span>
-            <Button variant="outline" size="sm" onClick={exportPeriodCSV} className="gap-2">
-              <Download className="w-4 h-4" /> Export CSV
-            </Button>
+      {/* Dashboard */}
+      {selectedPeriodId && (
+        summariesLoading ? (
+          <div className="flex items-center justify-center py-16 text-slate-400 gap-2">
+            <Loader2 className="w-5 h-5 animate-spin" /> Loading metrics...
           </div>
-
-          {summariesLoading ? (
-            <div className="flex items-center justify-center py-12 text-slate-500 gap-2">
-              <Loader2 className="w-5 h-5 animate-spin" /> Loading...
+        ) : (
+          <div className="space-y-4">
+            {/* Summary metric cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <MetricCard label="Total Calls" value={totalCalls} color="blue" />
+              <MetricCard label="Inbound" value={totalInbound} color="green" />
+              <MetricCard label="Outbound" value={totalOutbound} color="indigo" />
+              <MetricCard label="Answered" value={totalAnswered} color="emerald" />
+              <MetricCard label="Missed" value={totalMissed} color="red" />
+              <MetricCard label="Answer Rate" value={formatPercent(overallAnswerRate)} color="orange" />
+              <MetricCard label="Total Duration" value={secondsToHHMMSS(totalDurationSec)} color="purple" />
+              <MetricCard label="Avg Duration" value={secondsToHHMMSS(overallAvgDurationSec)} color="slate" />
             </div>
-          ) : (
-            <>
-              {/* Summary metric cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[
-                  { label: "Total Calls",    value: totalCalls.toLocaleString(),           color: "text-slate-900" },
-                  { label: "Inbound",        value: totalInbound.toLocaleString(),          color: "text-blue-700" },
-                  { label: "Outbound",       value: totalOutbound.toLocaleString(),         color: "text-indigo-700" },
-                  { label: "Answered",       value: totalAnswered.toLocaleString(),         color: "text-green-700" },
-                  { label: "Missed",         value: totalMissed.toLocaleString(),           color: "text-red-600" },
-                  { label: "Answer Rate",    value: (totalCalls > 0 ? (overallAnswerRate * 100).toFixed(1) : "0.0") + "%", color: overallAnswerRate >= 0.8 ? "text-green-700" : overallAnswerRate >= 0.5 ? "text-yellow-700" : "text-red-600" },
-                  { label: "Total Duration", value: secondsToHHMMSS(totalDurationSec),     color: "text-slate-700" },
-                  { label: "Avg Duration",   value: secondsToHHMMSS(overallAvgDurationSec),color: "text-slate-700" },
-                ].map(m => (
-                  <Card key={m.label} className="border-slate-200 shadow-sm">
-                    <CardContent className="p-4">
-                      <p className="text-xs font-medium text-slate-500 mb-1">{m.label}</p>
-                      <p className={`text-2xl font-bold ${m.color}`}>{m.value}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
 
-              {/* User breakdown table */}
-              <Card className="border-slate-200 shadow-sm">
-                <CardHeader className="border-b border-slate-100 py-3 px-4">
-                  <CardTitle className="text-sm font-semibold text-slate-700">User Breakdown — {activeSummaries.length} users</CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
+            {/* User Breakdown Table */}
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader className="pb-2 pt-4 px-4">
+                <CardTitle className="text-sm font-semibold text-slate-700">
+                  User Breakdown — {activeSummaries.length} user{activeSummaries.length !== 1 ? "s" : ""}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                {activeSummaries.length === 0 ? (
+                  <div className="py-10 text-center text-slate-400 text-sm">No call data for this period.</div>
+                ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead className="bg-slate-50 border-b border-slate-200">
                         <tr>
-                          {["User","Total Calls","Inbound","Outbound","Answered","Missed","Duration (HH:MM:SS)","Answer Rate","Avg Duration (HH:MM:SS)"].map(h => (
-                            <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-slate-600 whitespace-nowrap">{h}</th>
-                          ))}
+                          <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-600">User</th>
+                          <th className="text-right px-3 py-2.5 text-xs font-semibold text-slate-600">Total</th>
+                          <th className="text-right px-3 py-2.5 text-xs font-semibold text-slate-600">Inbound</th>
+                          <th className="text-right px-3 py-2.5 text-xs font-semibold text-slate-600">Outbound</th>
+                          <th className="text-right px-3 py-2.5 text-xs font-semibold text-slate-600">Answered</th>
+                          <th className="text-right px-3 py-2.5 text-xs font-semibold text-slate-600">Missed</th>
+                          <th className="text-right px-3 py-2.5 text-xs font-semibold text-slate-600">Answer Rate</th>
+                          <th className="text-right px-3 py-2.5 text-xs font-semibold text-slate-600">Duration</th>
+                          <th className="text-right px-3 py-2.5 text-xs font-semibold text-slate-600">Avg Duration</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {activeSummaries.map((u, i) => {
-                          const ar = u.answered != null && u.total_calls ? u.answered / u.total_calls : (u.answer_rate || 0);
-                          return (
-                            <tr key={u.id} className={`border-b border-slate-100 ${i % 2 !== 0 ? "bg-slate-50/50" : ""}`}>
-                              <td className="px-4 py-2.5 font-medium text-slate-800">{u.user}</td>
-                              <td className="px-4 py-2.5 text-slate-700">{(u.total_calls || 0).toLocaleString()}</td>
-                              <td className="px-4 py-2.5 text-blue-700">{(u.inbound || 0).toLocaleString()}</td>
-                              <td className="px-4 py-2.5 text-indigo-700">{(u.outbound || 0).toLocaleString()}</td>
-                              <td className="px-4 py-2.5 text-green-700">{(u.answered || 0).toLocaleString()}</td>
-                              <td className="px-4 py-2.5 text-red-600">{(u.missed || 0).toLocaleString()}</td>
-                              <td className="px-4 py-2.5 text-slate-600">{secondsToHHMMSS(u.total_duration_seconds)}</td>
-                              <td className="px-4 py-2.5">
-                                <span className={`font-semibold ${ar >= 0.8 ? "text-green-700" : ar >= 0.5 ? "text-yellow-700" : "text-red-600"}`}>
-                                  {(ar * 100).toFixed(1)}%
-                                </span>
-                              </td>
-                              <td className="px-4 py-2.5 text-slate-600">{secondsToHHMMSS(u.avg_duration_seconds)}</td>
-                            </tr>
-                          );
-                        })}
-                        {activeSummaries.length === 0 && (
-                          <tr>
-                            <td colSpan={9} className="px-4 py-8 text-center text-slate-400">No user data for this period.</td>
+                        {activeSummaries.map((u, i) => (
+                          <tr key={u.id} className={`border-b border-slate-100 ${i % 2 !== 0 ? "bg-slate-50/40" : ""}`}>
+                            <td className="px-4 py-2.5 font-medium text-slate-800">{u.user}</td>
+                            <td className="px-3 py-2.5 text-right text-slate-700 font-semibold">{u.total_calls ?? 0}</td>
+                            <td className="px-3 py-2.5 text-right text-slate-600">{u.inbound ?? 0}</td>
+                            <td className="px-3 py-2.5 text-right text-slate-600">{u.outbound ?? 0}</td>
+                            <td className="px-3 py-2.5 text-right text-green-700 font-medium">{u.answered ?? 0}</td>
+                            <td className="px-3 py-2.5 text-right text-red-600">{u.missed ?? 0}</td>
+                            <td className="px-3 py-2.5 text-right">
+                              <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${
+                                (u.answer_rate || 0) >= 0.9 ? "bg-green-100 text-green-800"
+                                  : (u.answer_rate || 0) >= 0.7 ? "bg-yellow-100 text-yellow-800"
+                                  : "bg-red-100 text-red-800"
+                              }`}>
+                                {formatPercent(u.answer_rate)}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2.5 text-right text-slate-600 font-mono text-xs">{secondsToHHMMSS(u.total_duration_seconds)}</td>
+                            <td className="px-3 py-2.5 text-right text-slate-600 font-mono text-xs">{secondsToHHMMSS(u.avg_duration_seconds)}</td>
                           </tr>
-                        )}
+                        ))}
                       </tbody>
+                      <tfoot className="bg-slate-100 border-t-2 border-slate-200">
+                        <tr>
+                          <td className="px-4 py-2.5 font-bold text-slate-800 text-xs uppercase tracking-wide">Totals</td>
+                          <td className="px-3 py-2.5 text-right font-bold text-slate-800">{totalCalls}</td>
+                          <td className="px-3 py-2.5 text-right font-semibold text-slate-700">{totalInbound}</td>
+                          <td className="px-3 py-2.5 text-right font-semibold text-slate-700">{totalOutbound}</td>
+                          <td className="px-3 py-2.5 text-right font-semibold text-green-700">{totalAnswered}</td>
+                          <td className="px-3 py-2.5 text-right font-semibold text-red-600">{totalMissed}</td>
+                          <td className="px-3 py-2.5 text-right">
+                            <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${
+                              overallAnswerRate >= 0.9 ? "bg-green-100 text-green-800"
+                                : overallAnswerRate >= 0.7 ? "bg-yellow-100 text-yellow-800"
+                                : "bg-red-100 text-red-800"
+                            }`}>
+                              {formatPercent(overallAnswerRate)}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-slate-700">{secondsToHHMMSS(totalDurationSec)}</td>
+                          <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-slate-700">{secondsToHHMMSS(overallAvgDurationSec)}</td>
+                        </tr>
+                      </tfoot>
                     </table>
                   </div>
-                </CardContent>
-              </Card>
-            </>
-          )}
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )
+      )}
+
+      {!selectedPeriodId && !periodsLoading && periods.length === 0 && (
+        <div className="py-16 text-center text-slate-400">
+          <Phone className="w-12 h-12 mx-auto mb-3 opacity-30" />
+          <p className="font-medium">No call log data yet.</p>
+          <p className="text-sm mt-1">Upload a Vonage export to get started.</p>
         </div>
       )}
 
@@ -513,6 +541,25 @@ export default function CallLogReporting() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  );
+}
+
+function MetricCard({ label, value, color }) {
+  const colorMap = {
+    blue:    "bg-blue-50 text-blue-700 border-blue-200",
+    green:   "bg-green-50 text-green-700 border-green-200",
+    indigo:  "bg-indigo-50 text-indigo-700 border-indigo-200",
+    emerald: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    red:     "bg-red-50 text-red-700 border-red-200",
+    orange:  "bg-orange-50 text-orange-700 border-orange-200",
+    purple:  "bg-purple-50 text-purple-700 border-purple-200",
+    slate:   "bg-slate-50 text-slate-700 border-slate-200",
+  };
+  return (
+    <div className={`rounded-lg border px-4 py-3 ${colorMap[color] || colorMap.slate}`}>
+      <p className="text-xs font-medium opacity-70">{label}</p>
+      <p className="text-xl font-bold mt-0.5 font-mono">{value}</p>
     </div>
   );
 }
