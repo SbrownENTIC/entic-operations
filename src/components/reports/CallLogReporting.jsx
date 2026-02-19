@@ -16,7 +16,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
-import * as XLSX from "https://esm.sh/xlsx@0.18.5";
+import ExcelJS from "exceljs";
 
 // ---- Formatting helpers ----
 function secondsToHHMMSS(seconds) {
