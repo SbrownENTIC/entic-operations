@@ -751,8 +751,8 @@ export default function CallLogReporting() {
               <span className="text-xs text-slate-400">{selectedPeriod.source_file_name}</span>
             )}
             <div className="ml-auto">
-              <Button variant="outline" size="sm" onClick={exportPeriodCSV} className="gap-2">
-                <Download className="w-4 h-4" /> Export CSV
+              <Button variant="outline" size="sm" onClick={exportPeriodExcel} className="gap-2">
+                <Download className="w-4 h-4" /> Export Excel Report
               </Button>
             </div>
           </div>
