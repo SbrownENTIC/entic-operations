@@ -88,7 +88,6 @@ export default function CallLogReporting() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef(null);
 
-  const [view, setView] = useState("list");
   const [selectedPeriod, setSelectedPeriod] = useState(null);
   const [showUpload, setShowUpload] = useState(false);
   const [uploadFile, setUploadFile] = useState(null);
