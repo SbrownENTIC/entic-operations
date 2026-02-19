@@ -112,9 +112,9 @@ Deno.serve(async (req) => {
       aggregated[key].outbound              += Number(get(row, 'outbound calls')) || 0;
       aggregated[key].answered              += Number(get(row, 'answered calls')) || 0;
       aggregated[key].missed                += Number(get(row, 'missed calls')) || 0;
-      aggregated[key].total_duration_seconds    += parseDurationToSeconds(get(row, 'total call duration'));
-      aggregated[key].inbound_duration_seconds  += parseDurationToSeconds(get(row, 'inbound call duration'));
-      aggregated[key].outbound_duration_seconds += parseDurationToSeconds(get(row, 'outbound call duration'));
+      aggregated[key].total_duration_seconds    += parseMinutesToSeconds(get(row, 'total call duration (minutes)'));
+      aggregated[key].inbound_duration_seconds  += parseMinutesToSeconds(get(row, 'inbound call duration (minutes)'));
+      aggregated[key].outbound_duration_seconds += parseMinutesToSeconds(get(row, 'outbound call duration (minutes)'));
     }
 
     // Compute derived metrics
