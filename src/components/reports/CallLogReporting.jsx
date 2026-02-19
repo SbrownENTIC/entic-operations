@@ -221,31 +221,32 @@ export default function CallLogReporting() {
     setSheetNames([]);
     setSelectedSheet("");
 
-    const isXlsx = file.name.toLowerCase().endsWith(".xlsx");
+    const isXlsx = file.name.toLowerCase().endsWith(".xlsx") || file.name.toLowerCase().endsWith(".xls");
     if (isXlsx) {
       try {
-        const wb = await readWorkbook(file);
+        const { workbook: wb, sheetNames: names } = await readWorkbookFile(file);
         setWorkbook(wb);
-        if (wb.SheetNames.length > 1) {
-          setSheetNames(wb.SheetNames);
-          setSelectedSheet(""); // user must choose
-        } else {
-          setSheetNames(wb.SheetNames);
-          setSelectedSheet(wb.SheetNames[0]); // auto-select single sheet
+        setSheetNames(names);
+        if (names.length === 1) {
+          setSelectedSheet(names[0]); // auto-select single sheet
         }
-      } catch {
-        setUploadError("Failed to read Excel file.");
+        // else: user must choose
+      } catch (err) {
+        console.error("Excel read error:", err);
+        setUploadError("Failed to read Excel file: " + (err.message || "unknown error"));
       }
     }
     // CSV: no sheet selection needed
   };
 
   const validateAndGetRows = () => {
-    const isXlsx = uploadFile?.name.toLowerCase().endsWith(".xlsx");
+    const isXlsx = uploadFile?.name.toLowerCase().endsWith(".xlsx") || uploadFile?.name.toLowerCase().endsWith(".xls");
     if (isXlsx) {
       if (!workbook) return { error: "Failed to read workbook." };
-      const sheet = selectedSheet || workbook.SheetNames[0];
-      const rows = parseSheet(workbook, sheet);
+      const sheetName = selectedSheet || (workbook.worksheets[0]?.name);
+      const worksheet = workbook.getWorksheet(sheetName);
+      if (!worksheet) return { error: "Worksheet not found." };
+      const rows = sheetToJson(worksheet);
       if (!rows || rows.length === 0) return { error: "Selected worksheet contains no data rows." };
       const normalizedHeaders = Object.keys(rows[0]).map(normalizeHeader);
       const missing = REQUIRED_NORMALIZED.filter(h => !normalizedHeaders.includes(h));
