@@ -167,7 +167,7 @@ export default function CallLogReporting() {
 
   const activeSummaries = userSummaries
     .filter(u => (u.total_calls || 0) > 0)
-    .sort((a, b) => (b.total_calls || 0) - (a.total_calls || 0));
+    .sort((a, b) => (a.user || "").trim().toLowerCase().localeCompare((b.user || "").trim().toLowerCase()));
 
   // Aggregate summary totals
   const totalCalls    = activeSummaries.reduce((s, u) => s + (u.total_calls || 0), 0);
