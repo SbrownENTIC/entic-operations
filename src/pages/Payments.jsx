@@ -809,6 +809,12 @@ export default function Payments() {
                 <table className="w-full">
                   <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                     <tr>
+                      <th className="px-3 py-2 w-8 no-print">
+                        <Checkbox
+                          checked={sortedPayments.length > 0 && selectedPaymentIds.size === sortedPayments.length}
+                          onCheckedChange={toggleSelectAll}
+                        />
+                      </th>
                       <th className="text-left px-3 py-2 text-xs font-semibold text-slate-700 w-12">
                         #
                       </th>
