@@ -225,6 +225,13 @@ export default function CallLogReporting() {
     return u[key] ?? 0;
   };
 
+  // Reset search + sort when period changes
+  React.useEffect(() => {
+    setUserSearch("");
+    setSortCol("user");
+    setSortDir("asc");
+  }, [selectedPeriod?.id]);
+
   const activeSummaries = [...userSummaries.filter(u => (u.total_calls || 0) > 0)]
     .sort((a, b) => {
       const col = TABLE_COLS.find(c => c.key === sortCol);
@@ -235,6 +242,25 @@ export default function CallLogReporting() {
       }
       return dir * (getSortValue(a, sortCol) - getSortValue(b, sortCol));
     });
+
+  const searchTerm = userSearch.trim().toLowerCase();
+  const filteredSummaries = searchTerm
+    ? activeSummaries.filter(u => (u.user || "").trim().toLowerCase().includes(searchTerm))
+    : activeSummaries;
+
+  // Highlight helper
+  const highlightUser = (name) => {
+    if (!searchTerm) return name;
+    const idx = (name || "").toLowerCase().indexOf(searchTerm);
+    if (idx === -1) return name;
+    return (
+      <>
+        {name.slice(0, idx)}
+        <mark className="bg-yellow-200 text-inherit rounded-sm px-0">{name.slice(idx, idx + searchTerm.length)}</mark>
+        {name.slice(idx + searchTerm.length)}
+      </>
+    );
+  };
 
   // Aggregate summary totals
   const totalCalls    = activeSummaries.reduce((s, u) => s + (u.total_calls || 0), 0);
