@@ -187,9 +187,53 @@ export default function CallLogReporting() {
     enabled: !!selectedPeriod?.id
   });
 
-  const activeSummaries = userSummaries
-    .filter(u => (u.total_calls || 0) > 0)
-    .sort((a, b) => (a.user || "").trim().toLowerCase().localeCompare((b.user || "").trim().toLowerCase()));
+  // Helper: convert HH:MM:SS string to seconds for sort
+  const hmsToSeconds = (hms) => {
+    if (!hms || hms === "0:00:00") return 0;
+    const parts = String(hms).split(":").map(Number);
+    if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    if (parts.length === 2) return parts[0] * 60 + parts[1];
+    return 0;
+  };
+
+  const TABLE_COLS = [
+    { key: "user",                  label: "User",                    type: "alpha" },
+    { key: "total_calls",           label: "Total Calls",             type: "num"   },
+    { key: "inbound",               label: "Inbound",                 type: "num"   },
+    { key: "outbound",              label: "Outbound",                type: "num"   },
+    { key: "answered",              label: "Answered",                type: "num"   },
+    { key: "missed",                label: "Missed",                  type: "num"   },
+    { key: "total_duration_seconds",label: "Duration (HH:MM:SS)",     type: "num"   },
+    { key: "answer_rate",           label: "Answer Rate",             type: "num"   },
+    { key: "avg_duration_seconds",  label: "Avg Duration (HH:MM:SS)", type: "num"   },
+  ];
+
+  const handleSortClick = (colKey) => {
+    if (sortCol === colKey) {
+      if (sortDir === "asc")  { setSortDir("desc"); }
+      else if (sortDir === "desc") { setSortCol("user"); setSortDir("asc"); } // reset to default
+      else                    { setSortDir("asc"); }
+    } else {
+      setSortCol(colKey);
+      setSortDir("asc");
+    }
+  };
+
+  const getSortValue = (u, key) => {
+    if (key === "answer_rate") return u.total_calls ? (u.answered || 0) / u.total_calls : (u.answer_rate || 0);
+    return u[key] ?? 0;
+  };
+
+  const activeSummaries = [...userSummaries.filter(u => (u.total_calls || 0) > 0)]
+    .sort((a, b) => {
+      const col = TABLE_COLS.find(c => c.key === sortCol);
+      if (!col) return 0;
+      const dir = sortDir === "desc" ? -1 : 1;
+      if (col.type === "alpha") {
+        return dir * (a.user || "").trim().toLowerCase().localeCompare((b.user || "").trim().toLowerCase());
+      }
+      return dir * (getSortValue(a, sortCol) - getSortValue(b, sortCol));
+    });
 
   // Aggregate summary totals
   const totalCalls    = activeSummaries.reduce((s, u) => s + (u.total_calls || 0), 0);
