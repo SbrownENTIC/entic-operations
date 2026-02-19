@@ -59,22 +59,42 @@ const REQUIRED_NORMALIZED = [
 ];
 
 // ---- File parsing ----
-function parseFile(file) {
+function readWorkbook(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: "array" });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-        resolve(rows);
+        resolve(workbook);
       } catch (err) {
         reject(err);
       }
     };
     reader.onerror = reject;
     reader.readAsArrayBuffer(file);
+  });
+}
+
+function parseSheet(workbook, sheetName) {
+  const sheet = workbook.Sheets[sheetName];
+  return XLSX.utils.sheet_to_json(sheet, { defval: "" });
+}
+
+function readCSV(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const workbook = XLSX.read(e.target.result, { type: "string" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        resolve(XLSX.utils.sheet_to_json(sheet, { defval: "" }));
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsText(file);
   });
 }
 
