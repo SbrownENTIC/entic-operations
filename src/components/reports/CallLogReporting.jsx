@@ -357,33 +357,238 @@ export default function CallLogReporting() {
     toast({ title: "Deleted", description: "Reporting period deleted." });
   };
 
-  const exportPeriodCSV = () => {
+  const exportPeriodExcel = () => {
     if (!selectedPeriod) return;
-    const csvRows = [
-      ["User","Total Calls","Inbound","Outbound","Answered","Missed","Duration (H:MM:SS)","Answer Rate (%)","Avg Duration (H:MM:SS)"],
-      ...activeSummaries.map(u => [
-        u.user,
-        u.total_calls,
-        u.inbound,
-        u.outbound,
-        u.answered,
-        u.missed,
-        secondsToHHMMSS(u.total_duration_seconds),
-        formatPercent(u.answer_rate),
-        secondsToHHMMSS(u.avg_duration_seconds)
-      ]),
-      [],
-      ["TOTALS", totalCalls, totalInbound, totalOutbound, totalAnswered, totalMissed,
-        secondsToHHMMSS(totalDurationSec), formatPercent(overallAnswerRate), secondsToHHMMSS(overallAvgDurationSec)]
+
+    const periodLabel = formatPeriodLabel(selectedPeriod);
+    const startStr = selectedPeriod.reporting_period_start;
+    const endStr   = selectedPeriod.reporting_period_end;
+    const fmtShort = (str) => {
+      if (!str) return "";
+      const [y, m, d] = str.split("-");
+      return `${parseInt(m,10)}/${parseInt(d,10)}/${y}`;
+    };
+    const now = new Date();
+    const generatedOn = now.toLocaleDateString("en-US", { month:"2-digit", day:"2-digit", year:"numeric" }) +
+      " " + now.toLocaleTimeString("en-US", { hour:"numeric", minute:"2-digit", hour12:true });
+
+    // ---- Colors & helpers ----
+    const DARK_BLUE  = "1F3864";
+    const MED_BLUE   = "2E5096";
+    const LIGHT_GRAY = "F2F2F2";
+    const WHITE      = "FFFFFF";
+    const GREEN_BG   = "C6EFCE"; const GREEN_FG  = "276221";
+    const YELLOW_BG  = "FFEB9C"; const YELLOW_FG = "9C6500";
+    const RED_BG     = "FFC7CE"; const RED_FG    = "9C0006";
+
+    const headerFont = { name: "Calibri", bold: true, color: { argb: WHITE } };
+    const bodyFont   = { name: "Calibri" };
+    const boldFont   = { name: "Calibri", bold: true };
+
+    const darkBlueFill = { type: "pattern", pattern: "solid", fgColor: { argb: DARK_BLUE } };
+    const medBlueFill  = { type: "pattern", pattern: "solid", fgColor: { argb: MED_BLUE  } };
+    const grayFill     = { type: "pattern", pattern: "solid", fgColor: { argb: LIGHT_GRAY } };
+
+    const center = { horizontal: "center", vertical: "middle" };
+    const left   = { horizontal: "left",   vertical: "middle" };
+    const right  = { horizontal: "right",  vertical: "middle" };
+
+    const thickBottom = { bottom: { style: "medium", color: { argb: DARK_BLUE } } };
+
+    // Create workbook
+    const wb = new XLSX.utils.book_new();
+
+    // We'll build data as an array-of-arrays, then add styles via aoa_to_sheet + sheet_add_aoa
+    // XLSX (sheetjs) community edition has limited styling; use cell-level style objects
+    const ws = {};
+    ws["!sheetView"] = [{ showGridLines: false }];
+
+    let R = 0; // 0-indexed row tracker
+
+    // ---- ROW 0: Title (merged A1:H1) ----
+    ws[XLSX.utils.encode_cell({ r: R, c: 0 })] = {
+      v: `${periodLabel} - Call Log`,
+      t: "s",
+      s: {
+        font: { name: "Calibri", bold: true, sz: 18, color: { argb: WHITE } },
+        fill: darkBlueFill,
+        alignment: center,
+        border: thickBottom,
+      }
+    };
+    for (let c = 1; c <= 8; c++) {
+      ws[XLSX.utils.encode_cell({ r: R, c })] = { v: "", t: "s", s: { fill: darkBlueFill, border: thickBottom } };
+    }
+    R++;
+
+    // ---- ROW 1: Reporting Period ----
+    ws[XLSX.utils.encode_cell({ r: R, c: 0 })] = {
+      v: `Reporting Period: ${fmtShort(startStr)} – ${fmtShort(endStr)}`,
+      t: "s", s: { font: boldFont, alignment: left }
+    };
+    R++;
+
+    // ---- ROW 2: Generated On ----
+    ws[XLSX.utils.encode_cell({ r: R, c: 0 })] = {
+      v: `Generated On: ${generatedOn}`,
+      t: "s", s: { font: { name: "Calibri", color: { argb: "666666" } }, alignment: left }
+    };
+    R++;
+
+    // ---- ROW 3: blank ----
+    R++;
+
+    // ---- METRICS SECTION HEADER ----
+    ws[XLSX.utils.encode_cell({ r: R, c: 0 })] = {
+      v: "Summary Metrics",
+      t: "s",
+      s: { font: { name: "Calibri", bold: true, sz: 12, color: { argb: WHITE } }, fill: medBlueFill, alignment: left }
+    };
+    ws[XLSX.utils.encode_cell({ r: R, c: 1 })] = { v: "", t: "s", s: { fill: medBlueFill } };
+    R++;
+
+    const metrics = [
+      ["Total Calls",     totalCalls,                        "number"],
+      ["Inbound",         totalInbound,                      "number"],
+      ["Outbound",        totalOutbound,                     "number"],
+      ["Answered",        totalAnswered,                     "number"],
+      ["Missed",          totalMissed,                       "number"],
+      ["Answer Rate",     overallAnswerRate,                 "percent"],
+      ["Total Duration",  secondsToHHMMSS(totalDurationSec),"text"],
+      ["Average Duration",secondsToHHMMSS(overallAvgDurationSec),"text"],
     ];
-    const csv = csvRows.map(r => r.map(c => {
-      const cs = String(c);
-      return cs.includes(",") || cs.includes('"') ? `"${cs.replace(/"/g, '""')}"` : cs;
-    }).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
+
+    metrics.forEach(([label, val, type], idx) => {
+      const rowFill = idx % 2 === 0 ? { type:"pattern",pattern:"solid",fgColor:{argb:"EBF0F8"} } : { type:"pattern",pattern:"solid",fgColor:{argb:WHITE} };
+      ws[XLSX.utils.encode_cell({ r: R, c: 0 })] = {
+        v: label, t: "s",
+        s: { font: boldFont, fill: rowFill, alignment: left, border: { bottom: { style:"thin", color:{argb:"DDDDDD"} } } }
+      };
+      let cellVal = val;
+      let numFmt = undefined;
+      let cellType = "n";
+      if (type === "percent") { numFmt = "0.0%"; cellType = "n"; }
+      else if (type === "text") { cellType = "s"; }
+      ws[XLSX.utils.encode_cell({ r: R, c: 1 })] = {
+        v: cellVal, t: cellType,
+        s: { font: { name:"Calibri", sz:12, bold:true }, fill: rowFill, alignment: right,
+             numFmt, border: { bottom: { style:"thin", color:{argb:"DDDDDD"} } } }
+      };
+      R++;
+    });
+
+    // ---- ROW blank ----
+    R++;
+
+    // ---- USER BREAKDOWN HEADER ----
+    const tableHeaders = ["User","Total Calls","Inbound","Outbound","Answered","Missed","Duration (HH:MM:SS)","Answer Rate (%)","Avg Duration (HH:MM:SS)"];
+    tableHeaders.forEach((h, c) => {
+      ws[XLSX.utils.encode_cell({ r: R, c })] = {
+        v: h, t: "s",
+        s: { font: headerFont, fill: darkBlueFill, alignment: center,
+             border: { bottom: { style:"medium", color:{argb:"FFFFFF"} } } }
+      };
+    });
+    const freezeRow = R + 1;
+    R++;
+
+    // ---- USER DATA ROWS ----
+    activeSummaries.forEach((u, idx) => {
+      const ar = u.answered != null && u.total_calls ? u.answered / u.total_calls : (u.answer_rate || 0);
+      const rowBg = idx % 2 !== 0 ? LIGHT_GRAY : WHITE;
+      const rowFill = { type:"pattern", pattern:"solid", fgColor:{ argb: rowBg } };
+      const arColor = ar >= 0.85 ? { bg: GREEN_BG, fg: GREEN_FG }
+                    : ar >= 0.60 ? { bg: YELLOW_BG, fg: YELLOW_FG }
+                    :               { bg: RED_BG,    fg: RED_FG };
+      const arFill = { type:"pattern", pattern:"solid", fgColor:{ argb: arColor.bg } };
+
+      const cells = [
+        { v: u.user || "",                      t:"s", fmt: undefined,  fill: rowFill },
+        { v: u.total_calls || 0,                t:"n", fmt: "#,##0",    fill: rowFill },
+        { v: u.inbound || 0,                    t:"n", fmt: "#,##0",    fill: rowFill },
+        { v: u.outbound || 0,                   t:"n", fmt: "#,##0",    fill: rowFill },
+        { v: u.answered || 0,                   t:"n", fmt: "#,##0",    fill: rowFill },
+        { v: u.missed || 0,                     t:"n", fmt: "#,##0",    fill: rowFill },
+        { v: secondsToHHMMSS(u.total_duration_seconds), t:"s", fmt: undefined, fill: rowFill },
+        { v: parseFloat((ar * 100).toFixed(1)), t:"n", fmt: "0.0\"%\"", fill: arFill, fontColor: arColor.fg },
+        { v: secondsToHHMMSS(u.avg_duration_seconds),   t:"s", fmt: undefined, fill: rowFill },
+      ];
+      cells.forEach(({ v, t, fmt, fill, fontColor }, c) => {
+        ws[XLSX.utils.encode_cell({ r: R, c })] = {
+          v, t,
+          s: {
+            font: { name:"Calibri", color: fontColor ? { argb: fontColor } : undefined },
+            fill,
+            alignment: c === 0 ? left : center,
+            numFmt: fmt,
+            border: { bottom: { style:"thin", color:{argb:"DDDDDD"} } }
+          }
+        };
+      });
+      R++;
+    });
+
+    // ---- TOTALS ROW ----
+    const totalsFill = { type:"pattern", pattern:"solid", fgColor:{ argb:"D9E1F2" } };
+    const totalsAr = totalCalls > 0 ? overallAnswerRate : 0;
+    const totalsArColor = totalsAr >= 0.85 ? GREEN_FG : totalsAr >= 0.60 ? YELLOW_FG : RED_FG;
+    const totalsCells = [
+      { v: "TOTALS",                              t:"s" },
+      { v: totalCalls,                            t:"n", fmt:"#,##0" },
+      { v: totalInbound,                          t:"n", fmt:"#,##0" },
+      { v: totalOutbound,                         t:"n", fmt:"#,##0" },
+      { v: totalAnswered,                         t:"n", fmt:"#,##0" },
+      { v: totalMissed,                           t:"n", fmt:"#,##0" },
+      { v: secondsToHHMMSS(totalDurationSec),     t:"s" },
+      { v: parseFloat((totalsAr*100).toFixed(1)), t:"n", fmt:"0.0\"%\"", fontColor: totalsArColor },
+      { v: secondsToHHMMSS(overallAvgDurationSec),t:"s" },
+    ];
+    totalsCells.forEach(({ v, t, fmt, fontColor }, c) => {
+      ws[XLSX.utils.encode_cell({ r: R, c })] = {
+        v, t,
+        s: {
+          font: { name:"Calibri", bold:true, color: fontColor ? { argb: fontColor } : undefined },
+          fill: totalsFill,
+          alignment: c === 0 ? left : center,
+          numFmt: fmt,
+          border: { top: { style:"medium", color:{argb:DARK_BLUE} } }
+        }
+      };
+    });
+    R++;
+
+    // ---- Sheet dimensions ----
+    ws["!ref"] = XLSX.utils.encode_range({ s: { r:0, c:0 }, e: { r: R-1, c: 8 } });
+
+    // Merge title row A1:I1
+    ws["!merges"] = [{ s: { r:0, c:0 }, e: { r:0, c:8 } }];
+
+    // Column widths
+    ws["!cols"] = [
+      { wch: 30 }, // User
+      { wch: 12 }, // Total Calls
+      { wch: 12 }, // Inbound
+      { wch: 12 }, // Outbound
+      { wch: 12 }, // Answered
+      { wch: 10 }, // Missed
+      { wch: 20 }, // Duration
+      { wch: 15 }, // Answer Rate
+      { wch: 22 }, // Avg Duration
+    ];
+
+    // Row heights
+    ws["!rows"] = Array(R).fill(null).map((_, i) => i === 0 ? { hpt: 36 } : { hpt: 18 });
+
+    // Freeze pane below header row
+    ws["!freeze"] = { xSplit: 0, ySplit: freezeRow };
+
+    XLSX.utils.book_append_sheet(wb, ws, periodLabel.substring(0, 31));
+
+    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array", cellStyles: true });
+    const blob = new Blob([wbout], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `call_log_${selectedPeriod.reporting_period_start}_${selectedPeriod.reporting_period_end}.csv`;
+    link.download = `${periodLabel} - Call Log.xlsx`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
