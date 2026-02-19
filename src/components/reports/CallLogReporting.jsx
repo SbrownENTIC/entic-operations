@@ -630,6 +630,24 @@ export default function CallLogReporting() {
         </div>
       )}
 
+      {/* Replace existing period confirmation */}
+      <AlertDialog open={!!replaceConfirm} onOpenChange={open => !open && setReplaceConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Replace Existing Report?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A report for this period ({formatDate(periodStart)} – {formatDate(periodEnd)}) already exists. Replace existing data?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setReplaceConfirm(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmReplace} className="bg-blue-600 hover:bg-blue-700">
+              Replace
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AlertDialog open={!!deleteDialogPeriod} onOpenChange={open => !open && setDeleteDialogPeriod(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
