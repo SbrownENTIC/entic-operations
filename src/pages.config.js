@@ -62,6 +62,7 @@ import OfficeSupplyCatalog from './pages/OfficeSupplyCatalog';
 import OfficeSupplyOrders from './pages/OfficeSupplyOrders';
 import OnCallSchedule from './pages/OnCallSchedule';
 import OutsideIncome from './pages/OutsideIncome';
+import Payments from './pages/Payments';
 import ProgramLocations from './pages/ProgramLocations';
 import ProviderDetail from './pages/ProviderDetail';
 import ProviderTimeOff from './pages/ProviderTimeOff';
@@ -74,8 +75,6 @@ import SupplyOrderDetail from './pages/SupplyOrderDetail';
 import SupplyRequest from './pages/SupplyRequest';
 import SystemDocumentation from './pages/SystemDocumentation';
 import TodaysOrders from './pages/TodaysOrders';
-import Payments from './pages/Payments';
-import CallLogReports from './pages/CallLogReports';
 import __Layout from './Layout.jsx';
 
 
@@ -95,6 +94,7 @@ export const PAGES = {
     "OfficeSupplyOrders": OfficeSupplyOrders,
     "OnCallSchedule": OnCallSchedule,
     "OutsideIncome": OutsideIncome,
+    "Payments": Payments,
     "ProgramLocations": ProgramLocations,
     "ProviderDetail": ProviderDetail,
     "ProviderTimeOff": ProviderTimeOff,
@@ -107,8 +107,6 @@ export const PAGES = {
     "SupplyRequest": SupplyRequest,
     "SystemDocumentation": SystemDocumentation,
     "TodaysOrders": TodaysOrders,
-    "Payments": Payments,
-    "CallLogReports": CallLogReports,
 }
 
 export const pagesConfig = {

@@ -5,15 +5,8 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Search, Eye, Pencil, Trash2, DollarSign, Download, ArrowUpDown, ArrowUp, ArrowDown, AlertCircle, RefreshCw, Wrench, Printer, MoreVertical, CheckSquare } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, DollarSign, Download, ArrowUpDown, ArrowUp, ArrowDown, AlertCircle, RefreshCw, Wrench, Printer } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useLocation } from "react-router-dom";
 import { formatDateToEST } from "@/components/DateUtils";
 import PaymentForm from "../components/payments/PaymentForm";
@@ -44,8 +37,6 @@ export default function Payments() {
   const [updatingMonths, setUpdatingMonths] = useState(false);
   const [fixingAllocations, setFixingAllocations] = useState(false);
   const [updateMessage, setUpdateMessage] = useState('');
-  const [selectedPayments, setSelectedPayments] = useState([]);
-  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const location = useLocation();
@@ -358,25 +349,6 @@ export default function Payments() {
     }
   });
 
-  const bulkUpdateStatusMutation = useMutation({
-    mutationFn: async ({ paymentIds, newStatus }) => {
-      const updates = paymentIds.map(id => 
-        base44.entities.Payment.update(id, { status: newStatus })
-      );
-      await Promise.all(updates);
-      await updateInvoiceStatuses();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payments'] });
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      setSelectedPayments([]);
-      toast({ title: "Success", description: "Payments updated successfully." });
-    },
-    onError: (error) => {
-      toast({ variant: "destructive", title: "Error", description: "Failed to update payments: " + error.message });
-    }
-  });
-
   const unallocateMutation = useMutation({
     mutationFn: async ({ payment, allocationToRemove }) => {
       const updatedAllocations = (payment.allocations || []).filter(
@@ -490,32 +462,6 @@ export default function Payments() {
 
   const handlePrint = () => {
     window.print();
-  };
-
-  const handleBulkStatusUpdate = async (newStatus) => {
-    if (selectedPayments.length === 0) return;
-    setIsBulkUpdating(true);
-    try {
-      await bulkUpdateStatusMutation.mutateAsync({ paymentIds: selectedPayments, newStatus });
-    } finally {
-      setIsBulkUpdating(false);
-    }
-  };
-
-  const toggleSelectAll = () => {
-    if (selectedPayments.length === sortedPayments.length) {
-      setSelectedPayments([]);
-    } else {
-      setSelectedPayments(sortedPayments.map(p => p.id));
-    }
-  };
-
-  const toggleSelectPayment = (id) => {
-    if (selectedPayments.includes(id)) {
-      setSelectedPayments(selectedPayments.filter(pId => pId !== id));
-    } else {
-      setSelectedPayments([...selectedPayments, id]);
-    }
   };
 
   // Export allocations to CSV
@@ -673,30 +619,6 @@ export default function Payments() {
             <p className="text-slate-600 text-sm">Track and allocate payments to invoices</p>
           </div>
           <div className="flex gap-3 flex-wrap">
-            {selectedPayments.length > 0 && user?.role === 'admin' && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="border-slate-300 bg-slate-100" disabled={isBulkUpdating}>
-                    <CheckSquare className="w-4 h-4 mr-2" />
-                    {isBulkUpdating ? 'Updating...' : `Update Status (${selectedPayments.length})`}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => handleBulkStatusUpdate('pending')}>
-                    Mark as Pending
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleBulkStatusUpdate('cleared')}>
-                    Mark as Cleared
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleBulkStatusUpdate('reversed')}>
-                    Mark as Reversed
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleBulkStatusUpdate('entic_paid')}>
-                    Mark as ENTIC Paid
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
             <Button
               onClick={exportAllocations}
               variant="outline"
@@ -825,14 +747,6 @@ export default function Payments() {
                 <table className="w-full">
                   <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                     <tr>
-                      {user?.role === 'admin' && (
-                        <th className="w-12 px-3 py-2 text-left bg-slate-50 no-print">
-                          <Checkbox 
-                            checked={sortedPayments.length > 0 && selectedPayments.length === sortedPayments.length}
-                            onCheckedChange={toggleSelectAll}
-                          />
-                        </th>
-                      )}
                       <th className="text-left px-3 py-2 text-xs font-semibold text-slate-700 w-12">
                         #
                       </th>
@@ -896,14 +810,6 @@ export default function Payments() {
                       <tr key={payment.id} className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${
                         payment.unallocated_amount > 0 ? 'bg-orange-50/30' : ''
                       }`}>
-                        {user?.role === 'admin' && (
-                          <td className="px-3 py-2 no-print">
-                            <Checkbox 
-                              checked={selectedPayments.includes(payment.id)}
-                              onCheckedChange={() => toggleSelectPayment(payment.id)}
-                            />
-                          </td>
-                        )}
                         <td className="px-3 py-2 text-xs text-slate-500 font-medium">
                           {index + 1}
                         </td>
