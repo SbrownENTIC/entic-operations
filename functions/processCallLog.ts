@@ -22,21 +22,18 @@ const REQUIRED_NORMALIZED = [
   "outbound calls",
   "answered calls",
   "missed calls",
-  "total call duration",
-  "inbound call duration",
-  "outbound call duration"
+  "voicemail calls",
+  "total call duration (minutes)",
+  "inbound call duration (minutes)",
+  "outbound call duration (minutes)"
 ];
 
-// Parse HH:MM:SS or MM:SS or plain number → seconds
-function parseDurationToSeconds(val) {
+// Parse a numeric minutes value → seconds (stored as seconds in DB)
+function parseMinutesToSeconds(val) {
   if (val === null || val === undefined || val === '') return 0;
-  const s = String(val).trim();
-  if (s === '') return 0;
-  if (/^\d+(\.\d+)?$/.test(s)) return Math.round(parseFloat(s)); // plain numeric seconds
-  const parts = s.split(':').map(Number);
-  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
-  if (parts.length === 2) return parts[0] * 60 + parts[1];
-  return 0;
+  const n = parseFloat(String(val).trim());
+  if (isNaN(n)) return 0;
+  return Math.round(n * 60);
 }
 
 function classifyPeriod(startStr, endStr) {
