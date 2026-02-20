@@ -147,6 +147,62 @@ export default function OfficeSupplyOrders() {
     }
   });
 
+  const splitOrderMutation = useMutation({
+    mutationFn: async ({ originalOrder, itemsToSplit, targetLocation }) => {
+      const itemsToMove = [];
+      const itemsToKeep = [];
+
+      originalOrder.items.forEach((item, idx) => {
+        const splitInfo = itemsToSplit.find(s => s.index === idx);
+        if (splitInfo) {
+          const moveQty = splitInfo.quantity;
+          const remainingQty = (item.quantity || 0) - moveQty;
+          if (moveQty > 0) {
+            itemsToMove.push({ ...item, quantity: moveQty, line_total: moveQty * (item.unit_price || 0) });
+          }
+          if (remainingQty > 0) {
+            itemsToKeep.push({ ...item, quantity: remainingQty, line_total: remainingQty * (item.unit_price || 0) });
+          }
+        } else {
+          itemsToKeep.push(item);
+        }
+      });
+
+      const subtotalMove = itemsToMove.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0);
+      const subtotalKeep = itemsToKeep.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0);
+      const originalSubtotal = originalOrder.subtotal || (subtotalMove + subtotalKeep) || 1;
+      const ratioMove = subtotalMove / originalSubtotal;
+      const taxMove = (originalOrder.tax || 0) * ratioMove;
+      const taxKeep = (originalOrder.tax || 0) - taxMove;
+
+      await base44.entities.SupplyOrder.create({
+        ...originalOrder,
+        id: undefined,
+        created_date: undefined,
+        updated_date: undefined,
+        location: targetLocation,
+        order_number: `${originalOrder.order_number} - ${targetLocation}`,
+        items: itemsToMove,
+        subtotal: subtotalMove,
+        tax: taxMove,
+        total_amount: subtotalMove + taxMove,
+        status: 'order_placed',
+        notes: `Split from order ${originalOrder.order_number}. \n${originalOrder.notes || ''}`
+      });
+
+      await base44.entities.SupplyOrder.update(originalOrder.id, {
+        items: itemsToKeep,
+        subtotal: subtotalKeep,
+        tax: taxKeep,
+        total_amount: subtotalKeep + taxKeep
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['supply-orders'] });
+      setSplittingOrder(null);
+    }
+  });
+
   const handleMergeOrders = async () => {
     if (selectedOrders.length < 2) return;
     
