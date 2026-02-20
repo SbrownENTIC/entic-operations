@@ -550,6 +550,18 @@ export default function OfficeSupplyOrders() {
                              <ClipboardList className="w-4 h-4" />
                            </Button>
                            {user?.role === 'admin' && (
+                            {order.items?.length > 0 && user?.role === 'admin' && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setSplittingOrder(order)}
+                                title="Split Order"
+                                className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                              >
+                                <Split className="w-4 h-4" />
+                              </Button>
+                            )}
+
                              <>
                                <Button 
                                  variant="ghost" 
