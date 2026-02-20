@@ -1,7 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
+import { logSystemEvent } from "./utils/systemLogger.js";
 
 Deno.serve(async (req) => {
     try {
+        await logSystemEvent("checkLicenseExpirations", "START");
         const base44 = createClientFromRequest(req);
         
         // CC recipients for all reminder emails
