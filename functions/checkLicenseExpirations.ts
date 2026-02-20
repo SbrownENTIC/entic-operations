@@ -156,6 +156,7 @@ ${body}`
             }
         }
         
+        await logSystemEvent("checkLicenseExpirations", "SUCCESS");
         return Response.json({ 
             success: true, 
             message: `License expiration check complete. ${emailsSent} reminder email(s) sent.`,
@@ -163,6 +164,7 @@ ${body}`
         });
         
     } catch (error) {
+        await logSystemEvent("checkLicenseExpirations", "ERROR", error.message);
         return Response.json({ 
             success: false, 
             error: error.message 
