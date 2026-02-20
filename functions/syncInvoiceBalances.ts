@@ -31,6 +31,7 @@ Deno.serve(async (req) => {
       }
     }
     
+    await logSystemEvent("syncInvoiceBalances", "SUCCESS");
     return Response.json({
       success: true,
       message: `Sync complete: ${updatedCount} invoices updated, ${skippedCount} already had amount_expected set.`,
@@ -39,6 +40,7 @@ Deno.serve(async (req) => {
     });
     
   } catch (error) {
+    await logSystemEvent("syncInvoiceBalances", "ERROR", error.message);
     console.error('Error syncing invoice balances:', error);
     return Response.json({ 
       error: error.message || 'An error occurred during sync'
