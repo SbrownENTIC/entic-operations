@@ -22,6 +22,7 @@ import {
 import { format, parseISO } from "date-fns";
 import { formatDateToEST } from "@/components/DateUtils";
 import SupplyOrderForm from "../components/supplies/SupplyOrderForm";
+import SplitOrderModal from "../components/supplies/SplitOrderModal";
 import EmptyState from "@/components/ui/EmptyState";
 import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
 import { useLocation } from "react-router-dom";
