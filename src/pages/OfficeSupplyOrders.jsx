@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2, Trash2, ClipboardList, Merge, Split } from "lucide-react";
+import { Plus, Search, Pencil, ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2, Trash2, ClipboardList, Merge } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -22,7 +22,6 @@ import {
 import { format, parseISO } from "date-fns";
 import { formatDateToEST } from "@/components/DateUtils";
 import SupplyOrderForm from "../components/supplies/SupplyOrderForm";
-import SplitOrderModal from "../components/supplies/SplitOrderModal";
 import EmptyState from "@/components/ui/EmptyState";
 import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
 import { useLocation } from "react-router-dom";
@@ -42,7 +41,6 @@ export default function OfficeSupplyOrders() {
   const [summaryOrder, setSummaryOrder] = useState(null);
   const [selectedOrders, setSelectedOrders] = useState([]);
   const [isMerging, setIsMerging] = useState(false);
-  const [splittingOrder, setSplittingOrder] = useState(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -144,66 +142,6 @@ export default function OfficeSupplyOrders() {
       } else {
         toast({ variant: "destructive", title: "Error", description: error.message });
       }
-    }
-  });
-
-  const splitOrderMutation = useMutation({
-    mutationFn: async ({ originalOrder, itemsToSplit, targetLocation }) => {
-      const itemsToMove = [];
-      const itemsToKeep = [];
-
-      originalOrder.items.forEach((item, idx) => {
-        const splitInfo = itemsToSplit.find(s => s.index === idx);
-        if (splitInfo) {
-          const moveQty = splitInfo.quantity;
-          const remainingQty = (item.quantity || 0) - moveQty;
-          if (moveQty > 0) {
-            itemsToMove.push({ ...item, quantity: moveQty, line_total: moveQty * (item.unit_price || 0) });
-          }
-          if (remainingQty > 0) {
-            itemsToKeep.push({ ...item, quantity: remainingQty, line_total: remainingQty * (item.unit_price || 0) });
-          }
-        } else {
-          itemsToKeep.push(item);
-        }
-      });
-
-      const subtotalMove = itemsToMove.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0);
-      const subtotalKeep = itemsToKeep.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0);
-      const originalSubtotal = originalOrder.subtotal || (subtotalMove + subtotalKeep) || 1;
-      const ratioMove = subtotalMove / originalSubtotal;
-      const taxMove = (originalOrder.tax || 0) * ratioMove;
-      const taxKeep = (originalOrder.tax || 0) - taxMove;
-
-      await base44.entities.SupplyOrder.create({
-        ...originalOrder,
-        id: undefined,
-        created_date: undefined,
-        updated_date: undefined,
-        location: targetLocation,
-        order_number: `${originalOrder.order_number} - ${targetLocation}`,
-        items: itemsToMove,
-        subtotal: subtotalMove,
-        tax: taxMove,
-        total_amount: subtotalMove + taxMove,
-        status: 'order_placed',
-        notes: `Split from order ${originalOrder.order_number}.\n${originalOrder.notes || ''}`
-      });
-
-      await base44.entities.SupplyOrder.update(originalOrder.id, {
-        items: itemsToKeep,
-        subtotal: subtotalKeep,
-        tax: taxKeep,
-        total_amount: subtotalKeep + taxKeep
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['supply-orders'] });
-      setSplittingOrder(null);
-      toast({ title: "Success", description: "Order split successfully." });
-    },
-    onError: (error) => {
-      toast({ variant: "destructive", title: "Error", description: error.message });
     }
   });
 
@@ -550,18 +488,6 @@ export default function OfficeSupplyOrders() {
                              <ClipboardList className="w-4 h-4" />
                            </Button>
                            {user?.role === 'admin' && (
-                            {order.items?.length > 0 && user?.role === 'admin' && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setSplittingOrder(order)}
-                                title="Split Order"
-                                className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
-                              >
-                                <Split className="w-4 h-4" />
-                              </Button>
-                            )}
-
                              <>
                                <Button 
                                  variant="ghost" 
@@ -683,16 +609,6 @@ export default function OfficeSupplyOrders() {
         </div>
       </div>
     </div>
-
-    <SplitOrderModal
-      order={splittingOrder}
-      isOpen={!!splittingOrder}
-      onClose={() => setSplittingOrder(null)}
-      onSplit={(originalOrder, itemsToSplit, targetLocation) =>
-        splitOrderMutation.mutate({ originalOrder, itemsToSplit, targetLocation })
-      }
-      isLoading={splitOrderMutation.isPending}
-    />
     </>
   );
 }
