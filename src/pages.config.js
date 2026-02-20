@@ -62,19 +62,19 @@ import OfficeSupplyCatalog from './pages/OfficeSupplyCatalog';
 import OfficeSupplyOrders from './pages/OfficeSupplyOrders';
 import OnCallSchedule from './pages/OnCallSchedule';
 import OutsideIncome from './pages/OutsideIncome';
+import Payments from './pages/Payments';
 import ProgramLocations from './pages/ProgramLocations';
 import ProviderDetail from './pages/ProviderDetail';
 import ProviderTimeOff from './pages/ProviderTimeOff';
 import Providers from './pages/Providers';
 import PublicSupplyRequest from './pages/PublicSupplyRequest';
 import Reminders from './pages/Reminders';
+import Reports from './pages/Reports';
 import SimpleDashboard from './pages/SimpleDashboard';
 import SupplyOrderDetail from './pages/SupplyOrderDetail';
 import SupplyRequest from './pages/SupplyRequest';
 import SystemDocumentation from './pages/SystemDocumentation';
 import TodaysOrders from './pages/TodaysOrders';
-import Reports from './pages/Reports';
-import Payments from './pages/Payments';
 import __Layout from './Layout.jsx';
 
 
@@ -94,19 +94,19 @@ export const PAGES = {
     "OfficeSupplyOrders": OfficeSupplyOrders,
     "OnCallSchedule": OnCallSchedule,
     "OutsideIncome": OutsideIncome,
+    "Payments": Payments,
     "ProgramLocations": ProgramLocations,
     "ProviderDetail": ProviderDetail,
     "ProviderTimeOff": ProviderTimeOff,
     "Providers": Providers,
     "PublicSupplyRequest": PublicSupplyRequest,
     "Reminders": Reminders,
+    "Reports": Reports,
     "SimpleDashboard": SimpleDashboard,
     "SupplyOrderDetail": SupplyOrderDetail,
     "SupplyRequest": SupplyRequest,
     "SystemDocumentation": SystemDocumentation,
     "TodaysOrders": TodaysOrders,
-    "Reports": Reports,
-    "Payments": Payments,
 }
 
 export const pagesConfig = {
