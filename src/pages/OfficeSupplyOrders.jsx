@@ -42,6 +42,7 @@ export default function OfficeSupplyOrders() {
   const [summaryOrder, setSummaryOrder] = useState(null);
   const [selectedOrders, setSelectedOrders] = useState([]);
   const [isMerging, setIsMerging] = useState(false);
+  const [splittingOrder, setSplittingOrder] = useState(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
