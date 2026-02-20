@@ -141,7 +141,7 @@ export default function SupplyRequestForm({ onSubmit, onCancel, isLoading, userL
                                 <span className="break-words">{supply.product_name}</span>
                                 <span className="text-xs text-slate-500">
                                   {supply.item_number && `Item# ${supply.item_number}`}
-                                  {supply.vendor && ` • ${supply.vendor}`}
+                                  {supply.units && ` • ${supply.units}`}
                                 </span>
                               </div>
                             </CommandItem>
