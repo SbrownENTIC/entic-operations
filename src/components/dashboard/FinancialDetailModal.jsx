@@ -185,6 +185,12 @@ export default function FinancialDetailModal({ isOpen, onClose, title, invoices,
                       Quarter <SortIcon field="quarter" />
                     </th>
                     <th 
+                      className="text-left p-3 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 select-none"
+                      onClick={() => handleSort('quarter')}
+                    >
+                      Payment Date <SortIcon field="quarter" />
+                    </th>
+                    <th 
                       className="text-right p-3 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 select-none"
                       onClick={() => handleSort('total')}
                     >
