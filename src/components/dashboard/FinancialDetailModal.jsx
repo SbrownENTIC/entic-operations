@@ -185,12 +185,6 @@ export default function FinancialDetailModal({ isOpen, onClose, title, invoices,
                       Quarter <SortIcon field="quarter" />
                     </th>
                     <th 
-                      className="text-left p-3 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 select-none"
-                      onClick={() => handleSort('quarter')}
-                    >
-                      Payment Date <SortIcon field="quarter" />
-                    </th>
-                    <th 
                       className="text-right p-3 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 select-none"
                       onClick={() => handleSort('total')}
                     >
@@ -251,20 +245,6 @@ export default function FinancialDetailModal({ isOpen, onClose, title, invoices,
                             return '-';
                           })()}
                         </td>
-                        <td className="p-3 text-sm text-slate-600">
-                          {(() => {
-                            const linkedPayments = payments.filter(p => 
-                              p.allocations?.some(a => a.invoice_id === invoice.id)
-                            );
-                            if (linkedPayments.length > 0) {
-                              const latest = [...linkedPayments].sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date))[0];
-                              if (latest && latest.payment_date) {
-                                return format(parseISO(latest.payment_date), 'MMM d, yyyy');
-                              }
-                            }
-                            return '-';
-                          })()}
-                        </td>
                         <td className="p-3 text-sm text-right font-medium text-slate-900">
                           {formatCurrency(invoice.total || 0)}
                         </td>
@@ -296,7 +276,7 @@ export default function FinancialDetailModal({ isOpen, onClose, title, invoices,
                 </tbody>
                 <tfoot className="bg-slate-50 border-t-2 border-slate-300">
                   <tr>
-                    <td colSpan="6" className="p-3 text-sm font-bold text-slate-900">Total</td>
+                    <td colSpan="5" className="p-3 text-sm font-bold text-slate-900">Total</td>
                     <td className="p-3 text-sm text-right font-bold text-slate-900">
                       {formatCurrency(invoices.reduce((sum, inv) => sum + (inv.total || 0), 0))}
                     </td>
