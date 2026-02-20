@@ -53,8 +53,8 @@ export default function FinancialDetailModal({ isOpen, onClose, title, invoices,
       if (sortField === 'provider') {
       aValue = providers.find(p => p.id === a.staff_member_id)?.full_name || '';
       bValue = providers.find(p => p.id === b.staff_member_id)?.full_name || '';
-      } else if (sortField === 'quarter') {
-      const getQuarterTimestamp = (inv) => {
+      } else if (sortField === 'payment_date' || sortField === 'quarter') {
+      const getLatestPaymentTimestamp = (inv) => {
         const linkedPayments = payments.filter(p => 
           p.allocations?.some(a => a.invoice_id === inv.id)
         );
@@ -64,8 +64,8 @@ export default function FinancialDetailModal({ isOpen, onClose, title, invoices,
         }
         return 0;
       };
-      aValue = getQuarterTimestamp(a);
-      bValue = getQuarterTimestamp(b);
+      aValue = getLatestPaymentTimestamp(a);
+      bValue = getLatestPaymentTimestamp(b);
       } else if (sortField === 'invoice_date') {
         aValue = new Date(a.invoice_date || 0);
         bValue = new Date(b.invoice_date || 0);
