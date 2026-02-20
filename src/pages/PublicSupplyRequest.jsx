@@ -447,7 +447,7 @@ export default function PublicSupplyRequest() {
                                     <span className="break-words font-medium text-sm leading-snug">{supply.product_name}</span>
                                     <span className="text-xs text-slate-500">
                                       {supply.item_number && `Item# ${supply.item_number}`}
-                                      {supply.units && ` • ${supply.units}`}
+                                      {supply.units && ` • Units: ${supply.units}`}
                                     </span>
                                   </div>
                                 </CommandItem>
