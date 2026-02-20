@@ -236,21 +236,25 @@ export default function FinancialDetailModal({ isOpen, onClose, title, invoices,
                         <td className="p-3 text-sm text-slate-600">
                           {format(parseISO(invoice.invoice_date), 'MMM d, yyyy')}
                         </td>
-                        <td className="p-3 text-sm text-slate-600">
-                          {(() => {
+                        {(() => {
                             const linkedPayments = payments.filter(p => 
                               p.allocations?.some(a => a.invoice_id === invoice.id)
                             );
-                            if (linkedPayments.length > 0) {
-                              const latest = [...linkedPayments].sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date))[0];
-                              if (latest && latest.payment_date) {
-                                const d = parseISO(latest.payment_date);
-                                return `Q${Math.floor(d.getMonth() / 3) + 1} ${d.getFullYear()}`;
-                              }
-                            }
-                            return '-';
+                            const latest = linkedPayments.length > 0
+                              ? [...linkedPayments].sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date))[0]
+                              : null;
+                            const d = latest?.payment_date ? parseISO(latest.payment_date) : null;
+                            return (
+                              <>
+                                <td className="p-3 text-sm text-slate-600">
+                                  {d ? format(d, 'MMM d, yyyy') : '-'}
+                                </td>
+                                <td className="p-3 text-sm text-slate-600">
+                                  {d ? `Q${Math.floor(d.getMonth() / 3) + 1} ${d.getFullYear()}` : '-'}
+                                </td>
+                              </>
+                            );
                           })()}
-                        </td>
                         <td className="p-3 text-sm text-right font-medium text-slate-900">
                           {formatCurrency(invoice.total || 0)}
                         </td>
