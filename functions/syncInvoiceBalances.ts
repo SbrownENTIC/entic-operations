@@ -1,9 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
-import { logSystemEvent } from "./utils/systemLogger.js";
 
 Deno.serve(async (req) => {
   try {
-    await logSystemEvent("syncInvoiceBalances", "START");
     const base44 = createClientFromRequest(req);
     
     // Verify user is authenticated
@@ -31,7 +29,6 @@ Deno.serve(async (req) => {
       }
     }
     
-    await logSystemEvent("syncInvoiceBalances", "SUCCESS");
     return Response.json({
       success: true,
       message: `Sync complete: ${updatedCount} invoices updated, ${skippedCount} already had amount_expected set.`,
@@ -40,7 +37,6 @@ Deno.serve(async (req) => {
     });
     
   } catch (error) {
-    await logSystemEvent("syncInvoiceBalances", "ERROR", error.message);
     console.error('Error syncing invoice balances:', error);
     return Response.json({ 
       error: error.message || 'An error occurred during sync'

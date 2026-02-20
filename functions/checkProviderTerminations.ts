@@ -1,9 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
-import { logSystemEvent } from "./utils/systemLogger.js";
 
 Deno.serve(async (req) => {
   try {
-    await logSystemEvent("checkProviderTerminations", "START");
     const base44 = createClientFromRequest(req);
     
     // Get all active providers with termination dates
@@ -29,14 +27,12 @@ Deno.serve(async (req) => {
       }
     }
     
-    await logSystemEvent("checkProviderTerminations", "SUCCESS");
     return Response.json({
       success: true,
       message: `Processed ${providers.length} providers. ${terminatedCount} provider(s) set to inactive.`,
       terminated_count: terminatedCount
     });
   } catch (error) {
-    await logSystemEvent("checkProviderTerminations", "ERROR", error.message);
     return Response.json({
       success: false,
       error: error.message

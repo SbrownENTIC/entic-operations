@@ -1,12 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
-import { logSystemEvent } from "./utils/systemLogger.js";
 
 const AIRTABLE_BASE_ID = 'appwLeODexurgpElt';
 const NOTIFICATIONS_TABLE = 'tblVG6MUoSifOpHsh';
 
 Deno.serve(async (req) => {
   try {
-    await logSystemEvent("syncHartfordInvoiceToAirtable", "START");
     const base44 = createClientFromRequest(req);
     
     const payload = await req.json();
@@ -142,11 +140,9 @@ Deno.serve(async (req) => {
         }
     }));
 
-    await logSystemEvent("syncHartfordInvoiceToAirtable", "SUCCESS");
     return Response.json({ success: true, message: `Synced ${validInvoices.length} Hartford Hospital invoices to Airtable successfully` });
 
   } catch (error) {
-    await logSystemEvent("syncHartfordInvoiceToAirtable", "ERROR", error.message);
     console.error('Error syncing Hartford Hospital invoices to Airtable:', error);
     return Response.json({ 
       error: error.message,

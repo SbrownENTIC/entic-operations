@@ -53,15 +53,6 @@ export default function FinancialDetailModal({ isOpen, onClose, title, invoices,
       if (sortField === 'provider') {
       aValue = providers.find(p => p.id === a.staff_member_id)?.full_name || '';
       bValue = providers.find(p => p.id === b.staff_member_id)?.full_name || '';
-      } else if (sortField === 'payment_date') {
-        const getLatestPaymentDate = (inv) => {
-          const linked = payments.filter(p => p.allocations?.some(a => a.invoice_id === inv.id));
-          if (linked.length === 0) return 0;
-          const latest = [...linked].sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date))[0];
-          return latest?.payment_date ? new Date(latest.payment_date).getTime() : 0;
-        };
-        aValue = getLatestPaymentDate(a);
-        bValue = getLatestPaymentDate(b);
       } else if (sortField === 'quarter') {
       const getQuarterTimestamp = (inv) => {
         const linkedPayments = payments.filter(p => 
@@ -159,12 +150,6 @@ export default function FinancialDetailModal({ isOpen, onClose, title, invoices,
                   <tr>
                     <th 
                       className="text-left p-3 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 select-none"
-                      onClick={() => handleSort('payment_date')}
-                    >
-                      Payment Date <SortIcon field="payment_date" />
-                    </th>
-                    <th 
-                      className="text-left p-3 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 select-none"
                       onClick={() => handleSort('invoice_number')}
                     >
                       Invoice # <SortIcon field="invoice_number" />
@@ -234,18 +219,8 @@ export default function FinancialDetailModal({ isOpen, onClose, title, invoices,
                     const provider = providers.find(p => p.id === invoice.staff_member_id);
                     const outstanding = (invoice.amount_expected || invoice.total || 0) - (invoice.amount_received || 0);
 
-                    const linkedPayments = payments.filter(p => p.allocations?.some(a => a.invoice_id === invoice.id));
-                    const latestPayment = linkedPayments.length > 0
-                      ? [...linkedPayments].sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date))[0]
-                      : null;
-
                     return (
                       <tr key={invoice.id} className="border-b border-slate-100 hover:bg-slate-50">
-                        <td className="p-3 text-sm text-slate-700 whitespace-nowrap">
-                          {latestPayment?.payment_date
-                            ? format(parseISO(latestPayment.payment_date), 'MMM d, yyyy')
-                            : '-'}
-                        </td>
                         <td className="p-3 text-sm font-medium text-slate-900">
                           {invoice.invoice_number || '-'}
                         </td>
@@ -256,9 +231,19 @@ export default function FinancialDetailModal({ isOpen, onClose, title, invoices,
                           {format(parseISO(invoice.invoice_date), 'MMM d, yyyy')}
                         </td>
                         <td className="p-3 text-sm text-slate-600">
-                          {latestPayment?.payment_date
-                            ? (() => { const d = parseISO(latestPayment.payment_date); return `Q${Math.floor(d.getMonth() / 3) + 1} ${d.getFullYear()}`; })()
-                            : '-'}
+                          {(() => {
+                            const linkedPayments = payments.filter(p => 
+                              p.allocations?.some(a => a.invoice_id === invoice.id)
+                            );
+                            if (linkedPayments.length > 0) {
+                              const latest = [...linkedPayments].sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date))[0];
+                              if (latest && latest.payment_date) {
+                                const d = parseISO(latest.payment_date);
+                                return `Q${Math.floor(d.getMonth() / 3) + 1} ${d.getFullYear()}`;
+                              }
+                            }
+                            return '-';
+                          })()}
                         </td>
                         <td className="p-3 text-sm text-right font-medium text-slate-900">
                           {formatCurrency(invoice.total || 0)}
@@ -291,7 +276,7 @@ export default function FinancialDetailModal({ isOpen, onClose, title, invoices,
                 </tbody>
                 <tfoot className="bg-slate-50 border-t-2 border-slate-300">
                   <tr>
-                    <td colSpan="6" className="p-3 text-sm font-bold text-slate-900">Total</td>
+                    <td colSpan="5" className="p-3 text-sm font-bold text-slate-900">Total</td>
                     <td className="p-3 text-sm text-right font-bold text-slate-900">
                       {formatCurrency(invoices.reduce((sum, inv) => sum + (inv.total || 0), 0))}
                     </td>
