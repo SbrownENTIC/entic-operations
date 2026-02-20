@@ -296,7 +296,7 @@ export default function FinancialDetailModal({ isOpen, onClose, title, invoices,
                 </tbody>
                 <tfoot className="bg-slate-50 border-t-2 border-slate-300">
                   <tr>
-                    <td colSpan="5" className="p-3 text-sm font-bold text-slate-900">Total</td>
+                    <td colSpan="6" className="p-3 text-sm font-bold text-slate-900">Total</td>
                     <td className="p-3 text-sm text-right font-bold text-slate-900">
                       {formatCurrency(invoices.reduce((sum, inv) => sum + (inv.total || 0), 0))}
                     </td>
