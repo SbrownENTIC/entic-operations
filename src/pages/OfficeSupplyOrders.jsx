@@ -550,6 +550,14 @@ export default function OfficeSupplyOrders() {
                                <Button 
                                  variant="ghost" 
                                  size="sm"
+                                 onClick={() => setSplittingOrder(order)}
+                                 title="Split Order"
+                               >
+                                 <Split className="w-4 h-4" />
+                               </Button>
+                               <Button 
+                                 variant="ghost" 
+                                 size="sm"
                                  onClick={() => {
                                    setEditingOrder(order);
                                    setShowForm(true);
