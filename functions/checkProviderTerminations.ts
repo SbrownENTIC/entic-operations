@@ -29,12 +29,14 @@ Deno.serve(async (req) => {
       }
     }
     
+    await logSystemEvent("checkProviderTerminations", "SUCCESS");
     return Response.json({
       success: true,
       message: `Processed ${providers.length} providers. ${terminatedCount} provider(s) set to inactive.`,
       terminated_count: terminatedCount
     });
   } catch (error) {
+    await logSystemEvent("checkProviderTerminations", "ERROR", error.message);
     return Response.json({
       success: false,
       error: error.message
