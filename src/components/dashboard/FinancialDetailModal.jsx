@@ -234,8 +234,18 @@ export default function FinancialDetailModal({ isOpen, onClose, title, invoices,
                     const provider = providers.find(p => p.id === invoice.staff_member_id);
                     const outstanding = (invoice.amount_expected || invoice.total || 0) - (invoice.amount_received || 0);
 
+                    const linkedPayments = payments.filter(p => p.allocations?.some(a => a.invoice_id === invoice.id));
+                    const latestPayment = linkedPayments.length > 0
+                      ? [...linkedPayments].sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date))[0]
+                      : null;
+
                     return (
                       <tr key={invoice.id} className="border-b border-slate-100 hover:bg-slate-50">
+                        <td className="p-3 text-sm text-slate-700 whitespace-nowrap">
+                          {latestPayment?.payment_date
+                            ? format(parseISO(latestPayment.payment_date), 'MMM d, yyyy')
+                            : '-'}
+                        </td>
                         <td className="p-3 text-sm font-medium text-slate-900">
                           {invoice.invoice_number || '-'}
                         </td>
