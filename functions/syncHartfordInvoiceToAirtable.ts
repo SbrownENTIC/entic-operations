@@ -1,10 +1,12 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { logSystemEvent } from "./utils/systemLogger.js";
 
 const AIRTABLE_BASE_ID = 'appwLeODexurgpElt';
 const NOTIFICATIONS_TABLE = 'tblVG6MUoSifOpHsh';
 
 Deno.serve(async (req) => {
   try {
+    await logSystemEvent("syncHartfordInvoiceToAirtable", "START");
     const base44 = createClientFromRequest(req);
     
     const payload = await req.json();
