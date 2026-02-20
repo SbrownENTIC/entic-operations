@@ -1,7 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { logSystemEvent } from "./utils/systemLogger.js";
 
 Deno.serve(async (req) => {
   try {
+    await logSystemEvent("syncInvoiceBalances", "START");
     const base44 = createClientFromRequest(req);
     
     // Verify user is authenticated
