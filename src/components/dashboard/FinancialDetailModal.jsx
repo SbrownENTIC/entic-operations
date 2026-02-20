@@ -251,6 +251,20 @@ export default function FinancialDetailModal({ isOpen, onClose, title, invoices,
                             return '-';
                           })()}
                         </td>
+                        <td className="p-3 text-sm text-slate-600">
+                          {(() => {
+                            const linkedPayments = payments.filter(p => 
+                              p.allocations?.some(a => a.invoice_id === invoice.id)
+                            );
+                            if (linkedPayments.length > 0) {
+                              const latest = [...linkedPayments].sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date))[0];
+                              if (latest && latest.payment_date) {
+                                return format(parseISO(latest.payment_date), 'MMM d, yyyy');
+                              }
+                            }
+                            return '-';
+                          })()}
+                        </td>
                         <td className="p-3 text-sm text-right font-medium text-slate-900">
                           {formatCurrency(invoice.total || 0)}
                         </td>
