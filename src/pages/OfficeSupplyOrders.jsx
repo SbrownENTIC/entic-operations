@@ -672,6 +672,15 @@ export default function OfficeSupplyOrders() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        <SplitOrderModal
+          order={splittingOrder}
+          isOpen={!!splittingOrder}
+          onClose={() => setSplittingOrder(null)}
+          onSplit={(originalOrder, itemsToSplit, targetLocation) => {
+            splitOrderMutation.mutate({ originalOrder, itemsToSplit, targetLocation });
+          }}
+          isLoading={splitOrderMutation.isPending}
+        />
         </div>
       </div>
     </div>
