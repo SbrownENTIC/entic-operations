@@ -240,11 +240,30 @@ export default function DocumentManagement() {
                   placeholder="What's in this folder?"
                 />
               </div>
+              <div className="space-y-2">
+                <Label>Folder Color</Label>
+                <div className="flex gap-2 flex-wrap">
+                  {FOLDER_COLORS.map(color => {
+                    const cls = getColorClasses(color);
+                    return (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => setNewFolder({...newFolder, color})}
+                        className={`w-8 h-8 rounded-full ${cls.bg} ${cls.text} flex items-center justify-center border-2 transition-all ${newFolder.color === color ? 'border-slate-700 scale-110' : 'border-transparent'}`}
+                        title={color}
+                      >
+                        <Folder className="w-4 h-4" />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
               <Button 
-                onClick={() => createFolderMutation.mutate(newFolder)}
+                onClick={() => createFolderMutation.mutate({ name: newFolder.name, description: newFolder.description, color: newFolder.color || getNextColor(customFolders) })}
                 disabled={!newFolder.name || createFolderMutation.isPending}
               >
                 {createFolderMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
