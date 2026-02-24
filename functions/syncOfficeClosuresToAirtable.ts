@@ -136,7 +136,9 @@ Deno.serve(async (req) => {
       fields['Enabled'] = reminder.status === 'active';
       
       // Map closure name/type to valid Closure Type options: Holiday, Floating Holiday, Office Closure, Reminder
-      if (reminder.reminder_type === 'Office Closure' || (reminder.reminder_name || '').toLowerCase().includes('office closure')) {
+      if (reminder.reminder_type === 'Inclement Weather' || closureName.toLowerCase().includes('inclement') || closureName.toLowerCase().includes('winter weather')) {
+        fields['Closure Type'] = 'Office Closure';
+      } else if (reminder.reminder_type === 'Office Closure' || (reminder.reminder_name || '').toLowerCase().includes('office closure')) {
         fields['Closure Type'] = 'Office Closure';
       } else if (closureName.toLowerCase().includes('floating')) {
         fields['Closure Type'] = 'Floating Holiday';
