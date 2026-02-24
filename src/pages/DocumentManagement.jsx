@@ -70,7 +70,7 @@ export default function DocumentManagement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['document-folders'] });
       setIsCreateOpen(false);
-      setNewFolder({ name: "", description: "" });
+      setNewFolder({ name: "", description: "", color: "" });
       toast({ title: "Folder Created", description: "New folder added successfully." });
     }
   });
