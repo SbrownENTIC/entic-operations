@@ -59,19 +59,12 @@ Deno.serve(async (req) => {
 
         const data = extractionResult.output;
 
-        // Check for duplicates
+        // Check for duplicates - skip silently if already exists
         if (data.invoice_number) {
             const existing = await base44.asServiceRole.entities.VendorInvoice.filter({ invoice_number: data.invoice_number });
             if (existing && existing.length > 0) {
-                const normalizedNewVendor = (data.vendor_name || '').toLowerCase();
-                const duplicateMatch = existing.find(ex => 
-                    (ex.vendor_name || '').toLowerCase().includes(normalizedNewVendor) || 
-                    normalizedNewVendor.includes((ex.vendor_name || '').toLowerCase())
-                );
-                
-                if (duplicateMatch) {
-                    return Response.json({ error: `Duplicate invoice detected: Invoice #${data.invoice_number} for ${data.vendor_name} already exists.` }, { status: 409 });
-                }
+                console.log(`Skipping duplicate invoice: #${data.invoice_number} for ${data.vendor_name}`);
+                return Response.json({ skipped: true, reason: `Invoice #${data.invoice_number} already exists.` });
             }
         }
 
