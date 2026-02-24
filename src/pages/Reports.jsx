@@ -1268,7 +1268,7 @@ export default function Reports() {
                               <h4 className="text-sm font-medium text-slate-500 mb-3 uppercase">ENTIC Vendors</h4>
                               <div className="space-y-2">
                                 {Object.entries(enticInvoices.reduce((acc, inv) => {
-                                  const vendor = inv.vendor_name || 'Unknown';
+                                  const vendor = (inv.vendor_name || 'Unknown').trim().replace(/\.+$/, '');
                                   if (!acc[vendor]) acc[vendor] = 0;
                                   acc[vendor] += (inv.total_amount || 0);
                                   return acc;
@@ -1287,7 +1287,7 @@ export default function Reports() {
                               <h4 className="text-sm font-medium text-slate-500 mb-3 uppercase">Hearing Institute Vendors</h4>
                               <div className="space-y-2">
                                 {Object.entries(thiInvoices.reduce((acc, inv) => {
-                                  const vendor = inv.vendor_name || 'Unknown';
+                                  const vendor = (inv.vendor_name || 'Unknown').trim().replace(/\.+$/, '');
                                   if (!acc[vendor]) acc[vendor] = 0;
                                   acc[vendor] += (inv.total_amount || 0);
                                   return acc;
