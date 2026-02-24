@@ -108,8 +108,10 @@ export default function DocumentManagement() {
     return colors[color] || colors.default;
   };
 
-  const allFolders = customFolders.filter(f => f.name.toLowerCase() !== "documentation" && f.name.toLowerCase() !== "system documents").map(f => {
-    const colors = getColorClasses(f.color);
+  const allFolders = customFolders.filter(f => f.name.toLowerCase() !== "documentation" && f.name.toLowerCase() !== "system documents").map((f, idx) => {
+    // Ensure each folder gets a unique color based on index if not set
+    const assignedColor = f.color || FOLDER_COLORS[idx % FOLDER_COLORS.length];
+    const colors = getColorClasses(assignedColor);
     return {
       id: f.id,
       name: f.name,
@@ -117,6 +119,7 @@ export default function DocumentManagement() {
       icon: Folder,
       color: colors.text,
       bgColor: colors.bg,
+      rawColor: assignedColor,
       isSystem: false
     };
   });
