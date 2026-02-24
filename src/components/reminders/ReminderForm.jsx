@@ -533,6 +533,7 @@ The Operations Team
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Office Closure">Office Closure</SelectItem>
+                      <SelectItem value="Short Notice">Short Notice</SelectItem>
                       <SelectItem value="Labor Day">Labor Day</SelectItem>
                       <SelectItem value="Thanksgiving">Thanksgiving</SelectItem>
                       <SelectItem value="Christmas">Christmas</SelectItem>
