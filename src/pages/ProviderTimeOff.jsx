@@ -39,7 +39,7 @@ export default function ProviderTimeOff() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [sortField, setSortField] = useState('start_date');
   const [sortDirection, setSortDirection] = useState('asc');
-  const [viewMode, setViewMode] = useState('list'); // 'list' or 'calendar'
+  const [viewMode, setViewMode] = useState('calendar'); // 'list' or 'calendar'
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedEntries, setSelectedEntries] = useState([]);
   const [bulkStatus, setBulkStatus] = useState('');
