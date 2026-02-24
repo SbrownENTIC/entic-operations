@@ -139,22 +139,13 @@ Deno.serve(async (req) => {
             });
 
             if (uploadRes && uploadRes.file_url) {
-                // Check for duplicates
+                // Check for duplicates - skip if invoice number already exists
                 let isDuplicate = false;
                 if (inv.invoice_number) {
                     const existing = await base44.asServiceRole.entities.VendorInvoice.filter({ invoice_number: inv.invoice_number });
-                    // Simple check: if any existing invoice has this number and similar vendor name
                     if (existing && existing.length > 0) {
-                         const normalizedNewVendor = (inv.vendor_name || '').toLowerCase();
-                         const duplicateMatch = existing.find(ex => 
-                             (ex.vendor_name || '').toLowerCase().includes(normalizedNewVendor) || 
-                             normalizedNewVendor.includes((ex.vendor_name || '').toLowerCase())
-                         );
-                         
-                         if (duplicateMatch) {
-                             console.log(`Skipping duplicate invoice: ${inv.invoice_number}`);
-                             isDuplicate = true;
-                         }
+                        console.log(`Skipping duplicate invoice: ${inv.invoice_number}`);
+                        isDuplicate = true;
                     }
                 }
 
