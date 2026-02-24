@@ -72,9 +72,9 @@ export default function CMEComplianceWidget({
             })}
           </div>
         ) : (
-          <div className="text-center py-6 bg-green-50 rounded-lg border border-green-200">
-            <CheckCircle2 className="w-10 h-10 text-green-600 mx-auto mb-2" />
-            <p className="text-green-700 font-medium text-sm">All doctors are CME compliant!</p>
+          <div className="flex items-center gap-2 text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+            <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
+            <span className="text-sm font-medium">All doctors are CME compliant!</span>
           </div>
         )}
       </CardContent>
