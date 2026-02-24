@@ -155,7 +155,11 @@ export default function DocumentManagement() {
             <p className="text-slate-600 mt-2">Central repository for all organization documents and invoices.</p>
           </div>
           {user?.role === 'admin' && (
-            <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
+            <Button onClick={() => {
+              const nextColor = getNextColor(customFolders);
+              setNewFolder({ name: "", description: "", color: nextColor });
+              setIsCreateOpen(true);
+            }} className="gap-2">
               <FolderPlus className="w-4 h-4" />
               New Folder
             </Button>
