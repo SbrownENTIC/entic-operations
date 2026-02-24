@@ -97,6 +97,16 @@ export default function LicenseExpirationsWidget({
   providers, 
   exportLicenseExpirations 
 }) {
+  const periods = [
+    { title: "Expiring in 7 Days", licenses: licensesExpiring7Days, severity: "high", filterType: "expiring_7" },
+    { title: "Expiring in 14 Days", licenses: licensesExpiring14Days, severity: "medium", filterType: "expiring_14" },
+    { title: "Expiring in 30 Days", licenses: licensesExpiring30Days, severity: "low", filterType: "expiring_30" },
+    { title: "Expiring in 60 Days", licenses: licensesExpiring60Days, severity: "info", filterType: "expiring_60" },
+  ];
+
+  const activePeriods = periods.filter(p => p.licenses.length > 0);
+  const noneExpiring = activePeriods.length === 0;
+
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
@@ -111,36 +121,25 @@ export default function LicenseExpirationsWidget({
           Export
         </Button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-        <LicenseExpirationCard
-          title="Expiring in 7 Days"
-          licenses={licensesExpiring7Days}
-          providers={providers}
-          severity="high"
-          filterType="expiring_7"
-        />
-        <LicenseExpirationCard
-          title="Expiring in 14 Days"
-          licenses={licensesExpiring14Days}
-          providers={providers}
-          severity="medium"
-          filterType="expiring_14"
-        />
-        <LicenseExpirationCard
-          title="Expiring in 30 Days"
-          licenses={licensesExpiring30Days}
-          providers={providers}
-          severity="low"
-          filterType="expiring_30"
-        />
-        <LicenseExpirationCard
-          title="Expiring in 60 Days"
-          licenses={licensesExpiring60Days}
-          providers={providers}
-          severity="info"
-          filterType="expiring_60"
-        />
-      </div>
+      {noneExpiring ? (
+        <div className="flex items-center gap-2 text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+          <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
+          <span className="text-sm font-medium">None Expiring</span>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          {activePeriods.map(p => (
+            <LicenseExpirationCard
+              key={p.filterType}
+              title={p.title}
+              licenses={p.licenses}
+              providers={providers}
+              severity={p.severity}
+              filterType={p.filterType}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
