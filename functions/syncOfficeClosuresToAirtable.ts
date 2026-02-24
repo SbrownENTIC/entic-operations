@@ -138,6 +138,7 @@ Deno.serve(async (req) => {
       // Map closure name/type to valid Closure Type options
       if (
         reminder.reminder_type === 'Inclement Weather' ||
+        reminder.reminder_type === 'Short Notice' ||
         closureName.toLowerCase().includes('inclement') ||
         closureName.toLowerCase().includes('winter weather') ||
         closureName.toLowerCase().includes('short notice')
