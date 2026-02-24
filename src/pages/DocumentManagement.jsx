@@ -36,7 +36,18 @@ import { useToast } from "@/components/ui/use-toast";
 export default function DocumentManagement() {
   const [currentSection, setCurrentSection] = useState(null); // 'vendor_invoices' or folderId
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [newFolder, setNewFolder] = useState({ name: "", description: "" });
+  const [newFolder, setNewFolder] = useState({ name: "", description: "", color: "" });
+
+  const FOLDER_COLORS = ["blue", "red", "green", "yellow", "purple", "indigo", "pink"];
+
+  const getNextColor = (existingFolders) => {
+    const usedColors = existingFolders.map(f => f.color).filter(Boolean);
+    // Find first color not yet used
+    const unused = FOLDER_COLORS.find(c => !usedColors.includes(c));
+    if (unused) return unused;
+    // All used — cycle based on count
+    return FOLDER_COLORS[existingFolders.length % FOLDER_COLORS.length];
+  };
   
   const [editingFolder, setEditingFolder] = useState(null); // Object of folder being edited
   const [deleteConfirm, setDeleteConfirm] = useState(null); // ID of folder to delete
