@@ -297,12 +297,32 @@ export default function DocumentManagement() {
                     onChange={(e) => setEditingFolder({...editingFolder, description: e.target.value})}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label>Folder Color</Label>
+                  <div className="flex gap-2 flex-wrap">
+                    {FOLDER_COLORS.map(color => {
+                      const cls = getColorClasses(color);
+                      const currentColor = editingFolder.rawColor || editingFolder.color;
+                      return (
+                        <button
+                          key={color}
+                          type="button"
+                          onClick={() => setEditingFolder({...editingFolder, rawColor: color})}
+                          className={`w-8 h-8 rounded-full ${cls.bg} ${cls.text} flex items-center justify-center border-2 transition-all ${currentColor === color ? 'border-slate-700 scale-110' : 'border-transparent'}`}
+                          title={color}
+                        >
+                          <Folder className="w-4 h-4" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             )}
             <DialogFooter>
               <Button variant="outline" onClick={() => setEditingFolder(null)}>Cancel</Button>
               <Button 
-                onClick={() => updateFolderMutation.mutate({ id: editingFolder.id, data: { name: editingFolder.name, description: editingFolder.description } })}
+                onClick={() => updateFolderMutation.mutate({ id: editingFolder.id, data: { name: editingFolder.name, description: editingFolder.description, color: editingFolder.rawColor || editingFolder.color } })}
                 disabled={!editingFolder?.name || updateFolderMutation.isPending}
               >
                 {updateFolderMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
