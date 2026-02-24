@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
     const isClosure = (r) => {
       const type = r.reminder_type;
       const name = (r.reminder_name || '').toLowerCase();
-      return type === 'Holiday' || type === 'Office Closure' || name.includes('office closure');
+      return type === 'Holiday' || type === 'Office Closure' || type === 'Inclement Weather' || name.includes('office closure');
     };
 
     // Split into Holiday/Office Closure and general reminders
