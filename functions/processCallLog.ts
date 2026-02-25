@@ -290,6 +290,8 @@ Deno.serve(async (req) => {
           processed_at: new Date().toISOString()
         };
 
+        const weekEntry = buildWeekSnapshot(weekStart, weekEnd, weekUserData);
+
         const newPeriod = await base44.asServiceRole.entities.CallLogPeriod.create({
           reporting_period_start: weekStart,
           reporting_period_end: weekEnd,
