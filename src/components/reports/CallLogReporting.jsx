@@ -331,36 +331,44 @@ export default function CallLogReporting() {
     return null; // CSV handled async in handleUpload
   };
 
-  const submitUpload = async (rows) => {
+  const submitUpload = async (rows, replaceWeek = false) => {
     try {
       const response = await base44.functions.invoke("processCallLog", {
         rows,
         periodStart,
         periodEnd,
-        fileName: uploadFile.name
+        fileName: uploadFile.name,
+        replaceWeek
       });
 
       const result = response.data;
+
+      // Server detected duplicate week – prompt user
+      if (result.duplicate_week) {
+        setDuplicateWeekConfirm({ rows });
+        setUploading(false);
+        return;
+      }
+
       if (result.error) {
         setUploadError(result.error);
         setUploading(false);
         return;
       }
 
-      // Refresh periods and auto-select the new/replaced period
+      // Refresh periods and auto-select the updated monthly record
       await queryClient.invalidateQueries({ queryKey: ["call-log-periods"] });
       queryClient.invalidateQueries({ queryKey: ["call-log-summaries"] });
 
-      // Fetch fresh periods list to find the new record
       const freshPeriods = await base44.entities.CallLogPeriod.list("-uploaded_at");
-      const newPeriod = freshPeriods.find(p =>
-        p.reporting_period_start === periodStart && p.reporting_period_end === periodEnd
-      );
+      const monthKey = periodStart.substring(0, 7);
+      const newPeriod = freshPeriods.find(p => p.monthly_key === monthKey);
       if (newPeriod) setSelectedPeriod(newPeriod);
 
+      const monthLabel = new Date(periodStart + "T12:00:00").toLocaleDateString("en-US", { month: "long", year: "numeric" });
       toast({
-        title: result.is_replacement ? "Period Replaced" : "Upload Successful",
-        description: `Imported ${result.users_imported} user(s) for ${formatDate(periodStart)} – ${formatDate(periodEnd)} (${result.status}).`
+        title: result.is_replacement ? "Week Replaced" : "Upload Successful",
+        description: `${result.users_imported} user(s) merged into ${monthLabel}. ${result.weeks_in_month} week(s) in month.`
       });
 
       resetUpload();
