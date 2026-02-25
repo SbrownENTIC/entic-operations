@@ -765,21 +765,6 @@ export default function CallLogReporting() {
               <Button variant="ghost" size="sm" onClick={resetUpload}>✕</Button>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-medium text-slate-700 block mb-1">
-                  Reporting Period Start Date <span className="text-red-500">*</span>
-                </label>
-                <Input type="date" value={periodStart} onChange={e => setPeriodStart(e.target.value)} />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-slate-700 block mb-1">
-                  Reporting Period End Date <span className="text-red-500">*</span>
-                </label>
-                <Input type="date" value={periodEnd} onChange={e => setPeriodEnd(e.target.value)} />
-              </div>
-            </div>
-
             <div>
               <label className="text-xs font-medium text-slate-700 block mb-1">
                 File (.xlsx or .csv) <span className="text-red-500">*</span>
