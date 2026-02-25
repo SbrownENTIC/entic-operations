@@ -878,19 +878,19 @@ export default function CallLogReporting() {
       const filtHeaderRowNum = ws.rowCount;
       ws.views = [{ showGridLines: false, state: "frozen", ySplit: filtHeaderRowNum, xSplit: 0 }];
 
-      // Single FILTER spill formula written ONLY in cell A of the first data row.
-      // C4 is a real Excel Date; Pivot Data col A is also real Dates — comparison is date == date.
-      // Range A2:K1000 covers all 11 columns; filter condition A2:A1000=$C$4 matches by date.
-      // Excel spills the result across all columns automatically — do NOT write to B-K.
+      // Insert one empty placeholder row so ExcelJS doesn't run into the next section header.
+      // The FILTER formula is written directly into the cell using the raw XML-compatible
+      // ExcelJS formula object. Dynamic array / spill formulas must use { formula, result }
+      // with NO sharedFormula key — ExcelJS will emit it as a regular formula cell and Excel
+      // will evaluate it as a dynamic array on open.
       const filterDataRowNum = filtHeaderRowNum + 1;
+      ws.addRow([""]); // placeholder row at filterDataRowNum — DO NOT fill cols B-K
       const filterCell = ws.getCell(`A${filterDataRowNum}`);
+      // Use the simplest formula object form that ExcelJS accepts without corrupting the output.
       filterCell.value = {
-        formula: `=IFERROR(FILTER('Pivot Data'!A2:K1000,'Pivot Data'!A2:A1000=$C$4),"No data for selected week")`,
-        date1904: false,
+        formula: `IFERROR(FILTER('Pivot Data'!A2:K1000,'Pivot Data'!A2:A1000=$C$4),"")`,
+        result: "",
       };
-      filterCell.font      = mkFont({});
-      filterCell.fill      = mkFill(ALT_ROW);
-      filterCell.alignment = { horizontal: "left", vertical: "middle" };
       ws.getRow(filterDataRowNum).height = 18;
     } else {
       const noDataRow = ws.addRow(["No user snapshot data available for filter.", ...Array(10).fill("")]);
