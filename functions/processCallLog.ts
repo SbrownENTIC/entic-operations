@@ -99,7 +99,10 @@ function groupRowsByWeek(rows, headerMap) {
   return { groups: [...groups.values()] };
 }
 
-/** Aggregate user data from a group of rows */
+/** Aggregate user data from a group of rows.
+ *  Returns array with BOTH internal fields (for monthly summary storage)
+ *  AND raw minute fields (for weekly snapshot storage).
+ */
 function aggregateUsers(rows, headerMap) {
   const get = (row, name) => row[headerMap[name]];
   const agg = {};
@@ -120,22 +123,57 @@ function aggregateUsers(rows, headerMap) {
         voicemail: 0,
         total_duration_seconds: 0,
         inbound_duration_seconds: 0,
-        outbound_duration_seconds: 0
+        outbound_duration_seconds: 0,
+        // Raw minutes — preserved for weekly snapshot
+        total_duration_minutes: 0,
+        inbound_duration_minutes: 0,
+        outbound_duration_minutes: 0,
       };
     }
 
-    agg[key].total_calls               += Number(get(row, 'total calls'))                              || 0;
-    agg[key].inbound                   += Number(get(row, 'inbound calls'))                            || 0;
-    agg[key].outbound                  += Number(get(row, 'outbound calls'))                           || 0;
-    agg[key].answered                  += Number(get(row, 'answered calls'))                           || 0;
-    agg[key].missed                    += Number(get(row, 'missed calls'))                             || 0;
-    agg[key].voicemail                 += Number(get(row, 'voicemail calls'))                          || 0;
-    agg[key].total_duration_seconds    += parseMinutesToSeconds(get(row, 'total call duration (minutes)'));
-    agg[key].inbound_duration_seconds  += parseMinutesToSeconds(get(row, 'inbound call duration (minutes)'));
-    agg[key].outbound_duration_seconds += parseMinutesToSeconds(get(row, 'outbound call duration (minutes)'));
+    const totalMin   = parseFloat(String(get(row, 'total call duration (minutes)') || '0').trim()) || 0;
+    const inMin      = parseFloat(String(get(row, 'inbound call duration (minutes)') || '0').trim()) || 0;
+    const outMin     = parseFloat(String(get(row, 'outbound call duration (minutes)') || '0').trim()) || 0;
+
+    agg[key].total_calls               += Number(get(row, 'total calls'))    || 0;
+    agg[key].inbound                   += Number(get(row, 'inbound calls'))  || 0;
+    agg[key].outbound                  += Number(get(row, 'outbound calls')) || 0;
+    agg[key].answered                  += Number(get(row, 'answered calls')) || 0;
+    agg[key].missed                    += Number(get(row, 'missed calls'))   || 0;
+    agg[key].voicemail                 += Number(get(row, 'voicemail calls'))|| 0;
+    agg[key].total_duration_seconds    += Math.round(totalMin * 60);
+    agg[key].inbound_duration_seconds  += Math.round(inMin   * 60);
+    agg[key].outbound_duration_seconds += Math.round(outMin  * 60);
+    agg[key].total_duration_minutes    += totalMin;
+    agg[key].inbound_duration_minutes  += inMin;
+    agg[key].outbound_duration_minutes += outMin;
   }
 
   return Object.values(agg);
+}
+
+/** Build a clean week snapshot from aggregated user data (for storage in uploaded_weeks) */
+function buildWeekSnapshot(weekStart, weekEnd, weekUserData) {
+  return {
+    week_start: weekStart,
+    week_end: weekEnd,
+    processed_at: new Date().toISOString(),
+    user_snapshot: weekUserData.map(u => ({
+      user:                       u.user,
+      total_calls:                u.total_calls,
+      inbound:                    u.inbound,
+      outbound:                   u.outbound,
+      answered:                   u.answered,
+      missed:                     u.missed,
+      voicemail:                  u.voicemail,
+      total_duration_seconds:     u.total_duration_seconds,
+      inbound_duration_seconds:   u.inbound_duration_seconds,
+      outbound_duration_seconds:  u.outbound_duration_seconds,
+      total_duration_minutes:     u.total_duration_minutes,
+      inbound_duration_minutes:   u.inbound_duration_minutes,
+      outbound_duration_minutes:  u.outbound_duration_minutes,
+    }))
+  };
 }
 
 Deno.serve(async (req) => {
