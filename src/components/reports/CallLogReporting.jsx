@@ -158,7 +158,8 @@ export default function CallLogReporting() {
   const [uploadError, setUploadError] = useState("");
   const [deleteDialogPeriod, setDeleteDialogPeriod] = useState(null);
   const [deleting, setDeleting] = useState(false);
-  const [replaceConfirm, setReplaceConfirm] = useState(null); // holds { rows, periodStart, periodEnd } pending confirmation
+  const [replaceConfirm, setReplaceConfirm] = useState(null); // holds { rows } pending confirmation (exact same week range)
+  const [duplicateWeekConfirm, setDuplicateWeekConfirm] = useState(null); // holds { rows } when server returns duplicate_week
   const [sortCol, setSortCol] = useState("user");
   const [sortDir, setSortDir] = useState("asc"); // "asc" | "desc"
   const [userSearch, setUserSearch] = useState("");
