@@ -795,21 +795,6 @@ export default function CallLogReporting() {
               <Button variant="ghost" size="sm" onClick={resetUpload}>✕</Button>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-medium text-slate-700 block mb-1">
-                  Reporting Period Start Date <span className="text-red-500">*</span>
-                </label>
-                <Input type="date" value={periodStart} onChange={e => setPeriodStart(e.target.value)} />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-slate-700 block mb-1">
-                  Reporting Period End Date <span className="text-red-500">*</span>
-                </label>
-                <Input type="date" value={periodEnd} onChange={e => setPeriodEnd(e.target.value)} />
-              </div>
-            </div>
-
             <div>
               <label className="text-xs font-medium text-slate-700 block mb-1">
                 File (.xlsx or .csv) <span className="text-red-500">*</span>
@@ -836,7 +821,22 @@ export default function CallLogReporting() {
                 </label>
                 <select
                   value={selectedSheet}
-                  onChange={e => { setSelectedSheet(e.target.value); setUploadError(""); }}
+                  onChange={async e => {
+                    const name = e.target.value;
+                    setSelectedSheet(name);
+                    setUploadError("");
+                    setPeriodStart("");
+                    setPeriodEnd("");
+                    if (name && workbook) {
+                      const ws = workbook.getWorksheet(name);
+                      if (ws) {
+                        const rows = sheetToJson(ws);
+                        const { start, end, error } = extractPeriodFromRows(rows);
+                        if (error) setUploadError(error);
+                        else { setPeriodStart(start); setPeriodEnd(end); }
+                      }
+                    }
+                  }}
                   className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">— Choose a worksheet —</option>
@@ -852,6 +852,24 @@ export default function CallLogReporting() {
               <p className="text-xs text-slate-500 flex items-center gap-1">
                 <CheckCircle className="w-3 h-3 text-green-600" /> Worksheet: <strong>{sheetNames[0]}</strong> (auto-selected)
               </p>
+            )}
+
+            {/* Auto-detected period display (read-only) */}
+            {(periodStart || periodEnd) && (
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-medium text-slate-500 block mb-1">
+                    Reporting Period Start <span className="text-slate-400 font-normal">(from worksheet)</span>
+                  </label>
+                  <Input value={periodStart} readOnly disabled className="bg-slate-50 text-slate-600 cursor-not-allowed" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-500 block mb-1">
+                    Reporting Period End <span className="text-slate-400 font-normal">(from worksheet)</span>
+                  </label>
+                  <Input value={periodEnd} readOnly disabled className="bg-slate-50 text-slate-600 cursor-not-allowed" />
+                </div>
+              </div>
             )}
 
             <div className="text-xs text-slate-500 bg-white/60 border border-slate-200 rounded p-2.5">
