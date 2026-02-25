@@ -283,6 +283,7 @@ export default function CallLogReporting() {
     setPeriodStart("");
     setPeriodEnd("");
     setReplaceConfirm(null);
+    setDuplicateWeekConfirm(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
