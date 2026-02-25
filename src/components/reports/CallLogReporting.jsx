@@ -729,28 +729,34 @@ export default function CallLogReporting() {
     ws.getCell("A3").font = mkFont({ color: { argb: "FF666666" } });
     ws.getRow(3).height = 18;
 
-    // Row 4: Week selector — B4 = label, C4 = dropdown defaulting to first week
-    // Week labels are stored as text strings in Pivot Data col A — C4 must match exactly
-    const uniqueWeekLabels = sortedWeeks
-      .map(w => formatDate(w.week_start))
-      .filter((v, i, arr) => arr.indexOf(v) === i);
-    const row4 = ws.addRow(["", "Select Week:", uniqueWeekLabels[0] || "", ...Array(8).fill("")]);
+    // Row 4: Week selector — B4 = label, C4 = dropdown with real Date values
+    // Pivot Data col A stores actual Excel Date values — C4 must be a Date too for FILTER to match
+    const uniqueWeekDates = sortedWeeks
+      .map(w => w.week_start)
+      .filter((v, i, arr) => arr.indexOf(v) === i)
+      .map(s => parseWeekDate(s))
+      .filter(Boolean);
+
+    const firstWeekDate = uniqueWeekDates[0] || null;
+    const row4 = ws.addRow(["", "Select Week:", firstWeekDate, ...Array(8).fill("")]);
     row4.height = 22;
     const labelCell = row4.getCell(2); // B4
     labelCell.font      = mkFont({ bold: true, size: 12 });
     labelCell.alignment = { horizontal: "right", vertical: "middle" };
-    const selectorCell = row4.getCell(3); // C4 — plain text matching Pivot Data col A
-    selectorCell.value     = uniqueWeekLabels[0] || "";
+    const selectorCell = row4.getCell(3); // C4 — real Date value matching Pivot Data col A
+    if (firstWeekDate) selectorCell.value = firstWeekDate;
+    selectorCell.numFmt    = "mmm d, yyyy";
     selectorCell.font      = mkFont({ bold: true, size: 12, color: { argb: "FF1F3864" } });
     selectorCell.fill      = mkFill("FFD9E1F2");
     selectorCell.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
     selectorCell.border    = { top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder };
-    // Data validation dropdown on C4 — list of text week labels matching Pivot Data col A
-    if (uniqueWeekLabels.length > 0) {
+    // Data validation dropdown: list of valid Date values from Pivot Data col A
+    // Use a formula referencing Pivot Data col A so Excel recognises them as dates
+    if (uniqueWeekDates.length > 0) {
       selectorCell.dataValidation = {
         type: "list",
         allowBlank: false,
-        formulae: [`"${uniqueWeekLabels.join(",")}"`],
+        formulae: [`'Pivot Data'!$A$2:$A$${1 + uniqueWeekDates.length}`],
         showDropDown: false,
         showErrorMessage: true,
         errorTitle: "Invalid Selection",
