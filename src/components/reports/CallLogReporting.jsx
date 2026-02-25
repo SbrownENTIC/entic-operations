@@ -809,9 +809,17 @@ export default function CallLogReporting() {
               </p>
             )}
 
+            {/* Auto-detected period display */}
+            {periodStart && periodEnd && (
+              <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg p-2.5 text-sm text-green-800">
+                <CheckCircle className="w-4 h-4 text-green-600 shrink-0" />
+                <span>Reporting period auto-detected: <strong>{formatDate(periodStart)}</strong> – <strong>{formatDate(periodEnd)}</strong></span>
+              </div>
+            )}
+
             <div className="text-xs text-slate-500 bg-white/60 border border-slate-200 rounded p-2.5">
-              <strong>Required Vonage headers:</strong> User, Total Calls, Inbound Calls, Outbound Calls, Answered Calls, Missed Calls, Voicemail Calls, Total call Duration (Minutes), Inbound Call Duration (Minutes), Outbound call Duration (Minutes)<br />
-              <span className="text-slate-400">Header matching is case-insensitive. Duration columns must be the numeric minutes columns.</span>
+              <strong>Required worksheet columns:</strong> Reporting Period Start, Reporting Period End, User, Total Calls, Inbound Calls, Outbound Calls, Answered Calls, Missed Calls, Voicemail Calls, Total call Duration (Minutes), Inbound Call Duration (Minutes), Outbound call Duration (Minutes)<br />
+              <span className="text-slate-400">Reporting period dates are read directly from the worksheet. Header matching is case-insensitive.</span>
             </div>
 
             {uploadError && (
