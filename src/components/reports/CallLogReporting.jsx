@@ -842,7 +842,71 @@ export default function CallLogReporting() {
     ws.addRow([]);
 
     // ==============================
-    // SECTION 3: USER BREAKDOWN TABLE (Official Excel Table)
+    // SECTION 3: USER BREAKDOWN (SELECTED WEEK) — FILTER formula driven
+    // ==============================
+    addSectionHeader(ws, "User Breakdown (Selected Week)", 11);
+
+    // Sub-header note
+    const noteRow = ws.addRow(["", "Showing data for week selected in cell C4. Change C4 to filter a different week.", ...Array(9).fill("")]);
+    ws.mergeCells(`B${ws.rowCount}:K${ws.rowCount}`);
+    noteRow.height = 16;
+    noteRow.getCell(2).font = mkFont({ italic: true, size: 10, color: { argb: "FF555555" } });
+
+    const realUserRowsCheck = userWeekRows.filter(u => !u._warning);
+
+    if (realUserRowsCheck.length > 0) {
+      // Static header row for the filtered section (matches PivotSource columns)
+      const filtHRow = ws.addRow(["Week Start","Week End","User","Total Calls","Inbound","Outbound","Answered","Missed","Total Duration","Answer Rate","Avg Duration"]);
+      styleTableHeader(filtHRow, 11);
+
+      // Freeze at this header row
+      const filtHeaderRowNum = ws.rowCount;
+      ws.views = [{ showGridLines: false, state: "frozen", ySplit: filtHeaderRowNum, xSplit: 0 }];
+
+      // FILTER formula row — Excel will spill results automatically
+      // PivotSource is on "Pivot Data" sheet; reference it cross-sheet
+      const pivotSheetName = "Pivot Data";
+      const filterFormulaRow = ws.addRow([
+        { formula: `=IFERROR(FILTER('${pivotSheetName}'!A:A,'${pivotSheetName}'!A:A=$C$4,"No data for selected week"),"")` },
+        { formula: `=IFERROR(FILTER('${pivotSheetName}'!B:B,'${pivotSheetName}'!A:A=$C$4,""),"")` },
+        { formula: `=IFERROR(FILTER('${pivotSheetName}'!C:C,'${pivotSheetName}'!A:A=$C$4,""),"")` },
+        { formula: `=IFERROR(FILTER('${pivotSheetName}'!D:D,'${pivotSheetName}'!A:A=$C$4,""),"")` },
+        { formula: `=IFERROR(FILTER('${pivotSheetName}'!E:E,'${pivotSheetName}'!A:A=$C$4,""),"")` },
+        { formula: `=IFERROR(FILTER('${pivotSheetName}'!F:F,'${pivotSheetName}'!A:A=$C$4,""),"")` },
+        { formula: `=IFERROR(FILTER('${pivotSheetName}'!G:G,'${pivotSheetName}'!A:A=$C$4,""),"")` },
+        { formula: `=IFERROR(FILTER('${pivotSheetName}'!H:H,'${pivotSheetName}'!A:A=$C$4,""),"")` },
+        { formula: `=IFERROR(FILTER('${pivotSheetName}'!I:I,'${pivotSheetName}'!A:A=$C$4,""),"")` },
+        { formula: `=IFERROR(FILTER('${pivotSheetName}'!J:J,'${pivotSheetName}'!A:A=$C$4,""),"")` },
+        { formula: `=IFERROR(FILTER('${pivotSheetName}'!K:K,'${pivotSheetName}'!A:A=$C$4,""),"")` },
+      ]);
+      filterFormulaRow.height = 18;
+      filterFormulaRow.eachCell({ includeEmpty: true }, (cell, colNum) => {
+        cell.font      = mkFont({});
+        cell.fill      = mkFill(ALT_ROW);
+        cell.alignment = { horizontal: colNum <= 3 ? "left" : "center", vertical: "middle" };
+        cell.border    = { bottom: thinBorder, right: thinBorder };
+        if ([4,5,6,7,8].includes(colNum)) cell.numFmt = "#,##0";
+        if (colNum === 10) cell.numFmt = "0.0%";
+      });
+
+      // Add a note below about Excel FILTER spill behavior
+      ws.addRow([]);
+      const spillNote = ws.addRow(["", "↑ This row uses Excel's FILTER function and will automatically expand to show all users for the selected week.", ...Array(9).fill("")]);
+      ws.mergeCells(`B${ws.rowCount}:K${ws.rowCount}`);
+      spillNote.height = 16;
+      spillNote.getCell(2).font = mkFont({ italic: true, size: 10, color: { argb: "FF2E5096" } });
+    } else {
+      const noDataRow = ws.addRow(["No user snapshot data available for filter.", ...Array(10).fill("")]);
+      ws.mergeCells(`A${ws.rowCount}:K${ws.rowCount}`);
+      noDataRow.getCell(1).font = mkFont({ italic: true, color: { argb: "FF888888" } });
+      noDataRow.height = 18;
+    }
+
+    // Blank row
+    ws.addRow([]);
+
+    // ==============================
+    // SECTION 4: FULL USER BREAKDOWN TABLE (Official Excel Table)
     // ==============================
     addSectionHeader(ws, "User Breakdown (by Week)", 11);
 
