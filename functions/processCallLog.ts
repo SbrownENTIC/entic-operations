@@ -334,13 +334,15 @@ Deno.serve(async (req) => {
             avg_duration_seconds: u.total_calls > 0 ? u.total_duration_seconds / u.total_calls : 0
           }));
 
+          const createdSummaries = [];
           for (const summary of userSummaries) {
-            await base44.asServiceRole.entities.CallLogUserSummary.create(summary);
+            const created = await base44.asServiceRole.entities.CallLogUserSummary.create(summary);
+            createdSummaries.push({ ...summary, id: created.id });
           }
 
           // Update cache so subsequent weeks in same month can use this period
           cache.period = newPeriod;
-          cache.summaries = userSummaries;
+          cache.summaries = createdSummaries;
           monthCache.set(monthKey, cache);
 
           weeksAdded++;
