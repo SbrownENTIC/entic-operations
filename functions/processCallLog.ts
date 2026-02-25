@@ -297,8 +297,17 @@ Deno.serve(async (req) => {
         });
 
         const userSummaries = weekUserData.map(u => ({
-          ...u,
           period_id: newPeriod.id,
+          user: u.user,
+          total_calls: u.total_calls,
+          inbound: u.inbound,
+          outbound: u.outbound,
+          answered: u.answered,
+          missed: u.missed,
+          voicemail: u.voicemail,
+          total_duration_seconds: u.total_duration_seconds,
+          inbound_duration_seconds: u.inbound_duration_seconds,
+          outbound_duration_seconds: u.outbound_duration_seconds,
           answer_rate: u.total_calls > 0 ? u.answered / u.total_calls : 0,
           avg_duration_seconds: u.total_calls > 0 ? u.total_duration_seconds / u.total_calls : 0
         }));
