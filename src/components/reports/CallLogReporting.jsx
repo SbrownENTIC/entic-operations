@@ -865,35 +865,22 @@ export default function CallLogReporting() {
       const filtHeaderRowNum = ws.rowCount;
       ws.views = [{ showGridLines: false, state: "frozen", ySplit: filtHeaderRowNum, xSplit: 0 }];
 
-      // FILTER formula row — Excel will spill results automatically
-      // PivotSource is on "Pivot Data" sheet; reference it cross-sheet
-      const pivotSheetName = "Pivot Data";
+      // FILTER formula — single spill formula in col A only; Excel spills across cols B-K automatically.
+      // Uses explicit bounded range (A2:K1000, A2:A1000) to avoid cross-sheet full-column FILTER issues.
+      // C4 contains the same text string that Pivot Data col A contains (e.g. "01/06/2025").
       const filterFormulaRow = ws.addRow([
-        { formula: `=IFERROR(FILTER('${pivotSheetName}'!A:A,'${pivotSheetName}'!A:A=$C$4,"No data for selected week"),"")` },
-        { formula: `=IFERROR(FILTER('${pivotSheetName}'!B:B,'${pivotSheetName}'!A:A=$C$4,""),"")` },
-        { formula: `=IFERROR(FILTER('${pivotSheetName}'!C:C,'${pivotSheetName}'!A:A=$C$4,""),"")` },
-        { formula: `=IFERROR(FILTER('${pivotSheetName}'!D:D,'${pivotSheetName}'!A:A=$C$4,""),"")` },
-        { formula: `=IFERROR(FILTER('${pivotSheetName}'!E:E,'${pivotSheetName}'!A:A=$C$4,""),"")` },
-        { formula: `=IFERROR(FILTER('${pivotSheetName}'!F:F,'${pivotSheetName}'!A:A=$C$4,""),"")` },
-        { formula: `=IFERROR(FILTER('${pivotSheetName}'!G:G,'${pivotSheetName}'!A:A=$C$4,""),"")` },
-        { formula: `=IFERROR(FILTER('${pivotSheetName}'!H:H,'${pivotSheetName}'!A:A=$C$4,""),"")` },
-        { formula: `=IFERROR(FILTER('${pivotSheetName}'!I:I,'${pivotSheetName}'!A:A=$C$4,""),"")` },
-        { formula: `=IFERROR(FILTER('${pivotSheetName}'!J:J,'${pivotSheetName}'!A:A=$C$4,""),"")` },
-        { formula: `=IFERROR(FILTER('${pivotSheetName}'!K:K,'${pivotSheetName}'!A:A=$C$4,""),"")` },
+        { formula: `=IFERROR(FILTER('Pivot Data'!A2:K1000,'Pivot Data'!A2:A1000=$C$4),"No data for selected week")` },
+        ...Array(10).fill(""),
       ]);
       filterFormulaRow.height = 18;
-      filterFormulaRow.eachCell({ includeEmpty: true }, (cell, colNum) => {
-        cell.font      = mkFont({});
-        cell.fill      = mkFill(ALT_ROW);
-        cell.alignment = { horizontal: colNum <= 3 ? "left" : "center", vertical: "middle" };
-        cell.border    = { bottom: thinBorder, right: thinBorder };
-        if ([4,5,6,7,8].includes(colNum)) cell.numFmt = "#,##0";
-        if (colNum === 10) cell.numFmt = "0.0%";
-      });
+      filterFormulaRow.getCell(1).font      = mkFont({});
+      filterFormulaRow.getCell(1).fill      = mkFill(ALT_ROW);
+      filterFormulaRow.getCell(1).alignment = { horizontal: "left", vertical: "middle" };
+      filterFormulaRow.getCell(1).border    = { bottom: thinBorder, right: thinBorder };
 
       // Add a note below about Excel FILTER spill behavior
       ws.addRow([]);
-      const spillNote = ws.addRow(["", "↑ This row uses Excel's FILTER function and will automatically expand to show all users for the selected week.", ...Array(9).fill("")]);
+      const spillNote = ws.addRow(["", "↑ This cell uses Excel's FILTER function and will automatically spill to show all columns and users for the selected week.", ...Array(9).fill("")]);
       ws.mergeCells(`B${ws.rowCount}:K${ws.rowCount}`);
       spillNote.height = 16;
       spillNote.getCell(2).font = mkFont({ italic: true, size: 10, color: { argb: "FF2E5096" } });
