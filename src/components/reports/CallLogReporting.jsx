@@ -389,12 +389,14 @@ export default function CallLogReporting() {
     return null; // CSV handled async in handleUpload
   };
 
-  const submitUpload = async (rows, replaceWeek = false) => {
+  const submitUpload = async (rows, replaceWeek = false, start, end) => {
+    const pStart = start || periodStart;
+    const pEnd   = end   || periodEnd;
     try {
       const response = await base44.functions.invoke("processCallLog", {
         rows,
-        periodStart,
-        periodEnd,
+        periodStart: pStart,
+        periodEnd:   pEnd,
         fileName: uploadFile.name,
         replaceWeek
       });
@@ -403,7 +405,7 @@ export default function CallLogReporting() {
 
       // Server detected duplicate week – prompt user
       if (result.duplicate_week) {
-        setDuplicateWeekConfirm({ rows });
+        setDuplicateWeekConfirm({ rows, start: pStart, end: pEnd });
         setUploading(false);
         return;
       }
@@ -419,11 +421,11 @@ export default function CallLogReporting() {
       queryClient.invalidateQueries({ queryKey: ["call-log-summaries"] });
 
       const freshPeriods = await base44.entities.CallLogPeriod.list("-uploaded_at");
-      const monthKey = periodStart.substring(0, 7);
+      const monthKey = pStart.substring(0, 7);
       const newPeriod = freshPeriods.find(p => p.monthly_key === monthKey);
       if (newPeriod) setSelectedPeriod(newPeriod);
 
-      const monthLabel = new Date(periodStart + "T12:00:00").toLocaleDateString("en-US", { month: "long", year: "numeric" });
+      const monthLabel = new Date(pStart + "T12:00:00").toLocaleDateString("en-US", { month: "long", year: "numeric" });
       toast({
         title: result.is_replacement ? "Week Replaced" : "Upload Successful",
         description: `${result.users_imported} user(s) merged into ${monthLabel}. ${result.weeks_in_month} week(s) in month.`
