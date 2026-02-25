@@ -95,42 +95,21 @@ function toIsoDate(val) {
   return null;
 }
 
-/** Extract period start/end from parsed rows. Returns { start, end, error } */
-function extractPeriodFromRows(rows) {
+/**
+ * Validate that Reporting Period Start/End columns exist in rows.
+ * Multi-week is allowed — multiple unique pairs are valid.
+ * Returns { ok: true } or { error: string }.
+ */
+function validatePeriodColumns(rows) {
   if (!rows || rows.length === 0) return { error: "No data rows." };
   const firstRow = rows[0];
   const headers = Object.keys(firstRow).map(normalizeHeader);
-
   const hasStart = headers.includes(PERIOD_COL_START);
   const hasEnd   = headers.includes(PERIOD_COL_END);
-
   if (!hasStart || !hasEnd) {
     return { error: "Reporting Period Start and End columns are required in the worksheet." };
   }
-
-  // Find the actual (un-normalized) keys
-  const rawKeys = Object.keys(firstRow);
-  const startKey = rawKeys.find(k => normalizeHeader(k) === PERIOD_COL_START);
-  const endKey   = rawKeys.find(k => normalizeHeader(k) === PERIOD_COL_END);
-
-  const startVals = rows.map(r => toIsoDate(r[startKey])).filter(Boolean);
-  const endVals   = rows.map(r => toIsoDate(r[endKey])).filter(Boolean);
-
-  if (!startVals.length || !endVals.length) {
-    return { error: "Reporting Period Start and End columns are required in the worksheet." };
-  }
-
-  const uniqueStarts = [...new Set(startVals)];
-  const uniqueEnds   = [...new Set(endVals)];
-
-  if (uniqueStarts.length > 1) {
-    return { error: `Inconsistent Reporting Period Start values in the worksheet (found: ${uniqueStarts.join(", ")}).` };
-  }
-  if (uniqueEnds.length > 1) {
-    return { error: `Inconsistent Reporting Period End values in the worksheet (found: ${uniqueEnds.join(", ")}).` };
-  }
-
-  return { start: uniqueStarts[0], end: uniqueEnds[0] };
+  return { ok: true };
 }
 
 // ---- File parsing ----
