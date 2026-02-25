@@ -1074,6 +1074,8 @@ export default function CallLogReporting() {
         cell.font      = mkFont({});
         cell.alignment = { horizontal: colNum <= 3 ? "left" : "center", vertical: "middle" };
         cell.border    = { bottom: thinBorder, right: thinBorder };
+        // Col 1 = Week Start, Col 2 = Week End — format as date so FILTER comparison works
+        if (colNum === 1 || colNum === 2) cell.numFmt = "mmm d, yyyy";
         if ([4,5,6,7,8].includes(colNum)) cell.numFmt = "#,##0";
         if (colNum === 10) {
           cell.numFmt = "0.0%";
