@@ -234,94 +234,118 @@ Deno.serve(async (req) => {
       const monthKey = weekStart.substring(0, 7);
       const cache = monthCache.get(monthKey);
 
-      const weekUserData = aggregateUsers(weekRows, headerMap);
+      let weekUserData;
+      try {
+        weekUserData = aggregateUsers(weekRows, headerMap);
+      } catch (aggErr) {
+        console.error(`[processCallLog] aggregateUsers failed for week ${weekStart}–${weekEnd}:`, aggErr);
+        return Response.json({ error: `Failed to aggregate user data for week ${weekStart}–${weekEnd}: ${aggErr.message}` }, { status: 500 });
+      }
 
-      if (cache.period) {
-        // Check for duplicate week
-        const uploadedWeeks = cache.period.uploaded_weeks || [];
-        const isDuplicate = uploadedWeeks.some(
-          w => w.week_start === weekStart && w.week_end === weekEnd
-        );
+      // Build the week snapshot defensively
+      let weekSnapshot;
+      try {
+        weekSnapshot = buildWeekSnapshot(weekStart, weekEnd, weekUserData);
+        // Validate snapshot structure
+        if (!weekSnapshot.week_start || !weekSnapshot.week_end) throw new Error('week_start or week_end missing from snapshot');
+        if (!Array.isArray(weekSnapshot.user_snapshot)) weekSnapshot.user_snapshot = [];
+      } catch (snapErr) {
+        console.error(`[processCallLog] buildWeekSnapshot failed for week ${weekStart}–${weekEnd}:`, snapErr);
+        return Response.json({ error: `Failed to build week snapshot for ${weekStart}–${weekEnd}: ${snapErr.message}` }, { status: 500 });
+      }
 
-        if (isDuplicate) {
-          weeksDuplicate++;
-          continue; // Skip duplicate weeks
-        }
+      try {
+        if (cache.period) {
+          // Ensure uploaded_weeks is initialized
+          if (!Array.isArray(cache.period.uploaded_weeks)) cache.period.uploaded_weeks = [];
+          const uploadedWeeks = cache.period.uploaded_weeks;
 
-        // Merge into existing summaries (in-memory, will persist after loop)
-        for (const weekUser of weekUserData) {
-          const key = (weekUser.user || '').toLowerCase();
-          const existingIdx = cache.summaries.findIndex(
-            s => (s.user || '').toLowerCase() === key
+          // Check for duplicate week
+          const isDuplicate = uploadedWeeks.some(
+            w => w.week_start === weekStart && w.week_end === weekEnd
           );
 
-          if (existingIdx >= 0) {
-            cache.summaries[existingIdx].total_calls               += weekUser.total_calls;
-            cache.summaries[existingIdx].inbound                   += weekUser.inbound;
-            cache.summaries[existingIdx].outbound                  += weekUser.outbound;
-            cache.summaries[existingIdx].answered                  += weekUser.answered;
-            cache.summaries[existingIdx].missed                    += weekUser.missed;
-            cache.summaries[existingIdx].voicemail                  = (cache.summaries[existingIdx].voicemail || 0) + weekUser.voicemail;
-            cache.summaries[existingIdx].total_duration_seconds    += weekUser.total_duration_seconds;
-            cache.summaries[existingIdx].inbound_duration_seconds  += weekUser.inbound_duration_seconds;
-            cache.summaries[existingIdx].outbound_duration_seconds += weekUser.outbound_duration_seconds;
-            cache.summaries[existingIdx]._dirty = true;
-          } else {
-            cache.summaries.push({
-              ...weekUser,
-              period_id: cache.period.id,
-              _isNew: true
-            });
+          if (isDuplicate) {
+            weeksDuplicate++;
+            continue; // Skip duplicate weeks
           }
+
+          // Merge into existing summaries (in-memory, will persist after loop)
+          for (const weekUser of weekUserData) {
+            const key = (weekUser.user || '').toLowerCase();
+            const existingIdx = cache.summaries.findIndex(
+              s => (s.user || '').toLowerCase() === key
+            );
+
+            if (existingIdx >= 0) {
+              cache.summaries[existingIdx].total_calls               += weekUser.total_calls;
+              cache.summaries[existingIdx].inbound                   += weekUser.inbound;
+              cache.summaries[existingIdx].outbound                  += weekUser.outbound;
+              cache.summaries[existingIdx].answered                  += weekUser.answered;
+              cache.summaries[existingIdx].missed                    += weekUser.missed;
+              cache.summaries[existingIdx].voicemail                  = (cache.summaries[existingIdx].voicemail || 0) + weekUser.voicemail;
+              cache.summaries[existingIdx].total_duration_seconds    += weekUser.total_duration_seconds;
+              cache.summaries[existingIdx].inbound_duration_seconds  += weekUser.inbound_duration_seconds;
+              cache.summaries[existingIdx].outbound_duration_seconds += weekUser.outbound_duration_seconds;
+              cache.summaries[existingIdx]._dirty = true;
+            } else {
+              cache.summaries.push({
+                ...weekUser,
+                period_id: cache.period.id,
+                _isNew: true
+              });
+            }
+          }
+
+          // Track week in uploaded_weeks (with full user_snapshot)
+          uploadedWeeks.push(weekSnapshot);
+          cache.period._updatedWeeks = uploadedWeeks;
+          cache.period._hasNewWeeks = true;
+          weeksAdded++;
+
+        } else {
+          // New monthly record — create it with empty uploaded_weeks first, then set the snapshot
+          const newPeriod = await base44.asServiceRole.entities.CallLogPeriod.create({
+            reporting_period_start: weekStart,
+            reporting_period_end: weekEnd,
+            monthly_key: monthKey,
+            status: "Monthly (Aggregated)",
+            uploaded_weeks: [weekSnapshot],
+            source_file_name: fileName,
+            uploaded_by: user.email,
+            uploaded_at: new Date().toISOString()
+          });
+
+          const userSummaries = weekUserData.map(u => ({
+            period_id: newPeriod.id,
+            user: u.user,
+            total_calls: u.total_calls,
+            inbound: u.inbound,
+            outbound: u.outbound,
+            answered: u.answered,
+            missed: u.missed,
+            voicemail: u.voicemail,
+            total_duration_seconds: u.total_duration_seconds,
+            inbound_duration_seconds: u.inbound_duration_seconds,
+            outbound_duration_seconds: u.outbound_duration_seconds,
+            answer_rate: u.total_calls > 0 ? u.answered / u.total_calls : 0,
+            avg_duration_seconds: u.total_calls > 0 ? u.total_duration_seconds / u.total_calls : 0
+          }));
+
+          for (const summary of userSummaries) {
+            await base44.asServiceRole.entities.CallLogUserSummary.create(summary);
+          }
+
+          // Update cache so subsequent weeks in same month can use this period
+          cache.period = newPeriod;
+          cache.summaries = userSummaries;
+          monthCache.set(monthKey, cache);
+
+          weeksAdded++;
         }
-
-        // Track week in uploaded_weeks (with full user_snapshot)
-        uploadedWeeks.push(buildWeekSnapshot(weekStart, weekEnd, weekUserData));
-        cache.period._updatedWeeks = uploadedWeeks;
-        cache.period._hasNewWeeks = true;
-        weeksAdded++;
-
-      } else {
-        // New monthly record — create it with initial data
-        const weekEntry = buildWeekSnapshot(weekStart, weekEnd, weekUserData);
-
-        const newPeriod = await base44.asServiceRole.entities.CallLogPeriod.create({
-          reporting_period_start: weekStart,
-          reporting_period_end: weekEnd,
-          monthly_key: monthKey,
-          status: "Monthly (Aggregated)",
-          uploaded_weeks: [weekEntry],
-          source_file_name: fileName,
-          uploaded_by: user.email,
-          uploaded_at: new Date().toISOString()
-        });
-
-        const userSummaries = weekUserData.map(u => ({
-          period_id: newPeriod.id,
-          user: u.user,
-          total_calls: u.total_calls,
-          inbound: u.inbound,
-          outbound: u.outbound,
-          answered: u.answered,
-          missed: u.missed,
-          voicemail: u.voicemail,
-          total_duration_seconds: u.total_duration_seconds,
-          inbound_duration_seconds: u.inbound_duration_seconds,
-          outbound_duration_seconds: u.outbound_duration_seconds,
-          answer_rate: u.total_calls > 0 ? u.answered / u.total_calls : 0,
-          avg_duration_seconds: u.total_calls > 0 ? u.total_duration_seconds / u.total_calls : 0
-        }));
-
-        for (const summary of userSummaries) {
-          await base44.asServiceRole.entities.CallLogUserSummary.create(summary);
-        }
-
-        // Update cache so subsequent weeks in same month can use this period
-        cache.period = newPeriod;
-        cache.summaries = userSummaries;
-        monthCache.set(monthKey, cache);
-
-        weeksAdded++;
+      } catch (weekErr) {
+        console.error(`[processCallLog] Error processing week ${weekStart}–${weekEnd}:`, weekErr);
+        return Response.json({ error: `Error processing week ${weekStart}–${weekEnd}: ${weekErr.message}` }, { status: 500 });
       }
     }
 
