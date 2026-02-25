@@ -25,6 +25,24 @@ const REQUIRED_NORMALIZED = [
   "outbound call duration (minutes)"
 ];
 
+function toISODate(val) {
+  if (!val) return '';
+  const s = String(val).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // Excel serial number
+  if (!isNaN(Number(s)) && Number(s) > 40000) {
+    const n = Number(s);
+    const d = new Date(Math.round((n - 25569) * 86400 * 1000));
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+  return '';
+}
+
 function parseMinutesToSeconds(val) {
   if (val === null || val === undefined || val === '') return 0;
   const n = parseFloat(String(val).trim());
