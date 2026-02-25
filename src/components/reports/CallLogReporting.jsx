@@ -870,33 +870,28 @@ export default function CallLogReporting() {
     const realUserRowsCheck = userWeekRows.filter(u => !u._warning);
 
     if (realUserRowsCheck.length > 0) {
-      // Static header row for the filtered section (matches PivotSource columns)
+      // Static header row — columns match Pivot Data sheet exactly
       const filtHRow = ws.addRow(["Week Start","Week End","User","Total Calls","Inbound","Outbound","Answered","Missed","Total Duration","Answer Rate","Avg Duration"]);
       styleTableHeader(filtHRow, 11);
 
-      // Freeze at this header row
+      // Freeze panes at this header row so it stays visible while scrolling
       const filtHeaderRowNum = ws.rowCount;
       ws.views = [{ showGridLines: false, state: "frozen", ySplit: filtHeaderRowNum, xSplit: 0 }];
 
-      // FILTER formula — single spill formula in col A only; Excel spills across cols B-K automatically.
-      // Uses explicit bounded range (A2:K1000, A2:A1000) to avoid cross-sheet full-column FILTER issues.
-      // C4 contains the same text string that Pivot Data col A contains (e.g. "01/06/2025").
-      const filterFormulaRow = ws.addRow([
-        { formula: `=IFERROR(FILTER('Pivot Data'!A2:K1000,'Pivot Data'!A2:A1000=$C$4),"No data for selected week")` },
-        ...Array(10).fill(""),
-      ]);
-      filterFormulaRow.height = 18;
-      filterFormulaRow.getCell(1).font      = mkFont({});
-      filterFormulaRow.getCell(1).fill      = mkFill(ALT_ROW);
-      filterFormulaRow.getCell(1).alignment = { horizontal: "left", vertical: "middle" };
-      filterFormulaRow.getCell(1).border    = { bottom: thinBorder, right: thinBorder };
-
-      // Add a note below about Excel FILTER spill behavior
-      ws.addRow([]);
-      const spillNote = ws.addRow(["", "↑ This cell uses Excel's FILTER function and will automatically spill to show all columns and users for the selected week.", ...Array(9).fill("")]);
-      ws.mergeCells(`B${ws.rowCount}:K${ws.rowCount}`);
-      spillNote.height = 16;
-      spillNote.getCell(2).font = mkFont({ italic: true, size: 10, color: { argb: "FF2E5096" } });
+      // Single FILTER spill formula written ONLY in cell A of the first data row.
+      // C4 is a real Excel Date; Pivot Data col A is also real Dates — comparison is date == date.
+      // Range A2:K1000 covers all 11 columns; filter condition A2:A1000=$C$4 matches by date.
+      // Excel spills the result across all columns automatically — do NOT write to B-K.
+      const filterDataRowNum = filtHeaderRowNum + 1;
+      const filterCell = ws.getCell(`A${filterDataRowNum}`);
+      filterCell.value = {
+        formula: `=IFERROR(FILTER('Pivot Data'!A2:K1000,'Pivot Data'!A2:A1000=$C$4),"No data for selected week")`,
+        date1904: false,
+      };
+      filterCell.font      = mkFont({});
+      filterCell.fill      = mkFill(ALT_ROW);
+      filterCell.alignment = { horizontal: "left", vertical: "middle" };
+      ws.getRow(filterDataRowNum).height = 18;
     } else {
       const noDataRow = ws.addRow(["No user snapshot data available for filter.", ...Array(10).fill("")]);
       ws.mergeCells(`A${ws.rowCount}:K${ws.rowCount}`);
