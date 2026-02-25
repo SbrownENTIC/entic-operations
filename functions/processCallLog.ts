@@ -1,11 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
-// Normalize a header string: lowercase + collapse whitespace
 function normalizeHeader(h) {
   return String(h).toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
-// Build a lookup map from normalized header -> actual key in the row object
 function buildHeaderMap(sampleRow) {
   const map = {};
   for (const key of Object.keys(sampleRow)) {
@@ -14,7 +12,6 @@ function buildHeaderMap(sampleRow) {
   return map;
 }
 
-// Required logical field names (normalized)
 const REQUIRED_NORMALIZED = [
   "user",
   "total calls",
@@ -28,7 +25,6 @@ const REQUIRED_NORMALIZED = [
   "outbound call duration (minutes)"
 ];
 
-// Parse a numeric minutes value → seconds (stored as seconds in DB)
 function parseMinutesToSeconds(val) {
   if (val === null || val === undefined || val === '') return 0;
   const n = parseFloat(String(val).trim());
@@ -36,23 +32,14 @@ function parseMinutesToSeconds(val) {
   return Math.round(n * 60);
 }
 
-function classifyPeriod(startStr, endStr) {
-  const [sy, sm, sd] = startStr.split('-').map(Number);
-  const [ey, em, ed] = endStr.split('-').map(Number);
-
-  // Monthly: starts on 1st, ends on last day of same month
-  if (sd === 1 && sy === ey && sm === em) {
-    const lastDay = new Date(sy, sm, 0).getDate(); // day 0 of next month = last day of this month
-    if (ed === lastDay) return "Monthly";
-  }
-
-  // Weekly: inclusive duration <= 5 days
-  const start = new Date(sy, sm - 1, sd);
-  const end = new Date(ey, em - 1, ed);
-  const diffDays = Math.round((end - start) / (1000 * 60 * 60 * 24));
-  if (diffDays <= 4) return "Weekly";
-
-  return "Custom Range";
+// Determine monthly status: true Monthly only if week covers entire month
+function classifyMonthlyStatus(weekStart, weekEnd, monthKey) {
+  const [sy, sm] = monthKey.split('-').map(Number);
+  const firstDay = `${monthKey}-01`;
+  const lastDay = new Date(sy, sm, 0).getDate();
+  const lastDayStr = `${monthKey}-${String(lastDay).padStart(2, '0')}`;
+  if (weekStart === firstDay && weekEnd === lastDayStr) return "Monthly";
+  return "Monthly (Aggregated)";
 }
 
 Deno.serve(async (req) => {
@@ -63,7 +50,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { rows, periodStart, periodEnd, fileName } = await req.json();
+    const { rows, periodStart, periodEnd, fileName, replaceWeek } = await req.json();
 
     if (!periodStart || !periodEnd) {
       return Response.json({ error: 'Reporting period start and end dates are required.' }, { status: 400 });
@@ -83,96 +70,240 @@ Deno.serve(async (req) => {
       }, { status: 400 });
     }
 
-    // Helper to safely get a value by normalized header name
     const get = (row, normalizedName) => row[headerMap[normalizedName]];
 
-    // Aggregate by user
-    const aggregated = {};
+    // Determine monthly key from periodStart (YYYY-MM)
+    const monthKey = periodStart.substring(0, 7);
+
+    // Aggregate this week's data by user
+    const weekAgg = {};
     for (const row of rows) {
       const userName = String(get(row, 'user') || '').trim();
       if (!userName) continue;
 
       const key = userName.toLowerCase();
-      if (!aggregated[key]) {
-        aggregated[key] = {
+      if (!weekAgg[key]) {
+        weekAgg[key] = {
           user: userName,
           total_calls: 0,
           inbound: 0,
           outbound: 0,
           answered: 0,
           missed: 0,
+          voicemail: 0,
           total_duration_seconds: 0,
           inbound_duration_seconds: 0,
           outbound_duration_seconds: 0
         };
       }
 
-      aggregated[key].total_calls           += Number(get(row, 'total calls')) || 0;
-      aggregated[key].inbound               += Number(get(row, 'inbound calls')) || 0;
-      aggregated[key].outbound              += Number(get(row, 'outbound calls')) || 0;
-      aggregated[key].answered              += Number(get(row, 'answered calls')) || 0;
-      aggregated[key].missed                += Number(get(row, 'missed calls')) || 0;
-      aggregated[key].total_duration_seconds    += parseMinutesToSeconds(get(row, 'total call duration (minutes)'));
-      aggregated[key].inbound_duration_seconds  += parseMinutesToSeconds(get(row, 'inbound call duration (minutes)'));
-      aggregated[key].outbound_duration_seconds += parseMinutesToSeconds(get(row, 'outbound call duration (minutes)'));
+      weekAgg[key].total_calls              += Number(get(row, 'total calls'))              || 0;
+      weekAgg[key].inbound                  += Number(get(row, 'inbound calls'))             || 0;
+      weekAgg[key].outbound                 += Number(get(row, 'outbound calls'))            || 0;
+      weekAgg[key].answered                 += Number(get(row, 'answered calls'))            || 0;
+      weekAgg[key].missed                   += Number(get(row, 'missed calls'))              || 0;
+      weekAgg[key].voicemail                += Number(get(row, 'voicemail calls'))           || 0;
+      weekAgg[key].total_duration_seconds   += parseMinutesToSeconds(get(row, 'total call duration (minutes)'));
+      weekAgg[key].inbound_duration_seconds += parseMinutesToSeconds(get(row, 'inbound call duration (minutes)'));
+      weekAgg[key].outbound_duration_seconds+= parseMinutesToSeconds(get(row, 'outbound call duration (minutes)'));
     }
 
-    // Compute derived metrics
-    const userSummaries = Object.values(aggregated).map(u => ({
-      ...u,
-      answer_rate: u.total_calls > 0 ? u.answered / u.total_calls : 0,
-      avg_duration_seconds: u.total_calls > 0 ? u.total_duration_seconds / u.total_calls : 0
-    }));
+    const weekUserData = Object.values(weekAgg);
 
-    const status = classifyPeriod(periodStart, periodEnd);
+    // --- Find existing monthly record ---
+    const existingMonths = await base44.asServiceRole.entities.CallLogPeriod.filter({ monthly_key: monthKey });
+    const existingPeriod = existingMonths && existingMonths.length > 0 ? existingMonths[0] : null;
 
-    // Check for duplicate period
-    const existingPeriods = await base44.asServiceRole.entities.CallLogPeriod.filter({
-      reporting_period_start: periodStart,
-      reporting_period_end: periodEnd
-    });
+    if (existingPeriod) {
+      const uploadedWeeks = existingPeriod.uploaded_weeks || [];
 
-    let periodId;
-    const isReplacement = existingPeriods && existingPeriods.length > 0;
+      // Check for duplicate week
+      const isDuplicate = uploadedWeeks.some(
+        w => w.week_start === periodStart && w.week_end === periodEnd
+      );
 
-    if (isReplacement) {
-      periodId = existingPeriods[0].id;
-      const oldSummaries = await base44.asServiceRole.entities.CallLogUserSummary.filter({ period_id: periodId });
-      for (const s of oldSummaries) {
-        await base44.asServiceRole.entities.CallLogUserSummary.delete(s.id);
+      if (isDuplicate && !replaceWeek) {
+        // Return a special flag so the UI can prompt the user
+        return Response.json({
+          duplicate_week: true,
+          message: "This weekly reporting range has already been uploaded for this month.",
+          week_start: periodStart,
+          week_end: periodEnd,
+          month: monthKey
+        });
       }
-      await base44.asServiceRole.entities.CallLogPeriod.update(periodId, {
-        source_file_name: fileName,
-        uploaded_by: user.email,
-        uploaded_at: new Date().toISOString(),
-        status
+
+      // Load existing user summaries for this month
+      const existingSummaries = await base44.asServiceRole.entities.CallLogUserSummary.filter({
+        period_id: existingPeriod.id
       });
-    } else {
-      const period = await base44.asServiceRole.entities.CallLogPeriod.create({
-        reporting_period_start: periodStart,
-        reporting_period_end: periodEnd,
-        status,
+
+      let updatedSummaries = existingSummaries.map(s => ({ ...s }));
+
+      if (isDuplicate && replaceWeek) {
+        // We need to subtract the prior week's contribution.
+        // Since we don't store per-week user data separately, we store it in the week entry.
+        // Find old week entry to get prior snapshot
+        const oldWeekEntry = uploadedWeeks.find(
+          w => w.week_start === periodStart && w.week_end === periodEnd
+        );
+
+        if (oldWeekEntry && oldWeekEntry.user_snapshot) {
+          for (const priorUser of oldWeekEntry.user_snapshot) {
+            const key = (priorUser.user || '').toLowerCase();
+            const existing = updatedSummaries.find(
+              s => (s.user || '').toLowerCase() === key
+            );
+            if (existing) {
+              existing.total_calls              -= priorUser.total_calls || 0;
+              existing.inbound                  -= priorUser.inbound || 0;
+              existing.outbound                 -= priorUser.outbound || 0;
+              existing.answered                 -= priorUser.answered || 0;
+              existing.missed                   -= priorUser.missed || 0;
+              existing.voicemail                -= priorUser.voicemail || 0;
+              existing.total_duration_seconds   -= priorUser.total_duration_seconds || 0;
+              existing.inbound_duration_seconds -= priorUser.inbound_duration_seconds || 0;
+              existing.outbound_duration_seconds-= priorUser.outbound_duration_seconds || 0;
+            }
+          }
+        }
+      }
+
+      // Merge new week data into summaries
+      for (const weekUser of weekUserData) {
+        const key = (weekUser.user || '').toLowerCase();
+        const existingIdx = updatedSummaries.findIndex(
+          s => (s.user || '').toLowerCase() === key
+        );
+
+        if (existingIdx >= 0) {
+          updatedSummaries[existingIdx].total_calls               += weekUser.total_calls;
+          updatedSummaries[existingIdx].inbound                   += weekUser.inbound;
+          updatedSummaries[existingIdx].outbound                  += weekUser.outbound;
+          updatedSummaries[existingIdx].answered                  += weekUser.answered;
+          updatedSummaries[existingIdx].missed                    += weekUser.missed;
+          updatedSummaries[existingIdx].voicemail                 = (updatedSummaries[existingIdx].voicemail || 0) + weekUser.voicemail;
+          updatedSummaries[existingIdx].total_duration_seconds    += weekUser.total_duration_seconds;
+          updatedSummaries[existingIdx].inbound_duration_seconds  += weekUser.inbound_duration_seconds;
+          updatedSummaries[existingIdx].outbound_duration_seconds += weekUser.outbound_duration_seconds;
+        } else {
+          // New user for this month - will be created
+          updatedSummaries.push({
+            ...weekUser,
+            period_id: existingPeriod.id,
+            _isNew: true
+          });
+        }
+      }
+
+      // Recalculate derived metrics
+      updatedSummaries = updatedSummaries.map(s => ({
+        ...s,
+        answer_rate: s.total_calls > 0 ? s.answered / s.total_calls : 0,
+        avg_duration_seconds: s.total_calls > 0 ? s.total_duration_seconds / s.total_calls : 0
+      }));
+
+      // Persist: update existing summaries, create new ones
+      for (const s of updatedSummaries) {
+        if (s._isNew) {
+          const { _isNew, ...data } = s;
+          await base44.asServiceRole.entities.CallLogUserSummary.create(data);
+        } else {
+          await base44.asServiceRole.entities.CallLogUserSummary.update(s.id, {
+            total_calls: s.total_calls,
+            inbound: s.inbound,
+            outbound: s.outbound,
+            answered: s.answered,
+            missed: s.missed,
+            voicemail: s.voicemail,
+            total_duration_seconds: s.total_duration_seconds,
+            inbound_duration_seconds: s.inbound_duration_seconds,
+            outbound_duration_seconds: s.outbound_duration_seconds,
+            answer_rate: s.answer_rate,
+            avg_duration_seconds: s.avg_duration_seconds
+          });
+        }
+      }
+
+      // Update uploaded_weeks: remove old entry if replacing, then append new
+      let newUploadedWeeks = isDuplicate && replaceWeek
+        ? uploadedWeeks.filter(w => !(w.week_start === periodStart && w.week_end === periodEnd))
+        : [...uploadedWeeks];
+
+      newUploadedWeeks.push({
+        week_start: periodStart,
+        week_end: periodEnd,
+        user_snapshot: weekUserData // store for potential future rollback
+      });
+
+      // Recompute period start/end to span all uploaded weeks
+      const allStarts = newUploadedWeeks.map(w => w.week_start).sort();
+      const allEnds   = newUploadedWeeks.map(w => w.week_end).sort();
+      const spanStart = allStarts[0];
+      const spanEnd   = allEnds[allEnds.length - 1];
+      const newStatus = classifyMonthlyStatus(spanStart, spanEnd, monthKey);
+
+      await base44.asServiceRole.entities.CallLogPeriod.update(existingPeriod.id, {
+        reporting_period_start: spanStart,
+        reporting_period_end: spanEnd,
+        status: newStatus,
+        uploaded_weeks: newUploadedWeeks,
         source_file_name: fileName,
         uploaded_by: user.email,
         uploaded_at: new Date().toISOString()
       });
-      periodId = period.id;
-    }
 
-    for (const summary of userSummaries) {
-      await base44.asServiceRole.entities.CallLogUserSummary.create({
-        period_id: periodId,
-        ...summary
+      return Response.json({
+        success: true,
+        period_id: existingPeriod.id,
+        status: newStatus,
+        users_imported: weekUserData.length,
+        is_replacement: isDuplicate,
+        weeks_in_month: newUploadedWeeks.length
+      });
+
+    } else {
+      // --- Create new monthly record ---
+      const status = classifyMonthlyStatus(periodStart, periodEnd, monthKey);
+
+      const weekEntry = {
+        week_start: periodStart,
+        week_end: periodEnd,
+        user_snapshot: weekUserData
+      };
+
+      const period = await base44.asServiceRole.entities.CallLogPeriod.create({
+        reporting_period_start: periodStart,
+        reporting_period_end: periodEnd,
+        monthly_key: monthKey,
+        status,
+        uploaded_weeks: [weekEntry],
+        source_file_name: fileName,
+        uploaded_by: user.email,
+        uploaded_at: new Date().toISOString()
+      });
+
+      const userSummaries = weekUserData.map(u => ({
+        ...u,
+        period_id: period.id,
+        answer_rate: u.total_calls > 0 ? u.answered / u.total_calls : 0,
+        avg_duration_seconds: u.total_calls > 0 ? u.total_duration_seconds / u.total_calls : 0
+      }));
+
+      for (const summary of userSummaries) {
+        await base44.asServiceRole.entities.CallLogUserSummary.create(summary);
+      }
+
+      return Response.json({
+        success: true,
+        period_id: period.id,
+        status,
+        users_imported: userSummaries.length,
+        is_replacement: false,
+        weeks_in_month: 1
       });
     }
 
-    return Response.json({
-      success: true,
-      period_id: periodId,
-      status,
-      users_imported: userSummaries.length,
-      is_replacement: isReplacement
-    });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
