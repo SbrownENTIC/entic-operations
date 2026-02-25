@@ -791,7 +791,22 @@ export default function CallLogReporting() {
                 </label>
                 <select
                   value={selectedSheet}
-                  onChange={e => { setSelectedSheet(e.target.value); setUploadError(""); }}
+                  onChange={e => {
+                    const name = e.target.value;
+                    setSelectedSheet(name);
+                    setUploadError("");
+                    setPeriodStart("");
+                    setPeriodEnd("");
+                    if (name && workbook) {
+                      const ws = workbook.getWorksheet(name);
+                      if (ws) {
+                        const rows = sheetToJson(ws);
+                        const { start, end } = extractDatesFromRows(rows);
+                        if (start) setPeriodStart(start);
+                        if (end)   setPeriodEnd(end);
+                      }
+                    }
+                  }}
                   className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">— Choose a worksheet —</option>
