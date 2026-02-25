@@ -283,13 +283,6 @@ Deno.serve(async (req) => {
 
       } else {
         // New monthly record — create it with initial data
-        const weekEntry = {
-          week_start: weekStart,
-          week_end: weekEnd,
-          user_snapshot: weekUserData,
-          processed_at: new Date().toISOString()
-        };
-
         const weekEntry = buildWeekSnapshot(weekStart, weekEnd, weekUserData);
 
         const newPeriod = await base44.asServiceRole.entities.CallLogPeriod.create({
