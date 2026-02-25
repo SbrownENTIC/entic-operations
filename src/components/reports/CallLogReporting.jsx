@@ -402,11 +402,11 @@ export default function CallLogReporting() {
     }
   };
 
-  const validateAndGetRows = () => {
+  const getRows = async () => {
     const isXlsx = uploadFile?.name.toLowerCase().endsWith(".xlsx") || uploadFile?.name.toLowerCase().endsWith(".xls");
     if (isXlsx) {
       if (!workbook) return { error: "Failed to read workbook." };
-      const sheetName = selectedSheet || (workbook.worksheets[0]?.name);
+      const sheetName = selectedSheet || workbook.worksheets[0]?.name;
       const worksheet = workbook.getWorksheet(sheetName);
       if (!worksheet) return { error: "Worksheet not found." };
       const rows = sheetToJson(worksheet);
@@ -414,59 +414,23 @@ export default function CallLogReporting() {
       const normalizedHeaders = Object.keys(rows[0]).map(normalizeHeader);
       const missing = REQUIRED_NORMALIZED.filter(h => !normalizedHeaders.includes(h));
       if (missing.length > 0) return { error: "Invalid worksheet format. Required headers are missing." };
-      // Extract period dates from rows
-      const { start, end, error: periodError } = extractPeriodFromRows(rows);
-      if (periodError) return { error: periodError };
-      return { rows, start, end };
-    }
-    return null; // CSV handled async in handleUpload
-  };
-
-  const submitUpload = async (rows, replaceWeek = false, start = periodStart, end = periodEnd) => {
-    try {
-      const response = await base44.functions.invoke("processCallLog", {
-        rows,
-        periodStart: start,
-        periodEnd: end,
-        fileName: uploadFile.name,
-        replaceWeek
-      });
-
-      const result = response.data;
-
-      // Server detected duplicate week – prompt user
-      if (result.duplicate_week) {
-        setDuplicateWeekConfirm({ rows, start, end });
-        setUploading(false);
-        return;
+      const { error: colError } = validatePeriodColumns(rows);
+      if (colError) return { error: colError };
+      return { rows };
+    } else {
+      try {
+        const rows = await readCSV(uploadFile);
+        if (!rows || rows.length === 0) return { error: "File contains no data rows." };
+        const normalizedHeaders = Object.keys(rows[0]).map(normalizeHeader);
+        const missing = REQUIRED_NORMALIZED.filter(h => !normalizedHeaders.includes(h));
+        if (missing.length > 0) return { error: "Invalid worksheet format. Required headers are missing." };
+        const { error: colError } = validatePeriodColumns(rows);
+        if (colError) return { error: colError };
+        return { rows };
+      } catch {
+        return { error: "Failed to parse CSV file." };
       }
-
-      if (result.error) {
-        setUploadError(result.error);
-        setUploading(false);
-        return;
-      }
-
-      // Refresh periods and auto-select the updated monthly record
-      await queryClient.invalidateQueries({ queryKey: ["call-log-periods"] });
-      queryClient.invalidateQueries({ queryKey: ["call-log-summaries"] });
-
-      const freshPeriods = await base44.entities.CallLogPeriod.list("-uploaded_at");
-      const monthKey = start.substring(0, 7);
-      const newPeriod = freshPeriods.find(p => p.monthly_key === monthKey);
-      if (newPeriod) setSelectedPeriod(newPeriod);
-
-      const monthLabel = new Date(start + "T12:00:00").toLocaleDateString("en-US", { month: "long", year: "numeric" });
-      toast({
-        title: result.is_replacement ? "Week Replaced" : "Upload Successful",
-        description: `${result.users_imported} user(s) merged into ${monthLabel}. ${result.weeks_in_month} week(s) in month.`
-      });
-
-      resetUpload();
-    } catch (err) {
-      setUploadError(err.message || "Upload failed.");
     }
-    setUploading(false);
   };
 
   const handleUpload = async () => {
@@ -480,77 +444,53 @@ export default function CallLogReporting() {
     }
 
     setUploading(true);
-    let rows;
-    let resolvedStart = periodStart;
-    let resolvedEnd   = periodEnd;
-
-    if (isXlsx) {
-      const result = validateAndGetRows();
-      if (result?.error) {
-        setUploadError(result.error);
-        setUploading(false);
-        return;
-      }
-      rows = result.rows;
-      resolvedStart = result.start;
-      resolvedEnd   = result.end;
-    } else {
-      try {
-        rows = await readCSV(uploadFile);
-      } catch {
-        setUploadError("Failed to parse CSV file.");
-        setUploading(false);
-        return;
-      }
-      if (!rows || rows.length === 0) {
-        setUploadError("File contains no data rows.");
-        setUploading(false);
-        return;
-      }
-      // Extract dates from CSV rows (may already be set from handleFileSelect, but re-extract for safety)
-      const { start, end, error: periodError } = extractPeriodFromRows(rows);
-      if (periodError) {
-        setUploadError(periodError);
-        setUploading(false);
-        return;
-      }
-      resolvedStart = start;
-      resolvedEnd   = end;
-      const normalizedHeaders = Object.keys(rows[0]).map(normalizeHeader);
-      const missing = REQUIRED_NORMALIZED.filter(h => !normalizedHeaders.includes(h));
-      if (missing.length > 0) {
-        setUploadError("Invalid worksheet format. Required headers are missing.");
-        setUploading(false);
-        return;
-      }
-    }
-
-    if (!resolvedStart || !resolvedEnd) {
-      setUploadError("Reporting Period Start and End columns are required in the worksheet.");
+    const { rows, error: rowError } = await getRows();
+    if (rowError) {
+      setUploadError(rowError);
       setUploading(false);
       return;
     }
 
-    // Update state so dialogs reference correct dates
-    setPeriodStart(resolvedStart);
-    setPeriodEnd(resolvedEnd);
+    try {
+      const response = await base44.functions.invoke("processCallLog", {
+        rows,
+        fileName: uploadFile.name
+      });
 
-    await submitUpload(rows, false, resolvedStart, resolvedEnd);
-  };
+      const result = response.data;
 
-  const handleConfirmReplace = async () => {
-    if (!replaceConfirm) return;
-    setReplaceConfirm(null);
-    setUploading(true);
-    await submitUpload(replaceConfirm.rows, false, replaceConfirm.start, replaceConfirm.end);
-  };
+      if (result.error) {
+        setUploadError(result.error);
+        setUploading(false);
+        return;
+      }
 
-  const handleConfirmReplaceWeek = async () => {
-    if (!duplicateWeekConfirm) return;
-    const { rows, start, end } = duplicateWeekConfirm;
-    setDuplicateWeekConfirm(null);
-    setUploading(true);
-    await submitUpload(rows, true, start, end);
+      await queryClient.invalidateQueries({ queryKey: ["call-log-periods"] });
+      queryClient.invalidateQueries({ queryKey: ["call-log-summaries"] });
+
+      const freshPeriods = await base44.entities.CallLogPeriod.list("-uploaded_at");
+
+      // Auto-select the most-recently-uploaded period
+      if (freshPeriods.length > 0) setSelectedPeriod(freshPeriods[0]);
+
+      if (result.all_duplicate) {
+        toast({
+          title: "No New Data",
+          description: result.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Upload Successful",
+          description: result.message
+        });
+      }
+
+      resetUpload();
+    } catch (err) {
+      setUploadError(err.message || "Upload failed.");
+    }
+    setUploading(false);
   };
 
   const handleDelete = async () => {
