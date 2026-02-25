@@ -906,9 +906,9 @@ export default function CallLogReporting() {
     ws.addRow([]);
 
     // ==============================
-    // SECTION 4: FULL USER BREAKDOWN TABLE (Official Excel Table)
+    // SECTION 4: FULL USER BREAKDOWN TABLE (Official Excel Table — all weeks)
     // ==============================
-    addSectionHeader(ws, "User Breakdown (by Week)", 11);
+    addSectionHeader(ws, "Full User Breakdown (All Weeks)", 11);
 
     const userTableStartRow = ws.rowCount + 1;
 
