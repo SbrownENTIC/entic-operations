@@ -830,13 +830,35 @@ export default function CallLogReporting() {
     // Freeze panes at user table header
     ws.views = [{ showGridLines: false, state: "frozen", ySplit: userTableHeaderRowNum, xSplit: 0 }];
 
-    if (userWeekRows.length === 0) {
+    const realUserRows = userWeekRows.filter(u => !u._warning);
+    if (realUserRows.length === 0 && userWeekRows.every(u => u._warning)) {
+      const emptyRow = ws.addRow(["User snapshot missing for all weeks — totals still available in Weekly Summary above.", ...Array(10).fill("")]);
+      ws.mergeCells(`A${ws.rowCount}:K${ws.rowCount}`);
+      emptyRow.getCell(1).font = mkFont({ italic: true, color: { argb: "FFCC8800" } });
+      emptyRow.height = 18;
+    } else if (realUserRows.length === 0) {
       const emptyRow = ws.addRow(["No user-level weekly data found.", ...Array(10).fill("")]);
       ws.mergeCells(`A${ws.rowCount}:K${ws.rowCount}`);
       emptyRow.getCell(1).font = mkFont({ italic: true, color: { argb: "FF888888" } });
       emptyRow.height = 18;
     } else {
       userWeekRows.forEach((u, idx) => {
+        if (u._warning) {
+          const warnRow = ws.addRow([
+            formatDate(u.week_start),
+            formatDate(u.week_end),
+            "User snapshot missing for this week, totals still available.",
+            ...Array(8).fill("")
+          ]);
+          ws.mergeCells(`C${ws.rowCount}:K${ws.rowCount}`);
+          warnRow.height = 18;
+          warnRow.eachCell({ includeEmpty: true }, (cell) => {
+            cell.fill = mkFill("FFFFF3CD");
+            cell.font = mkFont({ italic: true, color: { argb: "FF856404" } });
+            cell.border = { bottom: thinBorder };
+          });
+          return;
+        }
         const ar = u.answer_rate;
         const { bg, fg } = arColor(ar);
         const bgArgb = idx % 2 === 0 ? WHITE : LIGHT_GRAY;
