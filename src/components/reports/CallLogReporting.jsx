@@ -366,6 +366,8 @@ export default function CallLogReporting() {
     setWorkbook(null);
     setSheetNames([]);
     setSelectedSheet("");
+    setPeriodStart("");
+    setPeriodEnd("");
 
     const isXlsx = file.name.toLowerCase().endsWith(".xlsx") || file.name.toLowerCase().endsWith(".xls");
     if (isXlsx) {
@@ -373,16 +375,41 @@ export default function CallLogReporting() {
         const { workbook: wb, sheetNames: names } = await readWorkbookFile(file);
         setWorkbook(wb);
         setSheetNames(names);
+        const sheetName = names.length === 1 ? names[0] : null;
         if (names.length === 1) {
-          setSelectedSheet(names[0]); // auto-select single sheet
+          setSelectedSheet(names[0]);
+          // Auto-extract period dates from the single sheet
+          const ws = wb.getWorksheet(names[0]);
+          if (ws) {
+            const rows = sheetToJson(ws);
+            const { start, end, error } = extractPeriodFromRows(rows);
+            if (error) {
+              setUploadError(error);
+            } else {
+              setPeriodStart(start);
+              setPeriodEnd(end);
+            }
+          }
         }
-        // else: user must choose
       } catch (err) {
         console.error("Excel read error:", err);
         setUploadError("Failed to read Excel file: " + (err.message || "unknown error"));
       }
+    } else {
+      // CSV: read and extract dates immediately
+      try {
+        const rows = await readCSV(file);
+        const { start, end, error } = extractPeriodFromRows(rows);
+        if (error) {
+          setUploadError(error);
+        } else {
+          setPeriodStart(start);
+          setPeriodEnd(end);
+        }
+      } catch (err) {
+        setUploadError("Failed to read CSV file.");
+      }
     }
-    // CSV: no sheet selection needed
   };
 
   const validateAndGetRows = () => {
