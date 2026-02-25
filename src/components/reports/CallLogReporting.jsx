@@ -840,49 +840,27 @@ export default function CallLogReporting() {
       .filter(u => !u._warning)
       .sort((a, b) => (a.user || "").localeCompare(b.user || ""));
 
-    if (realUserRows.length === 0 && userWeekRows.every(u => u._warning)) {
-      const emptyRow = ws.addRow(["User snapshot missing for all weeks — totals still available in Weekly Summary above.", ...Array(10).fill("")]);
-      ws.mergeCells(`A${ws.rowCount}:K${ws.rowCount}`);
-      emptyRow.getCell(1).font = mkFont({ italic: true, color: { argb: "FFCC8800" } });
-      emptyRow.height = 18;
-    } else if (realUserRows.length === 0) {
+    if (realUserRows.length === 0) {
       const emptyRow = ws.addRow(["No user-level weekly data found.", ...Array(10).fill("")]);
       ws.mergeCells(`A${ws.rowCount}:K${ws.rowCount}`);
       emptyRow.getCell(1).font = mkFont({ italic: true, color: { argb: "FF888888" } });
       emptyRow.height = 18;
     } else {
-      // Add header row manually (ExcelJS addTable will reference it)
+      // Header row (userTableStartRow)
       const userHRow = ws.addRow(["Week Start","Week End","User","Total Calls","Inbound","Outbound","Answered","Missed","Total Duration","Answer Rate","Avg Duration"]);
       styleTableHeader(userHRow, 11);
 
-      // Freeze top row of user breakdown table
+      // Freeze at the header row of this table
       ws.views = [{ showGridLines: false, state: "frozen", ySplit: userTableStartRow, xSplit: 0 }];
 
-      const tableDataRows = [];
-      userWeekRows.forEach((u) => {
-        if (u._warning) {
-          // Insert a styled note row (outside the table range)
-          const warnRow = ws.addRow([
-            formatDate(u.week_start),
-            formatDate(u.week_end),
-            "User snapshot missing for this week",
-            ...Array(8).fill("")
-          ]);
-          ws.mergeCells(`C${ws.rowCount}:K${ws.rowCount}`);
-          warnRow.height = 18;
-          warnRow.eachCell({ includeEmpty: true }, (cell) => {
-            cell.fill   = mkFill("FFFFF3CD");
-            cell.font   = mkFont({ italic: true, color: { argb: "FF856404" } });
-            cell.border = { bottom: thinBorder };
-          });
-          return;
-        }
-
+      const tableRows = [];
+      realUserRows.forEach((u, idx) => {
         const ar = u.answer_rate;
         const { bg, fg } = arColor(ar);
         const arPct = parseFloat((ar * 100).toFixed(1)) / 100;
+        const bgArgb = idx % 2 === 0 ? WHITE : ALT_ROW;
 
-        const row = ws.addRow([
+        const rowValues = [
           formatDate(u.week_start),
           formatDate(u.week_end),
           u.user || "",
@@ -894,9 +872,11 @@ export default function CallLogReporting() {
           minutesToHHMMSS(u.total_duration_minutes),
           arPct,
           minutesToHHMMSS(u.avg_duration_minutes),
-        ]);
+        ];
+        const row = ws.addRow(rowValues);
         row.height = 18;
         row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+          cell.fill      = mkFill(bgArgb);
           cell.font      = mkFont({});
           cell.alignment = { horizontal: colNum <= 3 ? "left" : "center", vertical: "middle" };
           cell.border    = { bottom: thinBorder, right: thinBorder };
@@ -907,11 +887,10 @@ export default function CallLogReporting() {
             cell.font   = mkFont({ color: { argb: fg } });
           }
         });
-
-        tableDataRows.push(row);
+        tableRows.push(rowValues);
       });
 
-      // Register as official Excel Table (enables filter dropdowns + named table)
+      // Register as official Excel Table with AutoFilter on all columns
       const userTableEndRow = ws.rowCount;
       ws.addTable({
         name: "UserBreakdown",
@@ -923,19 +902,19 @@ export default function CallLogReporting() {
           showRowStripes: true,
         },
         columns: [
-          { name: "Week Start",      filterButton: true },
-          { name: "Week End",        filterButton: true },
-          { name: "User",            filterButton: true },
-          { name: "Total Calls",     filterButton: true },
-          { name: "Inbound",         filterButton: true },
-          { name: "Outbound",        filterButton: true },
-          { name: "Answered",        filterButton: true },
-          { name: "Missed",          filterButton: true },
-          { name: "Total Duration",  filterButton: true },
-          { name: "Answer Rate",     filterButton: true },
-          { name: "Avg Duration",    filterButton: true },
+          { name: "Week Start",     filterButton: true },
+          { name: "Week End",       filterButton: true },
+          { name: "User",           filterButton: true },
+          { name: "Total Calls",    filterButton: true },
+          { name: "Inbound",        filterButton: true },
+          { name: "Outbound",       filterButton: true },
+          { name: "Answered",       filterButton: true },
+          { name: "Missed",         filterButton: true },
+          { name: "Total Duration", filterButton: true },
+          { name: "Answer Rate",    filterButton: true },
+          { name: "Avg Duration",   filterButton: true },
         ],
-        rows: tableDataRows.map(r => r.values.slice(1)),
+        rows: tableRows,
       });
     }
 
