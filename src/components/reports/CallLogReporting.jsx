@@ -424,7 +424,10 @@ export default function CallLogReporting() {
       const normalizedHeaders = Object.keys(rows[0]).map(normalizeHeader);
       const missing = REQUIRED_NORMALIZED.filter(h => !normalizedHeaders.includes(h));
       if (missing.length > 0) return { error: "Invalid worksheet format. Required headers are missing." };
-      return { rows };
+      // Extract period dates from rows
+      const { start, end, error: periodError } = extractPeriodFromRows(rows);
+      if (periodError) return { error: periodError };
+      return { rows, start, end };
     }
     return null; // CSV handled async in handleUpload
   };
