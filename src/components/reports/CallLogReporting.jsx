@@ -841,9 +841,9 @@ export default function CallLogReporting() {
           u.outbound,
           u.answered,
           u.missed,
-          secondsToHHMMSS(u.total_duration_seconds),
+          minutesToHHMMSS(u.total_duration_minutes),
           ar,
-          secondsToHHMMSS(u.avg_duration_seconds),
+          minutesToHHMMSS(u.avg_duration_minutes),
         ]);
         row.height = 18;
         row.eachCell({ includeEmpty: true }, (cell, colNum) => {
