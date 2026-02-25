@@ -788,41 +788,45 @@ export default function CallLogReporting() {
     // Freeze panes at user table header
     ws.views = [{ showGridLines: false, state: "frozen", ySplit: userTableHeaderRowNum, xSplit: 0 }];
 
-    userWeekRows.forEach((u, idx) => {
-      const ar = u.answer_rate;
-      const { bg, fg } = arColor(ar);
-      const bgArgb = idx % 2 === 0 ? WHITE : LIGHT_GRAY;
+    if (userWeekRows.length === 0) {
+      const emptyRow = ws.addRow(["No user-level weekly data found.", ...Array(10).fill("")]);
+      ws.mergeCells(`A${ws.rowCount}:K${ws.rowCount}`);
+      emptyRow.getCell(1).font = mkFont({ italic: true, color: { argb: "FF888888" } });
+      emptyRow.height = 18;
+    } else {
+      userWeekRows.forEach((u, idx) => {
+        const ar = u.answer_rate;
+        const { bg, fg } = arColor(ar);
+        const bgArgb = idx % 2 === 0 ? WHITE : LIGHT_GRAY;
 
-      const row = ws.addRow([
-        formatDate(u.week_start),
-        formatDate(u.week_end),
-        u.user || "",
-        u.total_calls,
-        u.inbound,
-        u.outbound,
-        u.answered,
-        u.missed,
-        secondsToHHMMSS(u.total_duration_seconds),
-        ar,
-        secondsToHHMMSS(u.avg_duration_seconds),
-      ]);
-      row.height = 18;
-      row.eachCell({ includeEmpty: true }, (cell, colNum) => {
-        cell.fill      = mkFill(bgArgb);
-        cell.font      = mkFont({});
-        cell.alignment = { horizontal: colNum <= 3 ? "left" : "center", vertical: "middle" };
-        cell.border    = { bottom: thinBorder, right: thinBorder };
-        if ([4,5,6,7,8].includes(colNum)) cell.numFmt = "#,##0";
-        if (colNum === 10) {
-          cell.numFmt = "0.0%";
-          cell.fill   = mkFill(bg);
-          cell.font   = mkFont({ color: { argb: fg } });
-        }
+        const row = ws.addRow([
+          formatDate(u.week_start),
+          formatDate(u.week_end),
+          u.user || "",
+          u.total_calls,
+          u.inbound,
+          u.outbound,
+          u.answered,
+          u.missed,
+          secondsToHHMMSS(u.total_duration_seconds),
+          ar,
+          secondsToHHMMSS(u.avg_duration_seconds),
+        ]);
+        row.height = 18;
+        row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+          cell.fill      = mkFill(bgArgb);
+          cell.font      = mkFont({});
+          cell.alignment = { horizontal: colNum <= 3 ? "left" : "center", vertical: "middle" };
+          cell.border    = { bottom: thinBorder, right: thinBorder };
+          if ([4,5,6,7,8].includes(colNum)) cell.numFmt = "#,##0";
+          if (colNum === 10) {
+            cell.numFmt = "0.0%";
+            cell.fill   = mkFill(bg);
+            cell.font   = mkFont({ color: { argb: fg } });
+          }
+        });
       });
-    });
 
-    // User table autofilter
-    if (userWeekRows.length > 0) {
       ws.autoFilter = {
         from: { row: userTableHeaderRowNum, column: 1 },
         to:   { row: userTableHeaderRowNum + userWeekRows.length, column: 11 }
