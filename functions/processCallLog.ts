@@ -98,11 +98,8 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { rows, periodStart, periodEnd, fileName, replaceWeek } = await req.json();
+    const { rows, periodStart: clientStart, periodEnd: clientEnd, fileName, replaceWeek } = await req.json();
 
-    if (!periodStart || !periodEnd) {
-      return Response.json({ error: 'Reporting period start and end dates are required.' }, { status: 400 });
-    }
     if (!rows || rows.length === 0) {
       return Response.json({ error: 'No data rows provided.' }, { status: 400 });
     }
@@ -115,6 +112,29 @@ Deno.serve(async (req) => {
     if (missing.length > 0) {
       return Response.json({
         error: `Invalid file format. Required headers missing: ${missing.join(', ')}`
+      }, { status: 400 });
+    }
+
+    // Determine period dates: prefer worksheet columns, fall back to client-provided values
+    const periodExtracted = extractPeriodFromRows(rows, headerMap);
+
+    let periodStart, periodEnd;
+
+    if (periodExtracted && periodExtracted.error) {
+      return Response.json({ error: periodExtracted.error }, { status: 400 });
+    }
+
+    if (periodExtracted && periodExtracted.start && periodExtracted.end) {
+      // Use dates from worksheet columns (source of truth)
+      periodStart = periodExtracted.start;
+      periodEnd   = periodExtracted.end;
+    } else if (clientStart && clientEnd) {
+      // Fallback: use client-provided dates (backward compat)
+      periodStart = clientStart;
+      periodEnd   = clientEnd;
+    } else {
+      return Response.json({
+        error: 'Reporting Period Start and End columns are required in the worksheet.'
       }, { status: 400 });
     }
 
