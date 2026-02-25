@@ -136,8 +136,9 @@ function formatPeriodLabel(period) {
 }
 
 const STATUS_COLORS = {
-  Monthly: "bg-blue-100 text-blue-800",
-  Weekly: "bg-green-100 text-green-800",
+  "Monthly": "bg-blue-100 text-blue-800",
+  "Monthly (Aggregated)": "bg-indigo-100 text-indigo-800",
+  "Weekly": "bg-green-100 text-green-800",
   "Custom Range": "bg-purple-100 text-purple-800"
 };
 
