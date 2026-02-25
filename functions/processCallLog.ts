@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { rows, periodStart: clientStart, periodEnd: clientEnd, fileName, replaceWeek } = await req.json();
+    const { rows, fileName, replaceWeek } = await req.json();
 
     if (!rows || rows.length === 0) {
       return Response.json({ error: 'No data rows provided.' }, { status: 400 });
@@ -89,14 +89,21 @@ Deno.serve(async (req) => {
 
     const get = (row, normalizedName) => row[headerMap[normalizedName]];
 
-    // Extract period dates from worksheet (single source of truth)
-    const rawStart = get(rows[0], 'reporting period start');
-    const rawEnd   = get(rows[0], 'reporting period end');
-    const periodStart = toISODate(rawStart) || clientStart;
-    const periodEnd   = toISODate(rawEnd)   || clientEnd;
+    // Extract period dates exclusively from worksheet columns (single source of truth)
+    const periodStart = toISODate(get(rows[0], 'reporting period start'));
+    const periodEnd   = toISODate(get(rows[0], 'reporting period end'));
 
     if (!periodStart || !periodEnd) {
-      return Response.json({ error: 'Reporting Period Start and End columns are required in the worksheet.' }, { status: 400 });
+      return Response.json({ error: 'Reporting Period Start and End columns are required and must contain valid dates.' }, { status: 400 });
+    }
+
+    // Validate all rows have identical start and end dates
+    for (let i = 1; i < rows.length; i++) {
+      const rowStart = toISODate(get(rows[i], 'reporting period start'));
+      const rowEnd   = toISODate(get(rows[i], 'reporting period end'));
+      if ((rowStart && rowStart !== periodStart) || (rowEnd && rowEnd !== periodEnd)) {
+        return Response.json({ error: 'Multiple reporting periods detected in worksheet. All rows must have identical Reporting Period Start and End dates.' }, { status: 400 });
+      }
     }
 
     // Determine monthly key from periodStart (YYYY-MM)
