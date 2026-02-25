@@ -438,12 +438,9 @@ export default function CallLogReporting() {
 
   const handleUpload = async () => {
     setUploadError("");
-    if (!uploadFile)  { setUploadError("Please select a file."); return; }
-    if (!periodStart) { setUploadError("Reporting Period Start Date is required."); return; }
-    if (!periodEnd)   { setUploadError("Reporting Period End Date is required."); return; }
-    if (periodEnd < periodStart) { setUploadError("End date must be on or after start date."); return; }
+    if (!uploadFile) { setUploadError("Please select a file."); return; }
 
-    const isXlsx = uploadFile.name.toLowerCase().endsWith(".xlsx");
+    const isXlsx = uploadFile.name.toLowerCase().endsWith(".xlsx") || uploadFile.name.toLowerCase().endsWith(".xls");
     if (isXlsx && sheetNames.length > 1 && !selectedSheet) {
       setUploadError("Please select a worksheet to import.");
       return;
@@ -474,15 +471,49 @@ export default function CallLogReporting() {
         return;
       }
       const normalizedHeaders = Object.keys(rows[0]).map(normalizeHeader);
-      const missing = REQUIRED_NORMALIZED.filter(h => !normalizedHeaders.includes(h));
-      if (missing.length > 0) {
+      if (!normalizedHeaders.includes("reporting period start") || !normalizedHeaders.includes("reporting period end")) {
+        setUploadError("Reporting Period Start and End columns are required in the worksheet.");
+        setUploading(false);
+        return;
+      }
+      const missingOther = REQUIRED_NORMALIZED
+        .filter(h => h !== "reporting period start" && h !== "reporting period end")
+        .filter(h => !normalizedHeaders.includes(h));
+      if (missingOther.length > 0) {
         setUploadError("Invalid worksheet format. Required headers are missing.");
         setUploading(false);
         return;
       }
     }
 
-    await submitUpload(rows);
+    // Extract period dates from worksheet rows (single source of truth)
+    const { start, end } = extractDatesFromRows(rows);
+    if (!start || !end) {
+      setUploadError("Could not read Reporting Period Start/End from worksheet. Ensure all rows have valid dates.");
+      setUploading(false);
+      return;
+    }
+    // Validate consistency
+    const allStarts = [...new Set(rows.map(r => {
+      const headers = Object.keys(r);
+      const k = headers.find(h => normalizeHeader(h) === "reporting period start");
+      return k ? toISODate(r[k]) : "";
+    }).filter(Boolean))];
+    const allEnds = [...new Set(rows.map(r => {
+      const headers = Object.keys(r);
+      const k = headers.find(h => normalizeHeader(h) === "reporting period end");
+      return k ? toISODate(r[k]) : "";
+    }).filter(Boolean))];
+    if (allStarts.length > 1 || allEnds.length > 1) {
+      setUploadError("Inconsistent Reporting Period dates across rows. All rows must have the same start and end date.");
+      setUploading(false);
+      return;
+    }
+
+    setPeriodStart(start);
+    setPeriodEnd(end);
+
+    await submitUpload(rows, false, start, end);
   };
 
   const handleConfirmReplace = async () => {
