@@ -22,28 +22,8 @@ const REQUIRED_NORMALIZED = [
   "voicemail calls",
   "total call duration (minutes)",
   "inbound call duration (minutes)",
-  "outbound call duration (minutes)",
-  "reporting period start",
-  "reporting period end"
+  "outbound call duration (minutes)"
 ];
-
-function toISODate(val) {
-  if (!val) return '';
-  const s = String(val).trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  // Excel serial number
-  if (!isNaN(Number(s)) && Number(s) > 40000) {
-    const n = Number(s);
-    const d = new Date(Math.round((n - 25569) * 86400 * 1000));
-    const y = d.getUTCFullYear();
-    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(d.getUTCDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  }
-  const d = new Date(s);
-  if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
-  return '';
-}
 
 function parseMinutesToSeconds(val) {
   if (val === null || val === undefined || val === '') return 0;
@@ -70,8 +50,11 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { rows, fileName, replaceWeek } = await req.json();
+    const { rows, periodStart, periodEnd, fileName, replaceWeek } = await req.json();
 
+    if (!periodStart || !periodEnd) {
+      return Response.json({ error: 'Reporting period start and end dates are required.' }, { status: 400 });
+    }
     if (!rows || rows.length === 0) {
       return Response.json({ error: 'No data rows provided.' }, { status: 400 });
     }
@@ -88,23 +71,6 @@ Deno.serve(async (req) => {
     }
 
     const get = (row, normalizedName) => row[headerMap[normalizedName]];
-
-    // Extract period dates exclusively from worksheet columns (single source of truth)
-    const periodStart = toISODate(get(rows[0], 'reporting period start'));
-    const periodEnd   = toISODate(get(rows[0], 'reporting period end'));
-
-    if (!periodStart || !periodEnd) {
-      return Response.json({ error: 'Reporting Period Start and End columns are required and must contain valid dates.' }, { status: 400 });
-    }
-
-    // Validate all rows have identical start and end dates
-    for (let i = 1; i < rows.length; i++) {
-      const rowStart = toISODate(get(rows[i], 'reporting period start'));
-      const rowEnd   = toISODate(get(rows[i], 'reporting period end'));
-      if ((rowStart && rowStart !== periodStart) || (rowEnd && rowEnd !== periodEnd)) {
-        return Response.json({ error: 'Multiple reporting periods detected in worksheet. All rows must have identical Reporting Period Start and End dates.' }, { status: 400 });
-      }
-    }
 
     // Determine monthly key from periodStart (YYYY-MM)
     const monthKey = periodStart.substring(0, 7);

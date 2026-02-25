@@ -55,39 +55,8 @@ const REQUIRED_NORMALIZED = [
   "voicemail calls",
   "total call duration (minutes)",
   "inbound call duration (minutes)",
-  "outbound call duration (minutes)",
-  "reporting period start",
-  "reporting period end"
+  "outbound call duration (minutes)"
 ];
-
-/** Convert various date formats to YYYY-MM-DD */
-function toISODate(val) {
-  if (!val) return "";
-  // Already ISO
-  if (/^\d{4}-\d{2}-\d{2}$/.test(String(val).trim())) return String(val).trim();
-  // Excel serial number
-  if (typeof val === "number") {
-    const d = new Date(Math.round((val - 25569) * 86400 * 1000));
-    const y = d.getUTCFullYear();
-    const m = String(d.getUTCMonth() + 1).padStart(2, "0");
-    const day = String(d.getUTCDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
-  }
-  // JS Date object (ExcelJS may return Date)
-  if (val instanceof Date) {
-    const y = val.getFullYear();
-    const m = String(val.getMonth() + 1).padStart(2, "0");
-    const day = String(val.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
-  }
-  // Try parsing string
-  const s = String(val).trim();
-  const d = new Date(s);
-  if (!isNaN(d.getTime())) {
-    return d.toISOString().split("T")[0];
-  }
-  return s;
-}
 
 // ---- File parsing ----
 
@@ -314,22 +283,6 @@ export default function CallLogReporting() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  /** Extract period dates from first data row of a parsed rows array */
-  const extractDatesFromRows = (rows) => {
-    if (!rows || rows.length === 0) return {};
-    const headers = Object.keys(rows[0]);
-    const normHeaders = headers.map(h => [normalizeHeader(h), h]);
-    const startKey = normHeaders.find(([n]) => n === "reporting period start")?.[1];
-    const endKey   = normHeaders.find(([n]) => n === "reporting period end")?.[1];
-    if (!startKey || !endKey) return {};
-    const startVal = rows[0][startKey];
-    const endVal   = rows[0][endKey];
-    return {
-      start: toISODate(startVal),
-      end:   toISODate(endVal)
-    };
-  };
-
   const handleFileSelect = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -338,8 +291,6 @@ export default function CallLogReporting() {
     setWorkbook(null);
     setSheetNames([]);
     setSelectedSheet("");
-    setPeriodStart("");
-    setPeriodEnd("");
 
     const isXlsx = file.name.toLowerCase().endsWith(".xlsx") || file.name.toLowerCase().endsWith(".xls");
     if (isXlsx) {
@@ -347,23 +298,16 @@ export default function CallLogReporting() {
         const { workbook: wb, sheetNames: names } = await readWorkbookFile(file);
         setWorkbook(wb);
         setSheetNames(names);
-        const sheetName = names.length === 1 ? names[0] : null;
         if (names.length === 1) {
-          setSelectedSheet(names[0]);
-          // Auto-extract dates from the single sheet
-          const ws = wb.getWorksheet(names[0]);
-          if (ws) {
-            const rows = sheetToJson(ws);
-            const { start, end } = extractDatesFromRows(rows);
-            if (start) setPeriodStart(start);
-            if (end)   setPeriodEnd(end);
-          }
+          setSelectedSheet(names[0]); // auto-select single sheet
         }
+        // else: user must choose
       } catch (err) {
         console.error("Excel read error:", err);
         setUploadError("Failed to read Excel file: " + (err.message || "unknown error"));
       }
     }
+    // CSV: no sheet selection needed
   };
 
   const validateAndGetRows = () => {
@@ -376,14 +320,8 @@ export default function CallLogReporting() {
       const rows = sheetToJson(worksheet);
       if (!rows || rows.length === 0) return { error: "Selected worksheet contains no data rows." };
       const normalizedHeaders = Object.keys(rows[0]).map(normalizeHeader);
-      // Check for period columns
-      if (!normalizedHeaders.includes("reporting period start") || !normalizedHeaders.includes("reporting period end")) {
-        return { error: "Reporting Period Start and End columns are required in the worksheet." };
-      }
-      const missingOther = REQUIRED_NORMALIZED
-        .filter(h => h !== "reporting period start" && h !== "reporting period end")
-        .filter(h => !normalizedHeaders.includes(h));
-      if (missingOther.length > 0) return { error: "Invalid worksheet format. Required headers are missing." };
+      const missing = REQUIRED_NORMALIZED.filter(h => !normalizedHeaders.includes(h));
+      if (missing.length > 0) return { error: "Invalid worksheet format. Required headers are missing." };
       return { rows };
     }
     return null; // CSV handled async in handleUpload
@@ -393,6 +331,8 @@ export default function CallLogReporting() {
     try {
       const response = await base44.functions.invoke("processCallLog", {
         rows,
+        periodStart,
+        periodEnd,
         fileName: uploadFile.name,
         replaceWeek
       });
@@ -417,13 +357,11 @@ export default function CallLogReporting() {
       queryClient.invalidateQueries({ queryKey: ["call-log-summaries"] });
 
       const freshPeriods = await base44.entities.CallLogPeriod.list("-uploaded_at");
-      const monthKey = (periodStart || result.month_key || "").substring(0, 7);
+      const monthKey = periodStart.substring(0, 7);
       const newPeriod = freshPeriods.find(p => p.monthly_key === monthKey);
       if (newPeriod) setSelectedPeriod(newPeriod);
 
-      const monthLabel = monthKey
-        ? new Date(monthKey + "-01T12:00:00").toLocaleDateString("en-US", { month: "long", year: "numeric" })
-        : "the selected period";
+      const monthLabel = new Date(periodStart + "T12:00:00").toLocaleDateString("en-US", { month: "long", year: "numeric" });
       toast({
         title: result.is_replacement ? "Week Replaced" : "Upload Successful",
         description: `${result.users_imported} user(s) merged into ${monthLabel}. ${result.weeks_in_month} week(s) in month.`
@@ -438,9 +376,12 @@ export default function CallLogReporting() {
 
   const handleUpload = async () => {
     setUploadError("");
-    if (!uploadFile) { setUploadError("Please select a file."); return; }
+    if (!uploadFile)  { setUploadError("Please select a file."); return; }
+    if (!periodStart) { setUploadError("Reporting Period Start Date is required."); return; }
+    if (!periodEnd)   { setUploadError("Reporting Period End Date is required."); return; }
+    if (periodEnd < periodStart) { setUploadError("End date must be on or after start date."); return; }
 
-    const isXlsx = uploadFile.name.toLowerCase().endsWith(".xlsx") || uploadFile.name.toLowerCase().endsWith(".xls");
+    const isXlsx = uploadFile.name.toLowerCase().endsWith(".xlsx");
     if (isXlsx && sheetNames.length > 1 && !selectedSheet) {
       setUploadError("Please select a worksheet to import.");
       return;
@@ -471,64 +412,30 @@ export default function CallLogReporting() {
         return;
       }
       const normalizedHeaders = Object.keys(rows[0]).map(normalizeHeader);
-      if (!normalizedHeaders.includes("reporting period start") || !normalizedHeaders.includes("reporting period end")) {
-        setUploadError("Reporting Period Start and End columns are required in the worksheet.");
-        setUploading(false);
-        return;
-      }
-      const missingOther = REQUIRED_NORMALIZED
-        .filter(h => h !== "reporting period start" && h !== "reporting period end")
-        .filter(h => !normalizedHeaders.includes(h));
-      if (missingOther.length > 0) {
+      const missing = REQUIRED_NORMALIZED.filter(h => !normalizedHeaders.includes(h));
+      if (missing.length > 0) {
         setUploadError("Invalid worksheet format. Required headers are missing.");
         setUploading(false);
         return;
       }
     }
 
-    // Extract period dates from worksheet rows (single source of truth)
-    const { start, end } = extractDatesFromRows(rows);
-    if (!start || !end) {
-      setUploadError("Could not read Reporting Period Start/End from worksheet. Ensure all rows have valid dates.");
-      setUploading(false);
-      return;
-    }
-    // Validate consistency
-    const allStarts = [...new Set(rows.map(r => {
-      const headers = Object.keys(r);
-      const k = headers.find(h => normalizeHeader(h) === "reporting period start");
-      return k ? toISODate(r[k]) : "";
-    }).filter(Boolean))];
-    const allEnds = [...new Set(rows.map(r => {
-      const headers = Object.keys(r);
-      const k = headers.find(h => normalizeHeader(h) === "reporting period end");
-      return k ? toISODate(r[k]) : "";
-    }).filter(Boolean))];
-    if (allStarts.length > 1 || allEnds.length > 1) {
-      setUploadError("Inconsistent Reporting Period dates across rows. All rows must have the same start and end date.");
-      setUploading(false);
-      return;
-    }
-
-    setPeriodStart(start);
-    setPeriodEnd(end);
-
-    await submitUpload(rows, false, start, end);
+    await submitUpload(rows);
   };
 
   const handleConfirmReplace = async () => {
     if (!replaceConfirm) return;
     setReplaceConfirm(null);
     setUploading(true);
-    await submitUpload(replaceConfirm.rows, false, replaceConfirm.start, replaceConfirm.end);
+    await submitUpload(replaceConfirm.rows);
   };
 
   const handleConfirmReplaceWeek = async () => {
     if (!duplicateWeekConfirm) return;
-    const { rows, start, end } = duplicateWeekConfirm;
+    const rows = duplicateWeekConfirm.rows;
     setDuplicateWeekConfirm(null);
     setUploading(true);
-    await submitUpload(rows, true, start, end);
+    await submitUpload(rows, true);
   };
 
   const handleDelete = async () => {
@@ -763,6 +670,21 @@ export default function CallLogReporting() {
               <Button variant="ghost" size="sm" onClick={resetUpload}>✕</Button>
             </div>
 
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-medium text-slate-700 block mb-1">
+                  Reporting Period Start Date <span className="text-red-500">*</span>
+                </label>
+                <Input type="date" value={periodStart} onChange={e => setPeriodStart(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-700 block mb-1">
+                  Reporting Period End Date <span className="text-red-500">*</span>
+                </label>
+                <Input type="date" value={periodEnd} onChange={e => setPeriodEnd(e.target.value)} />
+              </div>
+            </div>
+
             <div>
               <label className="text-xs font-medium text-slate-700 block mb-1">
                 File (.xlsx or .csv) <span className="text-red-500">*</span>
@@ -789,22 +711,7 @@ export default function CallLogReporting() {
                 </label>
                 <select
                   value={selectedSheet}
-                  onChange={e => {
-                    const name = e.target.value;
-                    setSelectedSheet(name);
-                    setUploadError("");
-                    setPeriodStart("");
-                    setPeriodEnd("");
-                    if (name && workbook) {
-                      const ws = workbook.getWorksheet(name);
-                      if (ws) {
-                        const rows = sheetToJson(ws);
-                        const { start, end } = extractDatesFromRows(rows);
-                        if (start) setPeriodStart(start);
-                        if (end)   setPeriodEnd(end);
-                      }
-                    }
-                  }}
+                  onChange={e => { setSelectedSheet(e.target.value); setUploadError(""); }}
                   className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">— Choose a worksheet —</option>
@@ -822,17 +729,9 @@ export default function CallLogReporting() {
               </p>
             )}
 
-            {/* Period read from worksheet display */}
-            {periodStart && periodEnd && (
-              <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg p-2.5 text-sm text-green-800">
-                <CheckCircle className="w-4 h-4 text-green-600 shrink-0" />
-                <span>Reporting period read from worksheet: <strong>{formatDate(periodStart)}</strong> – <strong>{formatDate(periodEnd)}</strong></span>
-              </div>
-            )}
-
             <div className="text-xs text-slate-500 bg-white/60 border border-slate-200 rounded p-2.5">
-              <strong>Required worksheet columns:</strong> Reporting Period Start, Reporting Period End, User, Total Calls, Inbound Calls, Outbound Calls, Answered Calls, Missed Calls, Voicemail Calls, Total call Duration (Minutes), Inbound Call Duration (Minutes), Outbound call Duration (Minutes)<br />
-              <span className="text-slate-400">Reporting period dates are read directly from the worksheet. Header matching is case-insensitive.</span>
+              <strong>Required Vonage headers:</strong> User, Total Calls, Inbound Calls, Outbound Calls, Answered Calls, Missed Calls, Voicemail Calls, Total call Duration (Minutes), Inbound Call Duration (Minutes), Outbound call Duration (Minutes)<br />
+              <span className="text-slate-400">Header matching is case-insensitive. Duration columns must be the numeric minutes columns.</span>
             </div>
 
             {uploadError && (
