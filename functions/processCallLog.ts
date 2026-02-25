@@ -275,13 +275,8 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Track week in uploaded_weeks
-        uploadedWeeks.push({
-          week_start: weekStart,
-          week_end: weekEnd,
-          user_snapshot: weekUserData,
-          processed_at: new Date().toISOString()
-        });
+        // Track week in uploaded_weeks (with full user_snapshot)
+        uploadedWeeks.push(buildWeekSnapshot(weekStart, weekEnd, weekUserData));
         cache.period._updatedWeeks = uploadedWeeks;
         cache.period._hasNewWeeks = true;
         weeksAdded++;
