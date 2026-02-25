@@ -225,19 +225,18 @@ export default function CallLogReporting() {
   const [selectedPeriod, setSelectedPeriod] = useState(null);
   const [showUpload, setShowUpload] = useState(false);
   const [uploadFile, setUploadFile] = useState(null);
-  const [workbook, setWorkbook] = useState(null);        // parsed XLSX workbook (for multi-sheet)
-  const [sheetNames, setSheetNames] = useState([]);      // list of sheet names from workbook
-  const [selectedSheet, setSelectedSheet] = useState(""); // chosen sheet name
+  const [workbook, setWorkbook] = useState(null);
+  const [sheetNames, setSheetNames] = useState([]);
+  const [selectedSheet, setSelectedSheet] = useState("");
   const [periodStart, setPeriodStart] = useState("");
   const [periodEnd, setPeriodEnd] = useState("");
+  const [weekSummary, setWeekSummary] = useState([]); // detected week pairs [{start,end}]
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [deleteDialogPeriod, setDeleteDialogPeriod] = useState(null);
   const [deleting, setDeleting] = useState(false);
-  const [replaceConfirm, setReplaceConfirm] = useState(null); // holds { rows } pending confirmation (exact same week range)
-  const [duplicateWeekConfirm, setDuplicateWeekConfirm] = useState(null); // holds { rows } when server returns duplicate_week
   const [sortCol, setSortCol] = useState("user");
-  const [sortDir, setSortDir] = useState("asc"); // "asc" | "desc"
+  const [sortDir, setSortDir] = useState("asc");
   const [userSearch, setUserSearch] = useState("");
 
   const { data: periods = [], isLoading: periodsLoading } = useQuery({
