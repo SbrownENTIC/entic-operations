@@ -811,11 +811,7 @@ export default function CallLogReporting() {
         });
       });
 
-      // Autofilter on weekly table
-      ws.autoFilter = {
-        from: { row: weekTableHeaderRowNum, column: 1 },
-        to:   { row: weekTableHeaderRowNum + weekRows.length, column: 10 }
-      };
+
     }
 
     // Blank row
