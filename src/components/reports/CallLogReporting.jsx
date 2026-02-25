@@ -55,8 +55,39 @@ const REQUIRED_NORMALIZED = [
   "voicemail calls",
   "total call duration (minutes)",
   "inbound call duration (minutes)",
-  "outbound call duration (minutes)"
+  "outbound call duration (minutes)",
+  "reporting period start",
+  "reporting period end"
 ];
+
+/** Convert various date formats to YYYY-MM-DD */
+function toISODate(val) {
+  if (!val) return "";
+  // Already ISO
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(val).trim())) return String(val).trim();
+  // Excel serial number
+  if (typeof val === "number") {
+    const d = new Date(Math.round((val - 25569) * 86400 * 1000));
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(d.getUTCDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+  // JS Date object (ExcelJS may return Date)
+  if (val instanceof Date) {
+    const y = val.getFullYear();
+    const m = String(val.getMonth() + 1).padStart(2, "0");
+    const day = String(val.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+  // Try parsing string
+  const s = String(val).trim();
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) {
+    return d.toISOString().split("T")[0];
+  }
+  return s;
+}
 
 // ---- File parsing ----
 
