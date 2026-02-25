@@ -818,19 +818,14 @@ export default function CallLogReporting() {
     ws.addRow([]);
 
     // ==============================
-    // SECTION 3: USER BREAKDOWN TABLE
+    // SECTION 3: USER BREAKDOWN TABLE (Official Excel Table)
     // ==============================
     addSectionHeader(ws, "User Breakdown (by Week)", 11);
 
-    const userTableHeaderRowNum = ws.rowCount + 1;
-    const userHeaders = ["Week Start","Week End","User","Total Calls","Inbound","Outbound","Answered","Missed","Duration (HH:MM:SS)","Answer Rate","Avg Duration"];
-    const userHRow = ws.addRow(userHeaders);
-    styleTableHeader(userHRow, 11);
-
-    // Freeze panes at user table header
-    ws.views = [{ showGridLines: false, state: "frozen", ySplit: userTableHeaderRowNum, xSplit: 0 }];
+    const userTableStartRow = ws.rowCount + 1;
 
     const realUserRows = userWeekRows.filter(u => !u._warning);
+
     if (realUserRows.length === 0 && userWeekRows.every(u => u._warning)) {
       const emptyRow = ws.addRow(["User snapshot missing for all weeks — totals still available in Weekly Summary above.", ...Array(10).fill("")]);
       ws.mergeCells(`A${ws.rowCount}:K${ws.rowCount}`);
@@ -842,26 +837,36 @@ export default function CallLogReporting() {
       emptyRow.getCell(1).font = mkFont({ italic: true, color: { argb: "FF888888" } });
       emptyRow.height = 18;
     } else {
-      userWeekRows.forEach((u, idx) => {
+      // Add header row manually (ExcelJS addTable will reference it)
+      const userHRow = ws.addRow(["Week Start","Week End","User","Total Calls","Inbound","Outbound","Answered","Missed","Total Duration","Answer Rate","Avg Duration"]);
+      styleTableHeader(userHRow, 11);
+
+      // Freeze top row of user breakdown table
+      ws.views = [{ showGridLines: false, state: "frozen", ySplit: userTableStartRow, xSplit: 0 }];
+
+      const tableDataRows = [];
+      userWeekRows.forEach((u) => {
         if (u._warning) {
+          // Insert a styled note row (outside the table range)
           const warnRow = ws.addRow([
             formatDate(u.week_start),
             formatDate(u.week_end),
-            "User snapshot missing for this week, totals still available.",
+            "User snapshot missing for this week",
             ...Array(8).fill("")
           ]);
           ws.mergeCells(`C${ws.rowCount}:K${ws.rowCount}`);
           warnRow.height = 18;
           warnRow.eachCell({ includeEmpty: true }, (cell) => {
-            cell.fill = mkFill("FFFFF3CD");
-            cell.font = mkFont({ italic: true, color: { argb: "FF856404" } });
+            cell.fill   = mkFill("FFFFF3CD");
+            cell.font   = mkFont({ italic: true, color: { argb: "FF856404" } });
             cell.border = { bottom: thinBorder };
           });
           return;
         }
+
         const ar = u.answer_rate;
         const { bg, fg } = arColor(ar);
-        const bgArgb = idx % 2 === 0 ? WHITE : LIGHT_GRAY;
+        const arPct = parseFloat((ar * 100).toFixed(1)) / 100;
 
         const row = ws.addRow([
           formatDate(u.week_start),
@@ -873,12 +878,11 @@ export default function CallLogReporting() {
           u.answered,
           u.missed,
           minutesToHHMMSS(u.total_duration_minutes),
-          ar,
+          arPct,
           minutesToHHMMSS(u.avg_duration_minutes),
         ]);
         row.height = 18;
         row.eachCell({ includeEmpty: true }, (cell, colNum) => {
-          cell.fill      = mkFill(bgArgb);
           cell.font      = mkFont({});
           cell.alignment = { horizontal: colNum <= 3 ? "left" : "center", vertical: "middle" };
           cell.border    = { bottom: thinBorder, right: thinBorder };
@@ -889,12 +893,146 @@ export default function CallLogReporting() {
             cell.font   = mkFont({ color: { argb: fg } });
           }
         });
+
+        tableDataRows.push(row);
       });
 
-      ws.autoFilter = {
-        from: { row: userTableHeaderRowNum, column: 1 },
-        to:   { row: userTableHeaderRowNum + userWeekRows.length, column: 11 }
-      };
+      // Register as official Excel Table (enables filter dropdowns + named table)
+      const userTableEndRow = ws.rowCount;
+      ws.addTable({
+        name: "UserBreakdown",
+        ref: `A${userTableStartRow}:K${userTableEndRow}`,
+        headerRow: true,
+        totalsRow: false,
+        style: {
+          theme: "TableStyleMedium2",
+          showRowStripes: true,
+        },
+        columns: [
+          { name: "Week Start",      filterButton: true },
+          { name: "Week End",        filterButton: true },
+          { name: "User",            filterButton: true },
+          { name: "Total Calls",     filterButton: true },
+          { name: "Inbound",         filterButton: true },
+          { name: "Outbound",        filterButton: true },
+          { name: "Answered",        filterButton: true },
+          { name: "Missed",          filterButton: true },
+          { name: "Total Duration",  filterButton: true },
+          { name: "Answer Rate",     filterButton: true },
+          { name: "Avg Duration",    filterButton: true },
+        ],
+        rows: tableDataRows.map(r => r.values.slice(1)),
+      });
+    }
+
+    // ==============================
+    // PIVOT DATA SHEET (flat data for user-built pivot with slicer)
+    // ==============================
+    const wsPivot = wb.addWorksheet("Pivot Data", {
+      views: [{ showGridLines: true, state: "frozen", ySplit: 1, xSplit: 0 }]
+    });
+    wsPivot.columns = [
+      { header: "Week Start",     key: "week_start",             width: 16 },
+      { header: "Week End",       key: "week_end",               width: 16 },
+      { header: "User",           key: "user",                   width: 30 },
+      { header: "Total Calls",    key: "total_calls",            width: 14 },
+      { header: "Inbound",        key: "inbound",                width: 12 },
+      { header: "Outbound",       key: "outbound",               width: 12 },
+      { header: "Answered",       key: "answered",               width: 12 },
+      { header: "Missed",         key: "missed",                 width: 12 },
+      { header: "Total Duration", key: "total_duration_minutes", width: 22 },
+      { header: "Answer Rate",    key: "answer_rate",            width: 14 },
+      { header: "Avg Duration",   key: "avg_duration_minutes",   width: 22 },
+    ];
+
+    // Style pivot header row
+    const pivotHeaderRow = wsPivot.getRow(1);
+    pivotHeaderRow.height = 20;
+    pivotHeaderRow.eachCell({ includeEmpty: true }, (cell) => {
+      cell.font      = mkFont({ bold: true, color: { argb: WHITE } });
+      cell.fill      = mkFill(DARK_NAVY);
+      cell.alignment = { horizontal: "center", vertical: "middle" };
+      cell.border    = { bottom: { style: "medium", color: { argb: WHITE } }, right: thinBorder };
+    });
+
+    // Add flat data rows (real rows only — skip _warning)
+    const pivotDataRows = [];
+    userWeekRows.filter(u => !u._warning).forEach(u => {
+      pivotDataRows.push({
+        week_start:             formatDate(u.week_start),
+        week_end:               formatDate(u.week_end),
+        user:                   u.user || "",
+        total_calls:            u.total_calls,
+        inbound:                u.inbound,
+        outbound:               u.outbound,
+        answered:               u.answered,
+        missed:                 u.missed,
+        total_duration_minutes: minutesToHHMMSS(u.total_duration_minutes),
+        answer_rate:            parseFloat((u.answer_rate * 100).toFixed(1)) / 100,
+        avg_duration_minutes:   minutesToHHMMSS(u.avg_duration_minutes),
+      });
+    });
+
+    pivotDataRows.forEach((rowData, idx) => {
+      const row = wsPivot.addRow(rowData);
+      row.height = 17;
+      const bgArgb = idx % 2 === 0 ? WHITE : ALT_ROW;
+      row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+        cell.fill      = mkFill(bgArgb);
+        cell.font      = mkFont({});
+        cell.alignment = { horizontal: colNum <= 3 ? "left" : "center", vertical: "middle" };
+        cell.border    = { bottom: thinBorder, right: thinBorder };
+        if ([4,5,6,7,8].includes(colNum)) cell.numFmt = "#,##0";
+        if (colNum === 10) {
+          cell.numFmt = "0.0%";
+          const { bg, fg } = arColor(rowData.answer_rate);
+          cell.fill = mkFill(bg);
+          cell.font = mkFont({ color: { argb: fg } });
+        }
+      });
+    });
+
+    // Register Pivot Data as an Excel Table so it can be used as a Pivot source
+    if (pivotDataRows.length > 0) {
+      wsPivot.addTable({
+        name: "PivotSource",
+        ref: `A1:K${1 + pivotDataRows.length}`,
+        headerRow: true,
+        totalsRow: false,
+        style: {
+          theme: "TableStyleLight9",
+          showRowStripes: true,
+        },
+        columns: [
+          { name: "Week Start",     filterButton: true },
+          { name: "Week End",       filterButton: true },
+          { name: "User",           filterButton: true },
+          { name: "Total Calls",    filterButton: true },
+          { name: "Inbound",        filterButton: true },
+          { name: "Outbound",       filterButton: true },
+          { name: "Answered",       filterButton: true },
+          { name: "Missed",         filterButton: true },
+          { name: "Total Duration", filterButton: true },
+          { name: "Answer Rate",    filterButton: true },
+          { name: "Avg Duration",   filterButton: true },
+        ],
+        rows: pivotDataRows.map(r => [
+          r.week_start, r.week_end, r.user, r.total_calls, r.inbound,
+          r.outbound, r.answered, r.missed, r.total_duration_minutes,
+          r.answer_rate, r.avg_duration_minutes
+        ]),
+      });
+
+      // Add instructions cell below the table
+      const instrRow = wsPivot.addRow([]);
+      instrRow.height = 10;
+      const instrRow2 = wsPivot.addRow([
+        "➤ To build a Pivot Table with Week Slicer: Select any cell in the table above → Insert → PivotTable → Add to New Sheet → Drag 'User' to Rows, metrics to Values, 'Week Start' to Filters → Insert → Slicer → Select 'Week Start'."
+      ]);
+      wsPivot.mergeCells(`A${wsPivot.rowCount}:K${wsPivot.rowCount}`);
+      instrRow2.getCell(1).font      = mkFont({ italic: true, size: 10, color: { argb: "FF555555" } });
+      instrRow2.getCell(1).alignment = { wrapText: true };
+      instrRow2.height = 30;
     }
 
     // ---- Write and download ----
