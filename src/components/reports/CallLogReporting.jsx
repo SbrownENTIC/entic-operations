@@ -434,6 +434,14 @@ export default function CallLogReporting() {
     await submitUpload(replaceConfirm.rows);
   };
 
+  const handleConfirmReplaceWeek = async () => {
+    if (!duplicateWeekConfirm) return;
+    const rows = duplicateWeekConfirm.rows;
+    setDuplicateWeekConfirm(null);
+    setUploading(true);
+    await submitUpload(rows, true);
+  };
+
   const handleDelete = async () => {
     if (!deleteDialogPeriod) return;
     setDeleting(true);
