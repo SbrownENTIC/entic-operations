@@ -376,8 +376,14 @@ export default function CallLogReporting() {
       const rows = sheetToJson(worksheet);
       if (!rows || rows.length === 0) return { error: "Selected worksheet contains no data rows." };
       const normalizedHeaders = Object.keys(rows[0]).map(normalizeHeader);
-      const missing = REQUIRED_NORMALIZED.filter(h => !normalizedHeaders.includes(h));
-      if (missing.length > 0) return { error: "Invalid worksheet format. Required headers are missing." };
+      // Check for period columns
+      if (!normalizedHeaders.includes("reporting period start") || !normalizedHeaders.includes("reporting period end")) {
+        return { error: "Reporting Period Start and End columns are required in the worksheet." };
+      }
+      const missingOther = REQUIRED_NORMALIZED
+        .filter(h => h !== "reporting period start" && h !== "reporting period end")
+        .filter(h => !normalizedHeaders.includes(h));
+      if (missingOther.length > 0) return { error: "Invalid worksheet format. Required headers are missing." };
       return { rows };
     }
     return null; // CSV handled async in handleUpload
