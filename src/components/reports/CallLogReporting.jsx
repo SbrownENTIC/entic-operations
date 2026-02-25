@@ -61,6 +61,27 @@ const REQUIRED_NORMALIZED = [
 const PERIOD_COL_START = "reporting period start";
 const PERIOD_COL_END   = "reporting period end";
 
+/** Detect unique week (start, end) pairs from rows for display */
+function detectWeekSummary(rows) {
+  if (!rows || rows.length === 0) return [];
+  const firstRow = rows[0];
+  const rawKeys = Object.keys(firstRow);
+  const startKey = rawKeys.find(k => normalizeHeader(k) === PERIOD_COL_START);
+  const endKey   = rawKeys.find(k => normalizeHeader(k) === PERIOD_COL_END);
+  if (!startKey || !endKey) return [];
+
+  const seen = new Set();
+  const pairs = [];
+  for (const row of rows) {
+    const start = toIsoDate(row[startKey]);
+    const end   = toIsoDate(row[endKey]);
+    if (!start || !end) continue;
+    const key = `${start}|${end}`;
+    if (!seen.has(key)) { seen.add(key); pairs.push({ start, end }); }
+  }
+  return pairs;
+}
+
 /** Convert Excel serial date or date string to YYYY-MM-DD */
 function toIsoDate(val) {
   if (!val && val !== 0) return null;
