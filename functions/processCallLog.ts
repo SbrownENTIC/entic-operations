@@ -303,6 +303,7 @@ Deno.serve(async (req) => {
           uploadedWeeks.push(weekSnapshot);
           cache.period._updatedWeeks = uploadedWeeks;
           cache.period._hasNewWeeks = true;
+          console.log(`[processCallLog] uploaded_weeks before save (month ${monthKey}):`, JSON.stringify(uploadedWeeks));
           weeksAdded++;
 
         } else {
