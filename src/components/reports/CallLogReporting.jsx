@@ -780,8 +780,8 @@ export default function CallLogReporting() {
           wk.answered,
           wk.missed,
           ar,
-          secondsToHHMMSS(wk.total_duration_seconds),
-          secondsToHHMMSS(wk.avg_duration_seconds),
+          minutesToHHMMSS(wk.total_duration_minutes),
+          minutesToHHMMSS(wk.avg_duration_minutes),
         ]);
         row.height = 18;
         row.eachCell({ includeEmpty: true }, (cell, colNum) => {
