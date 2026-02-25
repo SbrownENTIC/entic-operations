@@ -907,6 +907,13 @@ export default function CallLogReporting() {
     // ==============================
     addSectionHeader(ws, "Full User Breakdown (All Weeks)", 11);
 
+    // Subtle instruction line
+    const instrHint = ws.addRow(["To view a specific week, use the Week Start filter in the table header.", ...Array(10).fill("")]);
+    ws.mergeCells(`A${ws.rowCount}:K${ws.rowCount}`);
+    instrHint.height = 16;
+    instrHint.getCell(1).font      = mkFont({ italic: true, size: 9, color: { argb: "FFAAAAAA" } });
+    instrHint.getCell(1).alignment = { horizontal: "left", vertical: "middle" };
+
     const userTableStartRow = ws.rowCount + 1;
 
     const realUserRows = userWeekRows.filter(u => !u._warning);
