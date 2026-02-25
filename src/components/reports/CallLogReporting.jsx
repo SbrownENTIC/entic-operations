@@ -822,53 +822,7 @@ export default function CallLogReporting() {
     ws.addRow([]);
 
     // ==============================
-    // SECTION 3: USER BREAKDOWN (SELECTED WEEK) — FILTER formula driven
-    // ==============================
-    addSectionHeader(ws, "User Breakdown (Selected Week)", 11);
-
-    // Sub-header note
-    const noteRow = ws.addRow(["", "Showing data for week selected in cell C4. Change C4 to filter a different week.", ...Array(9).fill("")]);
-    ws.mergeCells(`B${ws.rowCount}:K${ws.rowCount}`);
-    noteRow.height = 16;
-    noteRow.getCell(2).font = mkFont({ italic: true, size: 10, color: { argb: "FF555555" } });
-
-    const realUserRowsCheck = userWeekRows.filter(u => !u._warning);
-
-    if (realUserRowsCheck.length > 0) {
-      // Static header row — columns match Pivot Data sheet exactly
-      const filtHRow = ws.addRow(["Week Start","Week End","User","Total Calls","Inbound","Outbound","Answered","Missed","Total Duration","Answer Rate","Avg Duration"]);
-      styleTableHeader(filtHRow, 11);
-
-      // Freeze panes at this header row so it stays visible while scrolling
-      const filtHeaderRowNum = ws.rowCount;
-      ws.views = [{ showGridLines: false, state: "frozen", ySplit: filtHeaderRowNum, xSplit: 0 }];
-
-      // Insert one empty placeholder row so ExcelJS doesn't run into the next section header.
-      // The FILTER formula is written directly into the cell using the raw XML-compatible
-      // ExcelJS formula object. Dynamic array / spill formulas must use { formula, result }
-      // with NO sharedFormula key — ExcelJS will emit it as a regular formula cell and Excel
-      // will evaluate it as a dynamic array on open.
-      const filterDataRowNum = filtHeaderRowNum + 1;
-      ws.addRow([""]); // placeholder row at filterDataRowNum — DO NOT fill cols B-K
-      const filterCell = ws.getCell(`A${filterDataRowNum}`);
-      // Use the simplest formula object form that ExcelJS accepts without corrupting the output.
-      filterCell.value = {
-        formula: `IFERROR(FILTER('Pivot Data'!A2:K1000,'Pivot Data'!A2:A1000=$C$4),"")`,
-        result: "",
-      };
-      ws.getRow(filterDataRowNum).height = 18;
-    } else {
-      const noDataRow = ws.addRow(["No user snapshot data available for filter.", ...Array(10).fill("")]);
-      ws.mergeCells(`A${ws.rowCount}:K${ws.rowCount}`);
-      noDataRow.getCell(1).font = mkFont({ italic: true, color: { argb: "FF888888" } });
-      noDataRow.height = 18;
-    }
-
-    // Blank row
-    ws.addRow([]);
-
-    // ==============================
-    // SECTION 4: FULL USER BREAKDOWN TABLE (Official Excel Table — all weeks)
+    // SECTION 3: FULL USER BREAKDOWN TABLE (Official Excel Table — all weeks)
     // ==============================
     addSectionHeader(ws, "Full User Breakdown (All Weeks)", 11);
 
@@ -881,7 +835,10 @@ export default function CallLogReporting() {
 
     const userTableStartRow = ws.rowCount + 1;
 
-    const realUserRows = userWeekRows.filter(u => !u._warning);
+    // Sort A–Z by user name before rendering
+    const realUserRows = userWeekRows
+      .filter(u => !u._warning)
+      .sort((a, b) => (a.user || "").localeCompare(b.user || ""));
 
     if (realUserRows.length === 0 && userWeekRows.every(u => u._warning)) {
       const emptyRow = ws.addRow(["User snapshot missing for all weeks — totals still available in Weekly Summary above.", ...Array(10).fill("")]);
