@@ -19,6 +19,16 @@ import { useToast } from "@/components/ui/use-toast";
 import ExcelJS from "exceljs";
 
 // ---- Formatting helpers ----
+function minutesToHHMMSS(minutes) {
+  if (!minutes || minutes === 0) return "0:00:00";
+  const totalSeconds = Math.round(minutes * 60);
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  return [h, m, s].map(v => String(v).padStart(2, "0")).join(":");
+}
+
+// Legacy: convert stored seconds to HH:MM:SS (used only for monthly summary from CallLogUserSummary entity)
 function secondsToHHMMSS(seconds) {
   if (!seconds || seconds === 0) return "0:00:00";
   const total = Math.round(seconds);
