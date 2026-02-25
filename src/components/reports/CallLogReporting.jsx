@@ -522,15 +522,15 @@ export default function CallLogReporting() {
     if (!replaceConfirm) return;
     setReplaceConfirm(null);
     setUploading(true);
-    await submitUpload(replaceConfirm.rows);
+    await submitUpload(replaceConfirm.rows, false, replaceConfirm.start, replaceConfirm.end);
   };
 
   const handleConfirmReplaceWeek = async () => {
     if (!duplicateWeekConfirm) return;
-    const rows = duplicateWeekConfirm.rows;
+    const { rows, start, end } = duplicateWeekConfirm;
     setDuplicateWeekConfirm(null);
     setUploading(true);
-    await submitUpload(rows, true);
+    await submitUpload(rows, true, start, end);
   };
 
   const handleDelete = async () => {
