@@ -723,6 +723,7 @@ export default function CallLogReporting() {
     ws.getRow(3).height = 18;
 
     // Row 4: Week selector — B4 = label, C4 = dropdown defaulting to first week
+    // Week labels are stored as text strings in Pivot Data col A — C4 must match exactly
     const uniqueWeekLabels = sortedWeeks
       .map(w => formatDate(w.week_start))
       .filter((v, i, arr) => arr.indexOf(v) === i);
@@ -731,12 +732,13 @@ export default function CallLogReporting() {
     const labelCell = row4.getCell(2); // B4
     labelCell.font      = mkFont({ bold: true, size: 12 });
     labelCell.alignment = { horizontal: "right", vertical: "middle" };
-    const selectorCell = row4.getCell(3); // C4
+    const selectorCell = row4.getCell(3); // C4 — plain text matching Pivot Data col A
+    selectorCell.value     = uniqueWeekLabels[0] || "";
     selectorCell.font      = mkFont({ bold: true, size: 12, color: { argb: "FF1F3864" } });
     selectorCell.fill      = mkFill("FFD9E1F2");
     selectorCell.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
     selectorCell.border    = { top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder };
-    // Data validation dropdown on C4
+    // Data validation dropdown on C4 — list of text week labels matching Pivot Data col A
     if (uniqueWeekLabels.length > 0) {
       selectorCell.dataValidation = {
         type: "list",
