@@ -50,11 +50,8 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { rows, periodStart, periodEnd, fileName, replaceWeek } = await req.json();
+    const { rows, periodStart: clientStart, periodEnd: clientEnd, fileName, replaceWeek } = await req.json();
 
-    if (!periodStart || !periodEnd) {
-      return Response.json({ error: 'Reporting period start and end dates are required.' }, { status: 400 });
-    }
     if (!rows || rows.length === 0) {
       return Response.json({ error: 'No data rows provided.' }, { status: 400 });
     }
@@ -71,6 +68,16 @@ Deno.serve(async (req) => {
     }
 
     const get = (row, normalizedName) => row[headerMap[normalizedName]];
+
+    // Extract period dates from worksheet (single source of truth)
+    const rawStart = get(rows[0], 'reporting period start');
+    const rawEnd   = get(rows[0], 'reporting period end');
+    const periodStart = toISODate(rawStart) || clientStart;
+    const periodEnd   = toISODate(rawEnd)   || clientEnd;
+
+    if (!periodStart || !periodEnd) {
+      return Response.json({ error: 'Reporting Period Start and End columns are required in the worksheet.' }, { status: 400 });
+    }
 
     // Determine monthly key from periodStart (YYYY-MM)
     const monthKey = periodStart.substring(0, 7);
