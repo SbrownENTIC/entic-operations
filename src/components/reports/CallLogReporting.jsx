@@ -604,22 +604,21 @@ export default function CallLogReporting() {
 
     const weekRows = sortedWeeks.map(week => {
       const snapshot = Array.isArray(week.user_snapshot) ? week.user_snapshot : [];
-      let wTotal = 0, wIn = 0, wOut = 0, wAns = 0, wMiss = 0, wDurSec = 0;
+      let wTotal = 0, wIn = 0, wOut = 0, wAns = 0, wMiss = 0, wDurMin = 0;
       snapshot.forEach(u => {
         wTotal  += u.total_calls || 0;
         wIn     += u.inbound    || 0;
         wOut    += u.outbound   || 0;
         wAns    += u.answered   || 0;
         wMiss   += u.missed     || 0;
-        // Support both seconds (new) and minutes (legacy) storage
-        if (u.total_duration_seconds != null && u.total_duration_seconds > 0) {
-          wDurSec += u.total_duration_seconds;
-        } else if (u.total_duration_minutes != null && u.total_duration_minutes > 0) {
-          wDurSec += Math.round(u.total_duration_minutes * 60);
+        if (u.total_duration_minutes == null) {
+          console.warn(`[CallLog Export] Duration field missing in user_snapshot for user "${u.user}" in week ${week.week_start}–${week.week_end}`);
+        } else {
+          wDurMin += u.total_duration_minutes;
         }
       });
       if (snapshot.length > 0 && wTotal === 0) {
-        console.warn(`[CallLog Export] Week ${week.week_start}–${week.week_end} has ${snapshot.length} user(s) in snapshot but all totals computed to zero. Check field names in stored snapshot.`);
+        console.warn(`[CallLog Export] Week ${week.week_start}–${week.week_end} has ${snapshot.length} user(s) in snapshot but all totals computed to zero.`);
       }
       return {
         week_start: week.week_start,
@@ -629,8 +628,8 @@ export default function CallLogReporting() {
         outbound: wOut,
         answered: wAns,
         missed: wMiss,
-        total_duration_seconds: wDurSec,
-        avg_duration_seconds: wTotal > 0 ? wDurSec / wTotal : 0,
+        total_duration_minutes: wDurMin,
+        avg_duration_minutes: wTotal > 0 ? wDurMin / wTotal : 0,
         answer_rate: wTotal > 0 ? wAns / wTotal : 0,
         snapshot
       };
@@ -642,13 +641,10 @@ export default function CallLogReporting() {
       const snapshot = Array.isArray(week.user_snapshot) ? week.user_snapshot : [];
       snapshot.forEach(u => {
         const tc = u.total_calls || 0;
-        // Support both seconds (new) and minutes (legacy) storage
-        let durSec = 0;
-        if (u.total_duration_seconds != null && u.total_duration_seconds > 0) {
-          durSec = u.total_duration_seconds;
-        } else if (u.total_duration_minutes != null && u.total_duration_minutes > 0) {
-          durSec = Math.round(u.total_duration_minutes * 60);
+        if (u.total_duration_minutes == null) {
+          console.warn(`[CallLog Export] Duration field missing in user_snapshot for user "${u.user}" in week ${week.week_start}–${week.week_end}`);
         }
+        const durMin = u.total_duration_minutes || 0;
         userWeekRows.push({
           week_start: week.week_start,
           week_end:   week.week_end,
@@ -658,8 +654,8 @@ export default function CallLogReporting() {
           outbound: u.outbound || 0,
           answered: u.answered || 0,
           missed:   u.missed   || 0,
-          total_duration_seconds: durSec,
-          avg_duration_seconds: tc > 0 ? durSec / tc : 0,
+          total_duration_minutes: durMin,
+          avg_duration_minutes: tc > 0 ? durMin / tc : 0,
           answer_rate: tc > 0 ? (u.answered || 0) / tc : 0,
         });
       });
