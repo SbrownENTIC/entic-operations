@@ -428,6 +428,9 @@ Deno.serve(async (req) => {
     });
 
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error("processCallLog error:", error);
+    console.error("error.message:", error.message);
+    console.error("error.stack:", error.stack);
+    return Response.json({ success: false, error: error.message, stack: error.stack }, { status: 500 });
   }
 });
