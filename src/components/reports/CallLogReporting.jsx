@@ -354,19 +354,16 @@ export default function CallLogReporting() {
         const { workbook: wb, sheetNames: names } = await readWorkbookFile(file);
         setWorkbook(wb);
         setSheetNames(names);
-        const sheetName = names.length === 1 ? names[0] : null;
         if (names.length === 1) {
           setSelectedSheet(names[0]);
-          // Auto-extract period dates from the single sheet
           const ws = wb.getWorksheet(names[0]);
           if (ws) {
             const rows = sheetToJson(ws);
-            const { start, end, error } = extractPeriodFromRows(rows);
-            if (error) {
-              setUploadError(error);
-            } else {
-              setPeriodStart(start);
-              setPeriodEnd(end);
+            const { error } = validatePeriodColumns(rows);
+            if (error) setUploadError(error);
+            else {
+              // Show detected week ranges as summary info (set periodStart/End to first/last)
+              setWeekSummary(detectWeekSummary(rows));
             }
           }
         }
@@ -375,16 +372,11 @@ export default function CallLogReporting() {
         setUploadError("Failed to read Excel file: " + (err.message || "unknown error"));
       }
     } else {
-      // CSV: read and extract dates immediately
       try {
         const rows = await readCSV(file);
-        const { start, end, error } = extractPeriodFromRows(rows);
-        if (error) {
-          setUploadError(error);
-        } else {
-          setPeriodStart(start);
-          setPeriodEnd(end);
-        }
+        const { error } = validatePeriodColumns(rows);
+        if (error) setUploadError(error);
+        else setWeekSummary(detectWeekSummary(rows));
       } catch (err) {
         setUploadError("Failed to read CSV file.");
       }
