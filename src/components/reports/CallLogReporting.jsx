@@ -824,11 +824,11 @@ export default function CallLogReporting() {
               </p>
             )}
 
-            {/* Auto-detected period display */}
+            {/* Period read from worksheet display */}
             {periodStart && periodEnd && (
               <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg p-2.5 text-sm text-green-800">
                 <CheckCircle className="w-4 h-4 text-green-600 shrink-0" />
-                <span>Reporting period auto-detected: <strong>{formatDate(periodStart)}</strong> – <strong>{formatDate(periodEnd)}</strong></span>
+                <span>Reporting period read from worksheet: <strong>{formatDate(periodStart)}</strong> – <strong>{formatDate(periodEnd)}</strong></span>
               </div>
             )}
 
