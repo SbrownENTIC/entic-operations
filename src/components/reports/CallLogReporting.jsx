@@ -914,7 +914,7 @@ export default function CallLogReporting() {
         </div>
       )}
 
-      {/* Replace existing period confirmation */}
+      {/* Replace existing period confirmation (legacy, kept for safety) */}
       <AlertDialog open={!!replaceConfirm} onOpenChange={open => !open && setReplaceConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -927,6 +927,25 @@ export default function CallLogReporting() {
             <AlertDialogCancel onClick={() => setReplaceConfirm(null)}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmReplace} className="bg-blue-600 hover:bg-blue-700">
               Replace
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Duplicate week confirmation */}
+      <AlertDialog open={!!duplicateWeekConfirm} onOpenChange={open => !open && setDuplicateWeekConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Duplicate Weekly Upload Detected</AlertDialogTitle>
+            <AlertDialogDescription>
+              The week <strong>{formatDate(periodStart)} – {formatDate(periodEnd)}</strong> has already been uploaded for this month.<br /><br />
+              Would you like to <strong>replace</strong> that week's data with this new file? This will subtract the previous upload and add the new one.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDuplicateWeekConfirm(null)}>Cancel (Block Upload)</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmReplaceWeek} className="bg-blue-600 hover:bg-blue-700">
+              Replace Week Data
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
