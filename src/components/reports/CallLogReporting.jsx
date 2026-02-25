@@ -144,6 +144,22 @@ async function readWorkbookFile(file) {
   return { workbook: wb, sheetNames };
 }
 
+/** Serialize a cell value to a plain JS primitive safe for JSON */
+function serializeCellValue(val) {
+  if (val == null) return "";
+  if (val instanceof Date) {
+    // Serialize Date as YYYY-MM-DD using UTC to avoid timezone shifts
+    const y = val.getUTCFullYear();
+    const m = String(val.getUTCMonth() + 1).padStart(2, "0");
+    const d = String(val.getUTCDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+  if (typeof val === "object" && val.result != null) return serializeCellValue(val.result); // formula
+  if (typeof val === "object" && val.text != null) return val.text; // rich text
+  if (typeof val === "object") return String(val);
+  return val;
+}
+
 /** Converts an ExcelJS worksheet to an array-of-objects (like XLSX sheet_to_json) */
 function sheetToJson(worksheet) {
   const rows = [];
@@ -155,11 +171,7 @@ function sheetToJson(worksheet) {
     } else {
       const obj = {};
       headers.forEach((h, i) => {
-        let val = values[i];
-        if (val == null) val = "";
-        else if (typeof val === "object" && val.result != null) val = val.result; // formula cell
-        else if (typeof val === "object" && val.text != null) val = val.text;    // rich text
-        obj[h] = val;
+        obj[h] = serializeCellValue(values[i]);
       });
       rows.push(obj);
     }
