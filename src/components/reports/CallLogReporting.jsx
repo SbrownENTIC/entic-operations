@@ -566,47 +566,56 @@ export default function CallLogReporting() {
       return                   { bg: "FFFFC7CE", fg: "FF9C0006" };
     };
 
+    // ---- Validate uploaded_weeks ----
+    if (!uploadedWeeks || uploadedWeeks.length === 0) {
+      if (totalCalls > 0) {
+        console.warn("[CallLog Export] WARNING: Monthly totals exist but uploaded_weeks is empty. Week snapshots were not stored.");
+      }
+      // Still generate file but with empty sections
+    }
+
     // ---- Build weekly aggregates from uploaded_weeks ----
-    // Each week entry has: week_start, week_end, user_data: { [user]: { total_calls, inbound, outbound, answered, missed, total_duration_seconds } }
-    const weekRows = uploadedWeeks
+    // Each week entry: { week_start, week_end, user_snapshot: [ { user, total_calls, inbound, outbound, answered, missed, total_duration_seconds, ... } ] }
+    const sortedWeeks = uploadedWeeks
       .slice()
-      .sort((a, b) => (a.week_start || "").localeCompare(b.week_start || ""))
-      .map(week => {
-        const users = week.user_data || {};
-        let wTotal = 0, wIn = 0, wOut = 0, wAns = 0, wMiss = 0, wDurSec = 0;
-        Object.values(users).forEach(u => {
-          wTotal   += u.total_calls || 0;
-          wIn      += u.inbound || 0;
-          wOut     += u.outbound || 0;
-          wAns     += u.answered || 0;
-          wMiss    += u.missed || 0;
-          wDurSec  += u.total_duration_seconds || 0;
-        });
-        return {
-          week_start: week.week_start,
-          week_end:   week.week_end,
-          total_calls: wTotal,
-          inbound: wIn,
-          outbound: wOut,
-          answered: wAns,
-          missed: wMiss,
-          total_duration_seconds: wDurSec,
-          avg_duration_seconds: wTotal > 0 ? wDurSec / wTotal : 0,
-          answer_rate: wTotal > 0 ? wAns / wTotal : 0,
-          user_data: users
-        };
+      .sort((a, b) => (a.week_start || "").localeCompare(b.week_start || ""));
+
+    const weekRows = sortedWeeks.map(week => {
+      const snapshot = Array.isArray(week.user_snapshot) ? week.user_snapshot : [];
+      let wTotal = 0, wIn = 0, wOut = 0, wAns = 0, wMiss = 0, wDurSec = 0;
+      snapshot.forEach(u => {
+        wTotal   += u.total_calls || 0;
+        wIn      += u.inbound || 0;
+        wOut     += u.outbound || 0;
+        wAns     += u.answered || 0;
+        wMiss    += u.missed || 0;
+        wDurSec  += u.total_duration_seconds || 0;
       });
+      return {
+        week_start: week.week_start,
+        week_end:   week.week_end,
+        total_calls: wTotal,
+        inbound: wIn,
+        outbound: wOut,
+        answered: wAns,
+        missed: wMiss,
+        total_duration_seconds: wDurSec,
+        avg_duration_seconds: wTotal > 0 ? wDurSec / wTotal : 0,
+        answer_rate: wTotal > 0 ? wAns / wTotal : 0,
+        snapshot
+      };
+    });
 
     // ---- Build per-user-per-week rows ----
     const userWeekRows = [];
     weekRows.forEach(week => {
-      Object.entries(week.user_data).forEach(([userName, u]) => {
+      week.snapshot.forEach(u => {
         const tc = u.total_calls || 0;
         const dur = u.total_duration_seconds || 0;
         userWeekRows.push({
           week_start: week.week_start,
           week_end:   week.week_end,
-          user: userName,
+          user: u.user || "",
           total_calls: tc,
           inbound: u.inbound || 0,
           outbound: u.outbound || 0,
