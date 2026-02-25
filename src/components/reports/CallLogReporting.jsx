@@ -270,16 +270,17 @@ export default function CallLogReporting() {
 
   const { data: periods = [], isLoading: periodsLoading } = useQuery({
     queryKey: ["call-log-periods"],
-    queryFn: () => base44.entities.CallLogPeriod.list("-uploaded_at")
+    queryFn: async () => {
+      const all = await base44.entities.CallLogPeriod.list();
+      // Sort by monthly_key descending (newest first)
+      return all.sort((a, b) => (b.monthly_key || "").localeCompare(a.monthly_key || ""));
+    }
   });
 
-  // Auto-select default period on load
+  // Auto-select default period on load (newest month)
   React.useEffect(() => {
     if (!periods.length || selectedPeriod) return;
-    const now = new Date();
-    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const monthly = periods.find(p => p.monthly_key === currentMonthKey);
-    setSelectedPeriod(monthly || periods[0]);
+    setSelectedPeriod(periods[0]); // First after sorting = newest month
   }, [periods]);
 
   const { data: userSummaries = [], isLoading: summariesLoading } = useQuery({
