@@ -173,13 +173,8 @@ export default function CallLogReporting() {
   React.useEffect(() => {
     if (!periods.length || selectedPeriod) return;
     const now = new Date();
-    const currentMonth = now.getMonth(); // 0-indexed
-    const currentYear = now.getFullYear();
-    const monthly = periods.find(p => {
-      if (p.status !== "Monthly") return false;
-      const d = new Date(p.reporting_period_start + "T12:00:00");
-      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-    });
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const monthly = periods.find(p => p.monthly_key === currentMonthKey);
     setSelectedPeriod(monthly || periods[0]);
   }, [periods]);
 
