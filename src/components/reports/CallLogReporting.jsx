@@ -120,19 +120,19 @@ function readCSV(file) {
 
 function formatPeriodLabel(period) {
   if (!period) return "";
-  const start = period.reporting_period_start;
-  const end = period.reporting_period_end;
-  if (period.status === "Monthly") {
-    const d = new Date(start + "T12:00:00");
+  // Always show Month Year for monthly aggregation mode
+  const key = period.monthly_key || period.reporting_period_start?.substring(0, 7);
+  if (key) {
+    const d = new Date(key + "-01T12:00:00");
     return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
   }
-  // Weekly or Custom
+  const start = period.reporting_period_start;
   const fmtShort = (str) => {
     if (!str) return "";
     const [y, m, day] = str.split("-");
     return `${parseInt(m, 10)}/${parseInt(day, 10)}/${y}`;
   };
-  return `${fmtShort(start)} – ${fmtShort(end)}`;
+  return fmtShort(start);
 }
 
 const STATUS_COLORS = {
