@@ -481,12 +481,9 @@ export default function CallLogReporting() {
 
   const handleUpload = async () => {
     setUploadError("");
-    if (!uploadFile)  { setUploadError("Please select a file."); return; }
-    if (!periodStart) { setUploadError("Reporting Period Start Date is required."); return; }
-    if (!periodEnd)   { setUploadError("Reporting Period End Date is required."); return; }
-    if (periodEnd < periodStart) { setUploadError("End date must be on or after start date."); return; }
+    if (!uploadFile) { setUploadError("Please select a file."); return; }
 
-    const isXlsx = uploadFile.name.toLowerCase().endsWith(".xlsx");
+    const isXlsx = uploadFile.name.toLowerCase().endsWith(".xlsx") || uploadFile.name.toLowerCase().endsWith(".xls");
     if (isXlsx && sheetNames.length > 1 && !selectedSheet) {
       setUploadError("Please select a worksheet to import.");
       return;
@@ -494,6 +491,8 @@ export default function CallLogReporting() {
 
     setUploading(true);
     let rows;
+    let resolvedStart = periodStart;
+    let resolvedEnd   = periodEnd;
 
     if (isXlsx) {
       const result = validateAndGetRows();
@@ -503,6 +502,8 @@ export default function CallLogReporting() {
         return;
       }
       rows = result.rows;
+      resolvedStart = result.start;
+      resolvedEnd   = result.end;
     } else {
       try {
         rows = await readCSV(uploadFile);
@@ -516,6 +517,15 @@ export default function CallLogReporting() {
         setUploading(false);
         return;
       }
+      // Extract dates from CSV rows (may already be set from handleFileSelect, but re-extract for safety)
+      const { start, end, error: periodError } = extractPeriodFromRows(rows);
+      if (periodError) {
+        setUploadError(periodError);
+        setUploading(false);
+        return;
+      }
+      resolvedStart = start;
+      resolvedEnd   = end;
       const normalizedHeaders = Object.keys(rows[0]).map(normalizeHeader);
       const missing = REQUIRED_NORMALIZED.filter(h => !normalizedHeaders.includes(h));
       if (missing.length > 0) {
@@ -525,7 +535,17 @@ export default function CallLogReporting() {
       }
     }
 
-    await submitUpload(rows);
+    if (!resolvedStart || !resolvedEnd) {
+      setUploadError("Reporting Period Start and End columns are required in the worksheet.");
+      setUploading(false);
+      return;
+    }
+
+    // Update state so dialogs reference correct dates
+    setPeriodStart(resolvedStart);
+    setPeriodEnd(resolvedEnd);
+
+    await submitUpload(rows, false, resolvedStart, resolvedEnd);
   };
 
   const handleConfirmReplace = async () => {
