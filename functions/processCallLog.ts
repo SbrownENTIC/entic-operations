@@ -405,6 +405,10 @@ Deno.serve(async (req) => {
       const spanEnd   = allEnds[allEnds.length - 1];
       const newStatus = classifyMonthlyStatus(spanStart, spanEnd, monthKey);
 
+      console.log(`[processCallLog] Saving ${allWeeks.length} week(s) to CallLogPeriod ${cache.period.id} for month ${monthKey}`);
+      if (allWeeks.length === 0) {
+        console.error(`[processCallLog] No weekly snapshots stored for month ${monthKey}. period.id=${cache.period.id}`);
+      }
       await base44.asServiceRole.entities.CallLogPeriod.update(cache.period.id, {
         reporting_period_start: spanStart,
         reporting_period_end: spanEnd,
@@ -414,6 +418,13 @@ Deno.serve(async (req) => {
         uploaded_by: user.email,
         uploaded_at: new Date().toISOString()
       });
+      // Verify persistence
+      const saved = await base44.asServiceRole.entities.CallLogPeriod.filter({ id: cache.period.id });
+      const savedWeeksLen = saved && saved[0] && Array.isArray(saved[0].uploaded_weeks) ? saved[0].uploaded_weeks.length : 0;
+      console.log(`[processCallLog] After save: period ${cache.period.id} has uploaded_weeks.length=${savedWeeksLen}`);
+      if (savedWeeksLen === 0) {
+        console.error(`[processCallLog] ERROR: uploaded_weeks persisted as empty for period ${cache.period.id} (month ${monthKey})`);
+      }
     }
 
     return Response.json({
