@@ -798,8 +798,18 @@ export default function CallLogReporting() {
             <span className={`text-xs font-semibold px-2 py-1 rounded-full ${STATUS_COLORS[selectedPeriod.status] || "bg-slate-100 text-slate-700"}`}>
               {selectedPeriod.status}
             </span>
-            {selectedPeriod.source_file_name && (
-              <span className="text-xs text-slate-400">{selectedPeriod.source_file_name}</span>
+            {selectedPeriod.uploaded_weeks && selectedPeriod.uploaded_weeks.length > 0 && (
+              <span className="text-xs text-slate-500">
+                {selectedPeriod.uploaded_weeks.length} week{selectedPeriod.uploaded_weeks.length !== 1 ? "s" : ""} uploaded
+                {selectedPeriod.uploaded_weeks.length > 0 && (
+                  <span className="text-slate-400 ml-1">
+                    ({selectedPeriod.uploaded_weeks.map(w => {
+                      const s = w.week_start?.split("-"); const e = w.week_end?.split("-");
+                      return s && e ? `${parseInt(s[1])}/${parseInt(s[2])}–${parseInt(e[1])}/${parseInt(e[2])}` : "";
+                    }).join(", ")})
+                  </span>
+                )}
+              </span>
             )}
             <div className="ml-auto">
               <Button variant="outline" size="sm" onClick={exportPeriodExcel} className="gap-2">
