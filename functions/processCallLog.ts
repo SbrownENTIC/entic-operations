@@ -25,6 +25,54 @@ const REQUIRED_NORMALIZED = [
   "outbound call duration (minutes)"
 ];
 
+const PERIOD_COL_START = "reporting period start";
+const PERIOD_COL_END   = "reporting period end";
+
+/** Convert various date formats to YYYY-MM-DD */
+function toIsoDate(val) {
+  if (!val && val !== 0) return null;
+  if (typeof val === "number") {
+    const d = new Date(Math.round((val - 25569) * 86400 * 1000));
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(d.getUTCDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+  const s = String(val).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const mdy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (mdy) return `${mdy[3]}-${String(mdy[1]).padStart(2,"0")}-${String(mdy[2]).padStart(2,"0")}`;
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  }
+  return null;
+}
+
+/** Extract period start/end from row data if columns exist */
+function extractPeriodFromRows(rows, headerMap) {
+  const hasStart = PERIOD_COL_START in headerMap;
+  const hasEnd   = PERIOD_COL_END   in headerMap;
+  if (!hasStart || !hasEnd) return null; // columns not present
+
+  const startVals = rows.map(r => toIsoDate(r[headerMap[PERIOD_COL_START]])).filter(Boolean);
+  const endVals   = rows.map(r => toIsoDate(r[headerMap[PERIOD_COL_END]])).filter(Boolean);
+
+  if (!startVals.length || !endVals.length) return null;
+
+  const uniqueStarts = [...new Set(startVals)];
+  const uniqueEnds   = [...new Set(endVals)];
+
+  if (uniqueStarts.length > 1) {
+    return { error: `Inconsistent Reporting Period Start values (found: ${uniqueStarts.join(", ")}).` };
+  }
+  if (uniqueEnds.length > 1) {
+    return { error: `Inconsistent Reporting Period End values (found: ${uniqueEnds.join(", ")}).` };
+  }
+
+  return { start: uniqueStarts[0], end: uniqueEnds[0] };
+}
+
 function parseMinutesToSeconds(val) {
   if (val === null || val === undefined || val === '') return 0;
   const n = parseFloat(String(val).trim());
