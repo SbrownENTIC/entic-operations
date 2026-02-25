@@ -49,13 +49,6 @@ function toIsoDate(val) {
   return null;
 }
 
-function parseMinutesToSeconds(val) {
-  if (val === null || val === undefined || val === '') return 0;
-  const n = parseFloat(String(val).trim());
-  if (isNaN(n)) return 0;
-  return Math.round(n * 60);
-}
-
 function classifyMonthlyStatus(weekStart, weekEnd, monthKey) {
   const [sy, sm] = monthKey.split('-').map(Number);
   const firstDay = `${monthKey}-01`;
@@ -67,50 +60,37 @@ function classifyMonthlyStatus(weekStart, weekEnd, monthKey) {
 
 /**
  * Group rows by (Reporting Period Start, Reporting Period End) pairs.
- * Returns array of { weekStart, weekEnd, rows } or { error }.
  */
 function groupRowsByWeek(rows, headerMap) {
   const hasStart = PERIOD_COL_START in headerMap;
   const hasEnd   = PERIOD_COL_END   in headerMap;
-
   if (!hasStart || !hasEnd) {
     return { error: 'Reporting Period Start and End columns are required in the worksheet.' };
   }
-
-  const groups = new Map(); // key: "start|end" -> { weekStart, weekEnd, rows[] }
-
+  const groups = new Map();
   for (const row of rows) {
     const weekStart = toIsoDate(row[headerMap[PERIOD_COL_START]]);
     const weekEnd   = toIsoDate(row[headerMap[PERIOD_COL_END]]);
-
-    if (!weekStart || !weekEnd) continue; // skip rows with no period
-
+    if (!weekStart || !weekEnd) continue;
     const key = `${weekStart}|${weekEnd}`;
     if (!groups.has(key)) {
       groups.set(key, { weekStart, weekEnd, rows: [] });
     }
     groups.get(key).rows.push(row);
   }
-
   if (groups.size === 0) {
     return { error: 'No rows with valid Reporting Period Start/End found.' };
   }
-
   return { groups: [...groups.values()] };
 }
 
-/** Aggregate user data from a group of rows.
- *  Returns array with BOTH internal fields (for monthly summary storage)
- *  AND raw minute fields (for weekly snapshot storage).
- */
+/** Aggregate user data from a group of rows. Returns per-user objects with minute fields. */
 function aggregateUsers(rows, headerMap) {
   const get = (row, name) => row[headerMap[name]];
   const agg = {};
-
   for (const row of rows) {
     const userName = String(get(row, 'user') || '').trim();
     if (!userName) continue;
-
     const key = userName.toLowerCase();
     if (!agg[key]) {
       agg[key] = {
@@ -121,19 +101,14 @@ function aggregateUsers(rows, headerMap) {
         answered: 0,
         missed: 0,
         voicemail: 0,
-        total_duration_seconds: 0,
-        inbound_duration_seconds: 0,
-        outbound_duration_seconds: 0,
-        // Raw minutes — preserved for weekly snapshot
         total_duration_minutes: 0,
         inbound_duration_minutes: 0,
         outbound_duration_minutes: 0,
       };
     }
-
-    const totalMin   = parseFloat(String(get(row, 'total call duration (minutes)') || '0').trim()) || 0;
-    const inMin      = parseFloat(String(get(row, 'inbound call duration (minutes)') || '0').trim()) || 0;
-    const outMin     = parseFloat(String(get(row, 'outbound call duration (minutes)') || '0').trim()) || 0;
+    const totalMin = parseFloat(String(get(row, 'total call duration (minutes)') || '0').trim()) || 0;
+    const inMin    = parseFloat(String(get(row, 'inbound call duration (minutes)') || '0').trim()) || 0;
+    const outMin   = parseFloat(String(get(row, 'outbound call duration (minutes)') || '0').trim()) || 0;
 
     agg[key].total_calls               += Number(get(row, 'total calls'))    || 0;
     agg[key].inbound                   += Number(get(row, 'inbound calls'))  || 0;
@@ -141,39 +116,63 @@ function aggregateUsers(rows, headerMap) {
     agg[key].answered                  += Number(get(row, 'answered calls')) || 0;
     agg[key].missed                    += Number(get(row, 'missed calls'))   || 0;
     agg[key].voicemail                 += Number(get(row, 'voicemail calls'))|| 0;
-    agg[key].total_duration_seconds    += Math.round(totalMin * 60);
-    agg[key].inbound_duration_seconds  += Math.round(inMin   * 60);
-    agg[key].outbound_duration_seconds += Math.round(outMin  * 60);
     agg[key].total_duration_minutes    += totalMin;
     agg[key].inbound_duration_minutes  += inMin;
     agg[key].outbound_duration_minutes += outMin;
   }
-
   return Object.values(agg);
 }
 
-/** Build a clean week snapshot from aggregated user data (for storage in uploaded_weeks) */
+/**
+ * Build the enforced week snapshot shape:
+ * { week_start, week_end, totals: {...}, user_snapshot: [...] }
+ */
 function buildWeekSnapshot(weekStart, weekEnd, weekUserData) {
+  const user_snapshot = weekUserData.map(u => ({
+    user:                       u.user,
+    total_calls:                u.total_calls,
+    inbound:                    u.inbound,
+    outbound:                   u.outbound,
+    answered:                   u.answered,
+    missed:                     u.missed,
+    voicemail:                  u.voicemail,
+    total_duration_minutes:     u.total_duration_minutes,
+    inbound_duration_minutes:   u.inbound_duration_minutes,
+    outbound_duration_minutes:  u.outbound_duration_minutes,
+  }));
+
+  // Compute totals from user_snapshot
+  const totals = {
+    total_calls:               user_snapshot.reduce((s, u) => s + (u.total_calls || 0), 0),
+    inbound:                   user_snapshot.reduce((s, u) => s + (u.inbound || 0), 0),
+    outbound:                  user_snapshot.reduce((s, u) => s + (u.outbound || 0), 0),
+    answered:                  user_snapshot.reduce((s, u) => s + (u.answered || 0), 0),
+    missed:                    user_snapshot.reduce((s, u) => s + (u.missed || 0), 0),
+    voicemail:                 user_snapshot.reduce((s, u) => s + (u.voicemail || 0), 0),
+    total_duration_minutes:    user_snapshot.reduce((s, u) => s + (u.total_duration_minutes || 0), 0),
+    inbound_duration_minutes:  user_snapshot.reduce((s, u) => s + (u.inbound_duration_minutes || 0), 0),
+    outbound_duration_minutes: user_snapshot.reduce((s, u) => s + (u.outbound_duration_minutes || 0), 0),
+  };
+
   return {
     week_start: weekStart,
     week_end: weekEnd,
     processed_at: new Date().toISOString(),
-    user_snapshot: weekUserData.map(u => ({
-      user:                       u.user,
-      total_calls:                u.total_calls,
-      inbound:                    u.inbound,
-      outbound:                   u.outbound,
-      answered:                   u.answered,
-      missed:                     u.missed,
-      voicemail:                  u.voicemail,
-      total_duration_seconds:     u.total_duration_seconds,
-      inbound_duration_seconds:   u.inbound_duration_seconds,
-      outbound_duration_seconds:  u.outbound_duration_seconds,
-      total_duration_minutes:     u.total_duration_minutes,
-      inbound_duration_minutes:   u.inbound_duration_minutes,
-      outbound_duration_minutes:  u.outbound_duration_minutes,
-    }))
+    totals,
+    user_snapshot,
   };
+}
+
+/** Validate snapshot: user_snapshot > 0, totals.total_calls === sum of user total_calls */
+function validateSnapshot(snapshot) {
+  if (!Array.isArray(snapshot.user_snapshot) || snapshot.user_snapshot.length === 0) {
+    return { valid: false, reason: `user_snapshot is empty for week ${snapshot.week_start}–${snapshot.week_end}` };
+  }
+  const sumCalls = snapshot.user_snapshot.reduce((s, u) => s + (u.total_calls || 0), 0);
+  if (snapshot.totals.total_calls !== sumCalls) {
+    return { valid: false, reason: `totals.total_calls (${snapshot.totals.total_calls}) !== sum of user_snapshot total_calls (${sumCalls}) for week ${snapshot.week_start}–${snapshot.week_end}` };
+  }
+  return { valid: true };
 }
 
 Deno.serve(async (req) => {
@@ -185,15 +184,12 @@ Deno.serve(async (req) => {
     }
 
     const { rows, fileName } = await req.json();
-
     if (!rows || rows.length === 0) {
       return Response.json({ error: 'No data rows provided.' }, { status: 400 });
     }
 
-    // Build normalized header map from first row
     const headerMap = buildHeaderMap(rows[0]);
 
-    // Validate required headers
     const missing = REQUIRED_NORMALIZED.filter(h => !(h in headerMap));
     if (missing.length > 0) {
       return Response.json({
@@ -201,7 +197,6 @@ Deno.serve(async (req) => {
       }, { status: 400 });
     }
 
-    // Group rows by week (Reporting Period Start + End pairs)
     const groupResult = groupRowsByWeek(rows, headerMap);
     if (groupResult.error) {
       return Response.json({ error: groupResult.error }, { status: 400 });
@@ -209,105 +204,109 @@ Deno.serve(async (req) => {
 
     const weekGroups = groupResult.groups;
 
-    // Determine which month(s) are involved (group weeks by month)
-    // For simplicity, process each week and handle its monthly record independently
-    const monthCache = new Map(); // monthKey -> { period, summaries }
-
-    let weeksAdded = 0;
-    let weeksDuplicate = 0;
-
-    // Load/cache monthly records for all months involved
+    // ---- LOG: detected weeks overview ----
     const monthKeys = [...new Set(weekGroups.map(g => g.weekStart.substring(0, 7)))];
+    console.log(`[processCallLog] File: "${fileName}" | monthKeys: [${monthKeys.join(", ")}] | detectedWeeks: ${weekGroups.length}`);
+    for (const g of weekGroups) {
+      const distinctUsers = [...new Set(g.rows.map(r => String(r[headerMap['user']] || '').trim()).filter(Boolean))];
+      console.log(`[processCallLog]   Week ${g.weekStart}–${g.weekEnd}: rowCount=${g.rows.length}, distinctUsers=${distinctUsers.length} [${distinctUsers.slice(0,5).join(", ")}${distinctUsers.length > 5 ? '...' : ''}]`);
+    }
+
+    const monthCache = new Map();
     for (const monthKey of monthKeys) {
       const existing = await base44.asServiceRole.entities.CallLogPeriod.filter({ monthly_key: monthKey });
       const period = existing && existing.length > 0 ? existing[0] : null;
       let summaries = [];
       if (period) {
         const raw = await base44.asServiceRole.entities.CallLogUserSummary.filter({ period_id: period.id });
-        // Ensure each summary retains its id for later update calls
         summaries = raw.map(s => ({ ...s }));
       }
       monthCache.set(monthKey, { period, summaries });
     }
 
-    // Process each week group
+    let weeksAdded = 0;
+    let weeksReplaced = 0;
+
     for (const group of weekGroups) {
       const { weekStart, weekEnd, rows: weekRows } = group;
       const monthKey = weekStart.substring(0, 7);
       const cache = monthCache.get(monthKey);
 
-      let weekUserData;
-      try {
-        weekUserData = aggregateUsers(weekRows, headerMap);
-      } catch (aggErr) {
-        console.error(`[processCallLog] aggregateUsers failed for week ${weekStart}–${weekEnd}:`, aggErr);
-        return Response.json({ error: `Failed to aggregate user data for week ${weekStart}–${weekEnd}: ${aggErr.message}` }, { status: 500 });
+      // Aggregate users for this week
+      const weekUserData = aggregateUsers(weekRows, headerMap);
+
+      // ---- LOG: computed weekly totals ----
+      const weekTotalCalls   = weekUserData.reduce((s, u) => s + u.total_calls, 0);
+      const weekTotalInbound = weekUserData.reduce((s, u) => s + u.inbound, 0);
+      const weekTotalOut     = weekUserData.reduce((s, u) => s + u.outbound, 0);
+      const weekTotalAns     = weekUserData.reduce((s, u) => s + u.answered, 0);
+      const weekTotalMiss    = weekUserData.reduce((s, u) => s + u.missed, 0);
+      const weekTotalDurMin  = weekUserData.reduce((s, u) => s + u.total_duration_minutes, 0);
+      console.log(`[processCallLog]   Week ${weekStart}–${weekEnd} computed totals: total_calls=${weekTotalCalls}, inbound=${weekTotalInbound}, outbound=${weekTotalOut}, answered=${weekTotalAns}, missed=${weekTotalMiss}, total_duration_minutes=${weekTotalDurMin.toFixed(2)}, users=${weekUserData.length}`);
+      const previewUsers = weekUserData.slice(0, 3);
+      for (const pu of previewUsers) {
+        console.log(`[processCallLog]     user="${pu.user}" total_calls=${pu.total_calls} total_duration_minutes=${pu.total_duration_minutes.toFixed(2)}`);
       }
 
-      // Build the week snapshot defensively
-      let weekSnapshot;
-      try {
-        weekSnapshot = buildWeekSnapshot(weekStart, weekEnd, weekUserData);
-        // Validate snapshot structure
-        if (!weekSnapshot.week_start || !weekSnapshot.week_end) throw new Error('week_start or week_end missing from snapshot');
-        if (!Array.isArray(weekSnapshot.user_snapshot)) weekSnapshot.user_snapshot = [];
-      } catch (snapErr) {
-        console.error(`[processCallLog] buildWeekSnapshot failed for week ${weekStart}–${weekEnd}:`, snapErr);
-        return Response.json({ error: `Failed to build week snapshot for ${weekStart}–${weekEnd}: ${snapErr.message}` }, { status: 500 });
+      // Build enforced snapshot shape
+      const weekSnapshot = buildWeekSnapshot(weekStart, weekEnd, weekUserData);
+
+      // Validate snapshot
+      const validation = validateSnapshot(weekSnapshot);
+      if (!validation.valid) {
+        console.error(`[processCallLog] Snapshot validation failed: ${validation.reason}`);
+        return Response.json({ error: `Week snapshot validation failed: totals and user snapshot do not match. ${validation.reason}` }, { status: 500 });
       }
 
       try {
         if (cache.period) {
-          // Ensure uploaded_weeks is initialized
-          if (!Array.isArray(cache.period.uploaded_weeks)) cache.period.uploaded_weeks = [];
-          const uploadedWeeks = cache.period.uploaded_weeks;
+          const existingWeeks = Array.isArray(cache.period.uploaded_weeks) ? cache.period.uploaded_weeks : [];
+          const dupIdx = existingWeeks.findIndex(w => w.week_start === weekStart && w.week_end === weekEnd);
 
-          // Check for duplicate week
-          const isDuplicate = uploadedWeeks.some(
-            w => w.week_start === weekStart && w.week_end === weekEnd
-          );
-
-          if (isDuplicate) {
-            weeksDuplicate++;
-            continue; // Skip duplicate weeks
+          if (dupIdx >= 0) {
+            // Replace the existing week (not duplicate-skip)
+            console.log(`[processCallLog]   Week ${weekStart}–${weekEnd}: replacing existing snapshot at index ${dupIdx}`);
+            existingWeeks[dupIdx] = weekSnapshot;
+            weeksReplaced++;
+          } else {
+            existingWeeks.push(weekSnapshot);
+            weeksAdded++;
           }
 
-          // Merge into existing summaries (in-memory, will persist after loop)
-          for (const weekUser of weekUserData) {
-            const key = (weekUser.user || '').toLowerCase();
-            const existingIdx = cache.summaries.findIndex(
-              s => (s.user || '').toLowerCase() === key
-            );
+          cache.period.uploaded_weeks = existingWeeks;
 
-            if (existingIdx >= 0) {
-              cache.summaries[existingIdx].total_calls               += weekUser.total_calls;
-              cache.summaries[existingIdx].inbound                   += weekUser.inbound;
-              cache.summaries[existingIdx].outbound                  += weekUser.outbound;
-              cache.summaries[existingIdx].answered                  += weekUser.answered;
-              cache.summaries[existingIdx].missed                    += weekUser.missed;
-              cache.summaries[existingIdx].voicemail                  = (cache.summaries[existingIdx].voicemail || 0) + weekUser.voicemail;
-              cache.summaries[existingIdx].total_duration_seconds    += weekUser.total_duration_seconds;
-              cache.summaries[existingIdx].inbound_duration_seconds  += weekUser.inbound_duration_seconds;
-              cache.summaries[existingIdx].outbound_duration_seconds += weekUser.outbound_duration_seconds;
-              cache.summaries[existingIdx]._dirty = true;
-            } else {
-              cache.summaries.push({
-                ...weekUser,
-                period_id: cache.period.id,
-                _isNew: true
-              });
+          // Rebuild monthly summaries from all weeks (recompute from scratch)
+          const allUserTotals = {};
+          for (const wk of existingWeeks) {
+            for (const u of (wk.user_snapshot || [])) {
+              const key = (u.user || '').toLowerCase();
+              if (!allUserTotals[key]) {
+                allUserTotals[key] = { user: u.user, total_calls: 0, inbound: 0, outbound: 0, answered: 0, missed: 0, voicemail: 0, total_duration_seconds: 0, inbound_duration_seconds: 0, outbound_duration_seconds: 0 };
+              }
+              allUserTotals[key].total_calls               += u.total_calls || 0;
+              allUserTotals[key].inbound                   += u.inbound || 0;
+              allUserTotals[key].outbound                  += u.outbound || 0;
+              allUserTotals[key].answered                  += u.answered || 0;
+              allUserTotals[key].missed                    += u.missed || 0;
+              allUserTotals[key].voicemail                 += u.voicemail || 0;
+              allUserTotals[key].total_duration_seconds    += Math.round((u.total_duration_minutes || 0) * 60);
+              allUserTotals[key].inbound_duration_seconds  += Math.round((u.inbound_duration_minutes || 0) * 60);
+              allUserTotals[key].outbound_duration_seconds += Math.round((u.outbound_duration_minutes || 0) * 60);
             }
           }
-
-          // Track week in uploaded_weeks (with full user_snapshot)
-          uploadedWeeks.push(weekSnapshot);
-          cache.period._updatedWeeks = uploadedWeeks;
+          cache.summaries = Object.values(allUserTotals).map(u => ({
+            ...u,
+            period_id: cache.period.id,
+            answer_rate: u.total_calls > 0 ? u.answered / u.total_calls : 0,
+            avg_duration_seconds: u.total_calls > 0 ? u.total_duration_seconds / u.total_calls : 0,
+          }));
           cache.period._hasNewWeeks = true;
-          console.log(`[processCallLog] uploaded_weeks before save (month ${monthKey}):`, JSON.stringify(uploadedWeeks));
-          weeksAdded++;
 
         } else {
-          // New monthly record — create it with empty uploaded_weeks first, then set the snapshot
+          // New monthly record
+          console.log(`[processCallLog]   Creating new CallLogPeriod for month ${monthKey}`);
+          console.log(`[processCallLog]   uploaded_weeks before create: length=1, keys=${Object.keys(weekSnapshot).join(",")}`);
+
           const newPeriod = await base44.asServiceRole.entities.CallLogPeriod.create({
             reporting_period_start: weekStart,
             reporting_period_end: weekEnd,
@@ -319,6 +318,8 @@ Deno.serve(async (req) => {
             uploaded_at: new Date().toISOString()
           });
 
+          console.log(`[processCallLog]   Created CallLogPeriod id=${newPeriod.id}`);
+
           const userSummaries = weekUserData.map(u => ({
             period_id: newPeriod.id,
             user: u.user,
@@ -328,11 +329,11 @@ Deno.serve(async (req) => {
             answered: u.answered,
             missed: u.missed,
             voicemail: u.voicemail,
-            total_duration_seconds: u.total_duration_seconds,
-            inbound_duration_seconds: u.inbound_duration_seconds,
-            outbound_duration_seconds: u.outbound_duration_seconds,
+            total_duration_seconds: Math.round(u.total_duration_minutes * 60),
+            inbound_duration_seconds: Math.round(u.inbound_duration_minutes * 60),
+            outbound_duration_seconds: Math.round(u.outbound_duration_minutes * 60),
             answer_rate: u.total_calls > 0 ? u.answered / u.total_calls : 0,
-            avg_duration_seconds: u.total_calls > 0 ? u.total_duration_seconds / u.total_calls : 0
+            avg_duration_seconds: u.total_calls > 0 ? Math.round(u.total_duration_minutes * 60) / u.total_calls : 0
           }));
 
           const createdSummaries = [];
@@ -341,11 +342,19 @@ Deno.serve(async (req) => {
             createdSummaries.push({ ...summary, id: created.id });
           }
 
-          // Update cache so subsequent weeks in same month can use this period
+          // Verify the create persisted uploaded_weeks
+          const verifyNew = await base44.asServiceRole.entities.CallLogPeriod.filter({ id: newPeriod.id });
+          const verifyWeeksLen = verifyNew && verifyNew[0] && Array.isArray(verifyNew[0].uploaded_weeks) ? verifyNew[0].uploaded_weeks.length : 0;
+          console.log(`[processCallLog]   After create: period ${newPeriod.id} uploaded_weeks.length=${verifyWeeksLen}`);
+          if (verifyWeeksLen === 0) {
+            console.error(`[processCallLog]   ERROR: uploaded_weeks not persisted after create for period ${newPeriod.id}`);
+            return Response.json({ error: "Weekly snapshots were not persisted. Upload aborted, check logs." }, { status: 500 });
+          }
+          console.log(`[processCallLog]   Verified: week_start=${verifyNew[0].uploaded_weeks[0]?.week_start}, week_end=${verifyNew[0].uploaded_weeks[0]?.week_end}, user_snapshot.length=${verifyNew[0].uploaded_weeks[0]?.user_snapshot?.length}`);
+
           cache.period = newPeriod;
           cache.summaries = createdSummaries;
           monthCache.set(monthKey, cache);
-
           weeksAdded++;
         }
       } catch (weekErr) {
@@ -354,61 +363,33 @@ Deno.serve(async (req) => {
       }
     }
 
-    // If all were duplicates
-    if (weeksAdded === 0) {
-      return Response.json({
-        success: true,
-        weeks_added: 0,
-        weeks_duplicate: weeksDuplicate,
-        all_duplicate: true,
-        message: "No new weeks were added. All selected weeks already exist."
-      });
-    }
-
-    // Persist updated monthly records (for months that had new weeks added)
+    // Persist updated monthly records
     for (const [monthKey, cache] of monthCache.entries()) {
       if (!cache.period || !cache.period._hasNewWeeks) continue;
 
-      // Recalculate derived metrics for all summaries
-      for (const s of cache.summaries) {
-        s.answer_rate = s.total_calls > 0 ? s.answered / s.total_calls : 0;
-        s.avg_duration_seconds = s.total_calls > 0 ? s.total_duration_seconds / s.total_calls : 0;
-      }
-
-      // Persist summaries
-      for (const s of cache.summaries) {
-        if (s._isNew) {
-          const { _isNew, ...data } = s;
-          await base44.asServiceRole.entities.CallLogUserSummary.create(data);
-        } else if (s._dirty) {
-          await base44.asServiceRole.entities.CallLogUserSummary.update(s.id, {
-            total_calls: s.total_calls,
-            inbound: s.inbound,
-            outbound: s.outbound,
-            answered: s.answered,
-            missed: s.missed,
-            voicemail: s.voicemail,
-            total_duration_seconds: s.total_duration_seconds,
-            inbound_duration_seconds: s.inbound_duration_seconds,
-            outbound_duration_seconds: s.outbound_duration_seconds,
-            answer_rate: s.answer_rate,
-            avg_duration_seconds: s.avg_duration_seconds
-          });
-        }
-      }
-
-      // Recompute period span and status from all uploaded weeks
-      const allWeeks = cache.period._updatedWeeks || (cache.period.uploaded_weeks || []);
+      const allWeeks = cache.period.uploaded_weeks || [];
       const allStarts = allWeeks.map(w => w.week_start).sort();
       const allEnds   = allWeeks.map(w => w.week_end).sort();
       const spanStart = allStarts[0];
       const spanEnd   = allEnds[allEnds.length - 1];
       const newStatus = classifyMonthlyStatus(spanStart, spanEnd, monthKey);
 
-      console.log(`[processCallLog] Saving ${allWeeks.length} week(s) to CallLogPeriod ${cache.period.id} for month ${monthKey}`);
+      console.log(`[processCallLog] Saving period ${cache.period.id} for month ${monthKey}: uploaded_weeks.length=${allWeeks.length}, keys=${Object.keys(allWeeks[0] || {}).join(",")}`);
       if (allWeeks.length === 0) {
-        console.error(`[processCallLog] No weekly snapshots stored for month ${monthKey}. period.id=${cache.period.id}`);
+        console.error(`[processCallLog] ERROR: No weekly snapshots to store for month ${monthKey}`);
+        return Response.json({ error: "Weekly snapshots were not persisted. Upload aborted, check logs." }, { status: 500 });
       }
+
+      // Delete and recreate all summaries for a clean recompute
+      const existingSummaries = await base44.asServiceRole.entities.CallLogUserSummary.filter({ period_id: cache.period.id });
+      for (const s of existingSummaries) {
+        await base44.asServiceRole.entities.CallLogUserSummary.delete(s.id);
+      }
+      for (const s of cache.summaries) {
+        const { _isNew, _dirty, id, ...data } = s;
+        await base44.asServiceRole.entities.CallLogUserSummary.create(data);
+      }
+
       await base44.asServiceRole.entities.CallLogPeriod.update(cache.period.id, {
         reporting_period_start: spanStart,
         reporting_period_end: spanEnd,
@@ -418,31 +399,35 @@ Deno.serve(async (req) => {
         uploaded_by: user.email,
         uploaded_at: new Date().toISOString()
       });
+
       // Verify persistence
       const saved = await base44.asServiceRole.entities.CallLogPeriod.filter({ id: cache.period.id });
-      const savedWeeksLen = saved && saved[0] && Array.isArray(saved[0].uploaded_weeks) ? saved[0].uploaded_weeks.length : 0;
-      console.log(`[processCallLog] After save: period ${cache.period.id} has uploaded_weeks.length=${savedWeeksLen}`);
+      const savedPeriod = saved && saved[0];
+      const savedWeeksLen = savedPeriod && Array.isArray(savedPeriod.uploaded_weeks) ? savedPeriod.uploaded_weeks.length : 0;
+      console.log(`[processCallLog] After save: period ${cache.period.id} uploaded_weeks.length=${savedWeeksLen}`);
       if (savedWeeksLen === 0) {
         console.error(`[processCallLog] ERROR: uploaded_weeks persisted as empty for period ${cache.period.id} (month ${monthKey})`);
+        return Response.json({ error: "Weekly snapshots were not persisted. Upload aborted, check logs." }, { status: 500 });
       }
+      const firstSaved = savedPeriod.uploaded_weeks[0];
+      console.log(`[processCallLog]   Verified saved[0]: week_start=${firstSaved?.week_start}, week_end=${firstSaved?.week_end}, totals.total_calls=${firstSaved?.totals?.total_calls}, user_snapshot.length=${firstSaved?.user_snapshot?.length}`);
     }
 
+    const totalProcessed = weeksAdded + weeksReplaced;
     return Response.json({
       success: true,
       weeks_added: weeksAdded,
-      weeks_duplicate: weeksDuplicate,
+      weeks_replaced: weeksReplaced,
       all_duplicate: false,
-      message: weeksAdded === 1 && weeksDuplicate === 0
-        ? `${weeksAdded} week added.`
-        : weeksDuplicate > 0
-          ? `${weeksAdded} week${weeksAdded !== 1 ? 's' : ''} added, ${weeksDuplicate} duplicate${weeksDuplicate !== 1 ? 's' : ''} skipped.`
-          : `${weeksAdded} week${weeksAdded !== 1 ? 's' : ''} added.`
+      message: totalProcessed === 0
+        ? "No changes made."
+        : `${weeksAdded > 0 ? `${weeksAdded} week${weeksAdded !== 1 ? 's' : ''} added` : ''}${weeksAdded > 0 && weeksReplaced > 0 ? ', ' : ''}${weeksReplaced > 0 ? `${weeksReplaced} week${weeksReplaced !== 1 ? 's' : ''} replaced` : ''}.`
     });
 
   } catch (error) {
-    console.error("processCallLog error:", error);
-    console.error("error.message:", error.message);
-    console.error("error.stack:", error.stack);
+    console.error("[processCallLog] Unhandled error:", error);
+    console.error("[processCallLog] error.message:", error.message);
+    console.error("[processCallLog] error.stack:", error.stack);
     return Response.json({ success: false, error: error.message, stack: error.stack }, { status: 500 });
   }
 });
