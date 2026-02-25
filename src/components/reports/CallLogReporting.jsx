@@ -784,21 +784,20 @@ export default function CallLogReporting() {
               </p>
             )}
 
-            {/* Auto-detected period display (read-only) */}
-            {(periodStart || periodEnd) && (
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-medium text-slate-500 block mb-1">
-                    Reporting Period Start <span className="text-slate-400 font-normal">(from worksheet)</span>
-                  </label>
-                  <Input value={periodStart} readOnly disabled className="bg-slate-50 text-slate-600 cursor-not-allowed" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-slate-500 block mb-1">
-                    Reporting Period End <span className="text-slate-400 font-normal">(from worksheet)</span>
-                  </label>
-                  <Input value={periodEnd} readOnly disabled className="bg-slate-50 text-slate-600 cursor-not-allowed" />
-                </div>
+            {/* Detected week ranges preview */}
+            {weekSummary.length > 0 && (
+              <div className="bg-white/70 border border-slate-200 rounded-lg p-3">
+                <p className="text-xs font-semibold text-slate-700 mb-2">
+                  {weekSummary.length} week{weekSummary.length !== 1 ? "s" : ""} detected in worksheet:
+                </p>
+                <ul className="space-y-1">
+                  {weekSummary.map((w, i) => (
+                    <li key={i} className="flex items-center gap-2 text-xs text-slate-600">
+                      <CheckCircle className="w-3 h-3 text-green-600 shrink-0" />
+                      <span>{formatDate(w.start)} – {formatDate(w.end)}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
 
