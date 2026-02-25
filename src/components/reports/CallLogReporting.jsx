@@ -596,72 +596,81 @@ export default function CallLogReporting() {
       // Still generate file but with empty sections
     }
 
-    // ---- Build weekly aggregates from uploaded_weeks ----
-    // Each week entry: { week_start, week_end, user_snapshot: [ { user, total_calls, inbound, outbound, answered, missed, total_duration_seconds, ... } ] }
+    // ---- Build weekly rows from uploaded_weeks ----
+    // Enforced shape: { week_start, week_end, totals: {...}, user_snapshot: [...] }
     const sortedWeeks = uploadedWeeks
       .slice()
       .sort((a, b) => (a.week_start || "").localeCompare(b.week_start || ""));
 
     const weekRows = sortedWeeks.map(week => {
-      const snapshot = Array.isArray(week.user_snapshot) ? week.user_snapshot : [];
-      let wTotal = 0, wIn = 0, wOut = 0, wAns = 0, wMiss = 0, wDurMin = 0;
-      snapshot.forEach(u => {
-        wTotal  += u.total_calls || 0;
-        wIn     += u.inbound    || 0;
-        wOut    += u.outbound   || 0;
-        wAns    += u.answered   || 0;
-        wMiss   += u.missed     || 0;
-        if (u.total_duration_minutes == null) {
-          console.warn(`[CallLog Export] Duration field missing in user_snapshot for user "${u.user}" in week ${week.week_start}–${week.week_end}`);
-        } else {
-          wDurMin += u.total_duration_minutes;
-        }
-      });
-      if (snapshot.length > 0 && wTotal === 0) {
-        console.warn(`[CallLog Export] Week ${week.week_start}–${week.week_end} has ${snapshot.length} user(s) in snapshot but all totals computed to zero.`);
+      // Use week.totals if present (new shape), otherwise fall back to summing user_snapshot
+      let totals;
+      if (week.totals && typeof week.totals.total_calls === "number") {
+        totals = week.totals;
+      } else {
+        // Legacy fallback: compute from user_snapshot
+        const snap = Array.isArray(week.user_snapshot) ? week.user_snapshot : [];
+        console.warn(`[CallLog Export] Week ${week.week_start}–${week.week_end} missing totals field, computing from user_snapshot`);
+        totals = {
+          total_calls:            snap.reduce((s, u) => s + (u.total_calls || 0), 0),
+          inbound:                snap.reduce((s, u) => s + (u.inbound || 0), 0),
+          outbound:               snap.reduce((s, u) => s + (u.outbound || 0), 0),
+          answered:               snap.reduce((s, u) => s + (u.answered || 0), 0),
+          missed:                 snap.reduce((s, u) => s + (u.missed || 0), 0),
+          total_duration_minutes: snap.reduce((s, u) => s + (u.total_duration_minutes || 0), 0),
+        };
       }
       return {
-        week_start: week.week_start,
-        week_end:   week.week_end,
-        total_calls: wTotal,
-        inbound: wIn,
-        outbound: wOut,
-        answered: wAns,
-        missed: wMiss,
-        total_duration_minutes: wDurMin,
-        avg_duration_minutes: wTotal > 0 ? wDurMin / wTotal : 0,
-        answer_rate: wTotal > 0 ? wAns / wTotal : 0,
-        snapshot
+        week_start:             week.week_start,
+        week_end:               week.week_end,
+        total_calls:            totals.total_calls || 0,
+        inbound:                totals.inbound || 0,
+        outbound:               totals.outbound || 0,
+        answered:               totals.answered || 0,
+        missed:                 totals.missed || 0,
+        total_duration_minutes: totals.total_duration_minutes || 0,
+        avg_duration_minutes:   (totals.total_calls || 0) > 0 ? (totals.total_duration_minutes || 0) / totals.total_calls : 0,
+        answer_rate:            (totals.total_calls || 0) > 0 ? (totals.answered || 0) / totals.total_calls : 0,
+        user_snapshot:          Array.isArray(week.user_snapshot) ? week.user_snapshot : [],
+        missing_snapshot:       !Array.isArray(week.user_snapshot) || week.user_snapshot.length === 0,
       };
     });
 
-    // ---- Build per-user-per-week rows ----
+    // ---- Build per-user-per-week rows from user_snapshot ----
     const userWeekRows = [];
     sortedWeeks.forEach(week => {
       const snapshot = Array.isArray(week.user_snapshot) ? week.user_snapshot : [];
+      if (snapshot.length === 0) {
+        // Warning row placeholder — handled in render below
+        userWeekRows.push({ _warning: true, week_start: week.week_start, week_end: week.week_end });
+        return;
+      }
       snapshot.forEach(u => {
         const tc = u.total_calls || 0;
         if (u.total_duration_minutes == null) {
-          console.warn(`[CallLog Export] Duration field missing in user_snapshot for user "${u.user}" in week ${week.week_start}–${week.week_end}`);
+          console.warn(`[CallLog Export] Duration field missing in user_snapshot for user "${u.user}" week ${week.week_start}`);
         }
         const durMin = u.total_duration_minutes || 0;
         userWeekRows.push({
-          week_start: week.week_start,
-          week_end:   week.week_end,
-          user: u.user || "",
-          total_calls: tc,
-          inbound:  u.inbound  || 0,
-          outbound: u.outbound || 0,
-          answered: u.answered || 0,
-          missed:   u.missed   || 0,
+          week_start:             week.week_start,
+          week_end:               week.week_end,
+          user:                   u.user || "",
+          total_calls:            tc,
+          inbound:                u.inbound  || 0,
+          outbound:               u.outbound || 0,
+          answered:               u.answered || 0,
+          missed:                 u.missed   || 0,
           total_duration_minutes: durMin,
-          avg_duration_minutes: tc > 0 ? durMin / tc : 0,
-          answer_rate: tc > 0 ? (u.answered || 0) / tc : 0,
+          avg_duration_minutes:   tc > 0 ? durMin / tc : 0,
+          answer_rate:            tc > 0 ? (u.answered || 0) / tc : 0,
         });
       });
     });
-    // Sort: user A-Z, then week_start asc
+    // Sort real rows: user A-Z, then week_start asc (warning rows stay in place)
     userWeekRows.sort((a, b) => {
+      if (a._warning && b._warning) return (a.week_start || "").localeCompare(b.week_start || "");
+      if (a._warning) return -1;
+      if (b._warning) return 1;
       const nc = (a.user || "").localeCompare(b.user || "");
       if (nc !== 0) return nc;
       return (a.week_start || "").localeCompare(b.week_start || "");
