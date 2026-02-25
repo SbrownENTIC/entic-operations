@@ -596,13 +596,21 @@ export default function CallLogReporting() {
       const snapshot = Array.isArray(week.user_snapshot) ? week.user_snapshot : [];
       let wTotal = 0, wIn = 0, wOut = 0, wAns = 0, wMiss = 0, wDurSec = 0;
       snapshot.forEach(u => {
-        wTotal   += u.total_calls || 0;
-        wIn      += u.inbound || 0;
-        wOut     += u.outbound || 0;
-        wAns     += u.answered || 0;
-        wMiss    += u.missed || 0;
-        wDurSec  += u.total_duration_seconds || 0;
+        wTotal  += u.total_calls || 0;
+        wIn     += u.inbound    || 0;
+        wOut    += u.outbound   || 0;
+        wAns    += u.answered   || 0;
+        wMiss   += u.missed     || 0;
+        // Support both seconds (new) and minutes (legacy) storage
+        if (u.total_duration_seconds != null && u.total_duration_seconds > 0) {
+          wDurSec += u.total_duration_seconds;
+        } else if (u.total_duration_minutes != null && u.total_duration_minutes > 0) {
+          wDurSec += Math.round(u.total_duration_minutes * 60);
+        }
       });
+      if (snapshot.length > 0 && wTotal === 0) {
+        console.warn(`[CallLog Export] Week ${week.week_start}–${week.week_end} has ${snapshot.length} user(s) in snapshot but all totals computed to zero. Check field names in stored snapshot.`);
+      }
       return {
         week_start: week.week_start,
         week_end:   week.week_end,
@@ -620,21 +628,28 @@ export default function CallLogReporting() {
 
     // ---- Build per-user-per-week rows ----
     const userWeekRows = [];
-    weekRows.forEach(week => {
-      week.snapshot.forEach(u => {
+    sortedWeeks.forEach(week => {
+      const snapshot = Array.isArray(week.user_snapshot) ? week.user_snapshot : [];
+      snapshot.forEach(u => {
         const tc = u.total_calls || 0;
-        const dur = u.total_duration_seconds || 0;
+        // Support both seconds (new) and minutes (legacy) storage
+        let durSec = 0;
+        if (u.total_duration_seconds != null && u.total_duration_seconds > 0) {
+          durSec = u.total_duration_seconds;
+        } else if (u.total_duration_minutes != null && u.total_duration_minutes > 0) {
+          durSec = Math.round(u.total_duration_minutes * 60);
+        }
         userWeekRows.push({
           week_start: week.week_start,
           week_end:   week.week_end,
           user: u.user || "",
           total_calls: tc,
-          inbound: u.inbound || 0,
+          inbound:  u.inbound  || 0,
           outbound: u.outbound || 0,
           answered: u.answered || 0,
-          missed: u.missed || 0,
-          total_duration_seconds: dur,
-          avg_duration_seconds: tc > 0 ? dur / tc : 0,
+          missed:   u.missed   || 0,
+          total_duration_seconds: durSec,
+          avg_duration_seconds: tc > 0 ? durSec / tc : 0,
           answer_rate: tc > 0 ? (u.answered || 0) / tc : 0,
         });
       });
