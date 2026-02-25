@@ -1046,11 +1046,13 @@ export default function CallLogReporting() {
     });
 
     // Add flat data rows (real rows only — skip _warning)
+    // IMPORTANT: week_start and week_end are stored as real Date objects so that
+    // the FILTER formula in the main sheet (C4=$C$4) can do a date-to-date comparison.
     const pivotDataRows = [];
     userWeekRows.filter(u => !u._warning).forEach(u => {
       pivotDataRows.push({
-        week_start:             formatDate(u.week_start),
-        week_end:               formatDate(u.week_end),
+        week_start:             parseWeekDate(u.week_start),   // real Date — must match C4
+        week_end:               parseWeekDate(u.week_end),     // real Date
         user:                   u.user || "",
         total_calls:            u.total_calls,
         inbound:                u.inbound,
