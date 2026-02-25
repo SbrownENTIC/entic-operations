@@ -314,6 +314,22 @@ export default function CallLogReporting() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  /** Extract period dates from first data row of a parsed rows array */
+  const extractDatesFromRows = (rows) => {
+    if (!rows || rows.length === 0) return {};
+    const headers = Object.keys(rows[0]);
+    const normHeaders = headers.map(h => [normalizeHeader(h), h]);
+    const startKey = normHeaders.find(([n]) => n === "reporting period start")?.[1];
+    const endKey   = normHeaders.find(([n]) => n === "reporting period end")?.[1];
+    if (!startKey || !endKey) return {};
+    const startVal = rows[0][startKey];
+    const endVal   = rows[0][endKey];
+    return {
+      start: toISODate(startVal),
+      end:   toISODate(endVal)
+    };
+  };
+
   const handleFileSelect = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -322,6 +338,8 @@ export default function CallLogReporting() {
     setWorkbook(null);
     setSheetNames([]);
     setSelectedSheet("");
+    setPeriodStart("");
+    setPeriodEnd("");
 
     const isXlsx = file.name.toLowerCase().endsWith(".xlsx") || file.name.toLowerCase().endsWith(".xls");
     if (isXlsx) {
@@ -329,16 +347,23 @@ export default function CallLogReporting() {
         const { workbook: wb, sheetNames: names } = await readWorkbookFile(file);
         setWorkbook(wb);
         setSheetNames(names);
+        const sheetName = names.length === 1 ? names[0] : null;
         if (names.length === 1) {
-          setSelectedSheet(names[0]); // auto-select single sheet
+          setSelectedSheet(names[0]);
+          // Auto-extract dates from the single sheet
+          const ws = wb.getWorksheet(names[0]);
+          if (ws) {
+            const rows = sheetToJson(ws);
+            const { start, end } = extractDatesFromRows(rows);
+            if (start) setPeriodStart(start);
+            if (end)   setPeriodEnd(end);
+          }
         }
-        // else: user must choose
       } catch (err) {
         console.error("Excel read error:", err);
         setUploadError("Failed to read Excel file: " + (err.message || "unknown error"));
       }
     }
-    // CSV: no sheet selection needed
   };
 
   const validateAndGetRows = () => {
