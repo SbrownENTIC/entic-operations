@@ -727,62 +727,50 @@ export default function CallLogReporting() {
     const weekHRow = ws.addRow(weekHeaders);
     styleTableHeader(weekHRow, 10);
 
-    weekRows.forEach((wk, idx) => {
-      const ar = wk.answer_rate;
-      const { bg, fg } = arColor(ar);
-      const bgArgb = idx % 2 === 0 ? WHITE : LIGHT_GRAY;
+    if (weekRows.length === 0) {
+      const emptyRow = ws.addRow(["No weekly data found for this month.", ...Array(9).fill("")]);
+      ws.mergeCells(`A${ws.rowCount}:J${ws.rowCount}`);
+      emptyRow.getCell(1).font = mkFont({ italic: true, color: { argb: "FF888888" } });
+      emptyRow.height = 18;
+    } else {
+      weekRows.forEach((wk, idx) => {
+        const ar = wk.answer_rate;
+        const { bg, fg } = arColor(ar);
+        const bgArgb = idx % 2 === 0 ? WHITE : LIGHT_GRAY;
 
-      const row = ws.addRow([
-        formatDate(wk.week_start),
-        formatDate(wk.week_end),
-        wk.total_calls,
-        wk.inbound,
-        wk.outbound,
-        wk.answered,
-        wk.missed,
-        ar,
-        secondsToHHMMSS(wk.total_duration_seconds),
-        secondsToHHMMSS(wk.avg_duration_seconds),
-      ]);
-      row.height = 18;
-      row.eachCell({ includeEmpty: true }, (cell, colNum) => {
-        cell.fill      = mkFill(bgArgb);
-        cell.font      = mkFont({});
-        cell.alignment = { horizontal: colNum <= 2 ? "left" : "center", vertical: "middle" };
-        cell.border    = { bottom: thinBorder, right: thinBorder };
-        if ([3,4,5,6,7].includes(colNum)) cell.numFmt = "#,##0";
-        if (colNum === 8) {
-          cell.numFmt = "0.0%";
-          cell.fill   = mkFill(bg);
-          cell.font   = mkFont({ color: { argb: fg } });
-        }
+        const row = ws.addRow([
+          formatDate(wk.week_start),
+          formatDate(wk.week_end),
+          wk.total_calls,
+          wk.inbound,
+          wk.outbound,
+          wk.answered,
+          wk.missed,
+          ar,
+          secondsToHHMMSS(wk.total_duration_seconds),
+          secondsToHHMMSS(wk.avg_duration_seconds),
+        ]);
+        row.height = 18;
+        row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+          cell.fill      = mkFill(bgArgb);
+          cell.font      = mkFont({});
+          cell.alignment = { horizontal: colNum <= 2 ? "left" : "center", vertical: "middle" };
+          cell.border    = { bottom: thinBorder, right: thinBorder };
+          if ([3,4,5,6,7].includes(colNum)) cell.numFmt = "#,##0";
+          if (colNum === 8) {
+            cell.numFmt = "0.0%";
+            cell.fill   = mkFill(bg);
+            cell.font   = mkFont({ color: { argb: fg } });
+          }
+        });
       });
-    });
 
-    // Weekly totals row
-    const wkTotalAr = totalCalls > 0 ? overallAnswerRate : 0;
-    const wkTotalsRow = ws.addRow([
-      "TOTAL", "",
-      totalCalls, totalInbound, totalOutbound, totalAnswered, totalMissed,
-      wkTotalAr,
-      secondsToHHMMSS(totalDurationSec),
-      secondsToHHMMSS(overallAvgDurationSec),
-    ]);
-    wkTotalsRow.height = 20;
-    wkTotalsRow.eachCell({ includeEmpty: true }, (cell, colNum) => {
-      cell.fill      = mkFill(TOTALS_BG);
-      cell.font      = mkFont({ bold: true });
-      cell.alignment = { horizontal: colNum <= 2 ? "left" : "center", vertical: "middle" };
-      cell.border    = { top: medBorder, bottom: medBorder };
-      if ([3,4,5,6,7].includes(colNum)) cell.numFmt = "#,##0";
-      if (colNum === 8) cell.numFmt = "0.0%";
-    });
-
-    // Add autofilter on weekly table
-    ws.autoFilter = {
-      from: { row: weekTableHeaderRowNum, column: 1 },
-      to:   { row: weekTableHeaderRowNum + weekRows.length, column: 10 }
-    };
+      // Autofilter on weekly table
+      ws.autoFilter = {
+        from: { row: weekTableHeaderRowNum, column: 1 },
+        to:   { row: weekTableHeaderRowNum + weekRows.length, column: 10 }
+      };
+    }
 
     // Blank row
     ws.addRow([]);
