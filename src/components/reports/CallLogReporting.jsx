@@ -424,16 +424,6 @@ export default function CallLogReporting() {
       }
     }
 
-    // Check for duplicate period client-side before submitting
-    const duplicate = periods.find(
-      p => p.reporting_period_start === periodStart && p.reporting_period_end === periodEnd
-    );
-    if (duplicate) {
-      setReplaceConfirm({ rows });
-      setUploading(false);
-      return;
-    }
-
     await submitUpload(rows);
   };
 
