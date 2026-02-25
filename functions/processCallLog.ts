@@ -223,7 +223,9 @@ Deno.serve(async (req) => {
       const period = existing && existing.length > 0 ? existing[0] : null;
       let summaries = [];
       if (period) {
-        summaries = await base44.asServiceRole.entities.CallLogUserSummary.filter({ period_id: period.id });
+        const raw = await base44.asServiceRole.entities.CallLogUserSummary.filter({ period_id: period.id });
+        // Ensure each summary retains its id for later update calls
+        summaries = raw.map(s => ({ ...s }));
       }
       monthCache.set(monthKey, { period, summaries });
     }
