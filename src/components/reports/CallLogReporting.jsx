@@ -722,8 +722,32 @@ export default function CallLogReporting() {
     ws.getCell("A3").font = mkFont({ color: { argb: "FF666666" } });
     ws.getRow(3).height = 18;
 
-    // Row 4: blank
-    ws.addRow([]);
+    // Row 4: Week selector — B4 = label, C4 = dropdown defaulting to first week
+    const uniqueWeekLabels = sortedWeeks
+      .map(w => formatDate(w.week_start))
+      .filter((v, i, arr) => arr.indexOf(v) === i);
+    const row4 = ws.addRow(["", "Select Week:", uniqueWeekLabels[0] || "", ...Array(8).fill("")]);
+    row4.height = 22;
+    const labelCell = row4.getCell(2); // B4
+    labelCell.font      = mkFont({ bold: true, size: 12 });
+    labelCell.alignment = { horizontal: "right", vertical: "middle" };
+    const selectorCell = row4.getCell(3); // C4
+    selectorCell.font      = mkFont({ bold: true, size: 12, color: { argb: "FF1F3864" } });
+    selectorCell.fill      = mkFill("FFD9E1F2");
+    selectorCell.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
+    selectorCell.border    = { top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder };
+    // Data validation dropdown on C4
+    if (uniqueWeekLabels.length > 0) {
+      selectorCell.dataValidation = {
+        type: "list",
+        allowBlank: false,
+        formulae: [`"${uniqueWeekLabels.join(",")}"`],
+        showDropDown: false,
+        showErrorMessage: true,
+        errorTitle: "Invalid Selection",
+        error: "Please select a valid week from the dropdown.",
+      };
+    }
 
     // Row 5: Monthly Summary header
     addSectionHeader(ws, "Monthly Summary", 4);
