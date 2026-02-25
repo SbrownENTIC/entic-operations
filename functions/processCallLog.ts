@@ -22,7 +22,9 @@ const REQUIRED_NORMALIZED = [
   "voicemail calls",
   "total call duration (minutes)",
   "inbound call duration (minutes)",
-  "outbound call duration (minutes)"
+  "outbound call duration (minutes)",
+  "reporting period start",
+  "reporting period end"
 ];
 
 function toISODate(val) {
