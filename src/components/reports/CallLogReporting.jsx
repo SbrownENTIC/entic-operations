@@ -58,6 +58,81 @@ const REQUIRED_NORMALIZED = [
   "outbound call duration (minutes)"
 ];
 
+const PERIOD_COL_START = "reporting period start";
+const PERIOD_COL_END   = "reporting period end";
+
+/** Convert Excel serial date or date string to YYYY-MM-DD */
+function toIsoDate(val) {
+  if (!val && val !== 0) return null;
+  // Excel serial number (number type)
+  if (typeof val === "number") {
+    // Excel date serial: days since 1899-12-30
+    const d = new Date(Math.round((val - 25569) * 86400 * 1000));
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(d.getUTCDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+  // Date object (ExcelJS may return Date objects)
+  if (val instanceof Date) {
+    const y = val.getFullYear();
+    const m = String(val.getMonth() + 1).padStart(2, "0");
+    const day = String(val.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+  // String: try to normalise to YYYY-MM-DD
+  const s = String(val).trim();
+  // Already ISO
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // MM/DD/YYYY
+  const mdy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (mdy) return `${mdy[3]}-${String(mdy[1]).padStart(2,"0")}-${String(mdy[2]).padStart(2,"0")}`;
+  // Try native parse as fallback
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  }
+  return null;
+}
+
+/** Extract period start/end from parsed rows. Returns { start, end, error } */
+function extractPeriodFromRows(rows) {
+  if (!rows || rows.length === 0) return { error: "No data rows." };
+  const firstRow = rows[0];
+  const headers = Object.keys(firstRow).map(normalizeHeader);
+
+  const hasStart = headers.includes(PERIOD_COL_START);
+  const hasEnd   = headers.includes(PERIOD_COL_END);
+
+  if (!hasStart || !hasEnd) {
+    return { error: "Reporting Period Start and End columns are required in the worksheet." };
+  }
+
+  // Find the actual (un-normalized) keys
+  const rawKeys = Object.keys(firstRow);
+  const startKey = rawKeys.find(k => normalizeHeader(k) === PERIOD_COL_START);
+  const endKey   = rawKeys.find(k => normalizeHeader(k) === PERIOD_COL_END);
+
+  const startVals = rows.map(r => toIsoDate(r[startKey])).filter(Boolean);
+  const endVals   = rows.map(r => toIsoDate(r[endKey])).filter(Boolean);
+
+  if (!startVals.length || !endVals.length) {
+    return { error: "Reporting Period Start and End columns are required in the worksheet." };
+  }
+
+  const uniqueStarts = [...new Set(startVals)];
+  const uniqueEnds   = [...new Set(endVals)];
+
+  if (uniqueStarts.length > 1) {
+    return { error: `Inconsistent Reporting Period Start values in the worksheet (found: ${uniqueStarts.join(", ")}).` };
+  }
+  if (uniqueEnds.length > 1) {
+    return { error: `Inconsistent Reporting Period End values in the worksheet (found: ${uniqueEnds.join(", ")}).` };
+  }
+
+  return { start: uniqueStarts[0], end: uniqueEnds[0] };
+}
+
 // ---- File parsing ----
 
 /** Reads an xlsx/xls file with ExcelJS and returns { workbook, sheetNames } */
