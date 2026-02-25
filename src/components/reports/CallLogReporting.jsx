@@ -755,15 +755,14 @@ export default function CallLogReporting() {
                     const name = e.target.value;
                     setSelectedSheet(name);
                     setUploadError("");
-                    setPeriodStart("");
-                    setPeriodEnd("");
+                    setWeekSummary([]);
                     if (name && workbook) {
                       const ws = workbook.getWorksheet(name);
                       if (ws) {
                         const rows = sheetToJson(ws);
-                        const { start, end, error } = extractPeriodFromRows(rows);
+                        const { error } = validatePeriodColumns(rows);
                         if (error) setUploadError(error);
-                        else { setPeriodStart(start); setPeriodEnd(end); }
+                        else setWeekSummary(detectWeekSummary(rows));
                       }
                     }
                   }}
