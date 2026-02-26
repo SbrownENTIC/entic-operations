@@ -1529,7 +1529,7 @@ export default function CallLogReporting() {
     const indivTableStartRow = wsIndiv.rowCount + 1;
 
     // Header
-    const indivHRow = wsIndiv.addRow(["Week Start", "User", "Desk", "Location", "Answered", "Desk Goal", "Expected Share", "Percent of Share"]);
+    const indivHRow = wsIndiv.addRow(["Week Start", "User", "Desk", "Location", "Answered", "Desk Goal", "Percent of Goal"]);
     indivHRow.height = 20;
     indivHRow.eachCell({ includeEmpty: true }, (cell, colNum) => {
       cell.font      = mkFont({ bold: true, color: { argb: WHITE } });
