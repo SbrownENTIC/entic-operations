@@ -241,7 +241,7 @@ export default function PrintableManual() {
                 <div>
                   <strong className="text-sm block mb-1">Option 1: Via Invoices Module</strong>
                   <ol className="list-decimal pl-5 space-y-1">
-                    <li>Go to <strong>Invoices</strong> -> <strong>Create Invoice</strong>.</li>
+                    <li>Go to <strong>Invoices</strong> &#8594; <strong>Create Invoice</strong>.</li>
                     <li>Select <strong>Program Group</strong> and <strong>Staff Member</strong>.</li>
                     <li>Select the <strong>Pending Income</strong> records to include.</li>
                     <li>Click <strong>Save</strong>.</li>
