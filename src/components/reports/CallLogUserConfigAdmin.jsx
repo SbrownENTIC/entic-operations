@@ -427,7 +427,7 @@ export default function CallLogUserConfigAdmin() {
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-3 py-8 text-center text-slate-400 text-sm">
+                  <td colSpan={8} className="px-3 py-8 text-center text-slate-400 text-sm">
                     {search ? "No users match your search." : "No user configs yet. Import users to get started."}
                   </td>
                 </tr>
