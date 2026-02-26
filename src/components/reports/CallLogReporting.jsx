@@ -1178,39 +1178,53 @@ export default function CallLogReporting() {
       { width: 18 }, // Percent of Share
     ];
 
-    // Build individual rows: for each week, group desk users and compute shares
+    // Build individual rows: ALL users in snapshot, with desk data only if in deskGoalConfig
     const indivRows = [];
     sortedWeeks.forEach(week => {
       const snapshot = Array.isArray(week.user_snapshot) ? week.user_snapshot : [];
-      // Filter to only desk users
-      const deskUsers = snapshot.filter(u => deskGoalConfig[u.user || ""]);
 
-      // Group by desk
-      const byDesk = {};
-      deskUsers.forEach(u => {
-        const desk = u.user;
-        if (!byDesk[desk]) byDesk[desk] = [];
-        byDesk[desk].push(u);
+      // Pre-compute expectedShare per desk for this week (only for desk users)
+      const deskUserCountMap = {}; // desk -> count of users on that desk this week
+      snapshot.forEach(u => {
+        const desk = u.user || "";
+        if (deskGoalConfig[desk]) {
+          deskUserCountMap[desk] = (deskUserCountMap[desk] || 0) + 1;
+        }
       });
 
-      Object.entries(byDesk).forEach(([desk, users]) => {
-        const cfg = deskGoalConfig[desk];
-        const numUsers = users.length;
-        const expectedShare = numUsers > 0 ? cfg.dailyGoal / numUsers : cfg.dailyGoal;
-        users.forEach(u => {
-          const answered = u.answered || 0;
+      snapshot.forEach(u => {
+        const userName = u.user || "";
+        const answered = u.answered || 0;
+        const cfg = deskGoalConfig[userName];
+
+        if (cfg) {
+          const numUsers = deskUserCountMap[userName] || 1;
+          const expectedShare = cfg.dailyGoal / numUsers;
           const pctOfShare = expectedShare > 0 ? answered / expectedShare : 0;
           indivRows.push({
             week_start:    week.week_start,
-            user:          u.user || "",
-            desk,
+            user:          userName,
+            desk:          userName,
             location:      cfg.location,
             answered,
             dailyGoal:     cfg.dailyGoal,
             expectedShare,
             pctOfShare,
+            isDeskUser:    true,
           });
-        });
+        } else {
+          indivRows.push({
+            week_start:    week.week_start,
+            user:          userName,
+            desk:          "",
+            location:      "",
+            answered,
+            dailyGoal:     null,
+            expectedShare: null,
+            pctOfShare:    null,
+            isDeskUser:    false,
+          });
+        }
       });
     });
 
