@@ -187,7 +187,7 @@ export default function PrintableAdminManual() {
               <tbody className="divide-y divide-slate-200">
                 <tr><td className="p-2 font-mono">generateUConnPDF</td><td className="p-2">Fills <code>MasterUConnServiceInvoice.pdf</code> with invoice data. Returns URL.</td></tr>
                 <tr><td className="p-2 font-mono">syncUConnInvoiceToAirtable</td><td className="p-2">Sends invoice data + PDF URL to Airtable 'Notifications' table.</td></tr>
-                <tr><td className="p-2 font-mono">sendScheduledReminders</td><td className="p-2">Daily Schedule. Finds today's Reminders -> Calls <code>syncReminderToAirtable</code>.</td></tr>
+                <tr><td className="p-2 font-mono">sendScheduledReminders</td><td className="p-2">Daily Schedule. Finds today's Reminders &#8594; Calls <code>syncReminderToAirtable</code>.</td></tr>
                 <tr><td className="p-2 font-mono">syncOfficeClosuresToAirtable</td><td className="p-2">Syncs Holiday reminders to Airtable 'Office Closures' table.</td></tr>
                 <tr><td className="p-2 font-mono">checkLicenseExpirations</td><td className="p-2">Daily Schedule. Direct email send (via Base44) for expiring licenses.</td></tr>
                 <tr><td className="p-2 font-mono">syncPaymentsAndInvoices</td><td className="p-2">Hourly Schedule. Recalculates invoice balances from payments.</td></tr>
