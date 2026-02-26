@@ -1532,7 +1532,7 @@ export default function CallLogReporting() {
     const indivTableStartRow = wsIndiv.rowCount + 1;
 
     // Header — use styleTableHeader for consistent wrap + freeze
-    const indivHRow = wsIndiv.addRow(["Week Start", "User", "Desk", "Location", "Answered", "Desk Goal", "Percent of Goal"]);
+    const indivHRow = wsIndiv.addRow(["Week Start", "User", "Desk", "Location", "Answered", "Weekly Goal", "% of Weekly Goal"]);
     styleTableHeader(indivHRow, 7, 4);
 
     // Freeze pane at row AFTER header
