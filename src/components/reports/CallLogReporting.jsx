@@ -1576,6 +1576,20 @@ export default function CallLogReporting() {
           </h2>
           <p className="text-sm text-slate-500 mt-0.5">Vonage call analytics by reporting period</p>
         </div>
+      </div>
+
+      <Tabs defaultValue="reporting">
+        <TabsList className="mb-2">
+          <TabsTrigger value="reporting" className="gap-2"><Phone className="w-3.5 h-3.5" /> Reporting</TabsTrigger>
+          <TabsTrigger value="users" className="gap-2"><Users className="w-3.5 h-3.5" /> User Directory</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="users">
+          <CallLogUserConfigAdmin />
+        </TabsContent>
+
+        <TabsContent value="reporting">
+      <div className="flex justify-end">
         <Button onClick={() => setShowUpload(true)} className="gap-2 bg-blue-600 hover:bg-blue-700">
           <Upload className="w-4 h-4" /> Upload Call Log
         </Button>
