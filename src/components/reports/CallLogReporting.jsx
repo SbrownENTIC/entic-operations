@@ -785,7 +785,7 @@ export default function CallLogReporting() {
     const weekTableHeaderRowNum = ws.rowCount + 1;
     const weekHeaders = ["Week Start","Week End","Total Calls","Inbound","Outbound","Answered","Missed","Answer Rate","Total Duration","Avg Duration"];
     const weekHRow = ws.addRow(weekHeaders);
-    styleTableHeader(weekHRow, 10);
+    styleTableHeader(weekHRow, 10, 2);
 
     if (weekRows.length === 0) {
       const emptyRow = ws.addRow(["No weekly data found for this month.", ...Array(9).fill("")]);
