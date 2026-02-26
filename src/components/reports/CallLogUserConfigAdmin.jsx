@@ -82,6 +82,7 @@ export default function CallLogUserConfigAdmin() {
     setEditValues({
       location: config.location || "",
       benchmark_group: config.benchmark_group || "Other",
+      daily_goal: config.daily_goal || "",
       include_in_benchmark: config.include_in_benchmark || false,
       active: config.active !== false,
       notes: config.notes || "",
