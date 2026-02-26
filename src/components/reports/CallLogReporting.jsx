@@ -1043,12 +1043,251 @@ export default function CallLogReporting() {
     // ---- Hide Pivot Data sheet (keep in workbook but not visible to user) ----
     wsPivot.state = "hidden";
 
+    // ==============================
+    // DESK GOAL CONFIGURATION
+    // ==============================
+    const deskGoalConfig = {
+      "Check in Bloomfield":            { location: "Bloomfield",  dailyGoal: 34 },
+      "Check out Bloomfield":           { location: "Bloomfield",  dailyGoal: 35 },
+      "Front Check-In Desk Manch 1":    { location: "Manchester",  dailyGoal: 28 },
+      "Front Check-out Desk Manch 2":   { location: "Manchester",  dailyGoal: 30 },
+      "Front Check-in 1 Glastonbury":   { location: "Glastonbury", dailyGoal: 22 },
+      "Front Check-in 2 Glastonbury":   { location: "Glastonbury", dailyGoal: 22 },
+      "Check-Out 1 Glastonbury":        { location: "Glastonbury", dailyGoal: 25 },
+      "Front Check-In Desk Farm 1":     { location: "Farmington",  dailyGoal:  8 },
+      "Front Check-In Desk Farm 2":     { location: "Farmington",  dailyGoal:  8 },
+      "Front Check-out Desk Farm 2":    { location: "Farmington",  dailyGoal: 14 },
+      "Front Check-out Desk Farm 3":    { location: "Farmington",  dailyGoal: 14 },
+    };
+
+    // Conditional color for performance pct (same thresholds for both sheets)
+    const perfColor = (pct) => {
+      if (pct >= 1.0) return { bg: "FFC6EFCE", fg: "FF276221" };
+      if (pct >= 0.9) return { bg: "FFFFEB9C", fg: "FF9C6500" };
+      return               { bg: "FFFFC7CE", fg: "FF9C0006" };
+    };
+
+    // ==============================
+    // SHEET 2: DESK PERFORMANCE
+    // ==============================
+    const wsDesk = wb.addWorksheet("Desk Performance", {
+      views: [{ showGridLines: false, state: "frozen", ySplit: 1, xSplit: 0 }]
+    });
+    wsDesk.columns = [
+      { width: 18 }, // Week Start
+      { width: 34 }, // Desk
+      { width: 16 }, // Location
+      { width: 18 }, // Total Answered
+      { width: 14 }, // Desk Goal
+      { width: 18 }, // Percent of Goal
+    ];
+
+    // Build desk-per-week aggregation
+    const deskWeekMap = {}; // key: "weekStart||desk"
+    sortedWeeks.forEach(week => {
+      const snapshot = Array.isArray(week.user_snapshot) ? week.user_snapshot : [];
+      snapshot.forEach(u => {
+        const desk = u.user || "";
+        if (!deskGoalConfig[desk]) return; // ignore non-desk users
+        const key = `${week.week_start}||${desk}`;
+        if (!deskWeekMap[key]) {
+          deskWeekMap[key] = {
+            week_start: week.week_start,
+            desk,
+            location: deskGoalConfig[desk].location,
+            dailyGoal: deskGoalConfig[desk].dailyGoal,
+            totalAnswered: 0,
+          };
+        }
+        deskWeekMap[key].totalAnswered += (u.answered || 0);
+      });
+    });
+
+    const deskRows = Object.values(deskWeekMap).sort((a, b) => {
+      const ws = a.week_start.localeCompare(b.week_start);
+      if (ws !== 0) return ws;
+      return a.desk.localeCompare(b.desk);
+    });
+
+    // Header
+    const deskHRow = wsDesk.addRow(["Week Start", "Desk", "Location", "Total Answered", "Desk Goal", "Percent of Goal"]);
+    deskHRow.height = 20;
+    deskHRow.eachCell({ includeEmpty: true }, (cell, colNum) => {
+      cell.font      = mkFont({ bold: true, color: { argb: WHITE } });
+      cell.fill      = mkFill(HEADER_BG);
+      cell.alignment = { horizontal: colNum <= 3 ? "left" : "center", vertical: "middle" };
+      cell.border    = { bottom: { style: "medium", color: { argb: WHITE } }, right: thinBorder };
+    });
+
+    const deskTableRows = [];
+    deskRows.forEach((d, idx) => {
+      const pct = d.dailyGoal > 0 ? d.totalAnswered / d.dailyGoal : 0;
+      const { bg, fg } = perfColor(pct);
+      const bgArgb = idx % 2 === 0 ? WHITE : ALT_ROW;
+      const rowValues = [formatDate(d.week_start), d.desk, d.location, d.totalAnswered, d.dailyGoal, pct];
+      const row = wsDesk.addRow(rowValues);
+      row.height = 18;
+      row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+        cell.fill      = mkFill(bgArgb);
+        cell.font      = mkFont({});
+        cell.alignment = { horizontal: colNum <= 3 ? "left" : "center", vertical: "middle" };
+        cell.border    = { bottom: thinBorder, right: thinBorder };
+        if ([4, 5].includes(colNum)) cell.numFmt = "#,##0";
+        if (colNum === 6) {
+          cell.numFmt = "0.00%";
+          cell.fill   = mkFill(bg);
+          cell.font   = mkFont({ color: { argb: fg } });
+        }
+      });
+      deskTableRows.push(rowValues);
+    });
+
+    if (deskRows.length > 0) {
+      wsDesk.addTable({
+        name: "DeskPerformance",
+        ref: `A1:F${1 + deskRows.length}`,
+        headerRow: true,
+        totalsRow: false,
+        style: { theme: "TableStyleMedium2", showRowStripes: true },
+        columns: [
+          { name: "Week Start",      filterButton: true },
+          { name: "Desk",            filterButton: true },
+          { name: "Location",        filterButton: true },
+          { name: "Total Answered",  filterButton: true },
+          { name: "Desk Goal",       filterButton: true },
+          { name: "Percent of Goal", filterButton: true },
+        ],
+        rows: deskTableRows,
+      });
+    }
+
+    // ==============================
+    // SHEET 3: INDIVIDUAL PERFORMANCE
+    // ==============================
+    const wsIndiv = wb.addWorksheet("Individual Performance", {
+      views: [{ showGridLines: false, state: "frozen", ySplit: 1, xSplit: 0 }]
+    });
+    wsIndiv.columns = [
+      { width: 18 }, // Week Start
+      { width: 30 }, // User
+      { width: 34 }, // Desk
+      { width: 16 }, // Location
+      { width: 14 }, // Answered
+      { width: 14 }, // Desk Goal
+      { width: 18 }, // Expected Share
+      { width: 18 }, // Percent of Share
+    ];
+
+    // Build individual rows: for each week, group desk users and compute shares
+    const indivRows = [];
+    sortedWeeks.forEach(week => {
+      const snapshot = Array.isArray(week.user_snapshot) ? week.user_snapshot : [];
+      // Filter to only desk users
+      const deskUsers = snapshot.filter(u => deskGoalConfig[u.user || ""]);
+
+      // Group by desk
+      const byDesk = {};
+      deskUsers.forEach(u => {
+        const desk = u.user;
+        if (!byDesk[desk]) byDesk[desk] = [];
+        byDesk[desk].push(u);
+      });
+
+      Object.entries(byDesk).forEach(([desk, users]) => {
+        const cfg = deskGoalConfig[desk];
+        const numUsers = users.length;
+        const expectedShare = numUsers > 0 ? cfg.dailyGoal / numUsers : cfg.dailyGoal;
+        users.forEach(u => {
+          const answered = u.answered || 0;
+          const pctOfShare = expectedShare > 0 ? answered / expectedShare : 0;
+          indivRows.push({
+            week_start:    week.week_start,
+            user:          u.user || "",
+            desk,
+            location:      cfg.location,
+            answered,
+            dailyGoal:     cfg.dailyGoal,
+            expectedShare,
+            pctOfShare,
+          });
+        });
+      });
+    });
+
+    // Sort: week_start asc, desk asc, user asc
+    indivRows.sort((a, b) => {
+      const ws = a.week_start.localeCompare(b.week_start);
+      if (ws !== 0) return ws;
+      const ds = a.desk.localeCompare(b.desk);
+      if (ds !== 0) return ds;
+      return a.user.localeCompare(b.user);
+    });
+
+    // Header
+    const indivHRow = wsIndiv.addRow(["Week Start", "User", "Desk", "Location", "Answered", "Desk Goal", "Expected Share", "Percent of Share"]);
+    indivHRow.height = 20;
+    indivHRow.eachCell({ includeEmpty: true }, (cell, colNum) => {
+      cell.font      = mkFont({ bold: true, color: { argb: WHITE } });
+      cell.fill      = mkFill(HEADER_BG);
+      cell.alignment = { horizontal: colNum <= 4 ? "left" : "center", vertical: "middle" };
+      cell.border    = { bottom: { style: "medium", color: { argb: WHITE } }, right: thinBorder };
+    });
+
+    const indivTableRows = [];
+    indivRows.forEach((r, idx) => {
+      const { bg, fg } = perfColor(r.pctOfShare);
+      const bgArgb = idx % 2 === 0 ? WHITE : ALT_ROW;
+      const rowValues = [
+        formatDate(r.week_start), r.user, r.desk, r.location,
+        r.answered, r.dailyGoal,
+        parseFloat(r.expectedShare.toFixed(2)),
+        r.pctOfShare,
+      ];
+      const row = wsIndiv.addRow(rowValues);
+      row.height = 18;
+      row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+        cell.fill      = mkFill(bgArgb);
+        cell.font      = mkFont({});
+        cell.alignment = { horizontal: colNum <= 4 ? "left" : "center", vertical: "middle" };
+        cell.border    = { bottom: thinBorder, right: thinBorder };
+        if ([5, 6].includes(colNum)) cell.numFmt = "#,##0";
+        if (colNum === 7) cell.numFmt = "#,##0.00";
+        if (colNum === 8) {
+          cell.numFmt = "0.00%";
+          cell.fill   = mkFill(bg);
+          cell.font   = mkFont({ color: { argb: fg } });
+        }
+      });
+      indivTableRows.push(rowValues);
+    });
+
+    if (indivRows.length > 0) {
+      wsIndiv.addTable({
+        name: "IndividualPerformance",
+        ref: `A1:H${1 + indivRows.length}`,
+        headerRow: true,
+        totalsRow: false,
+        style: { theme: "TableStyleMedium2", showRowStripes: true },
+        columns: [
+          { name: "Week Start",       filterButton: true },
+          { name: "User",             filterButton: true },
+          { name: "Desk",             filterButton: true },
+          { name: "Location",         filterButton: true },
+          { name: "Answered",         filterButton: true },
+          { name: "Desk Goal",        filterButton: true },
+          { name: "Expected Share",   filterButton: true },
+          { name: "Percent of Share", filterButton: true },
+        ],
+        rows: indivTableRows,
+      });
+    }
+
     // ---- Write and download ----
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `${periodLabel} - Call Log.xlsx`;
+    link.download = `${periodLabel} – Call Performance Report.xlsx`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
