@@ -890,7 +890,7 @@ export default function CallLogReporting() {
           cell.border    = { bottom: thinBorder, right: thinBorder };
           if ([4,5,6,7,8].includes(colNum)) cell.numFmt = "#,##0";
           if (colNum === 10) {
-            cell.numFmt = "0.0%";
+            cell.numFmt = "0.00%";
             cell.fill   = mkFill(bg);
             cell.font   = mkFont({ color: { argb: fg } });
           }
