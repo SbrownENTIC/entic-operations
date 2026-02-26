@@ -1425,13 +1425,18 @@ export default function CallLogReporting() {
       });
     });
 
-    // Sort: week_start asc, desk asc, user asc
+    // Sort: week_start asc, then within each week:
+    //   eligible rows (percentOfGoal != null) sorted by percentOfGoal asc (lowest first)
+    //   non-eligible rows (null percentOfGoal) pushed to bottom of each week
     indivRows.sort((a, b) => {
-      const ws = a.week_start.localeCompare(b.week_start);
-      if (ws !== 0) return ws;
-      const ds = a.desk.localeCompare(b.desk);
-      if (ds !== 0) return ds;
-      return a.user.localeCompare(b.user);
+      const wc = a.week_start.localeCompare(b.week_start);
+      if (wc !== 0) return wc;
+      const aHasGoal = a.percentOfGoal !== null && a.percentOfGoal !== undefined;
+      const bHasGoal = b.percentOfGoal !== null && b.percentOfGoal !== undefined;
+      if (aHasGoal && bHasGoal) return a.percentOfGoal - b.percentOfGoal;
+      if (aHasGoal && !bHasGoal) return -1; // eligible before non-eligible
+      if (!aHasGoal && bHasGoal) return 1;
+      return a.user.localeCompare(b.user); // both null: sort by name
     });
 
     // --- Row 1: Banner ---
