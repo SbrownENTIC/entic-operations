@@ -768,7 +768,7 @@ export default function CallLogReporting() {
       vc.fill  = mkFill(bgArgb);
       vc.alignment = { horizontal: "right", vertical: "middle" };
       if (type === "number")  vc.numFmt = "#,##0";
-      if (type === "percent") { vc.numFmt = "0.0%"; }
+      if (type === "percent") { vc.numFmt = "0.00%"; }
       [lc, vc].forEach(c => { c.border = { bottom: thinBorder }; });
     });
 
