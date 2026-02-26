@@ -1088,6 +1088,29 @@ export default function CallLogReporting() {
       return cfg.location;
     };
 
+    // Location-based daily goal map (per desk type)
+    const LOCATION_GOALS = {
+      Bloomfield:  { check_in: 34, check_out: 35 },
+      Manchester:  { check_in: 28, check_out: 30 },
+      Glastonbury: { check_in: 22, check_out: 25 },
+      Farmington:  { check_in: 8,  check_out: 14, phone_only: 32 },
+    };
+    const WORK_DAYS_PER_WEEK = 5;
+
+    // Determine desk type from user name and return the weekly goal
+    const getDeskGoal = (userName) => {
+      const location = getUserLocation(userName);
+      const goals = LOCATION_GOALS[location];
+      if (!goals) return 0;
+      const nameLower = (userName || "").toLowerCase();
+      let deskType = "check_in"; // default
+      if (nameLower.includes("check out") || nameLower.includes("checkout")) deskType = "check_out";
+      else if (nameLower.includes("check in") || nameLower.includes("checkin")) deskType = "check_in";
+      else if (nameLower.includes("phone")) deskType = "phone_only";
+      const dailyRate = goals[deskType] ?? goals["check_in"] ?? 0;
+      return dailyRate * WORK_DAYS_PER_WEEK;
+    };
+
     // Conditional color for performance pct (same thresholds for both sheets)
     const perfColor = (pct) => {
       if (pct >= 1.0) return { bg: "FFC6EFCE", fg: "FF276221" };
