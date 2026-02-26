@@ -1049,20 +1049,31 @@ export default function CallLogReporting() {
     // LOAD CallLogUserConfig for export enrichment
     // ==============================
     const allUserConfigs = await base44.entities.CallLogUserConfig.list();
-    // Full map (all users, regardless of active) for lookup
+    // Map all configs by user_name (exact match, used for every lookup at export time)
     const userConfigMap = {};
     for (const cfg of allUserConfigs) {
       if (cfg.user_name) userConfigMap[cfg.user_name] = cfg;
     }
 
-    // Helper: is a user eligible for benchmark math?
-    // Must be Front Desk, include_in_benchmark = true, and active = true
-    const isBenchmarkEligible = (u) => {
-      const cfg = userConfigMap[u.user || ""];
-      const benchGroup     = u.benchmark_group      ?? (cfg ? cfg.benchmark_group      : null);
-      const includeInBench = u.include_in_benchmark ?? (cfg ? cfg.include_in_benchmark : false);
-      const isActive       = cfg ? cfg.active !== false : false;
-      return benchGroup === "Front Desk" && includeInBench === true && isActive;
+    // Helper: is a user eligible for Front Desk benchmark math?
+    // STRICT: uses only CallLogUserConfig — never falls back to snapshot fields.
+    // Must be Front Desk + include_in_benchmark true + active not false.
+    const isFrontDeskBenchmark = (userName) => {
+      const cfg = userConfigMap[userName];
+      if (!cfg) return false;
+      const benchGroup     = cfg.benchmark_group;
+      const includeInBench = cfg.include_in_benchmark;
+      const isActive       = cfg.active !== false;
+      const result = benchGroup === "Front Desk" && includeInBench === true && isActive;
+      console.log(`[CallLog Export] isFrontDeskBenchmark("${userName}"): group="${benchGroup}" include=${includeInBench} active=${isActive} => ${result}`);
+      return result;
+    };
+
+    // Helper: get location from directory only (never parse from name)
+    const getUserLocation = (userName) => {
+      const cfg = userConfigMap[userName];
+      if (!cfg || !cfg.location || cfg.location === "N/A") return "";
+      return cfg.location;
     };
 
     // Conditional color for performance pct (same thresholds for both sheets)
