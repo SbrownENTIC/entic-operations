@@ -287,7 +287,7 @@ export default function PrintableAdminManual() {
               <p className="text-xs"><strong>Scheduled Task:</strong> <code>sendScheduledReminders</code> runs daily.</p>
               <p className="text-xs">1. Finds active Reminders where <code>send_date == Today</code>.</p>
               <p className="text-xs">2. For each recipient, calls <code>syncReminderToAirtable</code>.</p>
-              <p className="text-xs">3. Creates record in Airtable <strong>Notifications</strong> table -> Airtable sends email.</p>
+              <p className="text-xs">3. Creates record in Airtable <strong>Notifications</strong> table &#8594; Airtable sends email.</p>
             </Step>
 
             <Step title="Scenario B: Office Closure Sync">
