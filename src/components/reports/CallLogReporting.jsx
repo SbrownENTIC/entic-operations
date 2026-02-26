@@ -1431,7 +1431,7 @@ export default function CallLogReporting() {
     if (indivRows.length > 0) {
       wsIndiv.addTable({
         name: "IndividualPerformance",
-        ref: `A1:H${1 + indivRows.length}`,
+        ref: `A${indivTableStartRow}:H${wsIndiv.rowCount}`,
         headerRow: true,
         totalsRow: false,
         style: { theme: "TableStyleMedium2", showRowStripes: true },
