@@ -1354,7 +1354,7 @@ export default function CallLogReporting() {
     ];
 
     // Build individual rows: ALL users in snapshot
-    // Benchmark math (goal/share/pct) only for eligible Front Desk users; all others show raw metrics with blank goal fields
+    // Goal math ONLY for isFrontDeskBenchmark users; all others get blank goal columns
     const indivRows = [];
     sortedWeeks.forEach(week => {
       const snapshot = Array.isArray(week.user_snapshot) ? week.user_snapshot : [];
@@ -1362,11 +1362,9 @@ export default function CallLogReporting() {
       snapshot.forEach(u => {
         const userName = u.user || "";
         const answered = u.answered || 0;
-
-        const cfg = userConfigMap[userName];
-        const location  = u.location ?? (cfg ? cfg.location || "" : "");
-        const benchGroup = u.benchmark_group ?? (cfg ? cfg.benchmark_group : null);
-        const eligible  = isBenchmarkEligible(u);
+        const location = getUserLocation(userName);
+        const eligible = isFrontDeskBenchmark(userName);
+        const cfg      = userConfigMap[userName];
         const dailyGoal = eligible && cfg ? (cfg.daily_goal || 0) : 0;
 
         if (eligible && dailyGoal > 0) {
@@ -1380,7 +1378,6 @@ export default function CallLogReporting() {
             expectedShare: dailyGoal,
             pctOfShare:    answered / dailyGoal,
             isDeskUser:    true,
-            benchmark_group: benchGroup,
           });
         } else {
           indivRows.push({
@@ -1393,7 +1390,6 @@ export default function CallLogReporting() {
             expectedShare: null,
             pctOfShare:    null,
             isDeskUser:    false,
-            benchmark_group: benchGroup,
           });
         }
       });
