@@ -267,8 +267,14 @@ Deno.serve(async (req) => {
         console.log(`[processCallLog]     user="${pu.user}" total_calls=${pu.total_calls} total_duration_minutes=${pu.total_duration_minutes.toFixed(2)}`);
       }
 
-      // Build enforced snapshot shape
-      const weekSnapshot = buildWeekSnapshot(weekStart, weekEnd, weekUserData);
+      // Warn about unmapped users
+      const unmapped = weekUserData.filter(u => !userConfigMap[u.user]).map(u => u.user);
+      if (unmapped.length > 0) {
+        console.warn(`[processCallLog] Unmapped call log users found (week ${weekStart}): ${unmapped.join(", ")}`);
+      }
+
+      // Build enforced snapshot shape (with enrichment)
+      const weekSnapshot = buildWeekSnapshot(weekStart, weekEnd, weekUserData, userConfigMap);
 
       // Validate snapshot
       const validation = validateSnapshot(weekSnapshot);
