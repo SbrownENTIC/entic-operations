@@ -1049,10 +1049,21 @@ export default function CallLogReporting() {
     // LOAD CallLogUserConfig for export enrichment
     // ==============================
     const allUserConfigs = await base44.entities.CallLogUserConfig.list();
+    // Full map (all users, regardless of active) for lookup
     const userConfigMap = {};
     for (const cfg of allUserConfigs) {
-      if (cfg.user_name && cfg.active !== false) userConfigMap[cfg.user_name] = cfg;
+      if (cfg.user_name) userConfigMap[cfg.user_name] = cfg;
     }
+
+    // Helper: is a user eligible for benchmark math?
+    // Must be Front Desk, include_in_benchmark = true, and active = true
+    const isBenchmarkEligible = (u) => {
+      const cfg = userConfigMap[u.user || ""];
+      const benchGroup     = u.benchmark_group      ?? (cfg ? cfg.benchmark_group      : null);
+      const includeInBench = u.include_in_benchmark ?? (cfg ? cfg.include_in_benchmark : false);
+      const isActive       = cfg ? cfg.active !== false : false;
+      return benchGroup === "Front Desk" && includeInBench === true && isActive;
+    };
 
     // Conditional color for performance pct (same thresholds for both sheets)
     const perfColor = (pct) => {
