@@ -2005,7 +2005,7 @@ export default function CallLogReporting() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-semibold text-slate-800">Upload CDR Call-Level File</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">Required columns: Call Start DateTime, Destination Device, Duration (Seconds), Direction</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Supports Vonage export format. Required columns: Date/Time, Destination Device, Duration, Direction</p>
                   </div>
                   <Button variant="ghost" size="sm" onClick={resetCdrUpload}>✕</Button>
                 </div>
