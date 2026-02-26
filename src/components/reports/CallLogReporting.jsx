@@ -1435,8 +1435,8 @@ export default function CallLogReporting() {
     });
 
     // --- Row 1: Banner ---
-    wsIndiv.addRow([`${periodLabel} – Individual Performance`, "", "", "", "", "", "", ""]);
-    wsIndiv.mergeCells("A1:H1");
+    wsIndiv.addRow([`${periodLabel} – Individual Performance`, "", "", "", "", "", ""]);
+    wsIndiv.mergeCells("A1:G1");
     const indivTitle = wsIndiv.getCell("A1");
     indivTitle.font      = mkFont({ bold: true, size: 16, color: { argb: WHITE } });
     indivTitle.fill      = mkFill(DARK_NAVY);
