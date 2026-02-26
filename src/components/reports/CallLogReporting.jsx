@@ -1161,7 +1161,7 @@ export default function CallLogReporting() {
 
       // Summary data rows for this week
       const weekSummaryData = [
-        ["Total Desks",                deskTotalDesks > 0 ? weekTotalDesks : weekTotalDesks, "number"],
+        ["Total Desks",                weekTotalDesks, "number"],
         ["Average % of Goal",          weekAvgPct,    "percent"],
         ["Desks Meeting Goal (≥100%)", weekMeeting,   "number"],
         ["Desks Below 90%",            weekBelow90,   "number"],
