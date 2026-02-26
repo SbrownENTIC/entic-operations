@@ -2036,7 +2036,7 @@ export default function CallLogReporting() {
               {sortedWeeks.length > 0 && (
                 <Card className="border-slate-200 shadow-sm">
                   <CardContent className="p-4">
-                    <PerformanceViews sortedWeeks={sortedWeeks} userConfigMap={userConfigMap} />
+                    <PerformanceViews sortedWeeks={sortedWeeks} userConfigMap={userConfigMap} hourlySnapshot={selectedPeriod?.hourly_snapshot || []} />
                   </CardContent>
                 </Card>
               )}
