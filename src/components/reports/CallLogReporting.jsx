@@ -1493,18 +1493,18 @@ export default function CallLogReporting() {
       const startCol = 1 + cardColIdx * (CARD_W + CARD_GAP);
 
       const weekIndivRows = indivRows.filter(r => r.week_start === weekStart);
-      const weekDeskRows = weekIndivRows.filter(r => r.isDeskUser);
+      const weekEligibleRows = weekIndivRows.filter(r => r.isDeskUser);
       const weekTotalUsers = new Set(weekIndivRows.map(r => r.user)).size;
-      const weekDeskPcts = weekDeskRows.map(r => r.pctOfShare || 0);
-      const weekAvgPct = weekDeskPcts.length > 0 ? weekDeskPcts.reduce((s, v) => s + v, 0) / weekDeskPcts.length : 0;
-      const weekMeeting = weekDeskPcts.filter(p => p >= 1.0).length;
-      const weekBelow90 = weekDeskPcts.filter(p => p < 0.9).length;
+      const weekEligiblePcts = weekEligibleRows.map(r => r.percentOfGoal || 0);
+      const weekAvgPct = weekEligiblePcts.length > 0 ? weekEligiblePcts.reduce((s, v) => s + v, 0) / weekEligiblePcts.length : 0;
+      const weekMeeting = weekEligiblePcts.filter(p => p >= 1.0).length;
+      const weekBelow90 = weekEligiblePcts.filter(p => p < 0.9).length;
 
       renderCard(wsIndiv, startRow, startCol, `Week of ${formatDate(weekStart)}`, [
-        ["Avg % of Share",  weekAvgPct,     "percent"],
-        ["≥ 100%",          weekMeeting,    "number"],
-        ["< 90%",           weekBelow90,    "number"],
-        ["Total Users",     weekTotalUsers, "number"],
+        ["Avg % of Goal",  weekAvgPct,     "percent"],
+        ["≥ 100%",         weekMeeting,    "number"],
+        ["< 90%",          weekBelow90,    "number"],
+        ["Total Users",    weekTotalUsers, "number"],
       ]);
     });
 
