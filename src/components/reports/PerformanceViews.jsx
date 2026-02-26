@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import HourlyView from "./HourlyView";
 
 // ── Shared constants (mirrors Excel export) ────────────────────────────────
 const LOCATION_GOALS = {
