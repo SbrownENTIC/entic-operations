@@ -347,6 +347,15 @@ export default function CallLogUserConfigAdmin() {
                             {GROUPS.map(g => <option key={g} value={g}>{g}</option>)}
                           </select>
                         </td>
+                        <td className="px-3 py-1.5">
+                          <Input
+                            type="number"
+                            value={editValues.daily_goal}
+                            onChange={e => setEditValues(v => ({ ...v, daily_goal: e.target.value === "" ? "" : Number(e.target.value) }))}
+                            className="h-7 text-xs w-20"
+                            placeholder="0"
+                          />
+                        </td>
                         <td className="px-3 py-1.5 text-center">
                           <input
                             type="checkbox"
