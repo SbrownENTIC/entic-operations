@@ -553,6 +553,127 @@ export default function CallLogReporting() {
     setUploading(false);
   };
 
+  // ── CDR hourly upload ────────────────────────────────────────────────────
+  const resetCdrUpload = () => {
+    setShowCdrUpload(false);
+    setCdrFile(null);
+    setCdrError("");
+  };
+
+  /**
+   * Parse raw CDR rows (one row per call) into hourly_snapshot records.
+   * Answered = duration_seconds >= 90. Inbound only.
+   * Required columns (case-insensitive):
+   *   "call start datetime", "destination device", "duration (seconds)", "direction"
+   * Optional: "location" — if missing we look up from userConfigMap.
+   */
+  const parseCdrRows = (rows) => {
+    if (!rows || rows.length === 0) return { error: "No CDR rows found." };
+
+    const normalize = h => String(h).toLowerCase().replace(/\s+/g, " ").trim();
+    const hdr = {};
+    for (const k of Object.keys(rows[0])) hdr[normalize(k)] = k;
+
+    const startKey    = hdr["call start datetime"] || hdr["call start"] || hdr["start datetime"] || hdr["start time"];
+    const destKey     = hdr["destination device"] || hdr["destination"] || hdr["device"] || hdr["user"] || hdr["dest device"];
+    const durKey      = hdr["duration (seconds)"] || hdr["duration"] || hdr["call duration (seconds)"] || hdr["duration seconds"];
+    const dirKey      = hdr["direction"] || hdr["call direction"];
+
+    if (!startKey) return { error: "Missing required column: Call Start DateTime" };
+    if (!destKey)  return { error: "Missing required column: Destination Device" };
+    if (!durKey)   return { error: "Missing required column: Duration (Seconds)" };
+    if (!dirKey)   return { error: "Missing required column: Direction" };
+
+    // Aggregate: key = date|hour|desk
+    const agg = {};
+
+    for (const row of rows) {
+      const direction = String(row[dirKey] || "").toLowerCase().trim();
+      if (!direction.includes("inbound")) continue; // inbound only
+
+      const rawStart = row[startKey];
+      const rawDur   = row[durKey];
+      const desk     = String(row[destKey] || "").trim();
+      if (!desk || !rawStart) continue;
+
+      // Parse datetime → date string + hour integer
+      let date = "";
+      let hour = -1;
+      const s = String(rawStart).trim();
+      // Try YYYY-MM-DD HH:MM or YYYY-MM-DDTHH:MM or MM/DD/YYYY HH:MM
+      const isoMatch = s.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2})/);
+      const mdyMatch = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2})/);
+      if (isoMatch) {
+        date = isoMatch[1];
+        hour = parseInt(isoMatch[2], 10);
+      } else if (mdyMatch) {
+        date = `${mdyMatch[3]}-${String(mdyMatch[1]).padStart(2,"0")}-${String(mdyMatch[2]).padStart(2,"0")}`;
+        hour = parseInt(mdyMatch[4], 10);
+      } else {
+        continue; // can't parse timestamp
+      }
+
+      const durSec = parseFloat(String(rawDur).trim()) || 0;
+      const answered = durSec >= 90 ? 1 : 0;
+
+      // Lookup location from userConfigMap
+      const cfg = userConfigMap[desk];
+      const location = (cfg && cfg.location && cfg.location !== "N/A") ? cfg.location : (row[hdr["location"]] || "");
+
+      const target = getHourlyTarget(location, desk);
+
+      const key = `${date}|${hour}|${desk}`;
+      if (!agg[key]) {
+        agg[key] = { date, hour, desk, location, total_inbound: 0, answered: 0, missed: 0, total_duration_seconds: 0, hourly_target: target };
+      }
+      agg[key].total_inbound       += 1;
+      agg[key].answered            += answered;
+      agg[key].missed              += (1 - answered);
+      agg[key].total_duration_seconds += durSec;
+    }
+
+    const result = Object.values(agg);
+    if (result.length === 0) return { error: "No inbound calls found in the CDR file." };
+    return { hourlySnapshot: result };
+  };
+
+  const handleCdrUpload = async () => {
+    setCdrError("");
+    if (!cdrFile) { setCdrError("Please select a CDR file."); return; }
+    if (!selectedPeriod) { setCdrError("No reporting period selected."); return; }
+
+    setCdrUploading(true);
+
+    const isXlsx = cdrFile.name.toLowerCase().endsWith(".xlsx") || cdrFile.name.toLowerCase().endsWith(".xls");
+    let rows;
+    if (isXlsx) {
+      const { workbook: wb } = await readWorkbookFile(cdrFile);
+      const ws = wb.worksheets[0];
+      if (!ws) { setCdrError("Workbook has no worksheets."); setCdrUploading(false); return; }
+      rows = sheetToJson(ws);
+    } else {
+      rows = await readCSV(cdrFile);
+    }
+
+    const { hourlySnapshot: snap, error } = parseCdrRows(rows);
+    if (error) { setCdrError(error); setCdrUploading(false); return; }
+
+    await base44.entities.CallLogPeriod.update(selectedPeriod.id, {
+      hourly_snapshot: snap,
+      hourly_uploaded_at: new Date().toISOString(),
+    });
+
+    await queryClient.invalidateQueries({ queryKey: ["call-log-periods"] });
+
+    // Refresh selectedPeriod so HourlyView sees new data
+    const fresh = await base44.entities.CallLogPeriod.filter({ id: selectedPeriod.id });
+    if (fresh && fresh[0]) setSelectedPeriod(fresh[0]);
+
+    toast({ title: "CDR Upload Successful", description: `${snap.length} hourly records stored.` });
+    resetCdrUpload();
+    setCdrUploading(false);
+  };
+
   const handleDelete = async () => {
     if (!deleteDialogPeriod) return;
     setDeleting(true);
