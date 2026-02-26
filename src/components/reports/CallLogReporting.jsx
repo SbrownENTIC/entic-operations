@@ -1071,7 +1071,7 @@ export default function CallLogReporting() {
     // SHEET 2: DESK PERFORMANCE
     // ==============================
     const wsDesk = wb.addWorksheet("Desk Performance", {
-      views: [{ showGridLines: false, state: "frozen", ySplit: 1, xSplit: 0 }]
+      views: [{ showGridLines: false }]
     });
     wsDesk.columns = [
       { width: 18 }, // Week Start
@@ -1109,15 +1109,85 @@ export default function CallLogReporting() {
       return a.desk.localeCompare(b.desk);
     });
 
-    // Header
-    const deskHRow = wsDesk.addRow(["Week Start", "Desk", "Location", "Total Answered", "Desk Goal", "Percent of Goal"]);
-    deskHRow.height = 20;
-    deskHRow.eachCell({ includeEmpty: true }, (cell, colNum) => {
-      cell.font      = mkFont({ bold: true, color: { argb: WHITE } });
-      cell.fill      = mkFill(HEADER_BG);
-      cell.alignment = { horizontal: colNum <= 3 ? "left" : "center", vertical: "middle" };
-      cell.border    = { bottom: { style: "medium", color: { argb: WHITE } }, right: thinBorder };
+    // Compute desk summary stats
+    const deskPcts = deskRows.map(d => d.dailyGoal > 0 ? d.totalAnswered / d.dailyGoal : 0);
+    const deskTotalDesks = new Set(deskRows.map(d => d.desk)).size;
+    const deskAvgPct = deskPcts.length > 0 ? deskPcts.reduce((s, v) => s + v, 0) / deskPcts.length : 0;
+    const deskMeetingGoal = deskPcts.filter(p => p >= 1.0).length;
+    const deskBelow90 = deskPcts.filter(p => p < 0.9).length;
+
+    // --- Row 1: Banner ---
+    wsDesk.addRow([`${periodLabel} – Desk Performance`, "", "", "", "", ""]);
+    wsDesk.mergeCells("A1:F1");
+    const deskTitle = wsDesk.getCell("A1");
+    deskTitle.font      = mkFont({ bold: true, size: 16, color: { argb: WHITE } });
+    deskTitle.fill      = mkFill(DARK_NAVY);
+    deskTitle.alignment = { horizontal: "center", vertical: "middle" };
+    wsDesk.getRow(1).height = 40;
+
+    // --- Row 2: blank ---
+    wsDesk.addRow([]);
+    wsDesk.getRow(2).height = 6;
+
+    // --- Row 3: Reporting Period ---
+    wsDesk.addRow([`Reporting Period: ${periodLabel}`]);
+    wsDesk.getCell("A3").font = mkFont({ bold: true });
+    wsDesk.getRow(3).height = 18;
+
+    // --- Row 4: Generated On ---
+    wsDesk.addRow([`Generated On: ${generatedOn}`]);
+    wsDesk.getCell("A4").font = mkFont({ color: { argb: "FF666666" } });
+    wsDesk.getRow(4).height = 18;
+
+    // --- Row 5: blank ---
+    wsDesk.addRow([]);
+    wsDesk.getRow(5).height = 6;
+
+    // --- Rows 6-9: Summary block ---
+    const SUMMARY_BG = "FFE8F0FE";
+    const deskSummaryData = [
+      ["Total Desks",           deskTotalDesks, "number"],
+      ["Average % of Goal",     deskAvgPct,     "percent"],
+      ["Desks Meeting Goal (≥100%)", deskMeetingGoal, "number"],
+      ["Desks Below 90%",       deskBelow90,    "number"],
+    ];
+    deskSummaryData.forEach(([label, val, type]) => {
+      const row = wsDesk.addRow([label, type === "percent" ? val : val, "", "", "", ""]);
+      row.height = 18;
+      const lc = row.getCell(1);
+      const vc = row.getCell(2);
+      lc.font      = mkFont({ bold: true });
+      lc.fill      = mkFill(SUMMARY_BG);
+      lc.alignment = { horizontal: "left", vertical: "middle" };
+      lc.border    = { bottom: thinBorder, left: thinBorder, top: thinBorder };
+      vc.font      = mkFont({ bold: true, size: 12 });
+      vc.fill      = mkFill(SUMMARY_BG);
+      vc.alignment = { horizontal: "right", vertical: "middle" };
+      vc.border    = { bottom: thinBorder, right: thinBorder, top: thinBorder };
+      if (type === "number")  vc.numFmt = "#,##0";
+      if (type === "percent") vc.numFmt = "0.00%";
     });
+
+    // --- Row 10: blank ---
+    wsDesk.addRow([]);
+    wsDesk.getRow(wsDesk.rowCount).height = 6;
+
+    // --- Section header ---
+    const deskSectionRow = wsDesk.addRow(["Detailed Desk Performance by Week", "", "", "", "", ""]);
+    wsDesk.mergeCells(`A${wsDesk.rowCount}:F${wsDesk.rowCount}`);
+    const deskSectionCell = wsDesk.getCell(`A${wsDesk.rowCount}`);
+    deskSectionCell.font      = mkFont({ bold: true, size: 13, color: { argb: WHITE } });
+    deskSectionCell.fill      = mkFill(SECTION_BG);
+    deskSectionCell.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
+    deskSectionRow.height = 24;
+
+    // --- Table header ---
+    const deskTableStartRow = wsDesk.rowCount + 1;
+    const deskHRow = wsDesk.addRow(["Week Start", "Desk", "Location", "Total Answered", "Desk Goal", "Percent of Goal"]);
+    styleTableHeader(deskHRow, 6);
+
+    // Freeze at table header
+    wsDesk.views = [{ showGridLines: false, state: "frozen", ySplit: deskTableStartRow, xSplit: 0 }];
 
     const deskTableRows = [];
     deskRows.forEach((d, idx) => {
@@ -1145,7 +1215,7 @@ export default function CallLogReporting() {
     if (deskRows.length > 0) {
       wsDesk.addTable({
         name: "DeskPerformance",
-        ref: `A1:F${1 + deskRows.length}`,
+        ref: `A${deskTableStartRow}:F${wsDesk.rowCount}`,
         headerRow: true,
         totalsRow: false,
         style: { theme: "TableStyleMedium2", showRowStripes: true },
