@@ -989,7 +989,7 @@ export default function CallLogReporting() {
         if (colNum === 1 || colNum === 2) cell.numFmt = "mmm d, yyyy";
         if ([4,5,6,7,8].includes(colNum)) cell.numFmt = "#,##0";
         if (colNum === 10) {
-          cell.numFmt = "0.0%";
+          cell.numFmt = "0.00%";
           const { bg, fg } = arColor(rowData.answer_rate);
           cell.fill = mkFill(bg);
           cell.font = mkFont({ color: { argb: fg } });
