@@ -1350,7 +1350,7 @@ export default function CallLogReporting() {
     wsIndiv.addRow([]);
     wsIndiv.getRow(5).height = 6;
 
-    // --- Per-week summary blocks for Individual Performance ---
+    // --- Per-week summary blocks for Individual Performance (reuses SUMMARY_BG and WEEK_HEADER_BG) ---
     const indivUniqueWeeks = [...new Set(indivRows.map(r => r.week_start))].sort();
     indivUniqueWeeks.forEach(weekStart => {
       const weekRows = indivRows.filter(r => r.week_start === weekStart);
