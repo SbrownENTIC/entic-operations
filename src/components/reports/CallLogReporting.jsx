@@ -1249,13 +1249,16 @@ export default function CallLogReporting() {
 
     const indivTableRows = [];
     indivRows.forEach((r, idx) => {
-      const { bg, fg } = perfColor(r.pctOfShare);
       const bgArgb = idx % 2 === 0 ? WHITE : ALT_ROW;
       const rowValues = [
-        formatDate(r.week_start), r.user, r.desk, r.location,
-        r.answered, r.dailyGoal,
-        parseFloat(r.expectedShare.toFixed(2)),
-        r.pctOfShare,
+        formatDate(r.week_start),
+        r.user,
+        r.desk || "",
+        r.location || "",
+        r.answered,
+        r.dailyGoal !== null ? r.dailyGoal : "",
+        r.expectedShare !== null ? parseFloat(r.expectedShare.toFixed(2)) : "",
+        r.pctOfShare !== null ? r.pctOfShare : "",
       ];
       const row = wsIndiv.addRow(rowValues);
       row.height = 18;
@@ -1264,9 +1267,11 @@ export default function CallLogReporting() {
         cell.font      = mkFont({});
         cell.alignment = { horizontal: colNum <= 4 ? "left" : "center", vertical: "middle" };
         cell.border    = { bottom: thinBorder, right: thinBorder };
-        if ([5, 6].includes(colNum)) cell.numFmt = "#,##0";
-        if (colNum === 7) cell.numFmt = "#,##0.00";
-        if (colNum === 8) {
+        if (colNum === 5) cell.numFmt = "#,##0";
+        if (colNum === 6 && r.dailyGoal !== null) cell.numFmt = "#,##0";
+        if (colNum === 7 && r.expectedShare !== null) cell.numFmt = "#,##0.00";
+        if (colNum === 8 && r.pctOfShare !== null) {
+          const { bg, fg } = perfColor(r.pctOfShare);
           cell.numFmt = "0.00%";
           cell.fill   = mkFill(bg);
           cell.font   = mkFont({ color: { argb: fg } });
