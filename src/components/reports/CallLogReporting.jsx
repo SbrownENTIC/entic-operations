@@ -1462,20 +1462,6 @@ export default function CallLogReporting() {
     wsIndiv.getRow(5).height = 6;
 
     // --- Horizontal dashboard cards for Individual Performance ---
-    wsIndiv.getColumn(1).width = 18;
-    wsIndiv.getColumn(2).width = 12;
-    wsIndiv.getColumn(3).width = 12;
-    wsIndiv.getColumn(4).width = 12;
-    wsIndiv.getColumn(5).width = 1;
-    wsIndiv.getColumn(6).width = 18;
-    wsIndiv.getColumn(7).width = 12;
-    wsIndiv.getColumn(8).width = 12;
-    wsIndiv.getColumn(9).width = 12;
-    wsIndiv.getColumn(10).width = 1;
-    wsIndiv.getColumn(11).width = 18;
-    wsIndiv.getColumn(12).width = 12;
-    wsIndiv.getColumn(13).width = 12;
-    wsIndiv.getColumn(14).width = 12;
 
     const indivUniqueWeeks = [...new Set(indivRows.map(r => r.week_start))].sort();
     const numIndivCardRows = Math.ceil(indivUniqueWeeks.length / CARDS_PER_ROW);
