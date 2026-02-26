@@ -563,9 +563,17 @@ export default function CallLogReporting() {
   /**
    * Parse raw CDR rows (one row per call) into hourly_snapshot records.
    * Answered = duration_seconds >= 90. Inbound only.
-   * Required columns (case-insensitive):
-   *   "call start datetime", "destination device", "duration (seconds)", "direction"
-   * Optional: "location" — if missing we look up from userConfigMap.
+   *
+   * Supports Vonage CDR export format with headers:
+   *   Direction, To, From, Destination Device, Date/Time, Result,
+   *   Duration, Rate, Charge, Location, Account Code, Service Type, Spam Rating
+   *
+   * Internal mapping:
+   *   start_datetime      → "Date/Time"
+   *   destination_device  → "Destination Device"
+   *   duration_seconds    → "Duration" (raw seconds, no conversion)
+   *   direction           → "Direction"
+   *   location            → "Location" (optional, falls back to userConfigMap)
    */
   const parseCdrRows = (rows) => {
     if (!rows || rows.length === 0) return { error: "No CDR rows found." };
@@ -574,15 +582,30 @@ export default function CallLogReporting() {
     const hdr = {};
     for (const k of Object.keys(rows[0])) hdr[normalize(k)] = k;
 
-    const startKey    = hdr["call start datetime"] || hdr["call start"] || hdr["start datetime"] || hdr["start time"];
-    const destKey     = hdr["destination device"] || hdr["destination"] || hdr["device"] || hdr["user"] || hdr["dest device"];
-    const durKey      = hdr["duration (seconds)"] || hdr["duration"] || hdr["call duration (seconds)"] || hdr["duration seconds"];
-    const dirKey      = hdr["direction"] || hdr["call direction"];
+    // Flexible header mapping — Vonage CDR format
+    const startKey = hdr["date/time"] || hdr["call start datetime"] || hdr["call start"] || hdr["start datetime"] || hdr["start time"];
+    const destKey  = hdr["destination device"] || hdr["destination"] || hdr["device"] || hdr["dest device"] || hdr["user"];
+    const durKey   = hdr["duration"] || hdr["duration (seconds)"] || hdr["call duration (seconds)"] || hdr["duration seconds"];
+    const dirKey   = hdr["direction"] || hdr["call direction"];
+    const locKey   = hdr["location"];
 
-    if (!startKey) return { error: "Missing required column: Call Start DateTime" };
-    if (!destKey)  return { error: "Missing required column: Destination Device" };
-    if (!durKey)   return { error: "Missing required column: Duration (Seconds)" };
-    if (!dirKey)   return { error: "Missing required column: Direction" };
+    // Debug mapping log
+    console.log("[parseCdrRows] Mapped Fields:");
+    console.log(`  start_datetime     → ${startKey || "(not found)"}`);
+    console.log(`  destination_device → ${destKey  || "(not found)"}`);
+    console.log(`  duration_seconds   → ${durKey   || "(not found)"}`);
+    console.log(`  direction          → ${dirKey   || "(not found)"}`);
+    console.log(`  location           → ${locKey   || "(not found, will use userConfigMap)"}`);
+
+    // Validation — only require the 4 core fields
+    const missing = [];
+    if (!startKey) missing.push("Date/Time");
+    if (!destKey)  missing.push("Destination Device");
+    if (!durKey)   missing.push("Duration");
+    if (!dirKey)   missing.push("Direction");
+    if (missing.length > 0) {
+      return { error: `Missing required CDR columns: ${missing.join(", ")}` };
+    }
 
     // Aggregate: key = date|hour|desk
     const agg = {};
