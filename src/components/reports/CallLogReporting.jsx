@@ -590,14 +590,14 @@ export default function CallLogReporting() {
       return row;
     };
 
-    // Helper: style a table header row
-    const styleTableHeader = (row, numCols) => {
-      row.height = 20;
+    // Helper: style a table header row (with wrap text + max height)
+    const styleTableHeader = (row, numCols, leftAlignUpTo = 1) => {
+      row.height = 30; // allow wrap; capped at 45 by Excel if needed
       for (let c = 1; c <= numCols; c++) {
         const cell = row.getCell(c);
         cell.font      = mkFont({ bold: true, color: { argb: WHITE } });
         cell.fill      = mkFill(HEADER_BG);
-        cell.alignment = { horizontal: c === 1 ? "left" : "center", vertical: "middle" };
+        cell.alignment = { horizontal: c <= leftAlignUpTo ? "left" : "center", vertical: "middle", wrapText: true };
         cell.border    = { bottom: { style: "medium", color: { argb: WHITE } }, right: thinBorder };
       }
     };
