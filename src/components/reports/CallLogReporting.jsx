@@ -1138,7 +1138,7 @@ export default function CallLogReporting() {
 
     // --- Per-week summary blocks ---
     const SUMMARY_BG = "FFE8F0FE";
-    const WEEK_HEADER_BG = "FFB8CCE4"; // medium blue for week headers
+    const WEEK_HEADER_BG = "FFB8CCE4";
 
     const deskUniqueWeeks = [...new Set(deskRows.map(d => d.week_start))].sort();
     deskUniqueWeeks.forEach(weekStart => {
