@@ -1166,7 +1166,7 @@ export default function CallLogReporting() {
     });
 
     // --- Row 1: Banner ---
-    wsDesk.addRow([`${periodLabel} – Desk Performance`, "", "", "", "", ""]);
+    wsDesk.addRow([`${periodLabel} – Front End Performance`, "", "", "", "", ""]);
     wsDesk.mergeCells("A1:F1");
     const deskTitle = wsDesk.getCell("A1");
     deskTitle.font      = mkFont({ bold: true, size: 16, color: { argb: WHITE } });
