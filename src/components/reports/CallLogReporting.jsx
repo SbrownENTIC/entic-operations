@@ -843,9 +843,9 @@ export default function CallLogReporting() {
 
     const userTableStartRow = ws.rowCount + 1;
 
-    // Sort A–Z by user name before rendering
+    // Sort A–Z by user name before rendering; exclude zero-activity rows for that week
     const realUserRows = userWeekRows
-      .filter(u => !u._warning)
+      .filter(u => !u._warning && (u.total_calls || 0) > 0)
       .sort((a, b) => (a.user || "").localeCompare(b.user || ""));
 
     if (realUserRows.length === 0) {
