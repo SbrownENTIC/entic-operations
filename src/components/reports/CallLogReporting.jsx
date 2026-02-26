@@ -1401,27 +1401,25 @@ export default function CallLogReporting() {
 
         if (eligible && weeklyGoal > 0) {
           indivRows.push({
-            week_start:    week.week_start,
-            user:          userName,
-            desk:          userName,
+            week_start:     week.week_start,
+            user:           userName,
+            desk:           userName,
             location,
             answered,
             weeklyGoal,
-            expectedShare: weeklyGoal,
-            pctOfShare:    answered / weeklyGoal,
-            isDeskUser:    true,
+            percentOfGoal:  answered / weeklyGoal,
+            isDeskUser:     true,
           });
         } else {
           indivRows.push({
-            week_start:    week.week_start,
-            user:          userName,
-            desk:          "",
+            week_start:     week.week_start,
+            user:           userName,
+            desk:           "",
             location,
             answered,
-            dailyGoal:     null,
-            expectedShare: null,
-            pctOfShare:    null,
-            isDeskUser:    false,
+            weeklyGoal:     null,
+            percentOfGoal:  null,
+            isDeskUser:     false,
           });
         }
       });
