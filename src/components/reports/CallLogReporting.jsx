@@ -1579,15 +1579,25 @@ export default function CallLogReporting() {
         totalsRow: false,
         style: { theme: "TableStyleMedium2", showRowStripes: true },
         columns: [
-          { name: "Week Start",      filterButton: true },
-          { name: "User",            filterButton: true },
-          { name: "Desk",            filterButton: true },
-          { name: "Location",        filterButton: true },
-          { name: "Answered",        filterButton: true },
-          { name: "Desk Goal",       filterButton: true },
-          { name: "Percent of Goal", filterButton: true },
+          { name: "Week Start",       filterButton: true },
+          { name: "User",             filterButton: true },
+          { name: "Desk",             filterButton: true },
+          { name: "Location",         filterButton: true },
+          { name: "Answered",         filterButton: true },
+          { name: "Weekly Goal",      filterButton: true },
+          { name: "% of Weekly Goal", filterButton: true },
         ],
         rows: indivTableRows,
+      });
+
+      // Auto-fit column widths for individual sheet based on content
+      wsIndiv.columns.forEach((col) => {
+        let maxLen = 10;
+        col.eachCell({ includeEmpty: false }, (cell) => {
+          const val = cell.value != null ? String(cell.value) : "";
+          if (val.length > maxLen) maxLen = val.length;
+        });
+        col.width = Math.min(maxLen + 2, 40);
       });
     }
 
