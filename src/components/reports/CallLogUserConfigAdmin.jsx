@@ -311,6 +311,7 @@ export default function CallLogUserConfigAdmin() {
                 <th className="text-left px-3 py-2.5 text-xs font-semibold text-slate-600 whitespace-nowrap">User Name</th>
                 <th className="text-left px-3 py-2.5 text-xs font-semibold text-slate-600">Location</th>
                 <th className="text-left px-3 py-2.5 text-xs font-semibold text-slate-600">Group</th>
+                <th className="text-left px-3 py-2.5 text-xs font-semibold text-slate-600">Daily Goal</th>
                 <th className="text-left px-3 py-2.5 text-xs font-semibold text-slate-600">In Benchmark</th>
                 <th className="text-left px-3 py-2.5 text-xs font-semibold text-slate-600">Active</th>
                 <th className="text-left px-3 py-2.5 text-xs font-semibold text-slate-600">Notes</th>
