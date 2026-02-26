@@ -1383,8 +1383,7 @@ export default function CallLogReporting() {
       { width: 16 }, // Location
       { width: 14 }, // Answered
       { width: 14 }, // Desk Goal
-      { width: 18 }, // Expected Share
-      { width: 18 }, // Percent of Share
+      { width: 18 }, // Percent of Goal
     ];
 
     // Build individual rows: ALL users in snapshot
