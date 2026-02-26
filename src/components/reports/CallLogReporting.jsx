@@ -1307,6 +1307,81 @@ export default function CallLogReporting() {
       return a.user.localeCompare(b.user);
     });
 
+    // Compute individual summary stats (only desk users have pctOfShare)
+    const indivDeskUserRows = indivRows.filter(r => r.isDeskUser);
+    const indivTotalUsers = new Set(indivRows.map(r => r.user)).size;
+    const indivDeskPcts = indivDeskUserRows.map(r => r.pctOfShare || 0);
+    const indivAvgPct = indivDeskPcts.length > 0 ? indivDeskPcts.reduce((s, v) => s + v, 0) / indivDeskPcts.length : 0;
+    const indivMeeting = indivDeskPcts.filter(p => p >= 1.0).length;
+    const indivBelow90 = indivDeskPcts.filter(p => p < 0.9).length;
+
+    // --- Row 1: Banner ---
+    wsIndiv.addRow([`${periodLabel} – Individual Performance`, "", "", "", "", "", "", ""]);
+    wsIndiv.mergeCells("A1:H1");
+    const indivTitle = wsIndiv.getCell("A1");
+    indivTitle.font      = mkFont({ bold: true, size: 16, color: { argb: WHITE } });
+    indivTitle.fill      = mkFill(DARK_NAVY);
+    indivTitle.alignment = { horizontal: "center", vertical: "middle" };
+    wsIndiv.getRow(1).height = 40;
+
+    // --- Row 2: blank ---
+    wsIndiv.addRow([]);
+    wsIndiv.getRow(2).height = 6;
+
+    // --- Row 3: Reporting Period ---
+    wsIndiv.addRow([`Reporting Period: ${periodLabel}`]);
+    wsIndiv.getCell("A3").font = mkFont({ bold: true });
+    wsIndiv.getRow(3).height = 18;
+
+    // --- Row 4: Generated On ---
+    wsIndiv.addRow([`Generated On: ${generatedOn}`]);
+    wsIndiv.getCell("A4").font = mkFont({ color: { argb: "FF666666" } });
+    wsIndiv.getRow(4).height = 18;
+
+    // --- Row 5: blank ---
+    wsIndiv.addRow([]);
+    wsIndiv.getRow(5).height = 6;
+
+    // --- Summary block ---
+    const indivSummaryData = [
+      ["Total Users with Calls",          indivTotalUsers,  "number"],
+      ["Average % of Share (desk users)", indivAvgPct,      "percent"],
+      ["Users ≥ 100% of Share",           indivMeeting,     "number"],
+      ["Users < 90% of Share",            indivBelow90,     "number"],
+    ];
+    indivSummaryData.forEach(([label, val, type]) => {
+      const row = wsIndiv.addRow([label, type === "percent" ? val : val, "", "", "", "", "", ""]);
+      row.height = 18;
+      const lc = row.getCell(1);
+      const vc = row.getCell(2);
+      lc.font      = mkFont({ bold: true });
+      lc.fill      = mkFill(SUMMARY_BG);
+      lc.alignment = { horizontal: "left", vertical: "middle" };
+      lc.border    = { bottom: thinBorder, left: thinBorder, top: thinBorder };
+      vc.font      = mkFont({ bold: true, size: 12 });
+      vc.fill      = mkFill(SUMMARY_BG);
+      vc.alignment = { horizontal: "right", vertical: "middle" };
+      vc.border    = { bottom: thinBorder, right: thinBorder, top: thinBorder };
+      if (type === "number")  vc.numFmt = "#,##0";
+      if (type === "percent") vc.numFmt = "0.00%";
+    });
+
+    // --- blank row ---
+    wsIndiv.addRow([]);
+    wsIndiv.getRow(wsIndiv.rowCount).height = 6;
+
+    // --- Section header ---
+    const indivSectionRow = wsIndiv.addRow(["Detailed Individual Performance by Week", "", "", "", "", "", "", ""]);
+    wsIndiv.mergeCells(`A${wsIndiv.rowCount}:H${wsIndiv.rowCount}`);
+    const indivSectionCell = wsIndiv.getCell(`A${wsIndiv.rowCount}`);
+    indivSectionCell.font      = mkFont({ bold: true, size: 13, color: { argb: WHITE } });
+    indivSectionCell.fill      = mkFill(SECTION_BG);
+    indivSectionCell.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
+    indivSectionRow.height = 24;
+
+    // --- Table header ---
+    const indivTableStartRow = wsIndiv.rowCount + 1;
+
     // Header
     const indivHRow = wsIndiv.addRow(["Week Start", "User", "Desk", "Location", "Answered", "Desk Goal", "Expected Share", "Percent of Share"]);
     indivHRow.height = 20;
@@ -1316,6 +1391,9 @@ export default function CallLogReporting() {
       cell.alignment = { horizontal: colNum <= 4 ? "left" : "center", vertical: "middle" };
       cell.border    = { bottom: { style: "medium", color: { argb: WHITE } }, right: thinBorder };
     });
+
+    // Freeze at table header
+    wsIndiv.views = [{ showGridLines: false, state: "frozen", ySplit: indivTableStartRow, xSplit: 0 }];
 
     const indivTableRows = [];
     indivRows.forEach((r, idx) => {
