@@ -1055,17 +1055,29 @@ export default function CallLogReporting() {
       if (cfg.user_name) userConfigMap[cfg.user_name] = cfg;
     }
 
+    // Helper: coerce stored boolean-like values (handles true, "true", 1, etc.)
+    const coerceBool = (val) => {
+      if (typeof val === "boolean") return val;
+      if (val === null || val === undefined) return false;
+      const s = String(val).toLowerCase().trim();
+      return ["true", "yes", "1", "x", "✓", "checked"].includes(s);
+    };
+
     // Helper: is a user eligible for Front Desk benchmark math?
     // STRICT: uses only CallLogUserConfig — never falls back to snapshot fields.
     // Must be Front Desk + include_in_benchmark true + active not false.
     const isFrontDeskBenchmark = (userName) => {
       const cfg = userConfigMap[userName];
-      if (!cfg) return false;
+      if (!cfg) {
+        console.log(`[CallLog Export] isFrontDeskBenchmark("${userName}"): NO CONFIG FOUND => false`);
+        return false;
+      }
       const benchGroup     = cfg.benchmark_group;
-      const includeInBench = cfg.include_in_benchmark;
-      const isActive       = cfg.active !== false;
+      const includeInBench = coerceBool(cfg.include_in_benchmark);
+      // active defaults to true if missing/undefined (only false if explicitly false)
+      const isActive       = cfg.active === undefined || cfg.active === null ? true : coerceBool(cfg.active);
       const result = benchGroup === "Front Desk" && includeInBench === true && isActive;
-      console.log(`[CallLog Export] isFrontDeskBenchmark("${userName}"): group="${benchGroup}" include=${includeInBench} active=${isActive} => ${result}`);
+      console.log(`[CallLog Export] isFrontDeskBenchmark("${userName}"): group="${benchGroup}" raw_include=${JSON.stringify(cfg.include_in_benchmark)} include=${includeInBench} raw_active=${JSON.stringify(cfg.active)} active=${isActive} => ${result}`);
       return result;
     };
 
