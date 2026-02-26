@@ -1342,7 +1342,7 @@ export default function CallLogReporting() {
     ];
 
     // Build individual rows: ALL users in snapshot
-    // Front Desk benchmark users get goal/share math; all others get raw metrics only
+    // Benchmark math (goal/share/pct) only for eligible Front Desk users; all others show raw metrics with blank goal fields
     const indivRows = [];
     sortedWeeks.forEach(week => {
       const snapshot = Array.isArray(week.user_snapshot) ? week.user_snapshot : [];
@@ -1351,18 +1351,13 @@ export default function CallLogReporting() {
         const userName = u.user || "";
         const answered = u.answered || 0;
 
-        // Resolved enrichment: prefer snapshot fields, fall back to live config
         const cfg = userConfigMap[userName];
-        const benchGroup     = u.benchmark_group      ?? (cfg ? cfg.benchmark_group      : "Other");
-        const includeInBench = u.include_in_benchmark ?? (cfg ? cfg.include_in_benchmark : false);
-        const location       = u.location             ?? (cfg ? cfg.location || ""       : "");
-        const dailyGoal      = cfg ? (cfg.daily_goal || 0) : 0;
+        const location  = u.location ?? (cfg ? cfg.location || "" : "");
+        const benchGroup = u.benchmark_group ?? (cfg ? cfg.benchmark_group : null);
+        const eligible  = isBenchmarkEligible(u);
+        const dailyGoal = eligible && cfg ? (cfg.daily_goal || 0) : 0;
 
-        const isFrontDeskBench = benchGroup === "Front Desk" && includeInBench;
-
-        if (isFrontDeskBench && dailyGoal > 0) {
-          const expectedShare = dailyGoal;
-          const pctOfShare = answered / expectedShare;
+        if (eligible && dailyGoal > 0) {
           indivRows.push({
             week_start:    week.week_start,
             user:          userName,
@@ -1370,8 +1365,8 @@ export default function CallLogReporting() {
             location,
             answered,
             dailyGoal,
-            expectedShare,
-            pctOfShare,
+            expectedShare: dailyGoal,
+            pctOfShare:    answered / dailyGoal,
             isDeskUser:    true,
             benchmark_group: benchGroup,
           });
