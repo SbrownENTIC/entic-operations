@@ -1293,7 +1293,7 @@ export default function CallLogReporting() {
       const startCol = 1 + cardColIdx * (CARD_W + CARD_GAP);
 
       const weekDeskRows = deskRows.filter(d => d.week_start === weekStart);
-      const weekPcts = weekDeskRows.map(d => d.dailyGoal > 0 ? d.totalAnswered / d.dailyGoal : 0);
+      const weekPcts = weekDeskRows.map(d => d.weeklyGoal > 0 ? d.totalAnswered / d.weeklyGoal : 0);
       const weekTotalDesks = new Set(weekDeskRows.map(d => d.desk)).size;
       const weekAvgPct = weekPcts.length > 0 ? weekPcts.reduce((s, v) => s + v, 0) / weekPcts.length : 0;
       const weekMeeting = weekPcts.filter(p => p >= 1.0).length;
