@@ -200,6 +200,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'No data rows provided.' }, { status: 400 });
     }
 
+    // Load CallLogUserConfig for enrichment
+    const allUserConfigs = await base44.asServiceRole.entities.CallLogUserConfig.list();
+    const userConfigMap = {};
+    for (const cfg of allUserConfigs) {
+      if (cfg.user_name) userConfigMap[cfg.user_name] = cfg;
+    }
+
     const headerMap = buildHeaderMap(rows[0]);
 
     const missing = REQUIRED_NORMALIZED.filter(h => !(h in headerMap));
