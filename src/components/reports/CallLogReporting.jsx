@@ -1137,23 +1137,12 @@ export default function CallLogReporting() {
     wsDesk.getRow(5).height = 6;
 
     // --- Horizontal dashboard cards for each week ---
-    const SUMMARY_BG = "FFE8F0FE";
+    const SUMMARY_BG      = "FFE8F0FE";
     const CARD_BORDER_COLOR = "FF2E5096";
-    const CARD_W = 6;   // columns per card
-    const CARD_GAP = 1; // blank columns between cards
-    const CARDS_PER_ROW = 4;
-    const CARD_H = 7;   // total rows per card (1 header + 1 blank + 4 metrics + 1 padding)
-
-    // Expand wsDesk columns to accommodate cards
-    const totalCardCols = CARDS_PER_ROW * (CARD_W + CARD_GAP);
-    while (wsDesk.columns.length < totalCardCols) {
-      wsDesk.getColumn(wsDesk.columns.length + 1).width = 14;
-    }
-    // Ensure first 2 cols have good widths
-    wsDesk.getColumn(1).width = 26;
-    wsDesk.getColumn(2).width = 14;
-
-    const deskUniqueWeeks = [...new Set(deskRows.map(d => d.week_start))].sort();
+    const CARD_W          = 4;  // columns per card
+    const CARD_GAP        = 1;  // blank columns between cards
+    const CARDS_PER_ROW   = 3;  // max cards per row
+    const CARD_H          = 5;  // rows: 1 header + 4 metric rows (no padding rows)
 
     // Helper: get week end for a given week start
     const getWeekEnd = (ws) => {
@@ -1161,7 +1150,7 @@ export default function CallLogReporting() {
       return found ? found.week_end : "";
     };
 
-    // Helper: apply card border to a range of cells
+    // Helper: apply border around the entire card
     const applyCardBorder = (ws, startRow, startCol, numRows, numCols) => {
       const borderColor = { argb: CARD_BORDER_COLOR };
       for (let r = startRow; r < startRow + numRows; r++) {
@@ -1181,14 +1170,64 @@ export default function CallLogReporting() {
       }
     };
 
+    // Helper: render one card onto a worksheet
+    const renderCard = (ws, startRow, startCol, headerText, cardMetrics) => {
+      // Header row
+      const hdrCell = ws.getCell(startRow, startCol);
+      hdrCell.value     = headerText;
+      hdrCell.font      = mkFont({ bold: true, size: 10, color: { argb: WHITE } });
+      hdrCell.fill      = mkFill(DARK_NAVY);
+      hdrCell.alignment = { horizontal: "center", vertical: "middle" };
+      ws.getRow(startRow).height = 20;
+      ws.mergeCells(startRow, startCol, startRow, startCol + CARD_W - 1);
+
+      // Metric rows (no spacers)
+      cardMetrics.forEach(([label, val, type], mi) => {
+        const r = startRow + 1 + mi;
+        ws.getRow(r).height = 17;
+        // Fill all cells in the card row
+        for (let c = startCol; c < startCol + CARD_W; c++) {
+          ws.getCell(r, c).fill = mkFill(SUMMARY_BG);
+        }
+        const lc = ws.getCell(r, startCol);
+        const vc = ws.getCell(r, startCol + CARD_W - 1);
+        lc.value     = label;
+        lc.font      = mkFont({ size: 9 });
+        lc.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
+        vc.value     = val;
+        vc.font      = mkFont({ bold: true, size: 10 });
+        vc.alignment = { horizontal: "right", vertical: "middle", indent: 1 };
+        if (type === "number")  vc.numFmt = "#,##0";
+        if (type === "percent") vc.numFmt = "0.00%";
+      });
+
+      applyCardBorder(ws, startRow, startCol, CARD_H, CARD_W);
+    };
+
+    // Set compact column widths for desk sheet card area (cols 1-12)
+    wsDesk.getColumn(1).width = 16;
+    wsDesk.getColumn(2).width = 10;
+    wsDesk.getColumn(3).width = 10;
+    wsDesk.getColumn(4).width = 10;
+    wsDesk.getColumn(5).width = 1;  // gap
+    wsDesk.getColumn(6).width = 16;
+    wsDesk.getColumn(7).width = 10;
+    wsDesk.getColumn(8).width = 10;
+    wsDesk.getColumn(9).width = 10;
+    wsDesk.getColumn(10).width = 1; // gap
+    wsDesk.getColumn(11).width = 16;
+    wsDesk.getColumn(12).width = 10;
+    wsDesk.getColumn(13).width = 10;
+    wsDesk.getColumn(14).width = 10;
+
+    const deskUniqueWeeks = [...new Set(deskRows.map(d => d.week_start))].sort();
+    const numDeskCardRows = Math.ceil(deskUniqueWeeks.length / CARDS_PER_ROW);
     const deskCardStartRow = wsDesk.rowCount + 1;
 
-    // Pre-add enough rows for cards
-    const numDeskWeeks = deskUniqueWeeks.length;
-    const numCardRows = Math.ceil(numDeskWeeks / CARDS_PER_ROW);
-    for (let i = 0; i < numCardRows * (CARD_H + 1); i++) {
+    // Pre-add rows for all card rows (CARD_H per card row + 1 gap row between card rows)
+    for (let i = 0; i < numDeskCardRows * (CARD_H + 1); i++) {
       wsDesk.addRow([]);
-      wsDesk.getRow(wsDesk.rowCount).height = 20;
+      wsDesk.getRow(wsDesk.rowCount).height = 17;
     }
 
     deskUniqueWeeks.forEach((weekStart, idx) => {
@@ -1198,67 +1237,26 @@ export default function CallLogReporting() {
       const startCol = 1 + cardCol * (CARD_W + CARD_GAP);
 
       const weekDeskRows = deskRows.filter(d => d.week_start === weekStart);
-      const weekPcts = weekDeskRows.map(d => d.dailyGoal > 0 ? d.totalAnswered / d.dailyGoal : 0);
+      const weekPcts     = weekDeskRows.map(d => d.dailyGoal > 0 ? d.totalAnswered / d.dailyGoal : 0);
       const weekTotalDesks = new Set(weekDeskRows.map(d => d.desk)).size;
-      const weekAvgPct = weekPcts.length > 0 ? weekPcts.reduce((s, v) => s + v, 0) / weekPcts.length : 0;
-      const weekMeeting = weekPcts.filter(p => p >= 1.0).length;
-      const weekBelow90 = weekPcts.filter(p => p < 0.9).length;
-      const weekEnd = getWeekEnd(weekStart);
+      const weekAvgPct   = weekPcts.length > 0 ? weekPcts.reduce((s, v) => s + v, 0) / weekPcts.length : 0;
+      const weekMeeting  = weekPcts.filter(p => p >= 1.0).length;
+      const weekBelow90  = weekPcts.filter(p => p < 0.9).length;
 
-      // Row 1: Header (dark blue, white bold text, merged across card width)
-      const hdrCell = wsDesk.getCell(startRow, startCol);
-      hdrCell.value = `Week of ${formatDate(weekStart)}${weekEnd ? "  →  " + formatDate(weekEnd) : ""}`;
-      hdrCell.font      = mkFont({ bold: true, size: 11, color: { argb: WHITE } });
-      hdrCell.fill      = mkFill(DARK_NAVY);
-      hdrCell.alignment = { horizontal: "center", vertical: "middle" };
-      wsDesk.getRow(startRow).height = 24;
-      wsDesk.mergeCells(startRow, startCol, startRow, startCol + CARD_W - 1);
-
-      // Row 2: blank spacer
-      for (let c = startCol; c < startCol + CARD_W; c++) {
-        wsDesk.getCell(startRow + 1, c).fill = mkFill(SUMMARY_BG);
-      }
-      wsDesk.getRow(startRow + 1).height = 6;
-
-      // Rows 3-6: metrics
-      const metrics = [
-        ["Total Desks",       weekTotalDesks, "number"],
-        ["Avg % of Goal",     weekAvgPct,     "percent"],
-        ["Desks ≥ 100%",      weekMeeting,    "number"],
-        ["Desks < 90%",       weekBelow90,    "number"],
-      ];
-      metrics.forEach(([label, val, type], mi) => {
-        const r = startRow + 2 + mi;
-        wsDesk.getRow(r).height = 20;
-        // Fill entire card width with light blue
-        for (let c = startCol; c < startCol + CARD_W; c++) {
-          wsDesk.getCell(r, c).fill = mkFill(SUMMARY_BG);
-        }
-        const lc = wsDesk.getCell(r, startCol);
-        const vc = wsDesk.getCell(r, startCol + CARD_W - 1);
-        lc.value     = label;
-        lc.font      = mkFont({ bold: true, size: 10 });
-        lc.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
-        vc.value     = val;
-        vc.font      = mkFont({ bold: true, size: 12 });
-        vc.alignment = { horizontal: "right", vertical: "middle", indent: 1 };
-        if (type === "number")  vc.numFmt = "#,##0";
-        if (type === "percent") vc.numFmt = "0.00%";
-      });
-
-      // Row 7: bottom padding
-      for (let c = startCol; c < startCol + CARD_W; c++) {
-        wsDesk.getCell(startRow + CARD_H - 1, c).fill = mkFill(SUMMARY_BG);
-      }
-      wsDesk.getRow(startRow + CARD_H - 1).height = 6;
-
-      // Apply border around the whole card
-      applyCardBorder(wsDesk, startRow, startCol, CARD_H, CARD_W);
+      renderCard(wsDesk, startRow, startCol,
+        `Week of ${formatDate(weekStart)}`,
+        [
+          ["Avg % of Goal", weekAvgPct,     "percent"],
+          ["≥ 100%",        weekMeeting,    "number"],
+          ["< 90%",         weekBelow90,    "number"],
+          ["Total Desks",   weekTotalDesks, "number"],
+        ]
+      );
     });
 
     // Blank row after cards block
     wsDesk.addRow([]);
-    wsDesk.getRow(wsDesk.rowCount).height = 10;
+    wsDesk.getRow(wsDesk.rowCount).height = 8;
 
     // --- Section header ---
     const deskSectionRow = wsDesk.addRow(["Detailed Desk Performance by Week", "", "", "", "", ""]);
