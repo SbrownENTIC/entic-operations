@@ -1422,54 +1422,92 @@ export default function CallLogReporting() {
     wsIndiv.addRow([]);
     wsIndiv.getRow(5).height = 6;
 
-    // --- Per-week summary blocks for Individual Performance (reuses SUMMARY_BG and WEEK_HEADER_BG) ---
+    // --- Horizontal dashboard cards for Individual Performance ---
+    // Expand wsIndiv columns to accommodate cards
+    const totalIndivCardCols = CARDS_PER_ROW * (CARD_W + CARD_GAP);
+    while (wsIndiv.columns.length < totalIndivCardCols) {
+      wsIndiv.getColumn(wsIndiv.columns.length + 1).width = 14;
+    }
+    wsIndiv.getColumn(1).width = 26;
+    wsIndiv.getColumn(2).width = 14;
+
     const indivUniqueWeeks = [...new Set(indivRows.map(r => r.week_start))].sort();
-    indivUniqueWeeks.forEach(weekStart => {
-      const weekRows = indivRows.filter(r => r.week_start === weekStart);
-      const weekDeskRows = weekRows.filter(r => r.isDeskUser);
-      const weekTotalUsers = new Set(weekRows.map(r => r.user)).size;
+    const numIndivWeeks = indivUniqueWeeks.length;
+    const numIndivCardRows = Math.ceil(numIndivWeeks / CARDS_PER_ROW);
+    const indivCardStartRow = wsIndiv.rowCount + 1;
+
+    for (let i = 0; i < numIndivCardRows * (CARD_H + 1); i++) {
+      wsIndiv.addRow([]);
+      wsIndiv.getRow(wsIndiv.rowCount).height = 20;
+    }
+
+    indivUniqueWeeks.forEach((weekStart, idx) => {
+      const cardRow = Math.floor(idx / CARDS_PER_ROW);
+      const cardCol = idx % CARDS_PER_ROW;
+      const startRow = indivCardStartRow + cardRow * (CARD_H + 1);
+      const startCol = 1 + cardCol * (CARD_W + CARD_GAP);
+
+      const weekIndivRows = indivRows.filter(r => r.week_start === weekStart);
+      const weekDeskRows = weekIndivRows.filter(r => r.isDeskUser);
+      const weekTotalUsers = new Set(weekIndivRows.map(r => r.user)).size;
       const weekDeskPcts = weekDeskRows.map(r => r.pctOfShare || 0);
       const weekAvgPct = weekDeskPcts.length > 0 ? weekDeskPcts.reduce((s, v) => s + v, 0) / weekDeskPcts.length : 0;
       const weekMeeting = weekDeskPcts.filter(p => p >= 1.0).length;
       const weekBelow90 = weekDeskPcts.filter(p => p < 0.9).length;
+      const weekEnd = getWeekEnd(weekStart);
 
-      // Week header row
-      const weekHdrRow = wsIndiv.addRow([`Week of ${formatDate(weekStart)}`, "", "", "", "", "", "", ""]);
-      wsIndiv.mergeCells(`A${wsIndiv.rowCount}:H${wsIndiv.rowCount}`);
-      const weekHdrCell = wsIndiv.getCell(`A${wsIndiv.rowCount}`);
-      weekHdrCell.font      = mkFont({ bold: true, size: 11, color: { argb: "FF1F3864" } });
-      weekHdrCell.fill      = mkFill(WEEK_HEADER_BG);
-      weekHdrCell.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
-      weekHdrCell.border    = { bottom: thinBorder, top: thinBorder, left: thinBorder, right: thinBorder };
-      weekHdrRow.height = 20;
+      // Row 1: Header
+      const hdrCell = wsIndiv.getCell(startRow, startCol);
+      hdrCell.value = `Week of ${formatDate(weekStart)}${weekEnd ? "  →  " + formatDate(weekEnd) : ""}`;
+      hdrCell.font      = mkFont({ bold: true, size: 11, color: { argb: WHITE } });
+      hdrCell.fill      = mkFill(DARK_NAVY);
+      hdrCell.alignment = { horizontal: "center", vertical: "middle" };
+      wsIndiv.getRow(startRow).height = 24;
+      wsIndiv.mergeCells(startRow, startCol, startRow, startCol + CARD_W - 1);
 
-      const weekSummaryData = [
-        ["Total Users with Calls",          weekTotalUsers, "number"],
-        ["Average % of Share (desk users)", weekAvgPct,     "percent"],
-        ["Users ≥ 100% of Share",           weekMeeting,    "number"],
-        ["Users < 90% of Share",            weekBelow90,    "number"],
+      // Row 2: blank spacer
+      for (let c = startCol; c < startCol + CARD_W; c++) {
+        wsIndiv.getCell(startRow + 1, c).fill = mkFill(SUMMARY_BG);
+      }
+      wsIndiv.getRow(startRow + 1).height = 6;
+
+      // Rows 3-6: metrics
+      const metrics = [
+        ["Total Users w/ Calls",  weekTotalUsers, "number"],
+        ["Avg % of Share",        weekAvgPct,     "percent"],
+        ["Users ≥ 100%",          weekMeeting,    "number"],
+        ["Users < 90%",           weekBelow90,    "number"],
       ];
-      weekSummaryData.forEach(([label, val, type]) => {
-        const row = wsIndiv.addRow([label, val, "", "", "", "", "", ""]);
-        row.height = 18;
-        const lc = row.getCell(1);
-        const vc = row.getCell(2);
-        lc.font      = mkFont({ bold: true });
-        lc.fill      = mkFill(SUMMARY_BG);
+      metrics.forEach(([label, val, type], mi) => {
+        const r = startRow + 2 + mi;
+        wsIndiv.getRow(r).height = 20;
+        for (let c = startCol; c < startCol + CARD_W; c++) {
+          wsIndiv.getCell(r, c).fill = mkFill(SUMMARY_BG);
+        }
+        const lc = wsIndiv.getCell(r, startCol);
+        const vc = wsIndiv.getCell(r, startCol + CARD_W - 1);
+        lc.value     = label;
+        lc.font      = mkFont({ bold: true, size: 10 });
         lc.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
-        lc.border    = { bottom: thinBorder, left: thinBorder };
+        vc.value     = val;
         vc.font      = mkFont({ bold: true, size: 12 });
-        vc.fill      = mkFill(SUMMARY_BG);
-        vc.alignment = { horizontal: "right", vertical: "middle" };
-        vc.border    = { bottom: thinBorder, right: thinBorder };
+        vc.alignment = { horizontal: "right", vertical: "middle", indent: 1 };
         if (type === "number")  vc.numFmt = "#,##0";
         if (type === "percent") vc.numFmt = "0.00%";
       });
 
-      // Spacer
-      wsIndiv.addRow([]);
-      wsIndiv.getRow(wsIndiv.rowCount).height = 4;
+      // Row 7: bottom padding
+      for (let c = startCol; c < startCol + CARD_W; c++) {
+        wsIndiv.getCell(startRow + CARD_H - 1, c).fill = mkFill(SUMMARY_BG);
+      }
+      wsIndiv.getRow(startRow + CARD_H - 1).height = 6;
+
+      applyCardBorder(wsIndiv, startRow, startCol, CARD_H, CARD_W);
     });
+
+    // Blank row after cards
+    wsIndiv.addRow([]);
+    wsIndiv.getRow(wsIndiv.rowCount).height = 10;
 
     // --- blank row ---
     wsIndiv.addRow([]);
