@@ -208,7 +208,7 @@ export default function PrintableAdminManual() {
                 <p className="text-xs mb-2">Used for: <strong>Invoices & General Reminders</strong></p>
                 <ul className="list-disc pl-4 text-xs space-y-1">
                   <li><strong>Synced Fields:</strong> Recipient, Subject, Body, Attachment URL.</li>
-                  <li><strong>Automation:</strong> "When record created" -> Send Email (Gmail/Outlook integration).</li>
+                  <li><strong>Automation:</strong> "When record created" &#8594; Send Email (Gmail/Outlook integration).</li>
                   <li><strong>Source Functions:</strong> <code>syncUConn...</code>, <code>syncManchester...</code>, <code>syncReminderToAirtable</code>.</li>
                 </ul>
               </div>
