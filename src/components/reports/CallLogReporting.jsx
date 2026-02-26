@@ -611,8 +611,9 @@ export default function CallLogReporting() {
     const agg = {};
 
     for (const row of rows) {
-      const direction = String(row[dirKey] || "").toLowerCase().trim();
-      if (!direction.includes("inbound")) continue; // inbound only
+      // Only process inbound calls (exact match "Inbound", case-insensitive)
+      const direction = String(row[dirKey] || "").trim();
+      if (direction.toLowerCase() !== "inbound") continue;
 
       const rawStart = row[startKey];
       const rawDur   = row[durKey];
@@ -636,12 +637,15 @@ export default function CallLogReporting() {
         continue; // can't parse timestamp
       }
 
-      const durSec = parseFloat(String(rawDur).trim()) || 0;
+      // Duration is raw seconds from Vonage — parseInt only, no HH:MM:SS conversion
+      const durSec = parseInt(String(rawDur).trim(), 10) || 0;
       const answered = durSec >= 90 ? 1 : 0;
 
-      // Lookup location from userConfigMap
+      // Lookup location: prefer userConfigMap, fall back to "Location" column if present
       const cfg = userConfigMap[desk];
-      const location = (cfg && cfg.location && cfg.location !== "N/A") ? cfg.location : (row[hdr["location"]] || "");
+      const location = (cfg && cfg.location && cfg.location !== "N/A")
+        ? cfg.location
+        : (locKey ? String(row[locKey] || "").trim() : "");
 
       const target = getHourlyTarget(location, desk);
 
