@@ -1398,19 +1398,18 @@ export default function CallLogReporting() {
         const answered = u.answered || 0;
         const location = getUserLocation(userName);
         const eligible = isFrontDeskBenchmark(userName);
-        const cfg      = userConfigMap[userName];
-        const dailyGoal = eligible && cfg ? (cfg.daily_goal || 0) : 0;
+        const weeklyGoal = eligible ? getDeskGoal(userName) : 0;
 
-        if (eligible && dailyGoal > 0) {
+        if (eligible && weeklyGoal > 0) {
           indivRows.push({
             week_start:    week.week_start,
             user:          userName,
             desk:          userName,
             location,
             answered,
-            dailyGoal,
-            expectedShare: dailyGoal,
-            pctOfShare:    answered / dailyGoal,
+            weeklyGoal,
+            expectedShare: weeklyGoal,
+            pctOfShare:    answered / weeklyGoal,
             isDeskUser:    true,
           });
         } else {
