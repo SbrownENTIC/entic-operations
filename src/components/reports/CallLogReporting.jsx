@@ -1039,6 +1039,9 @@ export default function CallLogReporting() {
       instrRow2.height = 30;
     }
 
+    // ---- Hide Pivot Data sheet (keep in workbook but not visible to user) ----
+    wsPivot.state = "hidden";
+
     // ---- Write and download ----
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
