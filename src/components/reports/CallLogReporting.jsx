@@ -1322,7 +1322,7 @@ export default function CallLogReporting() {
 
     // --- Table header ---
     const deskTableStartRow = wsDesk.rowCount + 1;
-    const deskHRow = wsDesk.addRow(["Week Start", "Desk", "Location", "Total Answered", "Desk Goal", "Percent of Goal"]);
+    const deskHRow = wsDesk.addRow(["Week Start", "Desk", "Location", "Total Answered", "Weekly Goal", "% of Weekly Goal"]);
     styleTableHeader(deskHRow, 6, 3);
 
     // Freeze pane at row AFTER header (so header is always visible)
