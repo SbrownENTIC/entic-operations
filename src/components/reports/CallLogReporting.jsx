@@ -1872,7 +1872,8 @@ export default function CallLogReporting() {
             </>
           )}
         </div>
-      )}
+        )}
+        </TabsContent>
 
         </TabsContent>
       </Tabs>
