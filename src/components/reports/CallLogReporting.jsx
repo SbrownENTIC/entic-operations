@@ -1971,6 +1971,39 @@ export default function CallLogReporting() {
             </div>
           </div>
 
+          {/* CDR Hourly Upload Panel */}
+          {showCdrUpload && (
+            <Card className="border-indigo-200 bg-indigo-50/40">
+              <CardContent className="p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-slate-800">Upload CDR Call-Level File</h3>
+                    <p className="text-xs text-slate-500 mt-0.5">Required columns: Call Start DateTime, Destination Device, Duration (Seconds), Direction</p>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={resetCdrUpload}>✕</Button>
+                </div>
+                <input
+                  type="file"
+                  accept=".xlsx,.csv"
+                  onChange={e => { setCdrFile(e.target.files[0] || null); setCdrError(""); }}
+                  className="block w-full text-sm text-slate-700 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer"
+                />
+                {cdrFile && <p className="text-xs text-slate-500 flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-600" />{cdrFile.name}</p>}
+                {cdrError && (
+                  <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+                    <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />{cdrError}
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <Button onClick={handleCdrUpload} disabled={cdrUploading} className="gap-2 bg-indigo-600 hover:bg-indigo-700">
+                    {cdrUploading ? <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</> : <><Upload className="w-4 h-4" /> Process CDR</>}
+                  </Button>
+                  <Button variant="outline" onClick={resetCdrUpload}>Cancel</Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {summariesLoading ? (
             <div className="flex items-center justify-center py-16 text-slate-500 gap-2">
               <Loader2 className="w-5 h-5 animate-spin" /> Loading...
