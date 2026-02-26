@@ -1865,6 +1865,15 @@ export default function CallLogReporting() {
                 ))}
               </div>
 
+              {/* Performance Views */}
+              {sortedWeeks.length > 0 && (
+                <Card className="border-slate-200 shadow-sm">
+                  <CardContent className="p-4">
+                    <PerformanceViews sortedWeeks={sortedWeeks} userConfigMap={userConfigMap} />
+                  </CardContent>
+                </Card>
+              )}
+
               {/* User breakdown table */}
               <Card className="border-slate-200 shadow-sm">
                 <CardHeader className="border-b border-slate-100 py-3 px-4">
