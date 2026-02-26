@@ -1561,10 +1561,9 @@ export default function CallLogReporting() {
         cell.alignment = { horizontal: colNum <= 4 ? "left" : "center", vertical: "middle" };
         cell.border    = { bottom: thinBorder, right: thinBorder };
         if (colNum === 5) cell.numFmt = "#,##0";
-        if (colNum === 6 && r.dailyGoal !== null) cell.numFmt = "#,##0";
-        if (colNum === 7 && r.expectedShare !== null) cell.numFmt = "#,##0.00";
-        if (colNum === 8 && r.pctOfShare !== null) {
-          const { bg, fg } = perfColor(r.pctOfShare);
+        if (colNum === 6 && r.weeklyGoal !== null && r.weeklyGoal !== undefined) cell.numFmt = "#,##0";
+        if (colNum === 7 && r.percentOfGoal !== null && r.percentOfGoal !== undefined) {
+          const { bg, fg } = perfColor(r.percentOfGoal);
           cell.numFmt = "0.00%";
           cell.fill   = mkFill(bg);
           cell.font   = mkFont({ color: { argb: fg } });
