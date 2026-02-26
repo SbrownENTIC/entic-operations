@@ -1874,6 +1874,9 @@ export default function CallLogReporting() {
         </div>
       )}
 
+        </TabsContent>
+      </Tabs>
+
       <AlertDialog open={!!deleteDialogPeriod} onOpenChange={open => !open && setDeleteDialogPeriod(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
