@@ -273,6 +273,12 @@ export default function CallLogReporting() {
   const [sortDir, setSortDir] = useState("asc");
   const [userSearch, setUserSearch] = useState("");
 
+  // CDR hourly upload state
+  const [showCdrUpload, setShowCdrUpload] = useState(false);
+  const [cdrFile, setCdrFile] = useState(null);
+  const [cdrUploading, setCdrUploading] = useState(false);
+  const [cdrError, setCdrError] = useState("");
+
   const { data: periods = [], isLoading: periodsLoading } = useQuery({
     queryKey: ["call-log-periods"],
     queryFn: async () => {
