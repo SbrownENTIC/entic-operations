@@ -1519,17 +1519,11 @@ export default function CallLogReporting() {
     // --- Table header ---
     const indivTableStartRow = wsIndiv.rowCount + 1;
 
-    // Header
+    // Header — use styleTableHeader for consistent wrap + freeze
     const indivHRow = wsIndiv.addRow(["Week Start", "User", "Desk", "Location", "Answered", "Desk Goal", "Percent of Goal"]);
-    indivHRow.height = 20;
-    indivHRow.eachCell({ includeEmpty: true }, (cell, colNum) => {
-      cell.font      = mkFont({ bold: true, color: { argb: WHITE } });
-      cell.fill      = mkFill(HEADER_BG);
-      cell.alignment = { horizontal: colNum <= 4 ? "left" : "center", vertical: "middle" };
-      cell.border    = { bottom: { style: "medium", color: { argb: WHITE } }, right: thinBorder };
-    });
+    styleTableHeader(indivHRow, 7, 4);
 
-    // Freeze at table header
+    // Freeze pane at row AFTER header
     wsIndiv.views = [{ showGridLines: false, state: "frozen", ySplit: indivTableStartRow, xSplit: 0 }];
 
     const indivTableRows = [];
