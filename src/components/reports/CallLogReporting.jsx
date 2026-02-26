@@ -293,6 +293,25 @@ export default function CallLogReporting() {
     enabled: !!selectedPeriod?.id
   });
 
+  const { data: allUserConfigs = [] } = useQuery({
+    queryKey: ["call-log-user-configs"],
+    queryFn: () => base44.entities.CallLogUserConfig.list(),
+  });
+
+  const userConfigMap = React.useMemo(() => {
+    const map = {};
+    for (const cfg of allUserConfigs) {
+      if (cfg.user_name) map[cfg.user_name] = cfg;
+    }
+    return map;
+  }, [allUserConfigs]);
+
+  // Build sortedWeeks for performance views from selected period
+  const sortedWeeks = React.useMemo(() => {
+    const uploadedWeeks = selectedPeriod?.uploaded_weeks || [];
+    return uploadedWeeks.slice().sort((a, b) => (a.week_start || "").localeCompare(b.week_start || ""));
+  }, [selectedPeriod]);
+
   // Helper: convert HH:MM:SS string to seconds for sort
   const hmsToSeconds = (hms) => {
     if (!hms || hms === "0:00:00") return 0;
