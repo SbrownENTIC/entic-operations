@@ -1553,8 +1553,8 @@ export default function CallLogReporting() {
         r.desk || "",
         r.location || "",
         r.answered,
-        r.dailyGoal !== null ? r.dailyGoal : "",
-        r.expectedShare !== null ? parseFloat(r.expectedShare.toFixed(2)) : "",
+        r.weeklyGoal !== null && r.weeklyGoal !== undefined ? r.weeklyGoal : "",
+        r.expectedShare !== null && r.expectedShare !== undefined ? parseFloat(r.expectedShare.toFixed(2)) : "",
         r.pctOfShare !== null ? r.pctOfShare : "",
       ];
       const row = wsIndiv.addRow(rowValues);
