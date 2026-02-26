@@ -99,7 +99,7 @@ function detectWeekSummary(rows) {
   return pairs;
 }
 
-/** Convert Excel serial date or date string to YYYY-MM-DD */
+/** Convert Excel serial date or date string to YYYY-MM-DD (no week normalization — raw value only) */
 function toIsoDate(val) {
   if (!val && val !== 0) return null;
   // Excel serial number (number type)
@@ -111,24 +111,25 @@ function toIsoDate(val) {
     const day = String(d.getUTCDate()).padStart(2, "0");
     return `${y}-${m}-${day}`;
   }
-  // Date object (ExcelJS may return Date objects)
+  // Date object (ExcelJS may return Date objects) — always use UTC to avoid timezone shift
   if (val instanceof Date) {
-    const y = val.getFullYear();
-    const m = String(val.getMonth() + 1).padStart(2, "0");
-    const day = String(val.getDate()).padStart(2, "0");
+    const y = val.getUTCFullYear();
+    const m = String(val.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(val.getUTCDate()).padStart(2, "0");
     return `${y}-${m}-${day}`;
   }
-  // String: try to normalise to YYYY-MM-DD
+  // String: parse to YYYY-MM-DD using explicit field extraction only — no native Date() parse
   const s = String(val).trim();
-  // Already ISO
+  // Already ISO: YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  // MM/DD/YYYY
-  const mdy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (mdy) return `${mdy[3]}-${String(mdy[1]).padStart(2,"0")}-${String(mdy[2]).padStart(2,"0")}`;
-  // Try native parse as fallback
-  const d = new Date(s);
-  if (!isNaN(d.getTime())) {
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  // MM/DD/YYYY (4-digit year)
+  const mdy4 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (mdy4) return `${mdy4[3]}-${String(mdy4[1]).padStart(2,"0")}-${String(mdy4[2]).padStart(2,"0")}`;
+  // MM/DD/YY (2-digit year — treat 00-99 as 2000-2099)
+  const mdy2 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+  if (mdy2) {
+    const year = 2000 + parseInt(mdy2[3], 10);
+    return `${year}-${String(mdy2[1]).padStart(2,"0")}-${String(mdy2[2]).padStart(2,"0")}`;
   }
   return null;
 }
