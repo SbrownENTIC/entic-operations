@@ -246,7 +246,7 @@ export default function PrintableAdminManual() {
                   </ul>
                 </li>
                 <li>
-                  <strong>Delivery:</strong> Airtable Automation sees new record -> Sends Email to ensure workflow automation.
+                  <strong>Delivery:</strong> Airtable Automation sees new record &#8594; Sends Email to ensure workflow automation.
                 </li>
               </ol>
             </Step>
