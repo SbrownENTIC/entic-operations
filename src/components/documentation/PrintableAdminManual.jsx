@@ -277,7 +277,7 @@ export default function PrintableAdminManual() {
             <Step title="St. Francis">
               <p className="text-xs"><strong>Income Source:</strong> Driven by the On-Call Schedule.</p>
               <p className="text-xs"><strong>Logic:</strong> When a schedule is published for St. Francis locations, the system calls <code>sync2026StFrancis</code> (or similar logic) to generate Pending Income records calculated as <code>Days * Rate</code>.</p>
-              <p className="text-xs mt-1"><strong>Invoice:</strong> Standard manual creation. Select St. Francis -> Link Income -> Save.</p>
+              <p className="text-xs mt-1"><strong>Invoice:</strong> Standard manual creation. Select St. Francis &#8594; Link Income &#8594; Save.</p>
             </Step>
           </PrintSection>
 
