@@ -1142,17 +1142,16 @@ export default function CallLogReporting() {
         const userName = u.user || "";
         if (!isFrontDeskBenchmark(userName)) return;
 
-        const cfg = userConfigMap[userName];
         const desk = userName;
         const location = getUserLocation(userName);
-        const dailyGoal = cfg ? (cfg.daily_goal || 0) : 0;
+        const weeklyGoal = getDeskGoal(userName);
         const key = `${week.week_start}||${desk}`;
         if (!deskWeekMap[key]) {
           deskWeekMap[key] = {
             week_start: week.week_start,
             desk,
             location,
-            dailyGoal,
+            weeklyGoal,
             totalAnswered: 0,
           };
         }
