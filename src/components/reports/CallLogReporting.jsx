@@ -1074,20 +1074,28 @@ export default function CallLogReporting() {
       { width: 18 }, // Percent of Goal
     ];
 
-    // Build desk-per-week aggregation
+    // Build desk-per-week aggregation using snapshot enrichment + CallLogUserConfig
+    // Front Desk benchmark users: benchmark_group === "Front Desk" && include_in_benchmark === true
     const deskWeekMap = {}; // key: "weekStart||desk"
     sortedWeeks.forEach(week => {
       const snapshot = Array.isArray(week.user_snapshot) ? week.user_snapshot : [];
       snapshot.forEach(u => {
+        // Use enriched fields from snapshot; fall back to live userConfigMap
+        const cfg = userConfigMap[u.user || ""];
+        const benchGroup       = u.benchmark_group       ?? (cfg ? cfg.benchmark_group       : "Other");
+        const includeInBench   = u.include_in_benchmark  ?? (cfg ? cfg.include_in_benchmark  : false);
+        if (benchGroup !== "Front Desk" || !includeInBench) return;
+
         const desk = u.user || "";
-        if (!deskGoalConfig[desk]) return; // ignore non-desk users
+        const location = u.location || (cfg ? cfg.location || "" : "");
+        const dailyGoal = cfg ? (cfg.daily_goal || 0) : 0;
         const key = `${week.week_start}||${desk}`;
         if (!deskWeekMap[key]) {
           deskWeekMap[key] = {
             week_start: week.week_start,
             desk,
-            location: deskGoalConfig[desk].location,
-            dailyGoal: deskGoalConfig[desk].dailyGoal,
+            location,
+            dailyGoal,
             totalAnswered: 0,
           };
         }
