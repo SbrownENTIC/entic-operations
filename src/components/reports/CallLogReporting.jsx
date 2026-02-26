@@ -1312,7 +1312,7 @@ export default function CallLogReporting() {
     wsDesk.getRow(wsDesk.rowCount).height = 8;
 
     // --- Section header ---
-    const deskSectionRow = wsDesk.addRow(["Detailed Desk Performance by Week", "", "", "", "", ""]);
+    const deskSectionRow = wsDesk.addRow(["Detailed Front End Performance by Week", "", "", "", "", ""]);
     wsDesk.mergeCells(`A${wsDesk.rowCount}:F${wsDesk.rowCount}`);
     const deskSectionCell = wsDesk.getCell(`A${wsDesk.rowCount}`);
     deskSectionCell.font      = mkFont({ bold: true, size: 13, color: { argb: WHITE } });
