@@ -1121,7 +1121,7 @@ export default function CallLogReporting() {
     // ==============================
     // SHEET 2: DESK PERFORMANCE
     // ==============================
-    const wsDesk = wb.addWorksheet("Desk Performance", {
+    const wsDesk = wb.addWorksheet("Front End Performance", {
       views: [{ showGridLines: false }]
     });
     wsDesk.columns = [
