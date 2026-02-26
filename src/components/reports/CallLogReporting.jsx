@@ -1377,14 +1377,14 @@ export default function CallLogReporting() {
       views: [{ showGridLines: false }]
     });
     wsIndiv.columns = [
-      { width: 18 }, // Week Start
-      { width: 30 }, // User
-      { width: 34 }, // Desk
-      { width: 16 }, // Location
-      { width: 14 }, // Answered
-      { width: 14 }, // Desk Goal
-      { width: 18 }, // Percent of Goal
     ];
+    wsIndiv.getColumn(1).width = 18; // Week Start
+    wsIndiv.getColumn(2).width = 30; // User
+    wsIndiv.getColumn(3).width = 34; // Desk
+    wsIndiv.getColumn(4).width = 16; // Location
+    wsIndiv.getColumn(5).width = 14; // Answered
+    wsIndiv.getColumn(6).width = 14; // Desk Goal
+    wsIndiv.getColumn(7).width = 18; // Percent of Goal
 
     // Build individual rows: ALL users in snapshot
     // Goal math ONLY for isFrontDeskBenchmark users; all others get blank goal columns
