@@ -342,8 +342,8 @@ export default function PrintableAdminManual() {
                 <li><strong>Check API Key:</strong> Is <code>AIRTABLE_API_KEY</code> set in Secrets?</li>
                 <li><strong>Check Record:</strong> Did the function create a record in the Airtable table?
                   <ul className="list-disc pl-4 text-slate-600">
-                    <li>Yes? -> Issue is in Airtable Automation (Check Run History).</li>
-                    <li>No? -> Issue is in Base44 Function (Check Function Logs).</li>
+                    <li>Yes? &#8594; Issue is in Airtable Automation (Check Run History).</li>
+                    <li>No? &#8594; Issue is in Base44 Function (Check Function Logs).</li>
                   </ul>
                 </li>
               </ol>
