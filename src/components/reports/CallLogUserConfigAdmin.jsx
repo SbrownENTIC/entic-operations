@@ -403,6 +403,7 @@ export default function CallLogUserConfigAdmin() {
                             {config.benchmark_group || "Other"}
                           </Badge>
                         </td>
+                        <td className="px-3 py-2 text-slate-600 text-center">{config.daily_goal != null && config.daily_goal !== "" ? config.daily_goal : <span className="text-slate-300">—</span>}</td>
                         <td className="px-3 py-2 text-center">
                           {config.include_in_benchmark
                             ? <CheckCircle className="w-4 h-4 text-green-600 inline" />
