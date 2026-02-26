@@ -1958,7 +1958,13 @@ export default function CallLogReporting() {
                 )}
               </span>
             )}
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setShowCdrUpload(v => !v)} className="gap-2">
+                <Clock className="w-4 h-4" /> Upload CDR File
+                {selectedPeriod?.hourly_snapshot?.length > 0 && (
+                  <span className="ml-1 inline-block w-2 h-2 rounded-full bg-green-500" title="Hourly data loaded" />
+                )}
+              </Button>
               <Button variant="outline" size="sm" onClick={exportPeriodExcel} className="gap-2">
                 <Download className="w-4 h-4" /> Export Excel Report
               </Button>
