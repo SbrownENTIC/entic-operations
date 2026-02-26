@@ -1344,8 +1344,10 @@ export default function CallLogReporting() {
         if ([4, 5].includes(colNum)) cell.numFmt = "#,##0";
         if (colNum === 6) {
           cell.numFmt = "0.00%";
-          cell.fill   = mkFill(bg);
-          cell.font   = mkFont({ color: { argb: fg } });
+          if (d.weeklyGoal > 0) {
+            cell.fill = mkFill(bg);
+            cell.font = mkFont({ color: { argb: fg } });
+          }
         }
       });
       deskTableRows.push(rowValues);
