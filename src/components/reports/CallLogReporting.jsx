@@ -1575,19 +1575,18 @@ export default function CallLogReporting() {
     if (indivRows.length > 0) {
       wsIndiv.addTable({
         name: "IndividualPerformance",
-        ref: `A${indivTableStartRow}:H${wsIndiv.rowCount}`,
+        ref: `A${indivTableStartRow}:G${wsIndiv.rowCount}`,
         headerRow: true,
         totalsRow: false,
         style: { theme: "TableStyleMedium2", showRowStripes: true },
         columns: [
-          { name: "Week Start",       filterButton: true },
-          { name: "User",             filterButton: true },
-          { name: "Desk",             filterButton: true },
-          { name: "Location",         filterButton: true },
-          { name: "Answered",         filterButton: true },
-          { name: "Desk Goal",        filterButton: true },
-          { name: "Expected Share",   filterButton: true },
-          { name: "Percent of Share", filterButton: true },
+          { name: "Week Start",      filterButton: true },
+          { name: "User",            filterButton: true },
+          { name: "Desk",            filterButton: true },
+          { name: "Location",        filterButton: true },
+          { name: "Answered",        filterButton: true },
+          { name: "Desk Goal",       filterButton: true },
+          { name: "Percent of Goal", filterButton: true },
         ],
         rows: indivTableRows,
       });
