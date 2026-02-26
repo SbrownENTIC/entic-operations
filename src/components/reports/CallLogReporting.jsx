@@ -1544,7 +1544,7 @@ export default function CallLogReporting() {
     const indivTableRows = [];
     indivRows.forEach((r, idx) => {
       const bgArgb = idx % 2 === 0 ? WHITE : ALT_ROW;
-      const rowValues: any[] = [
+      const rowValues = [
         formatDate(r.week_start),
         r.user,
         r.desk || "",
