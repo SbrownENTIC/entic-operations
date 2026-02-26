@@ -131,19 +131,27 @@ function aggregateUsers(rows, headerMap) {
  * Build the enforced week snapshot shape:
  * { week_start, week_end, totals: {...}, user_snapshot: [...] }
  */
-function buildWeekSnapshot(weekStart, weekEnd, weekUserData) {
-  const user_snapshot = weekUserData.map(u => ({
-    user:                       u.user,
-    total_calls:                u.total_calls,
-    inbound:                    u.inbound,
-    outbound:                   u.outbound,
-    answered:                   u.answered,
-    missed:                     u.missed,
-    voicemail:                  u.voicemail,
-    total_duration_minutes:     u.total_duration_minutes,
-    inbound_duration_minutes:   u.inbound_duration_minutes,
-    outbound_duration_minutes:  u.outbound_duration_minutes,
-  }));
+function buildWeekSnapshot(weekStart, weekEnd, weekUserData, userConfigMap) {
+  const user_snapshot = weekUserData.map(u => {
+    const cfg = userConfigMap[u.user] || null;
+    const isActive = cfg && cfg.active !== false;
+    return {
+      user:                       u.user,
+      total_calls:                u.total_calls,
+      inbound:                    u.inbound,
+      outbound:                   u.outbound,
+      answered:                   u.answered,
+      missed:                     u.missed,
+      voicemail:                  u.voicemail,
+      total_duration_minutes:     u.total_duration_minutes,
+      inbound_duration_minutes:   u.inbound_duration_minutes,
+      outbound_duration_minutes:  u.outbound_duration_minutes,
+      // Enriched from CallLogUserConfig
+      location:              isActive ? (cfg.location || "") : "",
+      benchmark_group:       isActive ? (cfg.benchmark_group || "Other") : "Other",
+      include_in_benchmark:  isActive ? (cfg.include_in_benchmark || false) : false,
+    };
+  });
 
   // Compute totals from user_snapshot
   const totals = {
