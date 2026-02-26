@@ -1437,18 +1437,20 @@ export default function CallLogReporting() {
       });
     });
 
-    // Sort: week_start asc, then within each week:
-    //   eligible rows (percentOfGoal != null) sorted by percentOfGoal asc (lowest first)
-    //   non-eligible rows (null percentOfGoal) pushed to bottom of each week
+    // Sort: % of Weekly Goal asc (blanks at bottom), then Week Start asc as tiebreaker
     indivRows.sort((a, b) => {
-      const wc = a.week_start.localeCompare(b.week_start);
-      if (wc !== 0) return wc;
       const aHasGoal = a.percentOfGoal !== null && a.percentOfGoal !== undefined;
       const bHasGoal = b.percentOfGoal !== null && b.percentOfGoal !== undefined;
-      if (aHasGoal && bHasGoal) return a.percentOfGoal - b.percentOfGoal;
-      if (aHasGoal && !bHasGoal) return -1; // eligible before non-eligible
+      // Rows with blank % of Weekly Goal go to the bottom
+      if (aHasGoal && !bHasGoal) return -1;
       if (!aHasGoal && bHasGoal) return 1;
-      return a.user.localeCompare(b.user); // both null: sort by name
+      // Both have a value: sort by % ascending
+      if (aHasGoal && bHasGoal) {
+        const pctDiff = a.percentOfGoal - b.percentOfGoal;
+        if (pctDiff !== 0) return pctDiff;
+      }
+      // Tiebreaker: Week Start ascending
+      return a.week_start.localeCompare(b.week_start);
     });
 
     // --- Row 1: Banner ---
