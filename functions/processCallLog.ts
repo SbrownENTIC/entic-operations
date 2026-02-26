@@ -28,7 +28,7 @@ const REQUIRED_NORMALIZED = [
 const PERIOD_COL_START = "reporting period start";
 const PERIOD_COL_END   = "reporting period end";
 
-/** Convert various date formats to YYYY-MM-DD */
+/** Convert various date formats to YYYY-MM-DD (no week normalization — raw value only) */
 function toIsoDate(val) {
   if (!val && val !== 0) return null;
   if (typeof val === "number") {
@@ -39,12 +39,16 @@ function toIsoDate(val) {
     return `${y}-${m}-${day}`;
   }
   const s = String(val).trim();
+  // Already ISO: YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  const mdy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (mdy) return `${mdy[3]}-${String(mdy[1]).padStart(2,"0")}-${String(mdy[2]).padStart(2,"0")}`;
-  const d = new Date(s);
-  if (!isNaN(d.getTime())) {
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  // MM/DD/YYYY (4-digit year)
+  const mdy4 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (mdy4) return `${mdy4[3]}-${String(mdy4[1]).padStart(2,"0")}-${String(mdy4[2]).padStart(2,"0")}`;
+  // MM/DD/YY (2-digit year — treat 00-99 as 2000-2099)
+  const mdy2 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+  if (mdy2) {
+    const year = 2000 + parseInt(mdy2[3], 10);
+    return `${year}-${String(mdy2[1]).padStart(2,"0")}-${String(mdy2[2]).padStart(2,"0")}`;
   }
   return null;
 }
