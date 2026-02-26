@@ -294,8 +294,8 @@ export default function PrintableAdminManual() {
               <p className="text-xs"><strong>Manual Trigger:</strong> "Sync Reminders to Airtable" button.</p>
               <p className="text-xs"><strong>Function:</strong> <code>syncOfficeClosuresToAirtable</code>.</p>
               <p className="text-xs">1. Reads all reminders.</p>
-              <p className="text-xs">2. If type is 'Holiday'/'Office Closure' -> Syncs to <strong>Office Closures (New)</strong> table.</p>
-              <p className="text-xs">3. If type is 'Custom' -> Syncs to <strong>Reminders</strong> table.</p>
+              <p className="text-xs">2. If type is 'Holiday'/'Office Closure' &#8594; Syncs to <strong>Office Closures (New)</strong> table.</p>
+              <p className="text-xs">3. If type is 'Custom' &#8594; Syncs to <strong>Reminders</strong> table.</p>
             </Step>
           </PrintSection>
 
