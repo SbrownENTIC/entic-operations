@@ -1323,14 +1323,6 @@ export default function CallLogReporting() {
       return a.user.localeCompare(b.user);
     });
 
-    // Compute individual summary stats (only desk users have pctOfShare)
-    const indivDeskUserRows = indivRows.filter(r => r.isDeskUser);
-    const indivTotalUsers = new Set(indivRows.map(r => r.user)).size;
-    const indivDeskPcts = indivDeskUserRows.map(r => r.pctOfShare || 0);
-    const indivAvgPct = indivDeskPcts.length > 0 ? indivDeskPcts.reduce((s, v) => s + v, 0) / indivDeskPcts.length : 0;
-    const indivMeeting = indivDeskPcts.filter(p => p >= 1.0).length;
-    const indivBelow90 = indivDeskPcts.filter(p => p < 0.9).length;
-
     // --- Row 1: Banner ---
     wsIndiv.addRow([`${periodLabel} – Individual Performance`, "", "", "", "", "", "", ""]);
     wsIndiv.mergeCells("A1:H1");
@@ -1358,28 +1350,53 @@ export default function CallLogReporting() {
     wsIndiv.addRow([]);
     wsIndiv.getRow(5).height = 6;
 
-    // --- Summary block ---
-    const indivSummaryData = [
-      ["Total Users with Calls",          indivTotalUsers,  "number"],
-      ["Average % of Share (desk users)", indivAvgPct,      "percent"],
-      ["Users ≥ 100% of Share",           indivMeeting,     "number"],
-      ["Users < 90% of Share",            indivBelow90,     "number"],
-    ];
-    indivSummaryData.forEach(([label, val, type]) => {
-      const row = wsIndiv.addRow([label, type === "percent" ? val : val, "", "", "", "", "", ""]);
-      row.height = 18;
-      const lc = row.getCell(1);
-      const vc = row.getCell(2);
-      lc.font      = mkFont({ bold: true });
-      lc.fill      = mkFill(SUMMARY_BG);
-      lc.alignment = { horizontal: "left", vertical: "middle" };
-      lc.border    = { bottom: thinBorder, left: thinBorder, top: thinBorder };
-      vc.font      = mkFont({ bold: true, size: 12 });
-      vc.fill      = mkFill(SUMMARY_BG);
-      vc.alignment = { horizontal: "right", vertical: "middle" };
-      vc.border    = { bottom: thinBorder, right: thinBorder, top: thinBorder };
-      if (type === "number")  vc.numFmt = "#,##0";
-      if (type === "percent") vc.numFmt = "0.00%";
+    // --- Per-week summary blocks for Individual Performance ---
+    const indivUniqueWeeks = [...new Set(indivRows.map(r => r.week_start))].sort();
+    indivUniqueWeeks.forEach(weekStart => {
+      const weekRows = indivRows.filter(r => r.week_start === weekStart);
+      const weekDeskRows = weekRows.filter(r => r.isDeskUser);
+      const weekTotalUsers = new Set(weekRows.map(r => r.user)).size;
+      const weekDeskPcts = weekDeskRows.map(r => r.pctOfShare || 0);
+      const weekAvgPct = weekDeskPcts.length > 0 ? weekDeskPcts.reduce((s, v) => s + v, 0) / weekDeskPcts.length : 0;
+      const weekMeeting = weekDeskPcts.filter(p => p >= 1.0).length;
+      const weekBelow90 = weekDeskPcts.filter(p => p < 0.9).length;
+
+      // Week header row
+      const weekHdrRow = wsIndiv.addRow([`Week of ${formatDate(weekStart)}`, "", "", "", "", "", "", ""]);
+      wsIndiv.mergeCells(`A${wsIndiv.rowCount}:H${wsIndiv.rowCount}`);
+      const weekHdrCell = wsIndiv.getCell(`A${wsIndiv.rowCount}`);
+      weekHdrCell.font      = mkFont({ bold: true, size: 11, color: { argb: "FF1F3864" } });
+      weekHdrCell.fill      = mkFill(WEEK_HEADER_BG);
+      weekHdrCell.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
+      weekHdrCell.border    = { bottom: thinBorder, top: thinBorder, left: thinBorder, right: thinBorder };
+      weekHdrRow.height = 20;
+
+      const weekSummaryData = [
+        ["Total Users with Calls",          weekTotalUsers, "number"],
+        ["Average % of Share (desk users)", weekAvgPct,     "percent"],
+        ["Users ≥ 100% of Share",           weekMeeting,    "number"],
+        ["Users < 90% of Share",            weekBelow90,    "number"],
+      ];
+      weekSummaryData.forEach(([label, val, type]) => {
+        const row = wsIndiv.addRow([label, val, "", "", "", "", "", ""]);
+        row.height = 18;
+        const lc = row.getCell(1);
+        const vc = row.getCell(2);
+        lc.font      = mkFont({ bold: true });
+        lc.fill      = mkFill(SUMMARY_BG);
+        lc.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
+        lc.border    = { bottom: thinBorder, left: thinBorder };
+        vc.font      = mkFont({ bold: true, size: 12 });
+        vc.fill      = mkFill(SUMMARY_BG);
+        vc.alignment = { horizontal: "right", vertical: "middle" };
+        vc.border    = { bottom: thinBorder, right: thinBorder };
+        if (type === "number")  vc.numFmt = "#,##0";
+        if (type === "percent") vc.numFmt = "0.00%";
+      });
+
+      // Spacer
+      wsIndiv.addRow([]);
+      wsIndiv.getRow(wsIndiv.rowCount).height = 4;
     });
 
     // --- blank row ---
