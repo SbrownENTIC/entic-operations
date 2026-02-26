@@ -1098,17 +1098,18 @@ export default function CallLogReporting() {
       { width: 18 }, // Percent of Goal
     ];
 
-    // Build desk-per-week aggregation using snapshot enrichment + CallLogUserConfig
-    // Desk Performance: benchmark_group === "Front Desk" && include_in_benchmark === true && active === true
+    // Build desk-per-week aggregation — STRICT: join by user_name to CallLogUserConfig only
+    // Desk Performance: Front Desk + include_in_benchmark === true + active !== false
     const deskWeekMap = {}; // key: "weekStart||desk"
     sortedWeeks.forEach(week => {
       const snapshot = Array.isArray(week.user_snapshot) ? week.user_snapshot : [];
       snapshot.forEach(u => {
-        if (!isBenchmarkEligible(u)) return;
+        const userName = u.user || "";
+        if (!isFrontDeskBenchmark(userName)) return;
 
-        const cfg = userConfigMap[u.user || ""];
-        const desk = u.user || "";
-        const location = u.location || (cfg ? cfg.location || "" : "");
+        const cfg = userConfigMap[userName];
+        const desk = userName;
+        const location = getUserLocation(userName);
         const dailyGoal = cfg ? (cfg.daily_goal || 0) : 0;
         const key = `${week.week_start}||${desk}`;
         if (!deskWeekMap[key]) {
