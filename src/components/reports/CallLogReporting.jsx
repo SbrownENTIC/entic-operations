@@ -1235,7 +1235,7 @@ export default function CallLogReporting() {
     // SHEET 3: INDIVIDUAL PERFORMANCE
     // ==============================
     const wsIndiv = wb.addWorksheet("Individual Performance", {
-      views: [{ showGridLines: false, state: "frozen", ySplit: 1, xSplit: 0 }]
+      views: [{ showGridLines: false }]
     });
     wsIndiv.columns = [
       { width: 18 }, // Week Start
