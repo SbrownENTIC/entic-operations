@@ -1330,10 +1330,10 @@ export default function CallLogReporting() {
 
     const deskTableRows = [];
     deskRows.forEach((d, idx) => {
-      const pct = d.dailyGoal > 0 ? d.totalAnswered / d.dailyGoal : 0;
+      const pct = d.weeklyGoal > 0 ? d.totalAnswered / d.weeklyGoal : 0;
       const { bg, fg } = perfColor(pct);
       const bgArgb = idx % 2 === 0 ? WHITE : ALT_ROW;
-      const rowValues = [formatDate(d.week_start), d.desk, d.location, d.totalAnswered, d.dailyGoal, pct];
+      const rowValues = [formatDate(d.week_start), d.desk, d.location, d.totalAnswered, d.weeklyGoal, pct];
       const row = wsDesk.addRow(rowValues);
       row.height = 18;
       row.eachCell({ includeEmpty: true }, (cell, colNum) => {
