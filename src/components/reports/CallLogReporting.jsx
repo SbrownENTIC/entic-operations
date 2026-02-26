@@ -1044,21 +1044,13 @@ export default function CallLogReporting() {
     wsPivot.state = "hidden";
 
     // ==============================
-    // DESK GOAL CONFIGURATION
+    // LOAD CallLogUserConfig for export enrichment
     // ==============================
-    const deskGoalConfig = {
-      "Check in Bloomfield":            { location: "Bloomfield",  dailyGoal: 34 },
-      "Check out Bloomfield":           { location: "Bloomfield",  dailyGoal: 35 },
-      "Front Check-In Desk Manch 1":    { location: "Manchester",  dailyGoal: 28 },
-      "Front Check-out Desk Manch 2":   { location: "Manchester",  dailyGoal: 30 },
-      "Front Check-in 1 Glastonbury":   { location: "Glastonbury", dailyGoal: 22 },
-      "Front Check-in 2 Glastonbury":   { location: "Glastonbury", dailyGoal: 22 },
-      "Check-Out 1 Glastonbury":        { location: "Glastonbury", dailyGoal: 25 },
-      "Front Check-In Desk Farm 1":     { location: "Farmington",  dailyGoal:  8 },
-      "Front Check-In Desk Farm 2":     { location: "Farmington",  dailyGoal:  8 },
-      "Front Check-out Desk Farm 2":    { location: "Farmington",  dailyGoal: 14 },
-      "Front Check-out Desk Farm 3":    { location: "Farmington",  dailyGoal: 14 },
-    };
+    const allUserConfigs = await base44.entities.CallLogUserConfig.list();
+    const userConfigMap = {};
+    for (const cfg of allUserConfigs) {
+      if (cfg.user_name && cfg.active !== false) userConfigMap[cfg.user_name] = cfg;
+    }
 
     // Conditional color for performance pct (same thresholds for both sheets)
     const perfColor = (pct) => {
