@@ -1331,51 +1331,52 @@ export default function CallLogReporting() {
       { width: 18 }, // Percent of Share
     ];
 
-    // Build individual rows: ALL users in snapshot, with desk data only if in deskGoalConfig
+    // Build individual rows: ALL users in snapshot
+    // Front Desk benchmark users get goal/share math; all others get raw metrics only
     const indivRows = [];
     sortedWeeks.forEach(week => {
       const snapshot = Array.isArray(week.user_snapshot) ? week.user_snapshot : [];
 
-      // Pre-compute expectedShare per desk for this week (only for desk users)
-      const deskUserCountMap = {}; // desk -> count of users on that desk this week
-      snapshot.forEach(u => {
-        const desk = u.user || "";
-        if (deskGoalConfig[desk]) {
-          deskUserCountMap[desk] = (deskUserCountMap[desk] || 0) + 1;
-        }
-      });
-
       snapshot.forEach(u => {
         const userName = u.user || "";
         const answered = u.answered || 0;
-        const cfg = deskGoalConfig[userName];
 
-        if (cfg) {
-          const numUsers = deskUserCountMap[userName] || 1;
-          const expectedShare = cfg.dailyGoal / numUsers;
-          const pctOfShare = expectedShare > 0 ? answered / expectedShare : 0;
+        // Resolved enrichment: prefer snapshot fields, fall back to live config
+        const cfg = userConfigMap[userName];
+        const benchGroup     = u.benchmark_group      ?? (cfg ? cfg.benchmark_group      : "Other");
+        const includeInBench = u.include_in_benchmark ?? (cfg ? cfg.include_in_benchmark : false);
+        const location       = u.location             ?? (cfg ? cfg.location || ""       : "");
+        const dailyGoal      = cfg ? (cfg.daily_goal || 0) : 0;
+
+        const isFrontDeskBench = benchGroup === "Front Desk" && includeInBench;
+
+        if (isFrontDeskBench && dailyGoal > 0) {
+          const expectedShare = dailyGoal;
+          const pctOfShare = answered / expectedShare;
           indivRows.push({
             week_start:    week.week_start,
             user:          userName,
             desk:          userName,
-            location:      cfg.location,
+            location,
             answered,
-            dailyGoal:     cfg.dailyGoal,
+            dailyGoal,
             expectedShare,
             pctOfShare,
             isDeskUser:    true,
+            benchmark_group: benchGroup,
           });
         } else {
           indivRows.push({
             week_start:    week.week_start,
             user:          userName,
             desk:          "",
-            location:      "",
+            location,
             answered,
             dailyGoal:     null,
             expectedShare: null,
             pctOfShare:    null,
             isDeskUser:    false,
+            benchmark_group: benchGroup,
           });
         }
       });
