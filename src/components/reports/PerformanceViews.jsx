@@ -308,9 +308,10 @@ const VIEWS = [
   { key: "frontend",   label: "Front End" },
   { key: "individual", label: "Individual" },
   { key: "np",         label: "NP Team" },
+  { key: "hourly",     label: "Hourly" },
 ];
 
-export default function PerformanceViews({ sortedWeeks, userConfigMap }) {
+export default function PerformanceViews({ sortedWeeks, userConfigMap, hourlySnapshot }) {
   const [active, setActive] = useState(null);
 
   const toggle = (key) => setActive(prev => prev === key ? null : key);
