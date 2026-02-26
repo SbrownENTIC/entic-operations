@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Upload, Phone, AlertCircle, CheckCircle, Loader2, Download, Trash2, ChevronUp, ChevronDown, Users } from "lucide-react";
 import CallLogUserConfigAdmin from "./CallLogUserConfigAdmin";
+import PerformanceViews from "./PerformanceViews";
 import {
   AlertDialog,
   AlertDialogAction,
