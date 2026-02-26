@@ -1109,13 +1109,6 @@ export default function CallLogReporting() {
       return a.desk.localeCompare(b.desk);
     });
 
-    // Compute desk summary stats
-    const deskPcts = deskRows.map(d => d.dailyGoal > 0 ? d.totalAnswered / d.dailyGoal : 0);
-    const deskTotalDesks = new Set(deskRows.map(d => d.desk)).size;
-    const deskAvgPct = deskPcts.length > 0 ? deskPcts.reduce((s, v) => s + v, 0) / deskPcts.length : 0;
-    const deskMeetingGoal = deskPcts.filter(p => p >= 1.0).length;
-    const deskBelow90 = deskPcts.filter(p => p < 0.9).length;
-
     // --- Row 1: Banner ---
     wsDesk.addRow([`${periodLabel} – Desk Performance`, "", "", "", "", ""]);
     wsDesk.mergeCells("A1:F1");
@@ -1143,34 +1136,57 @@ export default function CallLogReporting() {
     wsDesk.addRow([]);
     wsDesk.getRow(5).height = 6;
 
-    // --- Rows 6-9: Summary block ---
+    // --- Per-week summary blocks ---
     const SUMMARY_BG = "FFE8F0FE";
-    const deskSummaryData = [
-      ["Total Desks",           deskTotalDesks, "number"],
-      ["Average % of Goal",     deskAvgPct,     "percent"],
-      ["Desks Meeting Goal (≥100%)", deskMeetingGoal, "number"],
-      ["Desks Below 90%",       deskBelow90,    "number"],
-    ];
-    deskSummaryData.forEach(([label, val, type]) => {
-      const row = wsDesk.addRow([label, type === "percent" ? val : val, "", "", "", ""]);
-      row.height = 18;
-      const lc = row.getCell(1);
-      const vc = row.getCell(2);
-      lc.font      = mkFont({ bold: true });
-      lc.fill      = mkFill(SUMMARY_BG);
-      lc.alignment = { horizontal: "left", vertical: "middle" };
-      lc.border    = { bottom: thinBorder, left: thinBorder, top: thinBorder };
-      vc.font      = mkFont({ bold: true, size: 12 });
-      vc.fill      = mkFill(SUMMARY_BG);
-      vc.alignment = { horizontal: "right", vertical: "middle" };
-      vc.border    = { bottom: thinBorder, right: thinBorder, top: thinBorder };
-      if (type === "number")  vc.numFmt = "#,##0";
-      if (type === "percent") vc.numFmt = "0.00%";
-    });
+    const WEEK_HEADER_BG = "FFB8CCE4"; // medium blue for week headers
 
-    // --- Row 10: blank ---
-    wsDesk.addRow([]);
-    wsDesk.getRow(wsDesk.rowCount).height = 6;
+    const deskUniqueWeeks = [...new Set(deskRows.map(d => d.week_start))].sort();
+    deskUniqueWeeks.forEach(weekStart => {
+      const weekDeskRows = deskRows.filter(d => d.week_start === weekStart);
+      const weekPcts = weekDeskRows.map(d => d.dailyGoal > 0 ? d.totalAnswered / d.dailyGoal : 0);
+      const weekTotalDesks = new Set(weekDeskRows.map(d => d.desk)).size;
+      const weekAvgPct = weekPcts.length > 0 ? weekPcts.reduce((s, v) => s + v, 0) / weekPcts.length : 0;
+      const weekMeeting = weekPcts.filter(p => p >= 1.0).length;
+      const weekBelow90 = weekPcts.filter(p => p < 0.9).length;
+
+      // Week header row
+      const weekHdrRow = wsDesk.addRow([`Week of ${formatDate(weekStart)}`, "", "", "", "", ""]);
+      wsDesk.mergeCells(`A${wsDesk.rowCount}:F${wsDesk.rowCount}`);
+      const weekHdrCell = wsDesk.getCell(`A${wsDesk.rowCount}`);
+      weekHdrCell.font      = mkFont({ bold: true, size: 11, color: { argb: "FF1F3864" } });
+      weekHdrCell.fill      = mkFill(WEEK_HEADER_BG);
+      weekHdrCell.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
+      weekHdrCell.border    = { bottom: thinBorder, top: thinBorder, left: thinBorder, right: thinBorder };
+      weekHdrRow.height = 20;
+
+      // Summary data rows for this week
+      const weekSummaryData = [
+        ["Total Desks",                deskTotalDesks > 0 ? weekTotalDesks : weekTotalDesks, "number"],
+        ["Average % of Goal",          weekAvgPct,    "percent"],
+        ["Desks Meeting Goal (≥100%)", weekMeeting,   "number"],
+        ["Desks Below 90%",            weekBelow90,   "number"],
+      ];
+      weekSummaryData.forEach(([label, val, type]) => {
+        const row = wsDesk.addRow([label, val, "", "", "", ""]);
+        row.height = 18;
+        const lc = row.getCell(1);
+        const vc = row.getCell(2);
+        lc.font      = mkFont({ bold: true });
+        lc.fill      = mkFill(SUMMARY_BG);
+        lc.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
+        lc.border    = { bottom: thinBorder, left: thinBorder };
+        vc.font      = mkFont({ bold: true, size: 12 });
+        vc.fill      = mkFill(SUMMARY_BG);
+        vc.alignment = { horizontal: "right", vertical: "middle" };
+        vc.border    = { bottom: thinBorder, right: thinBorder };
+        if (type === "number")  vc.numFmt = "#,##0";
+        if (type === "percent") vc.numFmt = "0.00%";
+      });
+
+      // Spacer between week blocks
+      wsDesk.addRow([]);
+      wsDesk.getRow(wsDesk.rowCount).height = 4;
+    });
 
     // --- Section header ---
     const deskSectionRow = wsDesk.addRow(["Detailed Desk Performance by Week", "", "", "", "", ""]);
