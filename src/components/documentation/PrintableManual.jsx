@@ -473,7 +473,7 @@ export default function PrintableManual() {
               <ol className="list-decimal pl-5 space-y-2">
                 <li><strong>Schedule First:</strong> Go to On-Call Schedule. Add the provider to the St. Francis location for their shifts.</li>
                 <li><strong>Auto-Income:</strong> The system automatically creates "Pending" Outside Income records for each scheduled day (calculated as Daily Rate).</li>
-                <li><strong>Create Invoice:</strong> Go to Invoices -> Create. Select St. Francis.</li>
+                <li><strong>Create Invoice:</strong> Go to Invoices &#8594; Create. Select St. Francis.</li>
                 <li><strong>Link:</strong> You will see the auto-generated income records in the list. Select them to include in the bill.</li>
               </ol>
               <div className="bg-blue-50 p-3 mt-2 rounded text-xs text-blue-800 flex items-center">
