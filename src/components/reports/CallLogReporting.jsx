@@ -1517,8 +1517,8 @@ export default function CallLogReporting() {
     wsIndiv.getRow(wsIndiv.rowCount).height = 6;
 
     // --- Section header ---
-    const indivSectionRow = wsIndiv.addRow(["Detailed Individual Performance by Week", "", "", "", "", "", "", ""]);
-    wsIndiv.mergeCells(`A${wsIndiv.rowCount}:H${wsIndiv.rowCount}`);
+    const indivSectionRow = wsIndiv.addRow(["Detailed Individual Performance by Week", "", "", "", "", "", ""]);
+    wsIndiv.mergeCells(`A${wsIndiv.rowCount}:G${wsIndiv.rowCount}`);
     const indivSectionCell = wsIndiv.getCell(`A${wsIndiv.rowCount}`);
     indivSectionCell.font      = mkFont({ bold: true, size: 13, color: { argb: WHITE } });
     indivSectionCell.fill      = mkFill(SECTION_BG);
