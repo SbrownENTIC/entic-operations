@@ -358,6 +358,7 @@ export default function PerformanceViews({ sortedWeeks, userConfigMap, hourlySna
           {active === "frontend"   && <FrontEndView   sortedWeeks={sortedWeeks} configMap={userConfigMap} />}
           {active === "individual" && <IndividualView sortedWeeks={sortedWeeks} configMap={userConfigMap} />}
           {active === "np"         && <NPTeamView     sortedWeeks={sortedWeeks} configMap={userConfigMap} />}
+          {active === "hourly"     && <HourlyView     hourlySnapshot={hourlySnapshot} />}
         </div>
       )}
     </div>
