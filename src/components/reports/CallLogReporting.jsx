@@ -1087,13 +1087,26 @@ export default function CallLogReporting() {
     wsPivot.state = "hidden";
 
     // ==============================
-    // LOAD CallLogUserConfig for export enrichment
+    // LOAD CallLogUserConfig and CDR data for export enrichment
     // ==============================
     const allUserConfigs = await base44.entities.CallLogUserConfig.list();
     // Map all configs by user_name (exact match, used for every lookup at export time)
     const userConfigMap = {};
     for (const cfg of allUserConfigs) {
       if (cfg.user_name) userConfigMap[cfg.user_name] = cfg;
+    }
+
+    // Load CDR data for this period
+    let cdrUploadData = null;
+    try {
+      const cdrUploads = await base44.entities.CallLogCdrUploads.filter({
+        reporting_period_key: selectedPeriod?.id || ""
+      });
+      if (cdrUploads.length > 0) {
+        cdrUploadData = cdrUploads[0];
+      }
+    } catch (err) {
+      console.warn("Could not load CDR data:", err);
     }
 
     // Helper: coerce stored boolean-like values (handles true, "true", 1, etc.)
