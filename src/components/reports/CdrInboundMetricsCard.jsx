@@ -331,11 +331,16 @@ export default function CdrInboundMetricsCard({
         <div className="flex gap-2">
           <Button
             size="sm"
-            onClick={onUploadClick}
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
             variant="outline"
             className="gap-2"
           >
-            <Upload className="w-3.5 h-3.5" /> Replace for this period
+            {uploading ? (
+              <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Uploading...</>
+            ) : (
+              <><Upload className="w-3.5 h-3.5" /> Replace for this period</>
+            )}
           </Button>
         </div>
 
