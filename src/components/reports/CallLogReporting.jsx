@@ -71,13 +71,19 @@ function normalizeHeader(h) {
   return String(h).toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
-const REQUIRED_NORMALIZED = [
+// Required headers for Aggregated (Vonage User Summary) upload
+const REQUIRED_NORMALIZED_AGGREGATED = [
   "user",
-  "direction",
-  "result",
+  "total calls",
+  "inbound calls",
+  "outbound calls",
+  "answered calls",
+  "missed calls",
   "total call duration (minutes)",
   "inbound call duration (minutes)",
-  "outbound call duration (minutes)"
+  "outbound call duration (minutes)",
+  "reporting period start",
+  "reporting period end",
 ];
 
 const PERIOD_COL_START = "reporting period start";
