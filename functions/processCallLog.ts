@@ -12,17 +12,20 @@ function buildHeaderMap(sampleRow) {
   return map;
 }
 
+// Required headers for Vonage User Summary (Aggregated) upload
 const REQUIRED_NORMALIZED = [
-  "direction",
-  "result",
+  "user",
+  "total calls",
+  "inbound calls",
+  "outbound calls",
+  "answered calls",
+  "missed calls",
   "total call duration (minutes)",
   "inbound call duration (minutes)",
-  "outbound call duration (minutes)"
+  "outbound call duration (minutes)",
+  "reporting period start",
+  "reporting period end",
 ];
-
-// "to" column is needed for inbound extension mapping; optional fallback to "user"
-const TO_COL = "to";
-const USER_COL = "user";
 
 const PERIOD_COL_START = "reporting period start";
 const PERIOD_COL_END   = "reporting period end";
