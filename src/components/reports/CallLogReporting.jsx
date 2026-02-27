@@ -2295,11 +2295,9 @@ export default function CallLogReporting() {
                       </thead>
                       <tbody>
                         {filteredSummaries.map((u, i) => {
-                          const inbound = u.inbound || 0;
-                          const connected = u.answered || 0;
-                          const inboundCallsCdr = u.inbound_calls_cdr || 0;
-                          const inboundAnsweredCdr = u.inbound_answered_cdr || 0;
-                          const ar = inboundCallsCdr > 0 ? inboundAnsweredCdr / inboundCallsCdr : null;
+                           const inbound = u.inbound || 0;
+                           const connected = u.answered || 0;
+                           const ar = u.inbound_answer_rate_cdr;
                           return (
                             <tr key={u.id} className={`border-b border-slate-100 ${i % 2 !== 0 ? "bg-slate-50/50" : ""}`}>
                               <td className="px-4 py-2.5 font-medium text-slate-800">{highlightUser(u.user)}</td>
