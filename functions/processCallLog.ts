@@ -84,7 +84,12 @@ function groupRowsByWeek(rows, headerMap) {
   return { groups: [...groups.values()] };
 }
 
-/** Aggregate user data from a group of rows. Returns per-user objects with minute fields. */
+/** Normalize direction/result values: trim + lowercase */
+function normalizeField(val) {
+  return String(val == null ? '' : val).trim().toLowerCase();
+}
+
+/** Aggregate user data from a group of rows using Direction and Result columns. */
 function aggregateUsers(rows, headerMap) {
   const get = (row, name) => row[headerMap[name]];
   const agg = {};
@@ -98,8 +103,9 @@ function aggregateUsers(rows, headerMap) {
         total_calls: 0,
         inbound: 0,
         outbound: 0,
-        answered: 0,
+        answered: 0,        // inbound answered only
         inbound_answered: 0,
+        outbound_answered: 0,
         missed: 0,
         voicemail: 0,
         total_duration_minutes: 0,
@@ -107,25 +113,24 @@ function aggregateUsers(rows, headerMap) {
         outbound_duration_minutes: 0,
       };
     }
+
+    const direction = normalizeField(get(row, 'direction'));
+    const result    = normalizeField(get(row, 'result'));
+    const isInbound  = direction === 'inbound';
+    const isOutbound = direction === 'outbound';
+    const isAnswered = result === 'answered';
+
     const totalMin = parseFloat(String(get(row, 'total call duration (minutes)') || '0').trim()) || 0;
     const inMin    = parseFloat(String(get(row, 'inbound call duration (minutes)') || '0').trim()) || 0;
     const outMin   = parseFloat(String(get(row, 'outbound call duration (minutes)') || '0').trim()) || 0;
 
-    const totalCalls   = Number(get(row, 'total calls'))    || 0;
-    const inboundCalls = Number(get(row, 'inbound calls'))  || 0;
-    const outboundCalls= Number(get(row, 'outbound calls')) || 0;
-    const answeredCalls= Number(get(row, 'answered calls')) || 0;
-    // Inbound answered = answered minus outbound (outbound calls are always "answered")
-    // Clamp to 0 to avoid negatives
-    const inboundAnswered = Math.max(0, answeredCalls - outboundCalls);
-
-    agg[key].total_calls               += totalCalls;
-    agg[key].inbound                   += inboundCalls;
-    agg[key].outbound                  += outboundCalls;
-    agg[key].answered                  += answeredCalls;
-    agg[key].inbound_answered          += inboundAnswered;
-    agg[key].missed                    += Number(get(row, 'missed calls'))   || 0;
-    agg[key].voicemail                 += Number(get(row, 'voicemail calls'))|| 0;
+    agg[key].total_calls               += 1;
+    if (isInbound)  agg[key].inbound   += 1;
+    if (isOutbound) agg[key].outbound  += 1;
+    if (isInbound  && isAnswered) { agg[key].inbound_answered  += 1; agg[key].answered += 1; }
+    if (isOutbound && isAnswered)   agg[key].outbound_answered += 1;
+    if (isInbound  && result === 'missed')   agg[key].missed    += 1;
+    if (isInbound  && result === 'voicemail') agg[key].voicemail += 1;
     agg[key].total_duration_minutes    += totalMin;
     agg[key].inbound_duration_minutes  += inMin;
     agg[key].outbound_duration_minutes += outMin;
