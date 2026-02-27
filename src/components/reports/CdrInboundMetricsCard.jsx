@@ -234,7 +234,7 @@ export default function CdrInboundMetricsCard({
         total_unanswered: processed.totalUnanswered,
         mapped_rows: processed.totalMapped,
         unmapped_rows: processed.totalUnmapped,
-        unmapped_extensions: [],
+        unmapped_extensions: processed.unmappedExtensions.map(ext => ({ extension: ext })),
         userStats: processed.users,
       });
 
