@@ -371,13 +371,13 @@ export default function CdrUpload({ periodKey: propPeriodKey, periodType, period
     return "text-red-600 font-semibold";
   };
 
-  const formatPeriodLabel = () => {
-    if (!periodKey) return "No period selected";
+  const formatPeriodLabelFromProps = () => {
+    if (!propPeriodKey) return "No period selected";
     if (periodType === "month") {
-      const date = new Date(periodStart);
+      const date = new Date(propPeriodStart);
       return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
     } else {
-      return `${periodStart} to ${periodEnd}`;
+      return `${propPeriodStart} to ${propPeriodEnd}`;
     }
   };
 
