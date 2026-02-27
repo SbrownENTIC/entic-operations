@@ -402,9 +402,14 @@ export default function CallLogReporting() {
   const totalInbound  = activeSummaries.reduce((s, u) => s + (u.inbound || 0), 0);
   const totalOutbound = activeSummaries.reduce((s, u) => s + (u.outbound || 0), 0);
   const totalAnswered = activeSummaries.reduce((s, u) => s + (u.answered || 0), 0);
+  const totalInboundAnswered = activeSummaries.reduce((s, u) => {
+    const ia = u.inbound_answered != null ? u.inbound_answered : (u.answered || 0);
+    return s + ia;
+  }, 0);
   const totalMissed   = activeSummaries.reduce((s, u) => s + (u.missed || 0), 0);
   const totalDurationSec = activeSummaries.reduce((s, u) => s + (u.total_duration_seconds || 0), 0);
-  const overallAnswerRate   = totalCalls > 0 ? totalAnswered / totalCalls : 0;
+  // Inbound answer rate = total inbound answered / total inbound (blank if 0 inbound)
+  const overallAnswerRate   = totalInbound > 0 ? totalInboundAnswered / totalInbound : null;
   const overallAvgDurationSec = totalCalls > 0 ? totalDurationSec / totalCalls : 0;
 
   const resetUpload = () => {
