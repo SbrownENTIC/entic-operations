@@ -256,7 +256,7 @@ function NPTeamView({ sortedWeeks, configMap }) {
           user: name,
           location: getUserLocation(name, configMap),
           total_calls: u.total_calls || 0,
-          answered: u.answered || 0,
+          answered: u.inbound_answered != null ? u.inbound_answered : (u.answered || 0),
         });
       });
     });
