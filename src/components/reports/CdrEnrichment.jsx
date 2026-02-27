@@ -1,10 +1,10 @@
 import React from 'react';
 
-export function queryKey(selectedPeriod) {
-  // Use monthly_key (YYYY-MM) not entity id for CDR queries
+export function getCdrQueryFilter(selectedPeriod) {
+  // CRITICAL FIX: Use monthly_key (YYYY-MM) NOT entity id for CDR queries
   const key = selectedPeriod?.monthly_key;
-  console.log("[CDR_QUERY] Using period key:", key, "from period id:", selectedPeriod?.id);
-  return key;
+  console.log("[CDR_QUERY] Query filter - using reporting_period_key:", key, "(NOT id:", selectedPeriod?.id + ")");
+  return { reporting_period_key: key };
 }
 
 // Extract CDR enrichment logic into separate file to debug fetch & mapping
