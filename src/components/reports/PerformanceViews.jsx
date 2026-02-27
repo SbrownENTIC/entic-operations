@@ -174,7 +174,7 @@ function IndividualView({ sortedWeeks, configMap }) {
     sortedWeeks.forEach(week => {
       (week.user_snapshot || []).forEach(u => {
         const name = u.user || "";
-        const answered = u.answered || 0;
+        const answered = u.inbound_answered != null ? u.inbound_answered : (u.answered || 0);
         const eligible = isFrontDeskEligible(name, configMap);
         const goal = eligible ? getDeskGoal(name, configMap) : null;
         const pct = eligible && goal > 0 ? answered / goal : null;
