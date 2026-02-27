@@ -667,8 +667,15 @@ export default function CallLogReporting() {
       }
 
       // Duration is raw seconds from Vonage — parseInt only, no HH:MM:SS conversion
-      const durSec = parseInt(String(rawDur).trim(), 10) || 0;
-      const answered = durSec >= 90 ? 1 : 0;
+      // Not used as a gate — file is pre-filtered by Vonage to duration >= 90s
+      let durSec = 0;
+      const parsedDur = parseInt(String(rawDur ?? "").trim(), 10);
+      if (!isNaN(parsedDur)) {
+        durSec = parsedDur;
+      } else {
+        console.warn(`[CDR] Could not parse duration for row:`, row);
+      }
+      const answered = 1; // Pre-filtered by Vonage: all rows are answered (>= 90s)
 
       // Lookup location: prefer userConfigMap, fall back to "Location" column if present
       const cfg = userConfigMap[desk];
