@@ -29,12 +29,14 @@ export function getDeskType(name) {
   return "check_in";
 }
 
-/** Get hourly target for a desk */
+/** Get hourly target for a desk: daily_goal ÷ operating_hours, rounded to 2 decimals */
 export function getHourlyTarget(location, deskName) {
-  const targets = HOURLY_TARGETS[location];
-  if (!targets) return 0;
+  const goals = DAILY_GOALS[location];
+  if (!goals) return 0;
+  const hours = OPERATING_HOURS[location] || 7.5;
   const type = getDeskType(deskName);
-  return targets[type] ?? targets["check_in"] ?? 0;
+  const dailyGoal = goals[type] ?? goals["check_in"] ?? 0;
+  return Math.round((dailyGoal / hours) * 100) / 100;
 }
 
 function fmtHour(h) {
