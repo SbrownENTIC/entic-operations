@@ -346,30 +346,6 @@ export default function CdrUpload({ periodKey: propPeriodKey, periodType, period
           inbound_answer_rate: u.answer_rate || 0
         }));
 
-      // Upload file to private storage to avoid payload size limits
-      const fileBuffer = await file.arrayBuffer();
-      const uploadResponse = await base44.integrations.Core.UploadPrivateFile({
-        file: new Blob([fileBuffer], { type: file.type })
-      });
-
-      if (!uploadResponse.file_uri) {
-        setError("Failed to upload file to storage.");
-        setSaving(false);
-        return;
-      }
-
-      // Create signed URL for backend to access
-      const signedUrlResponse = await base44.integrations.Core.CreateFileSignedUrl({
-        file_uri: uploadResponse.file_uri,
-        expires_in: 3600
-      });
-
-      if (!signedUrlResponse.signed_url) {
-        setError("Failed to create signed URL for file.");
-        setSaving(false);
-        return;
-      }
-
       const response = await base44.functions.invoke('saveCdrUpload', {
         reporting_period_key: periodKey,
         period_type: periodType,
@@ -383,9 +359,7 @@ export default function CdrUpload({ periodKey: propPeriodKey, periodType, period
         mapped_rows: processed.totalMapped,
         unmapped_rows: processed.totalUnmapped,
         unmapped_extensions: unmappedExts,
-        userStats,
-        file_uri: uploadResponse.file_uri,
-        signed_url: signedUrlResponse.signed_url
+        userStats
       });
 
       if (response.data?.success) {
