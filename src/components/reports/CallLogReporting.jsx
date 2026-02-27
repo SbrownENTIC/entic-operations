@@ -43,14 +43,14 @@ function secondsToHHMMSS(seconds) {
   return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-function formatPercent(val) {
-  if (val == null || val === "") return "—";
-  return (val * 100).toFixed(1) + "%";
+function formatPercent(value) {
+  if (value === null || value === undefined || value === "") return "—";
+  return Number(value).toFixed(2) + "%";
 }
 
 function formatAnswerRate(inboundAnswered, inbound) {
   if (!inbound) return "—";
-  return ((inboundAnswered / inbound) * 100).toFixed(1) + "%";
+  return formatPercent(inboundAnswered / inbound);
 }
 
 // Parse a YYYY-MM-DD string to a JS Date at noon UTC to avoid timezone-shift issues
