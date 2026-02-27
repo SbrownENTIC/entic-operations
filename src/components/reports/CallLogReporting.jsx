@@ -834,8 +834,8 @@ export default function CallLogReporting() {
       emptyRow.height = 18;
     } else {
       weekRows.forEach((wk, idx) => {
-        const ar = wk.answer_rate;
-        const { bg, fg } = arColor(ar);
+        const ar = wk.answer_rate; // null if no inbound
+        const { bg, fg } = ar !== null ? arColor(ar) : { bg: "FFFFFFFF", fg: "FF888888" };
         const bgArgb = idx % 2 === 0 ? WHITE : LIGHT_GRAY;
 
         const row = ws.addRow([
@@ -846,7 +846,7 @@ export default function CallLogReporting() {
           wk.outbound,
           wk.answered,
           wk.missed,
-          ar,
+          ar !== null ? ar : "",
           minutesToHHMMSS(wk.total_duration_minutes),
           minutesToHHMMSS(wk.avg_duration_minutes),
         ]);
@@ -857,7 +857,7 @@ export default function CallLogReporting() {
           cell.alignment = { horizontal: colNum <= 2 ? "left" : "center", vertical: "middle" };
           cell.border    = { bottom: thinBorder, right: thinBorder };
           if ([3,4,5,6,7].includes(colNum)) cell.numFmt = "#,##0";
-          if (colNum === 8) {
+          if (colNum === 8 && ar !== null) {
             cell.numFmt = "0.00%";
             cell.fill   = mkFill(bg);
             cell.font   = mkFont({ color: { argb: fg } });
