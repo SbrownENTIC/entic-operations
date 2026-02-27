@@ -12,7 +12,8 @@ function buildHeaderMap(sampleRow) {
   return map;
 }
 
-const REQUIRED_NORMALIZED = [
+// Pre-aggregated format (old Vonage export)
+const REQUIRED_NORMALIZED_AGGREGATED = [
   "user",
   "total calls",
   "inbound calls",
@@ -23,6 +24,13 @@ const REQUIRED_NORMALIZED = [
   "total call duration (minutes)",
   "inbound call duration (minutes)",
   "outbound call duration (minutes)"
+];
+
+// Row-per-call format: requires user, direction, result
+const REQUIRED_NORMALIZED_ROW = [
+  "user",
+  "direction",
+  "result"
 ];
 
 const PERIOD_COL_START = "reporting period start";
