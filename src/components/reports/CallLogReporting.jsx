@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Upload, Phone, AlertCircle, CheckCircle, Loader2, Download, Trash2, ChevronUp, ChevronDown, Users } from "lucide-react";
 import CallLogUserConfigAdmin from "./CallLogUserConfigAdmin";
 import PerformanceViews from "./PerformanceViews";
+import CdrUpload from "./CdrUpload";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1661,11 +1662,16 @@ export default function CallLogReporting() {
       <Tabs defaultValue="reporting">
         <TabsList className="mb-2">
           <TabsTrigger value="reporting" className="gap-2"><Phone className="w-3.5 h-3.5" /> Reporting</TabsTrigger>
+          <TabsTrigger value="cdr" className="gap-2"><Upload className="w-3.5 h-3.5" /> Upload CDR</TabsTrigger>
           <TabsTrigger value="users" className="gap-2"><Users className="w-3.5 h-3.5" /> User Directory</TabsTrigger>
         </TabsList>
 
         <TabsContent value="users">
           <CallLogUserConfigAdmin />
+        </TabsContent>
+
+        <TabsContent value="cdr">
+          <CdrUpload />
         </TabsContent>
 
         <TabsContent value="reporting">
