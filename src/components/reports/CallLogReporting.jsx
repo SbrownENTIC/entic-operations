@@ -2226,15 +2226,17 @@ export default function CallLogReporting() {
                       <tbody>
                         {filteredSummaries.map((u, i) => {
                           const inbound = u.inbound || 0;
-                          const inboundAnswered = u.inbound_answered != null ? u.inbound_answered : (u.answered || 0);
-                          const ar = inbound > 0 ? inboundAnswered / inbound : null;
+                          const connected = u.answered || 0;
+                          const inboundCallsCdr = u.inbound_calls_cdr || 0;
+                          const inboundAnsweredCdr = u.inbound_answered_cdr || 0;
+                          const ar = inboundCallsCdr > 0 ? inboundAnsweredCdr / inboundCallsCdr : null;
                           return (
                             <tr key={u.id} className={`border-b border-slate-100 ${i % 2 !== 0 ? "bg-slate-50/50" : ""}`}>
                               <td className="px-4 py-2.5 font-medium text-slate-800">{highlightUser(u.user)}</td>
                               <td className="px-4 py-2.5 text-slate-700">{(u.total_calls || 0).toLocaleString()}</td>
                               <td className="px-4 py-2.5 text-blue-700">{inbound.toLocaleString()}</td>
                               <td className="px-4 py-2.5 text-indigo-700">{(u.outbound || 0).toLocaleString()}</td>
-                              <td className="px-4 py-2.5 text-green-700">{inboundAnswered.toLocaleString()}</td>
+                              <td className="px-4 py-2.5 text-green-700">{connected.toLocaleString()}</td>
                               <td className="px-4 py-2.5 text-red-600">{(u.missed || 0).toLocaleString()}</td>
                               <td className="px-4 py-2.5 text-slate-600">{secondsToHHMMSS(u.total_duration_seconds)}</td>
                               <td className="px-4 py-2.5">
