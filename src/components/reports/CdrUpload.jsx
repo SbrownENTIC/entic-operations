@@ -140,14 +140,42 @@ export default function CdrUpload() {
     setResult(null);
   };
 
+  const parseXLSX = async (file) => {
+    const ExcelJS = (await import("exceljs")).default;
+    const workbook = new ExcelJS.Workbook();
+    const buffer = await file.arrayBuffer();
+    await workbook.xlsx.load(buffer);
+    const sheet = workbook.worksheets[0];
+    if (!sheet) return [];
+    const rows = [];
+    let headers = [];
+    sheet.eachRow((row, rowNumber) => {
+      const values = row.values.slice(1); // exceljs row.values is 1-indexed, index 0 is null
+      if (rowNumber === 1) {
+        headers = values.map(v => String(v ?? "").trim());
+      } else {
+        const obj = {};
+        headers.forEach((h, i) => { obj[h] = values[i] != null ? String(values[i]).trim() : ""; });
+        if (Object.values(obj).some(v => v !== "")) rows.push(obj);
+      }
+    });
+    return rows;
+  };
+
   const handleProcess = async () => {
     if (!file) { setError("Please select a file."); return; }
     setError("");
     setProcessing(true);
 
     try {
-      const text = await file.text();
-      const rows = parseCSV(text);
+      let rows;
+      const isXLSX = file.name.toLowerCase().endsWith(".xlsx");
+      if (isXLSX) {
+        rows = await parseXLSX(file);
+      } else {
+        const text = await file.text();
+        rows = parseCSV(text);
+      }
 
       if (!rows.length) {
         setError("File contains no data rows.");
