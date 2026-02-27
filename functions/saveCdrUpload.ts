@@ -10,6 +10,7 @@ Deno.serve(async (req) => {
     }
 
     const payload = await req.json();
+    console.log("[saveCdrUpload] Received payload with period_key:", payload.reporting_period_key);
     
     const {
       reporting_period_key,
