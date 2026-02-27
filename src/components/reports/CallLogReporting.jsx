@@ -367,28 +367,18 @@ export default function CallLogReporting() {
     setSortDir("asc");
   }, [selectedPeriod?.id]);
 
-  // Build CDR stats map by user_name
-  const cdrStatsMap = React.useMemo(() => {
-    const map = {};
-    for (const stat of cdrUserStats) {
-      map[stat.user_name] = {
-        inbound_calls_cdr: stat.inbound_calls || 0,
-        inbound_answered_cdr: stat.inbound_answered || 0,
-        inbound_unanswered_cdr: stat.inbound_unanswered || 0,
-      };
-    }
-    return map;
+  // Normalized CDR map
+  const cdrMap = React.useMemo(() => {
+    const m = {}; cdrUserStats.forEach(s => { if(s.user_name) { const n = s.user_name.trim().toLowerCase().replace(/\s+/g, " "); m[n] = {t: Number(s.inbound_calls||0), a: Number(s.inbound_answered||0)}; } }); console.log("[CDR_KEYS]", Object.keys(m)); return m;
   }, [cdrUserStats]);
 
-  // Merge CDR data into summaries
+  // Merge CDR normalized
   const enrichedSummaries = React.useMemo(() => {
-    return userSummaries.map(u => ({
-      ...u,
-      inbound_calls_cdr: cdrStatsMap[u.user]?.inbound_calls_cdr || 0,
-      inbound_answered_cdr: cdrStatsMap[u.user]?.inbound_answered_cdr || 0,
-      inbound_unanswered_cdr: cdrStatsMap[u.user]?.inbound_unanswered_cdr || 0,
-    }));
-  }, [userSummaries, cdrStatsMap]);
+    return userSummaries.map(u => {
+      const n = u.user?.trim().toLowerCase().replace(/\s+/g, " "); const c = cdrMap[n]; const r = c && c.t > 0 ? (c.a/c.t)*100 : null; console.log(`"${u.user}"->"${n}"->match:${!!c}`, c);
+      return {...u, inbound_answer_rate_cdr: r};
+    });
+  }, [userSummaries, cdrMap]);
 
   const activeSummaries = [...enrichedSummaries.filter(u => (u.total_calls || 0) > 0)]
     .sort((a, b) => {
