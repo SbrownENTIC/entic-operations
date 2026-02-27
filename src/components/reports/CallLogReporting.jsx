@@ -628,19 +628,29 @@ export default function CallLogReporting() {
       return { error: `Missing required CDR columns: ${missing.join(", ")}` };
     }
 
+    // Normalize direction using explicit bracket access
+    const inboundRows = rows.filter(row => {
+      const raw = row["Direction"];
+      if (!raw) return false;
+      const direction = String(raw).trim().toLowerCase();
+      return direction === "inbound";
+    });
+
+    // Debug logging
+    console.log("Total rows:", rows.length);
+    console.log("Inbound rows after normalization:", inboundRows.length);
+
+    if (inboundRows.length === 0) {
+      const distinctVals = [...new Set(rows.map(r => String(r["Direction"] ?? "").trim().toLowerCase()))];
+      console.warn("[CDR] No inbound rows detected. Distinct direction values:", distinctVals);
+      return { error: `No inbound calls found after normalization. Distinct direction values: ${distinctVals}` };
+    }
+
     // Aggregate: key = date|hour|desk
     const uploadBatchId = generateUUID();
     const agg = {};
 
-    // Collect distinct direction values for debugging
-    const distinctDirections = new Set();
-
-    for (const row of rows) {
-      const direction = String(row[dirKey] || "").trim().toLowerCase();
-      distinctDirections.add(direction);
-
-      if (direction !== "inbound") continue;
-
+    for (const row of inboundRows) {
       const rawStart = row[startKey];
       const rawDur   = row[durKey];
       const desk     = String(row[destKey] || "").trim();
@@ -700,20 +710,13 @@ export default function CallLogReporting() {
           upload_batch_id: uploadBatchId,
         };
       }
-      agg[key].total_inbound       += 1;
-      agg[key].answered            += answered;
-      agg[key].missed              += (1 - answered);
+      agg[key].total_inbound          += 1;
+      agg[key].answered               += answered;
+      agg[key].missed                 += (1 - answered);
       agg[key].total_duration_seconds += durSec;
     }
 
-    const result = Object.values(agg);
-    if (result.length === 0) {
-      const dirList = [...distinctDirections].filter(Boolean).join('", "');
-      console.log("Normalized direction values:", distinctDirections);
-      console.warn(`[CDR] No inbound rows detected. Distinct direction values found: "${dirList}"`);
-      return { error: `No inbound calls found. Distinct direction values in file: "${dirList}". Check that the Direction column contains "inbound".` };
-    }
-    return { hourlySnapshot: result, uploadBatchId };
+    return { hourlySnapshot: Object.values(agg), uploadBatchId };
   };
 
   const handleCdrUpload = async () => {
