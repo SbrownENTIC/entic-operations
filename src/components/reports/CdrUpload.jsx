@@ -312,8 +312,13 @@ export default function CdrUpload({ periodKey: propPeriodKey, periodType, period
   };
 
   const handleSave = async (processed, fileName) => {
-    if (!processed || !periodKey || !periodStart || !periodEnd) {
+    if (!processed || !periodKey) {
       setError("Missing period or processing data");
+      return;
+    }
+
+    if (!periodStart || !periodEnd) {
+      setError("Period dates not set. Please enter a Reporting Period.");
       return;
     }
 
