@@ -2,7 +2,6 @@ import React from "react";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ChevronUp, ChevronDown } from "lucide-react";
-import UserBreakdownTable from "./UserBreakdownTable";
 
 function secondsToHHMMSS(seconds) {
   if (!seconds || seconds === 0) return "0:00:00";
