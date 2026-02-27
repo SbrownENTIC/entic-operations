@@ -2181,7 +2181,7 @@ export default function CallLogReporting() {
             <>
                  {/* Inbound CDR Metrics Card */}
               <CdrInboundMetricsCard
-                periodKey={selectedPeriod?.id}
+                periodKey={selectedPeriod?.monthly_key}
                 periodType={selectedPeriod?.period_type || "month"}
                 periodStart={selectedPeriod?.period_start}
                 periodEnd={selectedPeriod?.period_end}
