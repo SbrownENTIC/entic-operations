@@ -348,7 +348,7 @@ export default function CdrUpload({ periodKey: propPeriodKey, periodType, period
 
       const response = await base44.functions.invoke('saveCdrUpload', {
         reporting_period_key: periodKey,
-        period_type: periodType,
+        period_type: periodType || 'month',
         period_start: periodStart,
         period_end: periodEnd,
         original_filename: fileName,
