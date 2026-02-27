@@ -189,14 +189,31 @@ export default function CdrUpload() {
       <div>
         <h3 className="text-base font-semibold text-slate-800 flex items-center gap-2">
           <Upload className="w-4 h-4 text-blue-600" />
-          Upload CDR (Inbound Only)
+          Inbound Call Detail (CDR)
         </h3>
         <p className="text-xs text-slate-500 mt-0.5">
           Upload a Vonage inbound CDR export. Every row is treated as an inbound call.
-          Calls are mapped to users via the <strong>To</strong> (extension) column.
+          Calls are mapped to users via the <strong>To</strong> (extension) column against the User Directory.
         </p>
-        <p className="text-xs text-slate-400 mt-0.5">
-          Expected columns: Direction, To, From, Destination Device, Date/Time, Result, Duration, Location
+
+        {/* Upload type label */}
+        <div className="mt-2 flex items-center gap-4 text-xs font-medium">
+          <span className="text-slate-500">Upload Type:</span>
+          <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 cursor-default">
+            User Summary (Aggregated)
+          </span>
+          <span className="px-2.5 py-1 rounded-full bg-blue-600 text-white shadow-sm">
+            ✓ Inbound Call Detail (CDR)
+          </span>
+        </div>
+
+        <div className="mt-2 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 text-xs text-amber-800">
+          <strong>Upload Type: Inbound Call Detail (CDR)</strong> — feeds advanced analytics only.<br />
+          For monthly performance dashboards, use <strong>Reporting → Upload Call Log</strong>.
+        </div>
+
+        <p className="text-xs text-slate-400 mt-1">
+          Required columns: Direction, To, From, Destination Device, Date/Time, Result, Duration, Location
         </p>
       </div>
 
