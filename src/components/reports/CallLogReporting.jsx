@@ -1922,20 +1922,26 @@ export default function CallLogReporting() {
                       </thead>
                       <tbody>
                         {filteredSummaries.map((u, i) => {
-                          const ar = u.answered != null && u.total_calls ? u.answered / u.total_calls : (u.answer_rate || 0);
+                          const inbound = u.inbound || 0;
+                          const inboundAnswered = u.inbound_answered != null ? u.inbound_answered : (u.answered || 0);
+                          const ar = inbound > 0 ? inboundAnswered / inbound : null;
                           return (
                             <tr key={u.id} className={`border-b border-slate-100 ${i % 2 !== 0 ? "bg-slate-50/50" : ""}`}>
                               <td className="px-4 py-2.5 font-medium text-slate-800">{highlightUser(u.user)}</td>
                               <td className="px-4 py-2.5 text-slate-700">{(u.total_calls || 0).toLocaleString()}</td>
-                              <td className="px-4 py-2.5 text-blue-700">{(u.inbound || 0).toLocaleString()}</td>
+                              <td className="px-4 py-2.5 text-blue-700">{inbound.toLocaleString()}</td>
                               <td className="px-4 py-2.5 text-indigo-700">{(u.outbound || 0).toLocaleString()}</td>
-                              <td className="px-4 py-2.5 text-green-700">{(u.answered || 0).toLocaleString()}</td>
+                              <td className="px-4 py-2.5 text-green-700">{inboundAnswered.toLocaleString()}</td>
                               <td className="px-4 py-2.5 text-red-600">{(u.missed || 0).toLocaleString()}</td>
                               <td className="px-4 py-2.5 text-slate-600">{secondsToHHMMSS(u.total_duration_seconds)}</td>
                               <td className="px-4 py-2.5">
-                                <span className={`font-semibold ${ar >= 0.8 ? "text-green-700" : ar >= 0.5 ? "text-yellow-700" : "text-red-600"}`}>
-                                  {(ar * 100).toFixed(1)}%
-                                </span>
+                                {ar === null ? (
+                                  <span className="text-slate-400">—</span>
+                                ) : (
+                                  <span className={`font-semibold ${ar >= 0.8 ? "text-green-700" : ar >= 0.5 ? "text-yellow-700" : "text-red-600"}`}>
+                                    {(ar * 100).toFixed(1)}%
+                                  </span>
+                                )}
                               </td>
                               <td className="px-4 py-2.5 text-slate-600">{secondsToHHMMSS(u.avg_duration_seconds)}</td>
                             </tr>
