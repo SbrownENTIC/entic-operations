@@ -2084,18 +2084,72 @@ export default function CallLogReporting() {
                   </div>
                   <Button variant="ghost" size="sm" onClick={resetCdrUpload}>✕</Button>
                 </div>
-                <input
-                  type="file"
-                  accept=".xlsx,.csv"
-                  onChange={e => { setCdrFile(e.target.files[0] || null); setCdrError(""); }}
-                  className="block w-full text-sm text-slate-700 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer"
-                />
-                {cdrFile && <p className="text-xs text-slate-500 flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-600" />{cdrFile.name}</p>}
+
+                {/* Reporting Period Selection */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-slate-700 block mb-1">
+                      Reporting Period Type <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={cdrReportingType}
+                      onChange={e => setCdrReportingType(e.target.value)}
+                      className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-sm text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="monthly">Monthly</option>
+                      <option value="weekly">Weekly</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-slate-700 block mb-1">
+                      Reporting Month (YYYY-MM) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="month"
+                      value={cdrReportingMonth}
+                      onChange={e => setCdrReportingMonth(e.target.value)}
+                      className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-sm text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Week Start (conditional) */}
+                {cdrReportingType === "weekly" && (
+                  <div>
+                    <label className="text-xs font-medium text-slate-700 block mb-1">
+                      Week Start Date (YYYY-MM-DD) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={cdrWeekStart}
+                      onChange={e => setCdrWeekStart(e.target.value)}
+                      className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-sm text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                )}
+
+                {/* File Input */}
+                <div>
+                  <label className="text-xs font-medium text-slate-700 block mb-1">
+                    CDR File (.xlsx or .csv) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="file"
+                    accept=".xlsx,.csv"
+                    onChange={e => { setCdrFile(e.target.files[0] || null); setCdrError(""); }}
+                    className="block w-full text-sm text-slate-700 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer"
+                  />
+                  {cdrFile && <p className="text-xs text-slate-500 mt-1 flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-600" />{cdrFile.name}</p>}
+                </div>
+
+                {/* Error Display */}
                 {cdrError && (
                   <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
                     <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />{cdrError}
                   </div>
                 )}
+
+                {/* Action Buttons */}
                 <div className="flex gap-2">
                   <Button onClick={handleCdrUpload} disabled={cdrUploading} className="gap-2 bg-indigo-600 hover:bg-indigo-700">
                     {cdrUploading ? <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</> : <><Upload className="w-4 h-4" /> Process CDR</>}
