@@ -61,6 +61,7 @@ function buildExtensionMap(configs) {
 
 function processRows(rows, extensionMap) {
   const users = {}; // user_name -> { inbound, inbound_answered }
+  const distinctResults = new Set();
 
   const ensure = (name) => {
     if (!users[name]) users[name] = { inbound: 0, inbound_answered: 0 };
@@ -69,6 +70,7 @@ function processRows(rows, extensionMap) {
   let totalInbound = 0;
   let totalMapped = 0;
   let totalUnmapped = 0;
+  let totalAnswered = 0;
 
   for (const row of rows) {
     const toKey     = findKey(row, "to");
@@ -79,7 +81,12 @@ function processRows(rows, extensionMap) {
 
     const toRaw   = toKey ? String(row[toKey] || "").trim() : "";
     const toLower = toRaw.toLowerCase();
-    const result  = resultKey ? String(row[resultKey] || "").trim().toLowerCase() : "";
+    const resultNorm  = resultKey ? String(row[resultKey] || "").trim().toLowerCase() : "";
+
+    // Track distinct Result values
+    if (resultNorm) {
+      distinctResults.add(resultNorm);
+    }
 
     let userName;
     if (toLower && extensionMap[toLower]) {
@@ -92,7 +99,12 @@ function processRows(rows, extensionMap) {
 
     ensure(userName);
     users[userName].inbound++;
-    if (result === "answered") users[userName].inbound_answered++;
+    
+    // Only count as answered if resultNorm is exactly "answered"
+    if (resultNorm === "answered") {
+      users[userName].inbound_answered++;
+      totalAnswered++;
+    }
   }
 
   const userRows = Object.entries(users).map(([name, vals]) => ({
@@ -108,7 +120,15 @@ function processRows(rows, extensionMap) {
     return b.inbound - a.inbound;
   });
 
-  return { userRows, totalInbound, totalMapped, totalUnmapped };
+  return { 
+    userRows, 
+    totalInbound, 
+    totalMapped, 
+    totalUnmapped,
+    totalAnswered,
+    totalUnanswered: totalInbound - totalAnswered,
+    distinctResults: Array.from(distinctResults).sort()
+  };
 }
 
 export default function CdrUpload() {
