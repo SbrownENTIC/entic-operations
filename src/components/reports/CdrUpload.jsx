@@ -175,18 +175,45 @@ export default function CdrUpload({ periodKey: propPeriodKey, periodType, period
   const [result, setResult] = useState(null);
 
   // Format period label from props (month format)
-  const formatPeriodLabelFromProps = () => {
+  const formatPeriodLabelFromProps = React.useCallback(() => {
     if (!propPeriodKey) return "No period selected";
-    if (periodType === "month") {
-      const date = new Date(propPeriodStart);
-      return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
-    } else {
-      return `${propPeriodStart} to ${propPeriodEnd}`;
+    if (periodType === "month" && propPeriodStart) {
+      try {
+        const date = new Date(propPeriodStart + "T12:00:00Z");
+        if (!isNaN(date.getTime())) {
+          return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+        }
+      } catch (e) {
+        console.error("Invalid date:", propPeriodStart);
+      }
     }
-  };
+    return `${propPeriodStart} to ${propPeriodEnd}`;
+  }, [propPeriodKey, periodType, propPeriodStart, propPeriodEnd]);
 
   // Use manual period if provided, otherwise fall back to prop
-  const [parsedPeriod, setParsedPeriod] = useState(null);
+  const [parsedPeriod, setParsedPeriod] = useState(() => {
+    // Initialize from props if available
+    if (propPeriodKey && propPeriodStart && propPeriodEnd && periodType === "month") {
+      return { periodKey: propPeriodKey, periodStart: propPeriodStart, periodEnd: propPeriodEnd, periodLabel: formatPeriodLabelFromProps() };
+    }
+    return null;
+  });
+
+  // Sync with parent props when they change
+  React.useEffect(() => {
+    if (propPeriodKey && propPeriodStart && propPeriodEnd) {
+      const label = formatPeriodLabelFromProps();
+      setManualPeriodInput(label);
+      setParsedPeriod({
+        periodKey: propPeriodKey,
+        periodStart: propPeriodStart,
+        periodEnd: propPeriodEnd,
+        periodLabel: label
+      });
+      setPeriodValidationError("");
+    }
+  }, [propPeriodKey, propPeriodStart, propPeriodEnd, formatPeriodLabelFromProps]);
+
   const periodKey = parsedPeriod?.periodKey || propPeriodKey;
   const periodStart = parsedPeriod?.periodStart || propPeriodStart;
   const periodEnd = parsedPeriod?.periodEnd || propPeriodEnd;
