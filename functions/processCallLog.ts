@@ -262,6 +262,16 @@ Deno.serve(async (req) => {
       if (cfg.user_name) userConfigMap[cfg.user_name] = cfg;
     }
 
+    // Load CallLogExtensionDirectory for inbound extension mapping
+    const allExtensions = await base44.asServiceRole.entities.CallLogExtensionDirectory.list();
+    const extensionMap = {};
+    for (const ext of allExtensions) {
+      if (ext.extension) {
+        extensionMap[String(ext.extension).trim().toLowerCase()] = ext;
+      }
+    }
+    console.log(`[processCallLog] Loaded ${allExtensions.length} extension mappings.`);
+
     const headerMap = buildHeaderMap(rows[0]);
 
     const missing = REQUIRED_NORMALIZED.filter(h => !(h in headerMap));
