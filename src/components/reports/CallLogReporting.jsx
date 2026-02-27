@@ -5,9 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload, Phone, AlertCircle, CheckCircle, Loader2, Download, Trash2, ChevronUp, ChevronDown, Users, BookOpen } from "lucide-react";
+import { Upload, Phone, AlertCircle, CheckCircle, Loader2, Download, Trash2, ChevronUp, ChevronDown, Users } from "lucide-react";
 import CallLogUserConfigAdmin from "./CallLogUserConfigAdmin";
-import CallLogExtensionDirectoryAdmin from "./CallLogExtensionDirectoryAdmin";
 import PerformanceViews from "./PerformanceViews";
 import {
   AlertDialog,
@@ -1662,13 +1661,8 @@ export default function CallLogReporting() {
       <Tabs defaultValue="reporting">
         <TabsList className="mb-2">
           <TabsTrigger value="reporting" className="gap-2"><Phone className="w-3.5 h-3.5" /> Reporting</TabsTrigger>
-          <TabsTrigger value="extensions" className="gap-2"><BookOpen className="w-3.5 h-3.5" /> Extension Directory</TabsTrigger>
           <TabsTrigger value="users" className="gap-2"><Users className="w-3.5 h-3.5" /> User Directory</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="extensions">
-          <CallLogExtensionDirectoryAdmin />
-        </TabsContent>
 
         <TabsContent value="users">
           <CallLogUserConfigAdmin />

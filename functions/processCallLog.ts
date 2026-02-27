@@ -142,8 +142,8 @@ function aggregateUsers(rows, headerMap, extensionMap) {
       let inboundUserName;
       let unmapped = false;
 
-      if (extEntry && extEntry.is_active !== false) {
-        inboundUserName = extEntry.user_display_name;
+      if (extEntry && extEntry.active !== false) {
+        inboundUserName = extEntry.user_name;
       } else {
         // Unmapped — group under a special key but still count for totals
         inboundUserName = toRaw ? `Unmapped (${toRaw})` : 'Unmapped Extension';
@@ -258,22 +258,17 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'No data rows provided.' }, { status: 400 });
     }
 
-    // Load CallLogUserConfig for enrichment
+    // Load CallLogUserConfig for enrichment + inbound extension mapping
     const allUserConfigs = await base44.asServiceRole.entities.CallLogUserConfig.list();
     const userConfigMap = {};
+    const extensionMap = {};
     for (const cfg of allUserConfigs) {
       if (cfg.user_name) userConfigMap[cfg.user_name] = cfg;
-    }
-
-    // Load CallLogExtensionDirectory for inbound extension mapping
-    const allExtensions = await base44.asServiceRole.entities.CallLogExtensionDirectory.list();
-    const extensionMap = {};
-    for (const ext of allExtensions) {
-      if (ext.extension) {
-        extensionMap[String(ext.extension).trim().toLowerCase()] = ext;
+      if (cfg.extension) {
+        extensionMap[String(cfg.extension).trim().toLowerCase()] = cfg;
       }
     }
-    console.log(`[processCallLog] Loaded ${allExtensions.length} extension mappings.`);
+    console.log(`[processCallLog] Loaded ${allUserConfigs.length} user configs, ${Object.keys(extensionMap).length} with extensions.`);
 
     const headerMap = buildHeaderMap(rows[0]);
 
