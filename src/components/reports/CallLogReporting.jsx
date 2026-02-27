@@ -285,25 +285,20 @@ export default function CallLogReporting() {
     queryFn: () => batchFetch(base44.entities.CallLogUserConfig, {}),
   });
 
-  // Fetch CDR user stats for the selected period
+  // Fetch CDR user stats for the selected period - MUST use monthly_key NOT id
   const { data: cdrUserStats = [] } = useQuery({
-    queryKey: ["call-log-cdr-user-stats", selectedPeriod?.id],
+    queryKey: ["call-log-cdr-user-stats", selectedPeriod?.monthly_key],
     queryFn: async () => {
-      if (!selectedPeriod?.id) return [];
+      const mk = selectedPeriod?.monthly_key; if (!mk) return [];
+      console.log("[CDR_QUERY] Querying with monthly_key:", mk);
       try {
-        const cdrUploads = await batchFetch(base44.entities.CallLogCdrUploads, {
-          reporting_period_key: selectedPeriod.id
-        });
-        if (!cdrUploads.length) return [];
-        const stats = await batchFetch(base44.entities.CallLogCdrUserStats, {
-          cdr_upload_id: cdrUploads[0].id
-        });
-        return stats || [];
-      } catch {
-        return [];
-      }
+        const cdrUploads = await batchFetch(base44.entities.CallLogCdrUploads, {reporting_period_key: mk});
+        console.log("[CDR_QUERY] Found uploads:", cdrUploads?.length); if (!cdrUploads?.length) return [];
+        const stats = await batchFetch(base44.entities.CallLogCdrUserStats, {cdr_upload_id: cdrUploads[0].id});
+        console.log("[CDR_QUERY] Got stats:", stats?.length, "first:", stats?.[0]); return stats || [];
+      } catch (e) { console.error("[CDR_QUERY]", e); return []; }
     },
-    enabled: !!selectedPeriod?.id
+    enabled: !!selectedPeriod?.monthly_key
   });
 
   const userConfigMap = React.useMemo(() => {
