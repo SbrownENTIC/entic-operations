@@ -1755,7 +1755,8 @@ export default function CallLogReporting() {
       } else {
         const cdrTableRows = [];
         cdrUserStats.forEach((stat, idx) => {
-          const ar = stat.inbound_answer_rate !== null ? stat.inbound_answer_rate : 0;
+          // Calculate answer rate from CDR data only: inbound_answered / inbound_calls
+          const ar = stat.inbound_calls > 0 ? stat.inbound_answered / stat.inbound_calls : null;
           const { bg, fg } = arColor(ar);
           const bgArgb = idx % 2 === 0 ? WHITE : LIGHT_GRAY;
 
@@ -1766,7 +1767,7 @@ export default function CallLogReporting() {
             stat.inbound_calls,
             stat.inbound_answered,
             stat.inbound_unanswered,
-            ar !== 0 && stat.inbound_calls > 0 ? ar : ""
+            ar !== null ? ar : ""
           ]);
           row.height = 18;
           cdrTableRows.push([
@@ -1776,7 +1777,7 @@ export default function CallLogReporting() {
             stat.inbound_calls,
             stat.inbound_answered,
             stat.inbound_unanswered,
-            ar !== 0 && stat.inbound_calls > 0 ? ar : ""
+            ar !== null ? ar : ""
           ]);
 
           row.eachCell({ includeEmpty: true }, (cell, colNum) => {
@@ -1785,7 +1786,7 @@ export default function CallLogReporting() {
             cell.alignment = { horizontal: colNum <= 3 ? "left" : "center", vertical: "middle" };
             cell.border    = { bottom: thinBorder, right: thinBorder };
             if ([4, 5, 6].includes(colNum)) cell.numFmt = "#,##0";
-            if (colNum === 7 && ar !== 0 && stat.inbound_calls > 0) {
+            if (colNum === 7 && ar !== null) {
               cell.numFmt = "0.00%";
               cell.fill   = mkFill(bg);
               cell.font   = mkFont({ color: { argb: fg } });
