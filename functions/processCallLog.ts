@@ -318,7 +318,7 @@ Deno.serve(async (req) => {
             for (const u of (wk.user_snapshot || [])) {
               const key = (u.user || '').toLowerCase();
               if (!allUserTotals[key]) {
-                allUserTotals[key] = { user: u.user, total_calls: 0, inbound: 0, outbound: 0, answered: 0, missed: 0, voicemail: 0, total_duration_seconds: 0, inbound_duration_seconds: 0, outbound_duration_seconds: 0 };
+                allUserTotals[key] = { user: u.user, total_calls: 0, inbound: 0, outbound: 0, answered: 0, inbound_answered: 0, missed: 0, voicemail: 0, total_duration_seconds: 0, inbound_duration_seconds: 0, outbound_duration_seconds: 0 };
               }
               allUserTotals[key].total_calls               += u.total_calls || 0;
               allUserTotals[key].inbound                   += u.inbound || 0;
