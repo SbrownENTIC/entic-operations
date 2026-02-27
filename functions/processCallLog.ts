@@ -92,17 +92,20 @@ function normalizeField(val) {
   return String(val == null ? '' : val).trim().toLowerCase();
 }
 
-/** Aggregate user data from a group of rows using Direction and Result columns. */
-function aggregateUsers(rows, headerMap) {
+/**
+ * Aggregate user data from CDR rows.
+ * Inbound ownership: determined by the "To" column → extension directory lookup.
+ * Outbound: determined by the "User" column (existing behavior).
+ * extensionMap: { extension_raw_lower: { user_display_name, desk_name, location } }
+ */
+function aggregateUsers(rows, headerMap, extensionMap) {
   const get = (row, name) => row[headerMap[name]];
   const agg = {};
-  for (const row of rows) {
-    const userName = String(get(row, 'user') || '').trim();
-    if (!userName) continue;
-    const key = userName.toLowerCase();
+
+  const ensureUser = (key, displayName) => {
     if (!agg[key]) {
       agg[key] = {
-        user: userName,
+        user: displayName,
         total_calls: 0,
         inbound: 0,
         outbound: 0,
@@ -114,9 +117,12 @@ function aggregateUsers(rows, headerMap) {
         total_duration_minutes: 0,
         inbound_duration_minutes: 0,
         outbound_duration_minutes: 0,
+        unmapped_extension: false,
       };
     }
+  };
 
+  for (const row of rows) {
     const direction = normalizeField(get(row, 'direction'));
     const result    = normalizeField(get(row, 'result'));
     const isInbound  = direction === 'inbound';
@@ -127,16 +133,49 @@ function aggregateUsers(rows, headerMap) {
     const inMin    = parseFloat(String(get(row, 'inbound call duration (minutes)') || '0').trim()) || 0;
     const outMin   = parseFloat(String(get(row, 'outbound call duration (minutes)') || '0').trim()) || 0;
 
-    agg[key].total_calls               += 1;
-    if (isInbound)  agg[key].inbound   += 1;
-    if (isOutbound) agg[key].outbound  += 1;
-    if (isInbound  && isAnswered) { agg[key].inbound_answered  += 1; agg[key].answered += 1; }
-    if (isOutbound && isAnswered)   agg[key].outbound_answered += 1;
-    if (isInbound  && result === 'missed')   agg[key].missed    += 1;
-    if (isInbound  && result === 'voicemail') agg[key].voicemail += 1;
-    agg[key].total_duration_minutes    += totalMin;
-    agg[key].inbound_duration_minutes  += inMin;
-    agg[key].outbound_duration_minutes += outMin;
+    if (isInbound) {
+      // Inbound: look up "To" column in extension directory
+      const toRaw = headerMap[TO_COL] ? String(get(row, TO_COL) || '').trim() : '';
+      const toLower = toRaw.toLowerCase();
+      const extEntry = toLower ? extensionMap[toLower] : null;
+
+      let inboundUserName;
+      let unmapped = false;
+
+      if (extEntry && extEntry.is_active !== false) {
+        inboundUserName = extEntry.user_display_name;
+      } else {
+        // Unmapped — group under a special key but still count for totals
+        inboundUserName = toRaw ? `Unmapped (${toRaw})` : 'Unmapped Extension';
+        unmapped = true;
+      }
+
+      const key = inboundUserName.toLowerCase();
+      ensureUser(key, inboundUserName);
+      if (unmapped) agg[key].unmapped_extension = true;
+
+      agg[key].total_calls               += 1;
+      agg[key].inbound                   += 1;
+      if (isAnswered) { agg[key].inbound_answered += 1; agg[key].answered += 1; }
+      if (result === 'missed')    agg[key].missed    += 1;
+      if (result === 'voicemail') agg[key].voicemail += 1;
+      agg[key].total_duration_minutes    += totalMin;
+      agg[key].inbound_duration_minutes  += inMin;
+    }
+
+    if (isOutbound) {
+      // Outbound: use "User" column
+      const outUserName = headerMap[USER_COL] ? String(get(row, USER_COL) || '').trim() : '';
+      if (!outUserName) continue;
+      const key = outUserName.toLowerCase();
+      ensureUser(key, outUserName);
+
+      agg[key].total_calls                += 1;
+      agg[key].outbound                   += 1;
+      if (isAnswered) agg[key].outbound_answered += 1;
+      agg[key].total_duration_minutes     += totalMin;
+      agg[key].outbound_duration_minutes  += outMin;
+    }
   }
   return Object.values(agg);
 }
