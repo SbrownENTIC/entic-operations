@@ -13,13 +13,16 @@ function buildHeaderMap(sampleRow) {
 }
 
 const REQUIRED_NORMALIZED = [
-  "user",
   "direction",
   "result",
   "total call duration (minutes)",
   "inbound call duration (minutes)",
   "outbound call duration (minutes)"
 ];
+
+// "to" column is needed for inbound extension mapping; optional fallback to "user"
+const TO_COL = "to";
+const USER_COL = "user";
 
 const PERIOD_COL_START = "reporting period start";
 const PERIOD_COL_END   = "reporting period end";
