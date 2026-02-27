@@ -295,7 +295,30 @@ export default function CdrInboundMetricsCard({
   }
 
   const { upload, stats } = cdrData;
-  const topUsers = stats.sort((a, b) => b.inbound_calls - a.inbound_calls).slice(0, 10);
+
+  const handleSort = (key) => {
+    if (sortKey === key) {
+      setSortDir(sortDir === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+
+  const sortedStats = [...stats].sort((a, b) => {
+    const aVal = a[sortKey] ?? 0;
+    const bVal = b[sortKey] ?? 0;
+
+    if (typeof aVal === "string") {
+      return sortDir === "asc"
+        ? aVal.localeCompare(bVal)
+        : bVal.localeCompare(aVal);
+    }
+
+    return sortDir === "asc" ? aVal - bVal : bVal - aVal;
+  });
+
+  const topUsers = sortedStats.slice(0, 10);
 
   const answerRateColor = (rate) => {
     if (rate >= 0.9) return "text-green-600 font-semibold";
