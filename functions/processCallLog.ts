@@ -144,7 +144,7 @@ function aggregateUsers(rows, headerMap, extensionMap) {
 
       if (extEntry && extEntry.active !== false) {
         inboundUserName = extEntry.user_name;
-      } else {
+      } else if (!extEntry) {
         // Unmapped — group under a special key but still count for totals
         inboundUserName = toRaw ? `Unmapped (${toRaw})` : 'Unmapped Extension';
         unmapped = true;
@@ -264,11 +264,14 @@ Deno.serve(async (req) => {
     const extensionMap = {};
     for (const cfg of allUserConfigs) {
       if (cfg.user_name) userConfigMap[cfg.user_name] = cfg;
-      if (cfg.extension) {
-        extensionMap[String(cfg.extension).trim().toLowerCase()] = cfg;
+      // Support both legacy single `extension` and new `extensions` array
+      const exts = Array.isArray(cfg.extensions) ? cfg.extensions
+        : (cfg.extension ? [cfg.extension] : []);
+      for (const ext of exts) {
+        if (ext) extensionMap[String(ext).trim().toLowerCase()] = cfg;
       }
     }
-    console.log(`[processCallLog] Loaded ${allUserConfigs.length} user configs, ${Object.keys(extensionMap).length} with extensions.`);
+    console.log(`[processCallLog] Loaded ${allUserConfigs.length} user configs, ${Object.keys(extensionMap).length} extension entries.`);
 
     const headerMap = buildHeaderMap(rows[0]);
 
