@@ -120,9 +120,9 @@ Deno.serve(async (req) => {
       const statRecords = userStats.map(stat => ({
         cdr_upload_id: cdrUploadId,
         reporting_period_key,
-        period_type,
-        period_start,
-        period_end,
+        period_type: finalPeriodType,
+        period_start: finalPeriodStart,
+        period_end: finalPeriodEnd,
         user_name: stat.user_name,
         extension: stat.extension,
         location: stat.location,
