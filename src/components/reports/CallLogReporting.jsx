@@ -307,6 +307,27 @@ export default function CallLogReporting() {
     queryFn: () => base44.entities.CallLogUserConfig.list(),
   });
 
+  // Fetch CDR user stats for the selected period
+  const { data: cdrUserStats = [] } = useQuery({
+    queryKey: ["call-log-cdr-user-stats", selectedPeriod?.id],
+    queryFn: async () => {
+      if (!selectedPeriod?.id) return [];
+      try {
+        const cdrUploads = await base44.entities.CallLogCdrUploads.filter({
+          reporting_period_key: selectedPeriod.id
+        });
+        if (!cdrUploads.length) return [];
+        const stats = await base44.entities.CallLogCdrUserStats.filter({
+          cdr_upload_id: cdrUploads[0].id
+        });
+        return stats || [];
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!selectedPeriod?.id
+  });
+
   const userConfigMap = React.useMemo(() => {
     const map = {};
     for (const cfg of allUserConfigs) {
