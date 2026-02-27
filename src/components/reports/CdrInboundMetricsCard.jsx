@@ -430,9 +430,7 @@ export default function CdrInboundMetricsCard({
                       {u.inbound_unanswered.toLocaleString()}
                     </td>
                     <td className={`px-2.5 py-2 text-right ${answerRateColor(u.inbound_calls > 0 ? u.inbound_answered / u.inbound_calls : null)}`}>
-                        {u.inbound_calls > 0
-                          ? ((u.inbound_answered / u.inbound_calls) * 100).toFixed(1) + "%"
-                          : "—"}
+                        {formatPercent(u.inbound_calls > 0 ? u.inbound_answered / u.inbound_calls : null)}
                       </td>
                   </tr>
                 ))}
