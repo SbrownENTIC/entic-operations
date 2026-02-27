@@ -1679,7 +1679,12 @@ export default function CallLogReporting() {
         </TabsContent>
 
         <TabsContent value="cdr">
-          <CdrUpload />
+          <CdrUpload 
+            periodKey={selectedPeriod?.id}
+            periodType={selectedPeriod?.period_type || "month"}
+            periodStart={selectedPeriod?.period_start}
+            periodEnd={selectedPeriod?.period_end}
+          />
         </TabsContent>
 
         <TabsContent value="reporting">
