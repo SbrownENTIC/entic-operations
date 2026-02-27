@@ -898,7 +898,7 @@ export default function CallLogReporting() {
       realUserRows.forEach((u, idx) => {
         const ar = u.answer_rate;
         const { bg, fg } = arColor(ar);
-        const arPct = parseFloat((ar * 100).toFixed(1)) / 100;
+        const arPct = ar !== null ? parseFloat((ar * 100).toFixed(1)) / 100 : "";
         const bgArgb = idx % 2 === 0 ? WHITE : ALT_ROW;
 
         const rowValues = [
@@ -922,7 +922,7 @@ export default function CallLogReporting() {
           cell.alignment = { horizontal: colNum <= 3 ? "left" : "center", vertical: "middle" };
           cell.border    = { bottom: thinBorder, right: thinBorder };
           if ([4,5,6,7,8].includes(colNum)) cell.numFmt = "#,##0";
-          if (colNum === 10) {
+          if (colNum === 10 && ar !== null) {
             cell.numFmt = "0.00%";
             cell.fill   = mkFill(bg);
             cell.font   = mkFont({ color: { argb: fg } });
