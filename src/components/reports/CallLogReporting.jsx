@@ -670,20 +670,39 @@ export default function CallLogReporting() {
       // Parse datetime → date string + hour integer
       let date = "";
       let hour = -1;
-      const s = String(rawStart).trim();
-      // Try YYYY-MM-DD HH:MM or YYYY-MM-DDTHH:MM or MM/DD/YYYY HH:MM
-      const isoMatch = s.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2})/);
-      const mdyMatch = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2})/);
-      if (isoMatch) {
-        date = isoMatch[1];
-        hour = parseInt(isoMatch[2], 10);
-      } else if (mdyMatch) {
-        date = `${mdyMatch[3]}-${String(mdyMatch[1]).padStart(2,"0")}-${String(mdyMatch[2]).padStart(2,"0")}`;
-        hour = parseInt(mdyMatch[4], 10);
+      // rawStart may be a Date object (ExcelJS), a number (Excel serial), or a string
+      if (rawStart instanceof Date) {
+        // ExcelJS returns Date objects — use UTC to avoid timezone shift
+        date = `${rawStart.getUTCFullYear()}-${String(rawStart.getUTCMonth()+1).padStart(2,"0")}-${String(rawStart.getUTCDate()).padStart(2,"0")}`;
+        hour = rawStart.getUTCHours();
+      } else if (typeof rawStart === "number") {
+        // Excel serial date (days since 1899-12-30)
+        const d = new Date(Math.round((rawStart - 25569) * 86400 * 1000));
+        date = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,"0")}-${String(d.getUTCDate()).padStart(2,"0")}`;
+        hour = d.getUTCHours();
       } else {
-        droppedBadTimestamp++;
-        if (droppedBadTimestamp <= 3) console.warn(`[CDR] Could not parse timestamp: "${s}"`);
-        continue;
+        const s = String(rawStart).trim();
+        // ISO: YYYY-MM-DD HH or YYYY-MM-DDTHH
+        const isoMatch = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})[T ](\d{1,2})/);
+        // M/D/YYYY H or MM/DD/YYYY HH (with or without leading zeros)
+        const mdyMatch = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2})/);
+        // M/D/YY H (2-digit year)
+        const mdy2Match = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})\s+(\d{1,2})/);
+        if (isoMatch) {
+          date = `${isoMatch[1]}-${String(isoMatch[2]).padStart(2,"0")}-${String(isoMatch[3]).padStart(2,"0")}`;
+          hour = parseInt(isoMatch[4], 10);
+        } else if (mdyMatch) {
+          date = `${mdyMatch[3]}-${String(mdyMatch[1]).padStart(2,"0")}-${String(mdyMatch[2]).padStart(2,"0")}`;
+          hour = parseInt(mdyMatch[4], 10);
+        } else if (mdy2Match) {
+          const yr = 2000 + parseInt(mdy2Match[3], 10);
+          date = `${yr}-${String(mdy2Match[1]).padStart(2,"0")}-${String(mdy2Match[2]).padStart(2,"0")}`;
+          hour = parseInt(mdy2Match[4], 10);
+        } else {
+          droppedBadTimestamp++;
+          if (droppedBadTimestamp <= 3) console.warn(`[CDR] Could not parse timestamp: "${s}"`);
+          continue;
+        }
       }
 
       // Duration is raw seconds from Vonage — parseInt only, no HH:MM:SS conversion
