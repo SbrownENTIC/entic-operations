@@ -400,7 +400,7 @@ export default function CdrUpload({ periodKey: propPeriodKey, periodType, period
           <div className="mt-2 flex items-center gap-2 text-xs text-green-700 bg-green-50 border border-green-200 rounded px-3 py-2">
             <CheckCircle className="w-3.5 h-3.5" />
             <span>
-              Saved for {formatPeriodLabel()}, uploaded {formatDateToEST(existingCdr.uploaded_at, "MMM d, yyyy 'at' h:mm a")}
+              Saved for {effectivePeriodLabel}, uploaded {formatDateToEST(existingCdr.uploaded_at, "MMM d, yyyy 'at' h:mm a")}
             </span>
           </div>
         )}
