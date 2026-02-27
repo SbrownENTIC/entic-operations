@@ -228,20 +228,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'No data rows provided.' }, { status: 400 });
     }
 
-    // Load CallLogUserConfig for enrichment + inbound extension mapping
+    // Load CallLogUserConfig for enrichment
     const allUserConfigs = await base44.asServiceRole.entities.CallLogUserConfig.list();
     const userConfigMap = {};
-    const extensionMap = {};
     for (const cfg of allUserConfigs) {
       if (cfg.user_name) userConfigMap[cfg.user_name] = cfg;
-      // Support both legacy single `extension` and new `extensions` array
-      const exts = Array.isArray(cfg.extensions) ? cfg.extensions
-        : (cfg.extension ? [cfg.extension] : []);
-      for (const ext of exts) {
-        if (ext) extensionMap[String(ext).trim().toLowerCase()] = cfg;
-      }
     }
-    console.log(`[processCallLog] Loaded ${allUserConfigs.length} user configs, ${Object.keys(extensionMap).length} extension entries.`);
+    console.log(`[processCallLog] Loaded ${allUserConfigs.length} user configs.`);
 
     const headerMap = buildHeaderMap(rows[0]);
 
