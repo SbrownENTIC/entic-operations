@@ -22,7 +22,7 @@ export default function CdrInboundMetricsCard({
 }) {
   const [showUnmappedModal, setShowUnmappedModal] = useState(false);
 
-  const { data: cdrData } = useQuery({
+  const { data: cdrData, refetch } = useQuery({
     queryKey: ["cdr-metrics", periodKey],
     queryFn: async () => {
       if (!periodKey) return null;
@@ -44,6 +44,11 @@ export default function CdrInboundMetricsCard({
     },
     enabled: !!periodKey,
   });
+
+  // Refetch when periodKey changes
+  React.useEffect(() => {
+    if (periodKey) refetch();
+  }, [periodKey, refetch]);
 
   if (!cdrData) {
     return (
