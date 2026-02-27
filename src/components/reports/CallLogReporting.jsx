@@ -1021,7 +1021,7 @@ export default function CallLogReporting() {
         // Col 1 = Week Start, Col 2 = Week End — format as date so FILTER comparison works
         if (colNum === 1 || colNum === 2) cell.numFmt = "mmm d, yyyy";
         if ([4,5,6,7,8].includes(colNum)) cell.numFmt = "#,##0";
-        if (colNum === 10) {
+        if (colNum === 10 && rowData.answer_rate !== "") {
           cell.numFmt = "0.00%";
           const { bg, fg } = arColor(rowData.answer_rate);
           cell.fill = mkFill(bg);
