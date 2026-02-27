@@ -67,8 +67,8 @@ export default function CdrInboundMetricsCard({
             <Button
               size="sm"
               onClick={() => {
-                const cdrTab = document.querySelector('button[value="cdr"]');
-                if (cdrTab) cdrTab.click();
+                const cdrTab = document.querySelector('button[role="tab"][data-state="inactive"]');
+                if (cdrTab && cdrTab.textContent.includes('CDR')) cdrTab.click();
               }}
               className="gap-2 bg-blue-600 hover:bg-blue-700"
             >
