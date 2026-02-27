@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
         total_unanswered,
         mapped_rows,
         unmapped_rows,
-        unmapped_extensions: unmapped_extensions || []
+        unmapped_extensions: Array.isArray(unmapped_extensions) ? unmapped_extensions : []
       });
     } else {
       // Create new
