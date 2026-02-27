@@ -280,8 +280,8 @@ Deno.serve(async (req) => {
       const monthKey = weekStart.substring(0, 7);
       const cache = monthCache.get(monthKey);
 
-      // Aggregate users for this week (with extension mapping for inbound)
-      const weekUserData = aggregateUsers(weekRows, headerMap, extensionMap);
+      // Aggregate users for this period (pre-aggregated Vonage User Summary rows)
+      const weekUserData = aggregateUsers(weekRows, headerMap);
 
       // ---- LOG: computed weekly totals ----
       const weekTotalCalls   = weekUserData.reduce((s, u) => s + u.total_calls, 0);
