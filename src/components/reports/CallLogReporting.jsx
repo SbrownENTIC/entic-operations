@@ -837,7 +837,7 @@ export default function CallLogReporting() {
           wk.outbound,
           wk.answered,
           wk.missed,
-          ar,
+          ar !== null ? ar : "",
           minutesToHHMMSS(wk.total_duration_minutes),
           minutesToHHMMSS(wk.avg_duration_minutes),
         ]);
@@ -848,7 +848,7 @@ export default function CallLogReporting() {
           cell.alignment = { horizontal: colNum <= 2 ? "left" : "center", vertical: "middle" };
           cell.border    = { bottom: thinBorder, right: thinBorder };
           if ([3,4,5,6,7].includes(colNum)) cell.numFmt = "#,##0";
-          if (colNum === 8) {
+          if (colNum === 8 && ar !== null) {
             cell.numFmt = "0.00%";
             cell.fill   = mkFill(bg);
             cell.font   = mkFont({ color: { argb: fg } });
