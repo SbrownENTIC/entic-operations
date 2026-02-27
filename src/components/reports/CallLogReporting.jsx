@@ -789,7 +789,7 @@ export default function CallLogReporting() {
       ["Outbound",         totalOutbound,                                      "number"],
       ["Answered",         totalAnswered,                                      "number"],
       ["Missed",           totalMissed,                                        "number"],
-      ["Answer Rate",      totalCalls > 0 ? overallAnswerRate : 0,             "percent"],
+      ["Inbound Answer Rate", overallAnswerRate !== null ? overallAnswerRate : "",  "percent"],
       ["Total Duration",   secondsToHHMMSS(totalDurationSec),                  "text"],
       ["Average Duration", secondsToHHMMSS(overallAvgDurationSec),             "text"],
     ];
