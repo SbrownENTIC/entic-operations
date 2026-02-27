@@ -61,7 +61,10 @@ export default function CdrInboundMetricsCard({
           <div className="flex gap-2">
             <Button
               size="sm"
-              onClick={onUploadClick}
+              onClick={() => {
+                const cdrTab = document.querySelector('button[value="cdr"]');
+                if (cdrTab) cdrTab.click();
+              }}
               className="gap-2 bg-blue-600 hover:bg-blue-700"
             >
               <Upload className="w-3.5 h-3.5" /> Upload Inbound CDR
