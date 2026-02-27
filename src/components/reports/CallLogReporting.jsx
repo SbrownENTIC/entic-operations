@@ -45,7 +45,12 @@ function secondsToHHMMSS(seconds) {
 
 function formatPercent(value) {
   if (value === null || value === undefined || value === "") return "—";
-  return Number(value).toFixed(2) + "%";
+  // Expects a value between 0 and 1 (e.g., 0.99 = 99%), or already 0-100 based on context
+  const numValue = Number(value);
+  if (numValue <= 1) {
+    return (numValue * 100).toFixed(2) + "%";
+  }
+  return numValue.toFixed(2) + "%";
 }
 
 function formatAnswerRate(inboundAnswered, inbound) {
