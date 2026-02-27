@@ -636,13 +636,10 @@ export default function CallLogReporting() {
     const distinctDirections = new Set();
 
     for (const row of rows) {
-      const rawDirection = row[dirKey];
-      const normalizedDirection = rawDirection?.toString().trim().toLowerCase() ?? "";
-      distinctDirections.add(normalizedDirection);
+      const direction = String(row[dirKey] || "").trim().toLowerCase();
+      distinctDirections.add(direction);
 
-      // Skip outbound explicitly; include anything that contains "inbound"
-      if (normalizedDirection.includes("outbound")) continue;
-      if (!normalizedDirection.includes("inbound")) continue;
+      if (direction !== "inbound") continue;
 
       const rawStart = row[startKey];
       const rawDur   = row[durKey];
