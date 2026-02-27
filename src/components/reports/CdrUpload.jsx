@@ -396,14 +396,6 @@ export default function CdrUpload({ periodKey: propPeriodKey, periodType, period
           Calls are mapped to users via the <strong>To</strong> (extension) column against the User Directory.
         </p>
 
-        {/* Upload type label */}
-        <div className="mt-2 flex items-center gap-4 text-xs font-medium">
-          <span className="text-slate-500">Period:</span>
-          <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-            {formatPeriodLabel()}
-          </span>
-        </div>
-
         {existingCdr && (
           <div className="mt-2 flex items-center gap-2 text-xs text-green-700 bg-green-50 border border-green-200 rounded px-3 py-2">
             <CheckCircle className="w-3.5 h-3.5" />
