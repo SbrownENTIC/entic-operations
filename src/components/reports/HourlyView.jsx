@@ -9,7 +9,7 @@ export const HOURLY_TARGETS = {
   Farmington:  { check_in: 1.1, check_out: 1.9, phone_only: 4.3 },
 };
 
-export const DISPLAY_HOURS = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]; // 7AM–6PM
+export const DISPLAY_HOURS = [8, 9, 10, 11, 12, 13, 14, 15, 16]; // 8AM–4PM (last slot = 4PM–5PM)
 
 const LOCATIONS = ["Bloomfield", "Manchester", "Glastonbury", "Farmington"];
 
