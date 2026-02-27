@@ -652,12 +652,20 @@ export default function CallLogReporting() {
     // Aggregate: key = date|hour|desk
     const uploadBatchId = generateUUID();
     const agg = {};
+    let droppedNoDesk = 0, droppedNoStart = 0, droppedBadTimestamp = 0;
+
+    // Log the first 3 inbound rows for diagnosis
+    console.log("[CDR] First 3 inbound rows sample:");
+    for (const r of inboundRows.slice(0, 3)) {
+      console.log(`  startKey="${startKey}" → "${r[startKey]}"  destKey="${destKey}" → "${r[destKey]}"  durKey="${durKey}" → "${r[durKey]}"`);
+    }
 
     for (const row of inboundRows) {
       const rawStart = row[startKey];
       const rawDur   = row[durKey];
       const desk     = String(row[destKey] || "").trim();
-      if (!desk || !rawStart) continue;
+      if (!desk) { droppedNoDesk++; continue; }
+      if (!rawStart) { droppedNoStart++; continue; }
 
       // Parse datetime → date string + hour integer
       let date = "";
@@ -673,7 +681,9 @@ export default function CallLogReporting() {
         date = `${mdyMatch[3]}-${String(mdyMatch[1]).padStart(2,"0")}-${String(mdyMatch[2]).padStart(2,"0")}`;
         hour = parseInt(mdyMatch[4], 10);
       } else {
-        continue; // can't parse timestamp
+        droppedBadTimestamp++;
+        if (droppedBadTimestamp <= 3) console.warn(`[CDR] Could not parse timestamp: "${s}"`);
+        continue;
       }
 
       // Duration is raw seconds from Vonage — parseInt only, no HH:MM:SS conversion
