@@ -96,8 +96,77 @@ function groupRowsByWeek(rows, headerMap) {
   return { groups: [...groups.values()] };
 }
 
-/** Aggregate user data from a group of rows. Returns per-user objects with minute fields. */
-function aggregateUsers(rows, headerMap) {
+/**
+ * Detect whether rows are row-per-call format (has Direction + Result columns)
+ * or pre-aggregated format (has Inbound Calls, Answered Calls, etc.)
+ */
+function detectFormat(headerMap) {
+  const hasDirection = 'direction' in headerMap;
+  const hasResult    = 'result'    in headerMap;
+  const hasAggCols   = REQUIRED_NORMALIZED_AGGREGATED.every(h => h in headerMap);
+  if (hasDirection && hasResult) return 'row';
+  if (hasAggCols)               return 'aggregated';
+  return 'unknown';
+}
+
+/** Normalize direction/result strings: trim + lowercase */
+function norm(val) {
+  return String(val == null ? '' : val).toLowerCase().trim();
+}
+
+/** Aggregate from row-per-call format (Direction + Result columns) */
+function aggregateUsersFromRows(rows, headerMap) {
+  const get = (row, name) => row[headerMap[name]];
+  const agg = {};
+  for (const row of rows) {
+    const userName = String(get(row, 'user') || '').trim();
+    if (!userName) continue;
+    const key = userName.toLowerCase();
+    if (!agg[key]) {
+      agg[key] = {
+        user: userName,
+        total_calls: 0,
+        inbound: 0,
+        outbound: 0,
+        answered: 0,
+        inbound_answered: 0,
+        outbound_answered: 0,
+        missed: 0,
+        voicemail: 0,
+        total_duration_minutes: 0,
+        inbound_duration_minutes: 0,
+        outbound_duration_minutes: 0,
+      };
+    }
+
+    const direction = norm(get(row, 'direction'));
+    const result    = norm(get(row, 'result'));
+    const isInbound  = direction === 'inbound';
+    const isOutbound = direction === 'outbound';
+    const isAnswered = result === 'answered';
+    const isMissed   = result === 'missed';
+    const isVoicemail= result === 'voicemail';
+
+    // Duration (may or may not be present as a per-row field)
+    const durKey = 'duration' in headerMap ? 'duration' : null;
+    const durMin = durKey ? (parseFloat(String(get(row, durKey) || '0').trim()) || 0) : 0;
+
+    agg[key].total_calls += 1;
+    if (isInbound)  { agg[key].inbound  += 1; agg[key].inbound_duration_minutes  += durMin; }
+    if (isOutbound) { agg[key].outbound += 1; agg[key].outbound_duration_minutes += durMin; }
+    if (isInbound  && isAnswered) agg[key].inbound_answered  += 1;
+    if (isOutbound && isAnswered) agg[key].outbound_answered += 1;
+    if (isMissed)    agg[key].missed    += 1;
+    if (isVoicemail) agg[key].voicemail += 1;
+    agg[key].total_duration_minutes += durMin;
+    // answered = inbound_answered (as per spec: Answered column = Inbound Answered only)
+    agg[key].answered = agg[key].inbound_answered;
+  }
+  return Object.values(agg);
+}
+
+/** Aggregate from pre-aggregated format (one row per user per period with summary columns) */
+function aggregateUsersFromAggregated(rows, headerMap) {
   const get = (row, name) => row[headerMap[name]];
   const agg = {};
   for (const row of rows) {
@@ -119,30 +188,38 @@ function aggregateUsers(rows, headerMap) {
         outbound_duration_minutes: 0,
       };
     }
-    const totalMin = parseFloat(String(get(row, 'total call duration (minutes)') || '0').trim()) || 0;
-    const inMin    = parseFloat(String(get(row, 'inbound call duration (minutes)') || '0').trim()) || 0;
-    const outMin   = parseFloat(String(get(row, 'outbound call duration (minutes)') || '0').trim()) || 0;
-
-    const totalCalls   = Number(get(row, 'total calls'))    || 0;
-    const inboundCalls = Number(get(row, 'inbound calls'))  || 0;
-    const outboundCalls= Number(get(row, 'outbound calls')) || 0;
-    const answeredCalls= Number(get(row, 'answered calls')) || 0;
-    // Inbound answered = answered minus outbound (outbound calls are always "answered")
-    // Clamp to 0 to avoid negatives
+    const totalMin      = parseFloat(String(get(row, 'total call duration (minutes)') || '0').trim()) || 0;
+    const inMin         = parseFloat(String(get(row, 'inbound call duration (minutes)') || '0').trim()) || 0;
+    const outMin        = parseFloat(String(get(row, 'outbound call duration (minutes)') || '0').trim()) || 0;
+    const totalCalls    = Number(get(row, 'total calls'))    || 0;
+    const inboundCalls  = Number(get(row, 'inbound calls'))  || 0;
+    const outboundCalls = Number(get(row, 'outbound calls')) || 0;
+    const answeredCalls = Number(get(row, 'answered calls')) || 0;
+    // In aggregated format, "Answered Calls" from Vonage includes outbound connected calls.
+    // Inbound answered = answered - outbound (outbound are always counted as answered by Vonage).
     const inboundAnswered = Math.max(0, answeredCalls - outboundCalls);
 
     agg[key].total_calls               += totalCalls;
     agg[key].inbound                   += inboundCalls;
     agg[key].outbound                  += outboundCalls;
-    agg[key].answered                  += answeredCalls;
+    agg[key].answered                  += inboundAnswered; // answered = inbound answered only
     agg[key].inbound_answered          += inboundAnswered;
-    agg[key].missed                    += Number(get(row, 'missed calls'))   || 0;
-    agg[key].voicemail                 += Number(get(row, 'voicemail calls'))|| 0;
+    agg[key].missed                    += Number(get(row, 'missed calls'))    || 0;
+    agg[key].voicemail                 += Number(get(row, 'voicemail calls')) || 0;
     agg[key].total_duration_minutes    += totalMin;
     agg[key].inbound_duration_minutes  += inMin;
     agg[key].outbound_duration_minutes += outMin;
   }
   return Object.values(agg);
+}
+
+/** Dispatch to the correct aggregation function based on format */
+function aggregateUsers(rows, headerMap) {
+  const fmt = detectFormat(headerMap);
+  if (fmt === 'row')        return aggregateUsersFromRows(rows, headerMap);
+  if (fmt === 'aggregated') return aggregateUsersFromAggregated(rows, headerMap);
+  // Fallback: try aggregated
+  return aggregateUsersFromAggregated(rows, headerMap);
 }
 
 /**
