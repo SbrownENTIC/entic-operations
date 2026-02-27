@@ -1698,6 +1698,12 @@ export default function CallLogReporting() {
               <Button variant="ghost" size="sm" onClick={resetUpload}>✕</Button>
             </div>
 
+            {/* Upload type notice — this panel is Aggregated only */}
+            <div className="bg-blue-100 border border-blue-300 rounded-md px-3 py-2 text-xs text-blue-800">
+              <strong>Upload Type: User Summary (Aggregated)</strong> — feeds monthly performance dashboards.<br />
+              For inbound call-level detail, use the <strong>Upload CDR</strong> tab.
+            </div>
+
             <div>
               <label className="text-xs font-medium text-slate-700 block mb-1">
                 File (.xlsx or .csv) <span className="text-red-500">*</span>
