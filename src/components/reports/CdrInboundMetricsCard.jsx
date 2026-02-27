@@ -92,18 +92,39 @@ export default function CdrInboundMetricsCard({
     await workbook.xlsx.load(buffer);
     const sheet = workbook.worksheets[0];
     if (!sheet) return [];
+
     const rows = [];
     let headers = [];
+    let totalDetected = 0;
+    let totalProcessed = 0;
+    let totalSkipped = 0;
+    const MAX_ROWS = 200000;
+
     sheet.eachRow((row, rowNumber) => {
+      // Stop if we exceed safety limit
+      if (totalDetected >= MAX_ROWS) return;
+
       const values = row.values.slice(1);
+      totalDetected++;
+
       if (rowNumber === 1) {
         headers = values.map(v => String(v ?? "").trim());
       } else {
         const obj = {};
         headers.forEach((h, i) => { obj[h] = values[i] != null ? String(values[i]).trim() : ""; });
-        if (Object.values(obj).some(v => v !== "")) rows.push(obj);
+        if (Object.values(obj).some(v => v !== "")) {
+          rows.push(obj);
+          totalProcessed++;
+        } else {
+          totalSkipped++;
+        }
       }
     });
+
+    console.log(`[CDR Parser] Total rows detected in worksheet: ${totalDetected}`);
+    console.log(`[CDR Parser] Total rows processed: ${totalProcessed}`);
+    console.log(`[CDR Parser] Total rows skipped (empty): ${totalSkipped}`);
+
     return rows;
   };
 
