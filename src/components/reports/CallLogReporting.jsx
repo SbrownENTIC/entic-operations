@@ -628,9 +628,10 @@ export default function CallLogReporting() {
       return { error: `Missing required CDR columns: ${missing.join(", ")}` };
     }
 
-    // Normalize direction using explicit bracket access
+    // Normalize direction using the resolved dirKey (not hardcoded "Direction")
+    // dirKey is the actual column name as it appears in the file (e.g. "Direction", "direction", "DIRECTION")
     const inboundRows = rows.filter(row => {
-      const raw = row["Direction"];
+      const raw = row[dirKey];
       if (!raw) return false;
       const direction = String(raw).trim().toLowerCase();
       return direction === "inbound";
@@ -638,12 +639,14 @@ export default function CallLogReporting() {
 
     // Debug logging
     console.log("Total rows:", rows.length);
+    console.log("dirKey resolved to:", dirKey);
+    console.log("Sample direction values:", rows.slice(0, 5).map(r => r[dirKey]));
     console.log("Inbound rows after normalization:", inboundRows.length);
 
     if (inboundRows.length === 0) {
-      const distinctVals = [...new Set(rows.map(r => String(r["Direction"] ?? "").trim().toLowerCase()))];
-      console.warn("[CDR] No inbound rows detected. Distinct direction values:", distinctVals);
-      return { error: `No inbound calls found after normalization. Distinct direction values: ${distinctVals}` };
+      const distinctVals = [...new Set(rows.map(r => String(r[dirKey] ?? "").trim().toLowerCase()))];
+      console.warn("[CDR] No inbound rows detected. dirKey=" + dirKey + " Distinct direction values:", distinctVals);
+      return { error: `No inbound calls found after normalization. Direction column key: "${dirKey}". Distinct direction values: ${distinctVals}` };
     }
 
     // Aggregate: key = date|hour|desk
