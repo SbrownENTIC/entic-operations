@@ -62,6 +62,11 @@ export default function UserBreakdownTable({
       return dir * (getSortValue(a, sortCol) - getSortValue(b, sortCol));
     });
 
+  React.useEffect(() => {
+    console.log("USER_BREAKDOWN_BASE_COUNT", activeSummaries.length);
+    console.log("USER_BREAKDOWN_INPUT_COUNT", summaries.length);
+  }, [activeSummaries, summaries]);
+
   const searchTerm = userSearch.trim().toLowerCase();
   const filteredSummaries = searchTerm
     ? activeSummaries.filter(u => (u.user || "").trim().toLowerCase().includes(searchTerm))
