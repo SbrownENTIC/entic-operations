@@ -98,9 +98,9 @@ Deno.serve(async (req) => {
       // Create new
       const newRecord = await base44.entities.CallLogCdrUploads.create({
         reporting_period_key,
-        period_type,
-        period_start,
-        period_end,
+        period_type: finalPeriodType,
+        period_start: finalPeriodStart,
+        period_end: finalPeriodEnd,
         original_filename,
         uploaded_at: new Date().toISOString(),
         uploaded_by: user.email,
