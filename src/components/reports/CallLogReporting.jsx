@@ -1780,8 +1780,8 @@ export default function CallLogReporting() {
             )}
 
             <div className="text-xs text-slate-500 bg-white/60 border border-slate-200 rounded p-2.5">
-              <strong>Required Vonage headers:</strong> User, Direction, Result, Total call Duration (Minutes), Inbound Call Duration (Minutes), Outbound call Duration (Minutes)<br />
-              <span className="text-slate-400">Direction and Result values are normalized (trimmed + lowercase). Inbound Answer Rate = Inbound Answered ÷ Inbound Calls only.</span>
+              <strong>Required headers (Aggregated):</strong> User, Total Calls, Inbound Calls, Outbound Calls, Answered Calls, Missed Calls, Total Call Duration (Minutes), Inbound Call Duration (Minutes), Outbound Call Duration (Minutes), Reporting Period Start, Reporting Period End<br />
+              <span className="text-slate-400">Inbound Answer Rate = Answered Calls ÷ Inbound Calls. If Inbound Calls = 0, rate = 0%.</span>
             </div>
 
             {uploadError && (
