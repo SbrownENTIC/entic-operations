@@ -138,6 +138,7 @@ Deno.serve(async (req) => {
       }
     }
 
+    console.log("[saveCdrUpload] Successfully saved CDR record with id:", cdrUploadId, "for period_key:", reporting_period_key);
     return Response.json({
       success: true,
       cdr_upload_id: cdrUploadId,
