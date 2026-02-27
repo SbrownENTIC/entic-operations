@@ -318,7 +318,7 @@ export default function CdrInboundMetricsCard({
     return sortDir === "asc" ? aVal - bVal : bVal - aVal;
   });
 
-  const topUsers = sortedStats.slice(0, 10);
+  const topUsers = sortedStats;
 
   const answerRateColor = (rate) => {
     if (rate >= 0.9) return "text-green-600 font-semibold";
