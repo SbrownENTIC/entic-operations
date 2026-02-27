@@ -144,11 +144,13 @@ function HeatmapView({ rows }) {
 // ── Detail Table ──────────────────────────────────────────────────────────
 function DetailTable({ rows }) {
   const sorted = useMemo(() =>
-    [...rows].sort((a, b) => {
-      const dc = (a.date || "").localeCompare(b.date || "");
-      if (dc !== 0) return dc;
-      return (a.hour || 0) - (b.hour || 0);
-    }),
+    [...rows]
+      .filter(r => r.hourly_target > 0)
+      .sort((a, b) => {
+        const dc = (a.date || "").localeCompare(b.date || "");
+        if (dc !== 0) return dc;
+        return (a.hour || 0) - (b.hour || 0);
+      }),
     [rows]
   );
 
