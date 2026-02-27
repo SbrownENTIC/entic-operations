@@ -150,17 +150,60 @@ function isWeekday(dateStr) {
   return day !== 0 && day !== 6;
 }
 
+const COLUMNS = [
+  { key: "date",          label: "Date",           numeric: false },
+  { key: "hour",          label: "Hour",           numeric: true  },
+  { key: "location",      label: "Location",       numeric: false },
+  { key: "desk",          label: "Desk",           numeric: false },
+  { key: "total_inbound", label: "Total Inbound",  numeric: true  },
+  { key: "answered",      label: "Answered ≥90s",  numeric: true  },
+  { key: "missed",        label: "Missed",         numeric: true  },
+  { key: "_ar",           label: "Answer Rate",    numeric: true  },
+  { key: "hourly_target", label: "Hourly Target",  numeric: true  },
+  { key: "_pct",          label: "% of Target",    numeric: true  },
+];
+
+function SortIcon({ dir }) {
+  if (!dir) return <span className="ml-1 text-slate-300">↕</span>;
+  return <span className="ml-1">{dir === "asc" ? "↑" : "↓"}</span>;
+}
+
 function DetailTable({ rows }) {
-  const sorted = useMemo(() =>
-    [...rows]
-      .filter(r => r.hourly_target > 0 && DISPLAY_HOURS.includes(r.hour) && isWeekday(r.date))
-      .sort((a, b) => {
-        const dc = (a.date || "").localeCompare(b.date || "");
-        if (dc !== 0) return dc;
-        return (a.hour || 0) - (b.hour || 0);
-      }),
+  const [sortKey, setSortKey] = useState("date");
+  const [sortDir, setSortDir] = useState("asc");
+
+  const filtered = useMemo(() =>
+    [...rows].filter(r => r.hourly_target > 0 && DISPLAY_HOURS.includes(r.hour) && isWeekday(r.date)),
     [rows]
   );
+
+  const sorted = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const getVal = (row, key) => {
+        if (key === "_ar") return row.total_inbound ? row.answered / row.total_inbound : -1;
+        if (key === "_pct") return row.hourly_target ? row.answered / row.hourly_target : -1;
+        return row[key] ?? "";
+      };
+      const av = getVal(a, sortKey);
+      const bv = getVal(b, sortKey);
+      let cmp = 0;
+      if (typeof av === "number" && typeof bv === "number") {
+        cmp = av - bv;
+      } else {
+        cmp = String(av).localeCompare(String(bv));
+      }
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+  }, [filtered, sortKey, sortDir]);
+
+  const handleSort = (key) => {
+    if (sortKey === key) {
+      setSortDir(d => d === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
 
   if (!sorted.length) {
     return <p className="text-sm text-slate-400 text-center py-10">No hourly detail data.</p>;
@@ -171,9 +214,14 @@ function DetailTable({ rows }) {
       <table className="w-full border-collapse text-sm">
         <thead className="sticky top-0 z-10 bg-slate-50">
           <tr>
-            {["Date","Hour","Location","Desk","Total Inbound","Answered ≥90s","Missed","Answer Rate","Hourly Target","% of Target"].map(h => (
-              <th key={h} className="px-3 py-2.5 text-xs font-semibold text-slate-600 whitespace-nowrap text-left border-b border-slate-200">
-                {h}
+            {COLUMNS.map(col => (
+              <th
+                key={col.key}
+                onClick={() => handleSort(col.key)}
+                className="px-3 py-2.5 text-xs font-semibold text-slate-600 whitespace-nowrap text-left border-b border-slate-200 cursor-pointer select-none hover:bg-slate-100"
+              >
+                {col.label}
+                <SortIcon dir={sortKey === col.key ? sortDir : null} />
               </th>
             ))}
           </tr>
