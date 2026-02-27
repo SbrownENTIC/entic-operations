@@ -142,6 +142,7 @@ export default function CdrInboundMetricsCard({
 
   const processRows = (rows, extensionMap) => {
     const users = {};
+    const unmappedExtensions = new Set();
     const ensure = (name) => {
       if (!users[name]) users[name] = { inbound: 0, inbound_answered: 0 };
     };
@@ -168,6 +169,7 @@ export default function CdrInboundMetricsCard({
          totalMapped++;
        } else {
          totalUnmapped++;
+         if (toRaw) unmappedExtensions.add(toRaw);
        }
 
       ensure(userName);
@@ -190,6 +192,7 @@ export default function CdrInboundMetricsCard({
       totalUnmapped,
       totalAnswered,
       totalUnanswered: totalInbound - totalAnswered,
+      unmappedExtensions: Array.from(unmappedExtensions),
     };
   };
 
