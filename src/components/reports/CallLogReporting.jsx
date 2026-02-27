@@ -296,15 +296,34 @@ export default function CallLogReporting() {
     setSelectedPeriod(periods[0]); // First after sorting = newest month
   }, [periods]);
 
+  // Helper: fetch large datasets in batches to avoid rate limits
+  const batchFetch = async (entity, query, batchSize = 5000) => {
+    let allRecords = [];
+    let skip = 0;
+    try {
+      while (true) {
+        const batch = await entity.filter(query, "-updated_date", batchSize, skip);
+        if (!batch || batch.length === 0) break;
+        allRecords = allRecords.concat(batch);
+        if (batch.length < batchSize) break;
+        skip += batchSize;
+      }
+    } catch (err) {
+      console.error("Batch fetch error:", err);
+      return [];
+    }
+    return allRecords;
+  };
+
   const { data: userSummaries = [], isLoading: summariesLoading } = useQuery({
     queryKey: ["call-log-summaries", selectedPeriod?.id],
-    queryFn: () => base44.entities.CallLogUserSummary.filter({ period_id: selectedPeriod.id }),
+    queryFn: () => batchFetch(base44.entities.CallLogUserSummary, { period_id: selectedPeriod.id }),
     enabled: !!selectedPeriod?.id
   });
 
   const { data: allUserConfigs = [] } = useQuery({
     queryKey: ["call-log-user-configs"],
-    queryFn: () => base44.entities.CallLogUserConfig.list(),
+    queryFn: () => batchFetch(base44.entities.CallLogUserConfig, {}),
   });
 
   // Fetch CDR user stats for the selected period
@@ -313,11 +332,11 @@ export default function CallLogReporting() {
     queryFn: async () => {
       if (!selectedPeriod?.id) return [];
       try {
-        const cdrUploads = await base44.entities.CallLogCdrUploads.filter({
+        const cdrUploads = await batchFetch(base44.entities.CallLogCdrUploads, {
           reporting_period_key: selectedPeriod.id
         });
         if (!cdrUploads.length) return [];
-        const stats = await base44.entities.CallLogCdrUserStats.filter({
+        const stats = await batchFetch(base44.entities.CallLogCdrUserStats, {
           cdr_upload_id: cdrUploads[0].id
         });
         return stats || [];
