@@ -306,12 +306,16 @@ Deno.serve(async (req) => {
 
     const headerMap = buildHeaderMap(rows[0]);
 
-    const missing = REQUIRED_NORMALIZED.filter(h => !(h in headerMap));
-    if (missing.length > 0) {
+    // Accept either row-per-call (Direction + Result) or pre-aggregated format
+    const fmt = detectFormat(headerMap);
+    if (fmt === 'unknown') {
+      const missingAgg = REQUIRED_NORMALIZED_AGGREGATED.filter(h => !(h in headerMap));
+      const missingRow = REQUIRED_NORMALIZED_ROW.filter(h => !(h in headerMap));
       return Response.json({
-        error: `Invalid file format. Required headers missing: ${missing.join(', ')}`
+        error: `Invalid file format. File must contain either (a) per-call rows with Direction and Result columns, or (b) pre-aggregated rows with: ${REQUIRED_NORMALIZED_AGGREGATED.join(', ')}. Missing for per-call: ${missingRow.join(', ')}. Missing for aggregated: ${missingAgg.join(', ')}.`
       }, { status: 400 });
     }
+    console.log(`[processCallLog] Detected format: ${fmt}`);
 
     const groupResult = groupRowsByWeek(rows, headerMap);
     if (groupResult.error) {
