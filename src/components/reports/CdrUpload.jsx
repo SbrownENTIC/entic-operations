@@ -349,6 +349,8 @@ export default function CdrUpload({ periodKey: propPeriodKey, periodType, period
       return;
     }
 
+    console.log("[CdrUpload] Saving CDR for period_key:", periodKey, "with", processed.userRows.length, "user rows");
+
     setSaving(true);
     try {
       // Build unmapped extensions list (top 10 by count)
