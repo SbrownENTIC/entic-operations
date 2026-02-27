@@ -365,12 +365,13 @@ Deno.serve(async (req) => {
             inbound: u.inbound,
             outbound: u.outbound,
             answered: u.answered,
+            inbound_answered: u.inbound_answered,
             missed: u.missed,
             voicemail: u.voicemail,
             total_duration_seconds: Math.round(u.total_duration_minutes * 60),
             inbound_duration_seconds: Math.round(u.inbound_duration_minutes * 60),
             outbound_duration_seconds: Math.round(u.outbound_duration_minutes * 60),
-            answer_rate: u.total_calls > 0 ? u.answered / u.total_calls : 0,
+            answer_rate: u.inbound > 0 ? u.inbound_answered / u.inbound : 0,
             avg_duration_seconds: u.total_calls > 0 ? Math.round(u.total_duration_minutes * 60) / u.total_calls : 0
           }));
 
