@@ -2047,6 +2047,29 @@ export default function CallLogReporting() {
             <span className={`text-xs font-semibold px-2 py-1 rounded-full ${STATUS_COLORS[selectedPeriod.status] || "bg-slate-100 text-slate-700"}`}>
               {selectedPeriod.status}
             </span>
+
+            {/* CDR Reporting Period Display */}
+            {(selectedPeriod.cdr_reporting_month || selectedPeriod.cdr_reporting_type) && (
+              <div className="flex items-center gap-2 text-xs text-slate-600">
+                <span className="font-semibold">Reporting Period:</span>
+                {selectedPeriod.cdr_reporting_type === "monthly" ? (
+                  <span>
+                    {new Date(selectedPeriod.cdr_reporting_month + "-01").toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+                    <span className="text-slate-400 ml-1.5">(Monthly Full Upload)</span>
+                  </span>
+                ) : (
+                  <span>
+                    Week of {formatDate(selectedPeriod.cdr_week_start)}
+                    {selectedPeriod.hourly_snapshot && (
+                      <span className="text-slate-400 ml-1.5">
+                        ({selectedPeriod.hourly_snapshot.filter(r => r.week_start === selectedPeriod.cdr_week_start).length} hourly records)
+                      </span>
+                    )}
+                  </span>
+                )}
+              </div>
+            )}
+
             {selectedPeriod.uploaded_weeks && selectedPeriod.uploaded_weeks.length > 0 && (
               <span className="text-xs text-slate-500">
                 {selectedPeriod.uploaded_weeks.length} week{selectedPeriod.uploaded_weeks.length !== 1 ? "s" : ""} uploaded
