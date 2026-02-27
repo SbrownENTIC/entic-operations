@@ -362,18 +362,9 @@ export default function CallLogReporting() {
     setSortDir("asc");
   }, [selectedPeriod?.id]);
 
-  // Normalized CDR map
-  const cdrMap = React.useMemo(() => {
-    const m = {}; cdrUserStats.forEach(s => { if(s.user_name) { const n = s.user_name.trim().toLowerCase().replace(/\s+/g, " "); m[n] = {t: Number(s.inbound_calls||0), a: Number(s.inbound_answered||0)}; } }); console.log("[CDR_KEYS]", Object.keys(m)); return m;
-  }, [cdrUserStats]);
-
-  // Merge CDR normalized
-  const enrichedSummaries = React.useMemo(() => {
-    return userSummaries.map(u => {
-      const n = u.user?.trim().toLowerCase().replace(/\s+/g, " "); const c = cdrMap[n]; const r = c && c.t > 0 ? (c.a/c.t)*100 : null; console.log(`"${u.user}"->"${n}"->match:${!!c}`, c);
-      return {...u, inbound_answer_rate_cdr: r};
-    });
-  }, [userSummaries, cdrMap]);
+  // Enrich benchmark users with CDR data (only from CallLogUserSummary, not CDR-only users)
+  const cdrMap = useCdrMap(cdrUserStats);
+  const enrichedSummaries = useEnrichedSummaries(userSummaries, cdrMap);
 
   const activeSummaries = [...enrichedSummaries.filter(u => (u.total_calls || 0) > 0)]
     .sort((a, b) => {
