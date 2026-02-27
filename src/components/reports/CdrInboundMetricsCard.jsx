@@ -201,9 +201,6 @@ export default function CdrInboundMetricsCard({
 
       const response = await base44.functions.invoke('saveCdrUpload', {
         reporting_period_key: periodKey,
-        period_type: periodType,
-        period_start: periodStart,
-        period_end: periodEnd,
         original_filename: file.name,
         total_rows: processed.totalInbound,
         total_inbound_calls: processed.totalInbound,
