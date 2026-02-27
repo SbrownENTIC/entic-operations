@@ -369,9 +369,7 @@ export default function CdrInboundMetricsCard({
             },
             {
               label: "Inbound Answer Rate",
-              value: upload.total_inbound_calls > 0
-                ? ((upload.total_inbound_answered / upload.total_inbound_calls) * 100).toFixed(1) + "%"
-                : "—",
+              value: formatPercent(upload.total_inbound_calls > 0 ? upload.total_inbound_answered / upload.total_inbound_calls : null),
               color:
                 upload.total_inbound_calls > 0
                   ? upload.total_inbound_answered / upload.total_inbound_calls >= 0.9
