@@ -972,6 +972,21 @@ export default function CallLogReporting() {
 
     const userTableStartRow = ws.rowCount + 1;
 
+    // Build a CDR user stats map for answer rate lookup
+    const cdrUserStatsMap = {};
+    if (cdrUploadData) {
+      try {
+        const cdrStats = await base44.entities.CallLogCdrUserStats.filter({
+          cdr_upload_id: cdrUploadData.id
+        });
+        cdrStats.forEach(stat => {
+          cdrUserStatsMap[stat.user_name] = stat;
+        });
+      } catch (err) {
+        console.warn("Could not load CDR user stats for User Breakdown:", err);
+      }
+    }
+
     // Sort A–Z by user name before rendering; exclude zero-activity rows for that week
     const realUserRows = userWeekRows
       .filter(u => !u._warning && (u.total_calls || 0) > 0)
@@ -992,9 +1007,14 @@ export default function CallLogReporting() {
 
       const tableRows = [];
       realUserRows.forEach((u, idx) => {
-        const ar = u.answer_rate;
+        // Use CDR answer rate if available, otherwise use call log rate
+        let ar = null;
+        const cdrStat = cdrUserStatsMap[u.user];
+        if (cdrStat && cdrStat.inbound_calls > 0) {
+          ar = cdrStat.inbound_answered / cdrStat.inbound_calls;
+        }
         const { bg, fg } = arColor(ar);
-        const arPct = ar !== null ? parseFloat((ar * 100).toFixed(1)) / 100 : "";
+        const arPct = ar !== null ? parseFloat((ar * 100).toFixed(2)) / 100 : "";
         const bgArgb = idx % 2 === 0 ? WHITE : ALT_ROW;
 
         const rowValues = [
