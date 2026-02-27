@@ -691,6 +691,27 @@ export default function CallLogReporting() {
       return                   { bg: "FFFFC7CE", fg: "FF9C0006" };
     };
 
+    // ---- Fetch large datasets in batches to avoid rate limits ----
+    // For reports with 15k+ rows, batch fetch prevents rate limiting
+    const batchSize = 5000;
+    const fetchInBatches = async (entity, query) => {
+      let allRecords = [];
+      let skip = 0;
+      try {
+        while (true) {
+          const batch = await entity.filter(query, "-updated_date", batchSize, skip);
+          if (!batch || batch.length === 0) break;
+          allRecords = allRecords.concat(batch);
+          if (batch.length < batchSize) break;
+          skip += batchSize;
+        }
+      } catch (err) {
+        console.error("Error fetching batch:", err);
+        throw err;
+      }
+      return allRecords;
+    };
+
     // ---- Validate uploaded_weeks ----
     if (!uploadedWeeks || uploadedWeeks.length === 0) {
       if (totalCalls > 0) {
