@@ -536,6 +536,7 @@ export default function CallLogReporting() {
 
       await queryClient.invalidateQueries({ queryKey: ["call-log-periods"] });
       queryClient.invalidateQueries({ queryKey: ["call-log-summaries"] });
+      queryClient.invalidateQueries({ queryKey: ["cdr-metrics"] });
 
       const freshPeriods = await base44.entities.CallLogPeriod.list("-uploaded_at");
 
