@@ -357,11 +357,9 @@ export default function CallLogReporting() {
 
   React.useEffect(() => { setUserSearch(""); setSortCol("user"); setSortDir("asc"); }, [selectedPeriod?.id]);
 
-  // CDR map + enrichment (benchmark users only)
-  const cdrMap = React.useMemo(() => {
-    const m = {}; cdrUserStats.forEach(s => { if(s.user_name) { const n = s.user_name.trim().toLowerCase().replace(/\s+/g, " "); m[n] = {t: Number(s.inbound_calls||0), a: Number(s.inbound_answered||0)}; } }); console.log("[CDR_KEYS]", Object.keys(m)); return m;
-  }, [cdrUserStats]);
-  const enrichedSummaries = React.useMemo(() => userSummaries.map(u => { const n = (u.user||"").trim().toLowerCase().replace(/\s+/g, " "); const c = cdrMap[n]; const r = c && c.t > 0 ? (c.a/c.t)*100 : null; return {...u, inbound_answer_rate_cdr: r}; }), [userSummaries, cdrMap]);
+  // Enrich ONLY CallLogUserSummary rows (no CDR-only users)
+  const cdrMap = React.useMemo(() => { const m = {}; cdrUserStats.forEach(s => { if(s.user_name) { const n = s.user_name.trim().toLowerCase().replace(/\s+/g, " "); m[n] = {t: Number(s.inbound_calls||0), a: Number(s.inbound_answered||0)}; } }); return m; }, [cdrUserStats]);
+  const enrichedSummaries = React.useMemo(() => { const enriched = userSummaries.map(u => { const n = (u.user||"").trim().toLowerCase().replace(/\s+/g, " "); const c = cdrMap[n]; const r = c && c.t > 0 ? (c.a/c.t)*100 : null; return {...u, inbound_answer_rate_cdr: r}; }); console.log("ENRICHED_SUMMARY_COUNT", enriched.length, "SOURCE_SUMMARY_COUNT", userSummaries.length); return enriched; }, [userSummaries, cdrMap]);
 
   const activeSummaries = [...enrichedSummaries.filter(u => (u.total_calls || 0) > 0)]
     .sort((a, b) => {
