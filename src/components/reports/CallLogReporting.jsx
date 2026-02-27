@@ -782,6 +782,24 @@ export default function CallLogReporting() {
       };
     });
 
+    // Build CDR stats map by user_name for User Breakdown inbound answer rate
+    const cdrStatsMapExport = {};
+    if (cdrUploadData) {
+      try {
+        const cdrStats = await base44.entities.CallLogCdrUserStats.filter({
+          cdr_upload_id: cdrUploadData.id
+        });
+        for (const stat of cdrStats) {
+          cdrStatsMapExport[stat.user_name] = {
+            inbound_calls: stat.inbound_calls || 0,
+            inbound_answered: stat.inbound_answered || 0,
+          };
+        }
+      } catch (err) {
+        console.warn("Could not load CDR user stats for export:", err);
+      }
+    }
+
     // ---- Build per-user-per-week rows from user_snapshot ----
     const userWeekRows = [];
     sortedWeeks.forEach(week => {
@@ -799,6 +817,14 @@ export default function CallLogReporting() {
         const durMin = u.total_duration_minutes || 0;
         const uInbound = u.inbound || 0;
         const uInboundAnswered = u.inbound_answered != null ? u.inbound_answered : (u.answered || 0);
+        
+        // Inbound answer rate from CDR data only — show null if no CDR record
+        let answerRate = null;
+        const cdrStat = cdrStatsMapExport[u.user];
+        if (cdrStat && cdrStat.inbound_calls > 0) {
+          answerRate = cdrStat.inbound_answered / cdrStat.inbound_calls;
+        }
+        
         userWeekRows.push({
           week_start:             week.week_start,
           week_end:               week.week_end,
@@ -810,7 +836,7 @@ export default function CallLogReporting() {
           missed:                 u.missed   || 0,
           total_duration_minutes: durMin,
           avg_duration_minutes:   tc > 0 ? durMin / tc : 0,
-          answer_rate:            uInbound > 0 ? uInboundAnswered / uInbound : null,
+          answer_rate:            answerRate, // CDR-based answer rate, null if no CDR record
         });
       });
     });
