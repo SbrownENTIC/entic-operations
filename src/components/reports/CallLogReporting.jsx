@@ -329,7 +329,7 @@ export default function CallLogReporting() {
     { key: "answered",              label: "Answered",                type: "num"   },
     { key: "missed",                label: "Missed",                  type: "num"   },
     { key: "total_duration_seconds",label: "Duration (HH:MM:SS)",     type: "num"   },
-    { key: "answer_rate",           label: "Answer Rate",             type: "num"   },
+    { key: "answer_rate",           label: "Inbound Answer Rate",     type: "num"   },
     { key: "avg_duration_seconds",  label: "Avg Duration (HH:MM:SS)", type: "num"   },
   ];
 
