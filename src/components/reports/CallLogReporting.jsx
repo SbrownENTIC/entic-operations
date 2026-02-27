@@ -40,19 +40,7 @@ function formatAnswerRate(inboundAnswered, inbound) {
   return formatPercent(inboundAnswered / inbound);
 }
 
-// Parse a YYYY-MM-DD string to a JS Date at noon UTC to avoid timezone-shift issues
-function parseWeekDate(str) {
-  if (!str) return null;
-  const [y, m, d] = str.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
-}
 
-function formatDate(str) {
-  if (!str) return "";
-  const [y, m, d] = str.split("-");
-  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  return `${months[parseInt(m, 10) - 1]} ${parseInt(d, 10)}, ${y}`;
-}
 
 // ---- Header normalization ----
 function normalizeHeader(h) {
