@@ -166,6 +166,7 @@ function parseReportingPeriod(inputText) {
 
 export default function CdrUpload({ periodKey: propPeriodKey, periodType, periodStart: propPeriodStart, periodEnd: propPeriodEnd }) {
   const fileInputRef = useRef(null);
+  const queryClient = useQueryClient();
   const [file, setFile] = useState(null);
   const [manualPeriodInput, setManualPeriodInput] = useState("");
   const [periodValidationError, setPeriodValidationError] = useState("");
