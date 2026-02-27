@@ -376,9 +376,9 @@ export default function CallLogReporting() {
 
   const getSortValue = (u, key) => {
     if (key === "answer_rate") {
-      const inbound = u.inbound || 0;
-      const inboundAnswered = u.inbound_answered != null ? u.inbound_answered : (u.answered || 0);
-      return inbound > 0 ? inboundAnswered / inbound : -1; // -1 so blank (0 inbound) sorts last
+      const inboundCallsCdr = u.inbound_calls_cdr || 0;
+      const inboundAnsweredCdr = u.inbound_answered_cdr || 0;
+      return inboundCallsCdr > 0 ? inboundAnsweredCdr / inboundCallsCdr : -1; // -1 so blank (0 inbound) sorts last
     }
     return u[key] ?? 0;
   };
