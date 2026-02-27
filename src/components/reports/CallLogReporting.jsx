@@ -584,9 +584,36 @@ export default function CallLogReporting() {
     }
 
     try {
+      // Upload file to private storage to avoid payload size limits
+      const fileBuffer = await uploadFile.arrayBuffer();
+      const uploadResponse = await base44.integrations.Core.UploadPrivateFile({
+        file: new Blob([fileBuffer], { type: uploadFile.type })
+      });
+
+      if (!uploadResponse.file_uri) {
+        setUploadError("Failed to upload file to storage.");
+        setUploading(false);
+        return;
+      }
+
+      // Create signed URL for backend to access
+      const signedUrlResponse = await base44.integrations.Core.CreateFileSignedUrl({
+        file_uri: uploadResponse.file_uri,
+        expires_in: 3600 // 1 hour should be enough
+      });
+
+      if (!signedUrlResponse.signed_url) {
+        setUploadError("Failed to create signed URL for file.");
+        setUploading(false);
+        return;
+      }
+
+      // Call backend with signed URL instead of raw rows
       const response = await base44.functions.invoke("processCallLog", {
         rows,
-        fileName: uploadFile.name
+        fileName: uploadFile.name,
+        file_uri: uploadResponse.file_uri,
+        signed_url: signedUrlResponse.signed_url
       });
 
       const result = response.data;
