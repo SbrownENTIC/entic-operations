@@ -222,9 +222,20 @@ export default function CdrInboundMetricsCard({
       const extensionMap = await buildExtensionMap();
       const processed = processRows(rows, extensionMap);
 
+      // Ensure userStats have all required fields with correct types
+      const userStats = processed.users.map(u => ({
+        user_name: u.user_name,
+        extension: u.extension || null,
+        location: u.location || null,
+        inbound_calls: parseInt(u.inbound_calls, 10) || 0,
+        inbound_answered: parseInt(u.inbound_answered, 10) || 0,
+        inbound_unanswered: parseInt(u.inbound_unanswered, 10) || 0,
+        inbound_answer_rate: (u.inbound_calls > 0 ? u.inbound_answered / u.inbound_calls : 0)
+      }));
+
       const response = await base44.functions.invoke('saveCdrUpload', {
         reporting_period_key: periodKey,
-        period_type: periodType,
+        period_type: periodType || 'month',
         period_start: periodStart,
         period_end: periodEnd,
         original_filename: file.name,
@@ -235,7 +246,7 @@ export default function CdrInboundMetricsCard({
         mapped_rows: processed.totalMapped,
         unmapped_rows: processed.totalUnmapped,
         unmapped_extensions: processed.unmappedExtensions.map(ext => ({ extension: ext })),
-        userStats: processed.users,
+        userStats: userStats
       });
 
       if (response.data?.success) {
