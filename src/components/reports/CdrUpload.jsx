@@ -311,11 +311,12 @@ export default function CdrUpload() {
       {result && (
         <div className="space-y-3">
           {/* Summary bar */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-4 gap-3">
             {[
-              { label: "Total Inbound Calls", value: result.totalInbound,  color: "text-blue-700" },
-              { label: "Mapped",              value: result.totalMapped,   color: "text-green-700" },
-              { label: "Unmapped",            value: result.totalUnmapped, color: result.totalUnmapped > 0 ? "text-orange-600" : "text-slate-400" },
+              { label: "Total Inbound Calls", value: result.totalInbound,     color: "text-blue-700" },
+              { label: "Total Answered",     value: result.totalAnswered,     color: "text-green-700" },
+              { label: "Total Unanswered",   value: result.totalUnanswered,   color: result.totalUnanswered > 0 ? "text-red-600" : "text-slate-400" },
+              { label: "Mapped",             value: result.totalMapped,       color: "text-slate-700" },
             ].map(m => (
               <div key={m.label} className="bg-white border border-slate-200 rounded-lg p-3 text-center shadow-sm">
                 <p className="text-xs text-slate-500 mb-1">{m.label}</p>
@@ -323,6 +324,20 @@ export default function CdrUpload() {
               </div>
             ))}
           </div>
+
+          {/* Distinct Result values */}
+          {result.distinctResults.length > 0 && (
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+              <p className="text-xs font-medium text-slate-700 mb-2">Distinct Result Values Detected:</p>
+              <div className="flex flex-wrap gap-2">
+                {result.distinctResults.map(r => (
+                  <span key={r} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-white border border-slate-200 text-slate-700">
+                    {r}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* User table */}
           <div className="overflow-auto rounded-lg border border-slate-200">
