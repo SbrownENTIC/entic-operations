@@ -242,15 +242,32 @@ export default function CdrInboundMetricsCard({
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,.xlsx"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
           <div className="flex gap-2">
             <Button
               size="sm"
-              onClick={onUploadClick}
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
               className="gap-2 bg-blue-600 hover:bg-blue-700"
             >
-              <Upload className="w-3.5 h-3.5" /> Upload Inbound CDR
+              {uploading ? (
+                <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Uploading...</>
+              ) : (
+                <><Upload className="w-3.5 h-3.5" /> Upload Inbound CDR</>
+              )}
             </Button>
           </div>
+          {uploadError && (
+            <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded p-2.5 text-xs text-red-700">
+              <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" /> {uploadError}
+            </div>
+          )}
           <p className="text-xs text-slate-500">
             No inbound CDR uploaded for this period. Upload the Vonage "Inbound Calls" export to populate these metrics.
           </p>
