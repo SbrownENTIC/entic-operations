@@ -632,10 +632,17 @@ export default function CallLogReporting() {
     const uploadBatchId = generateUUID();
     const agg = {};
 
+    // Collect distinct direction values for debugging
+    const distinctDirections = new Set();
+
     for (const row of rows) {
-      // Only process inbound calls (exact match "Inbound", case-insensitive)
-      const direction = String(row[dirKey] || "").trim();
-      if (direction.toLowerCase() !== "inbound") continue;
+      const rawDirection = row[dirKey];
+      const normalizedDirection = rawDirection?.toString().trim().toLowerCase() ?? "";
+      distinctDirections.add(normalizedDirection);
+
+      // Skip outbound explicitly; include anything that contains "inbound"
+      if (normalizedDirection.includes("outbound")) continue;
+      if (!normalizedDirection.includes("inbound")) continue;
 
       const rawStart = row[startKey];
       const rawDur   = row[durKey];
