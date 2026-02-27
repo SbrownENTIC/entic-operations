@@ -388,13 +388,14 @@ export default function CallLogReporting() {
   };
 
   // Aggregate summary totals
-  const totalCalls    = activeSummaries.reduce((s, u) => s + (u.total_calls || 0), 0);
-  const totalInbound  = activeSummaries.reduce((s, u) => s + (u.inbound || 0), 0);
-  const totalOutbound = activeSummaries.reduce((s, u) => s + (u.outbound || 0), 0);
-  const totalAnswered = activeSummaries.reduce((s, u) => s + (u.answered || 0), 0);
-  const totalMissed   = activeSummaries.reduce((s, u) => s + (u.missed || 0), 0);
-  const totalDurationSec = activeSummaries.reduce((s, u) => s + (u.total_duration_seconds || 0), 0);
-  const overallAnswerRate   = totalCalls > 0 ? totalAnswered / totalCalls : 0;
+  const totalCalls          = activeSummaries.reduce((s, u) => s + (u.total_calls || 0), 0);
+  const totalInbound        = activeSummaries.reduce((s, u) => s + (u.inbound || 0), 0);
+  const totalOutbound       = activeSummaries.reduce((s, u) => s + (u.outbound || 0), 0);
+  const totalInboundAnswered= activeSummaries.reduce((s, u) => s + (u.inbound_answered != null ? u.inbound_answered : (u.answered || 0)), 0);
+  const totalAnswered       = totalInboundAnswered; // display field = inbound answered only
+  const totalMissed         = activeSummaries.reduce((s, u) => s + (u.missed || 0), 0);
+  const totalDurationSec    = activeSummaries.reduce((s, u) => s + (u.total_duration_seconds || 0), 0);
+  const overallAnswerRate   = totalInbound > 0 ? totalInboundAnswered / totalInbound : null;
   const overallAvgDurationSec = totalCalls > 0 ? totalDurationSec / totalCalls : 0;
 
   const resetUpload = () => {
