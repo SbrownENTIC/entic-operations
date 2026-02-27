@@ -54,6 +54,181 @@ export default function CdrInboundMetricsCard({
     if (periodKey) refetch();
   }, [periodKey, refetch]);
 
+  const parseCSV = (text) => {
+    function parseCSVLine(line) {
+      const result = [];
+      let inQuotes = false;
+      let cur = "";
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+          inQuotes = !inQuotes;
+        } else if (ch === "," && !inQuotes) {
+          result.push(cur.trim());
+          cur = "";
+        } else {
+          cur += ch;
+        }
+      }
+      result.push(cur.trim());
+      return result;
+    }
+
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (!lines.length) return [];
+    const headers = parseCSVLine(lines[0]).map(h => h.replace(/^"|"$/g, "").trim());
+    return lines.slice(1).map(line => {
+      const cols = parseCSVLine(line).map(c => c.replace(/^"|"$/g, "").trim());
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = cols[i] ?? ""; });
+      return obj;
+    }).filter(row => Object.values(row).some(v => v !== ""));
+  };
+
+  const parseXLSX = async (file) => {
+    const ExcelJS = (await import("exceljs")).default;
+    const workbook = new ExcelJS.Workbook();
+    const buffer = await file.arrayBuffer();
+    await workbook.xlsx.load(buffer);
+    const sheet = workbook.worksheets[0];
+    if (!sheet) return [];
+    const rows = [];
+    let headers = [];
+    sheet.eachRow((row, rowNumber) => {
+      const values = row.values.slice(1);
+      if (rowNumber === 1) {
+        headers = values.map(v => String(v ?? "").trim());
+      } else {
+        const obj = {};
+        headers.forEach((h, i) => { obj[h] = values[i] != null ? String(values[i]).trim() : ""; });
+        if (Object.values(obj).some(v => v !== "")) rows.push(obj);
+      }
+    });
+    return rows;
+  };
+
+  const buildExtensionMap = async () => {
+    const configs = await base44.entities.CallLogUserConfig.list();
+    const map = {};
+    for (const cfg of configs) {
+      const exts = Array.isArray(cfg.extensions) ? cfg.extensions : (cfg.extension ? [cfg.extension] : []);
+      for (const ext of exts) {
+        if (ext) map[String(ext).trim().toLowerCase()] = cfg.user_name;
+      }
+    }
+    return map;
+  };
+
+  const processRows = (rows, extensionMap) => {
+    const users = {};
+    const ensure = (name) => {
+      if (!users[name]) users[name] = { inbound: 0, inbound_answered: 0 };
+    };
+
+    let totalInbound = 0;
+    let totalMapped = 0;
+    let totalUnmapped = 0;
+    let totalAnswered = 0;
+
+    const normalizeKey = (k) => String(k).toLowerCase().trim();
+    const findKey = (obj, normalized) => Object.keys(obj).find(k => normalizeKey(k) === normalized);
+
+    for (const row of rows) {
+      const toKey = findKey(row, "to");
+      const resultKey = findKey(row, "result");
+      totalInbound++;
+      const toRaw = toKey ? String(row[toKey] || "").trim() : "";
+      const toLower = toRaw.toLowerCase();
+      const resultNorm = resultKey ? String(row[resultKey] || "").trim().toLowerCase() : "";
+
+      let userName;
+      if (toLower && extensionMap[toLower]) {
+        userName = extensionMap[toLower];
+        totalMapped++;
+      } else {
+        userName = toRaw ? `Unmapped (${toRaw})` : "Unmapped Extension";
+        totalUnmapped++;
+      }
+
+      ensure(userName);
+      users[userName].inbound++;
+      if (resultNorm === "answered") {
+        users[userName].inbound_answered++;
+        totalAnswered++;
+      }
+    }
+
+    return {
+      users: Object.entries(users).map(([name, vals]) => ({
+        user_name: name,
+        inbound_calls: vals.inbound,
+        inbound_answered: vals.inbound_answered,
+        inbound_unanswered: vals.inbound - vals.inbound_answered,
+      })).filter(u => !u.user_name.startsWith("Unmapped")),
+      totalInbound,
+      totalMapped,
+      totalUnmapped,
+      totalAnswered,
+      totalUnanswered: totalInbound - totalAnswered,
+    };
+  };
+
+  const handleFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !periodKey) return;
+
+    setUploading(true);
+    setUploadError("");
+
+    try {
+      let rows;
+      const isXLSX = file.name.toLowerCase().endsWith(".xlsx");
+      if (isXLSX) {
+        rows = await parseXLSX(file);
+      } else {
+        const text = await file.text();
+        rows = parseCSV(text);
+      }
+
+      if (!rows.length) {
+        setUploadError("File contains no data rows.");
+        setUploading(false);
+        return;
+      }
+
+      const extensionMap = await buildExtensionMap();
+      const processed = processRows(rows, extensionMap);
+
+      const response = await base44.functions.invoke('saveCdrUpload', {
+        reporting_period_key: periodKey,
+        period_type: periodType,
+        period_start: periodStart,
+        period_end: periodEnd,
+        original_filename: file.name,
+        total_rows: processed.totalInbound,
+        total_inbound_calls: processed.totalInbound,
+        total_inbound_answered: processed.totalAnswered,
+        total_unanswered: processed.totalUnanswered,
+        mapped_rows: processed.totalMapped,
+        unmapped_rows: processed.totalUnmapped,
+        unmapped_extensions: [],
+        userStats: processed.users,
+      });
+
+      if (response.data?.success) {
+        queryClient.invalidateQueries({ queryKey: ["cdr-metrics", periodKey] });
+        queryClient.invalidateQueries({ queryKey: ["call-log-cdr-user-stats", periodKey] });
+        setUploadError("");
+      }
+    } catch (err) {
+      console.error("Upload error:", err);
+      setUploadError(err.message || "Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   if (!cdrData) {
     return (
       <Card className="border-slate-200 shadow-sm">
