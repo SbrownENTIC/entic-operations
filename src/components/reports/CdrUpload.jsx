@@ -397,14 +397,21 @@ export default function CdrUpload({ periodKey: propPeriodKey, periodType, period
       });
 
       if (response.data?.success) {
-        // Refetch existing CDR
-        // Note: normally useQuery auto refetch, but we can manually invalidate if needed
+        console.log("[CdrUpload] CDR saved successfully with id:", response.data.cdr_upload_id);
+        // Invalidate related queries to force refetch
+        await queryClient.invalidateQueries({ queryKey: ["cdr-period", periodKey] });
+        await queryClient.invalidateQueries({ queryKey: ["cdr-metrics", periodKey] });
+        await queryClient.invalidateQueries({ queryKey: ["call-log-cdr-user-stats", periodKey] });
+        setError("");
+        setFile(null);
+        setResult(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
       }
-    } catch (err) {
-      console.error("Failed to save CDR:", err);
+      } catch (err) {
+      console.error("[CdrUpload] Failed to save CDR:", err);
       setError("Failed to save CDR data: " + (err.message || "unknown error"));
-    }
-    setSaving(false);
+      }
+      setSaving(false);
   };
 
   const formatRate = (rate) => {
