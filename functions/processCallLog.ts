@@ -271,6 +271,12 @@ Deno.serve(async (req) => {
       }, { status: 400 });
     }
 
+    // Warn if "To" column is missing (inbound extension mapping won't work)
+    const hasToCol = TO_COL in headerMap;
+    if (!hasToCol) {
+      console.warn(`[processCallLog] WARNING: "To" column not found. Inbound calls will be attributed as "Unmapped Extension".`);
+    }
+
     const groupResult = groupRowsByWeek(rows, headerMap);
     if (groupResult.error) {
       return Response.json({ error: groupResult.error }, { status: 400 });
