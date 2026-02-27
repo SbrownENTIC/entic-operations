@@ -157,7 +157,6 @@ function aggregateUsers(rows, headerMap) {
  */
 function buildWeekSnapshot(weekStart, weekEnd, weekUserData, userConfigMap) {
   const user_snapshot = weekUserData
-    .filter(u => !u.unmapped_extension) // exclude unmapped from snapshot
     .map(u => {
     const cfg = userConfigMap[u.user] || null;
     const isActive = cfg && cfg.active !== false;
