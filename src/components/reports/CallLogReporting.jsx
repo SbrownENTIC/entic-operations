@@ -703,7 +703,11 @@ export default function CallLogReporting() {
     }
 
     const result = Object.values(agg);
-    if (result.length === 0) return { error: "No inbound calls found in the CDR file." };
+    if (result.length === 0) {
+      const dirList = [...distinctDirections].filter(Boolean).join('", "');
+      console.warn(`[CDR] No inbound rows detected. Distinct direction values found: "${dirList}"`);
+      return { error: `No inbound calls found. Distinct direction values in file: "${dirList}". Check that the Direction column contains "inbound".` };
+    }
     return { hourlySnapshot: result, uploadBatchId };
   };
 
