@@ -478,8 +478,9 @@ export default function CallLogReporting() {
       const rows = sheetToJson(worksheet);
       if (!rows || rows.length === 0) return { error: "Selected worksheet contains no data rows." };
       const normalizedHeaders = Object.keys(rows[0]).map(normalizeHeader);
-      const missing = REQUIRED_NORMALIZED.filter(h => !normalizedHeaders.includes(h));
-      if (missing.length > 0) return { error: "Invalid worksheet format. Required headers are missing." };
+      // Aggregated upload only — validate against aggregated required headers
+      const missing = REQUIRED_NORMALIZED_AGGREGATED.filter(h => !normalizedHeaders.includes(h));
+      if (missing.length > 0) return { error: `Missing required columns for Aggregated upload: ${missing.join(", ")}` };
       const { error: colError } = validatePeriodColumns(rows);
       if (colError) return { error: colError };
       return { rows };
@@ -488,8 +489,9 @@ export default function CallLogReporting() {
         const rows = await readCSV(uploadFile);
         if (!rows || rows.length === 0) return { error: "File contains no data rows." };
         const normalizedHeaders = Object.keys(rows[0]).map(normalizeHeader);
-        const missing = REQUIRED_NORMALIZED.filter(h => !normalizedHeaders.includes(h));
-        if (missing.length > 0) return { error: "Invalid worksheet format. Required headers are missing." };
+        // Aggregated upload only — validate against aggregated required headers
+        const missing = REQUIRED_NORMALIZED_AGGREGATED.filter(h => !normalizedHeaders.includes(h));
+        if (missing.length > 0) return { error: `Missing required columns for Aggregated upload: ${missing.join(", ")}` };
         const { error: colError } = validatePeriodColumns(rows);
         if (colError) return { error: colError };
         return { rows };
