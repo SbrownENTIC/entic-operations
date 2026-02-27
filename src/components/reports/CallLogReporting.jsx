@@ -9,6 +9,7 @@ import { Upload, Phone, AlertCircle, CheckCircle, Loader2, Download, Trash2, Che
 import CallLogUserConfigAdmin from "./CallLogUserConfigAdmin";
 import PerformanceViews from "./PerformanceViews";
 import CdrUpload from "./CdrUpload";
+import CdrInboundMetricsCard from "./CdrInboundMetricsCard";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1887,6 +1888,19 @@ export default function CallLogReporting() {
             </div>
           ) : (
             <>
+                 {/* Inbound CDR Metrics Card */}
+              <CdrInboundMetricsCard
+                periodKey={selectedPeriod?.id}
+                periodType={selectedPeriod?.period_type || "month"}
+                periodStart={selectedPeriod?.period_start}
+                periodEnd={selectedPeriod?.period_end}
+                periodLabel={formatPeriodLabel(selectedPeriod)}
+                onUploadClick={() => {
+                  const tabsList = document.querySelector('[value="cdr"]');
+                  if (tabsList) tabsList.click();
+                }}
+              />
+
               {/* Summary metric cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
