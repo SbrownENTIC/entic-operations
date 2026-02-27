@@ -151,6 +151,7 @@ function buildWeekSnapshot(weekStart, weekEnd, weekUserData, userConfigMap) {
       inbound:                    u.inbound,
       outbound:                   u.outbound,
       answered:                   u.answered,
+      inbound_answered:           u.inbound_answered,
       missed:                     u.missed,
       voicemail:                  u.voicemail,
       total_duration_minutes:     u.total_duration_minutes,
