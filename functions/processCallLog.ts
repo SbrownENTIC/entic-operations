@@ -338,10 +338,15 @@ Deno.serve(async (req) => {
         console.log(`[processCallLog]     user="${pu.user}" total_calls=${pu.total_calls} total_duration_minutes=${pu.total_duration_minutes.toFixed(2)}`);
       }
 
-      // Warn about unmapped users
-      const unmapped = weekUserData.filter(u => !userConfigMap[u.user]).map(u => u.user);
-      if (unmapped.length > 0) {
-        console.warn(`[processCallLog] Unmapped call log users found (week ${weekStart}): ${unmapped.join(", ")}`);
+      // Warn about unmapped extensions
+      const unmappedExt = weekUserData.filter(u => u.unmapped_extension).map(u => u.user);
+      if (unmappedExt.length > 0) {
+        console.warn(`[processCallLog] Unmapped inbound extensions (week ${weekStart}): ${unmappedExt.join(", ")}`);
+      }
+      // Warn about users not in CallLogUserConfig (for benchmark enrichment)
+      const unmappedCfg = weekUserData.filter(u => !u.unmapped_extension && !userConfigMap[u.user]).map(u => u.user);
+      if (unmappedCfg.length > 0) {
+        console.warn(`[processCallLog] Users not in CallLogUserConfig (week ${weekStart}): ${unmappedCfg.join(", ")}`);
       }
 
       // Build enforced snapshot shape (with enrichment)
