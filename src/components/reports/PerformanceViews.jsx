@@ -109,7 +109,8 @@ function FrontEndView({ sortedWeeks, configMap }) {
             answered: 0,
           };
         }
-        map[key].answered += (u.answered || 0);
+        const inboundAnswered = u.inbound_answered != null ? u.inbound_answered : (u.answered || 0);
+        map[key].answered += inboundAnswered;
       });
     });
 
