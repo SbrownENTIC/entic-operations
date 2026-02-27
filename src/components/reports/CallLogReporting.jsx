@@ -959,7 +959,7 @@ export default function CallLogReporting() {
           wk.outbound,
           wk.answered,
           wk.missed,
-          ar !== null ? ar : "",
+          ar !== null ? ar : "—",
           minutesToHHMMSS(wk.total_duration_minutes),
           minutesToHHMMSS(wk.avg_duration_minutes),
         ]);
