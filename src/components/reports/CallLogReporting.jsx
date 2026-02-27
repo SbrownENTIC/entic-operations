@@ -700,18 +700,20 @@ export default function CallLogReporting() {
           console.warn(`[CallLog Export] Duration field missing in user_snapshot for user "${u.user}" week ${week.week_start}`);
         }
         const durMin = u.total_duration_minutes || 0;
+        const uInbound = u.inbound || 0;
+        const uInboundAnswered = u.inbound_answered != null ? u.inbound_answered : (u.answered || 0);
         userWeekRows.push({
           week_start:             week.week_start,
           week_end:               week.week_end,
           user:                   u.user || "",
           total_calls:            tc,
-          inbound:                u.inbound  || 0,
+          inbound:                uInbound,
           outbound:               u.outbound || 0,
-          answered:               u.answered || 0,
+          answered:               uInboundAnswered,
           missed:                 u.missed   || 0,
           total_duration_minutes: durMin,
           avg_duration_minutes:   tc > 0 ? durMin / tc : 0,
-          answer_rate:            tc > 0 ? (u.answered || 0) / tc : 0,
+          answer_rate:            uInbound > 0 ? uInboundAnswered / uInbound : null,
         });
       });
     });
