@@ -335,7 +335,7 @@ Deno.serve(async (req) => {
           cache.summaries = Object.values(allUserTotals).map(u => ({
             ...u,
             period_id: cache.period.id,
-            answer_rate: u.total_calls > 0 ? u.answered / u.total_calls : 0,
+            answer_rate: u.inbound > 0 ? u.inbound_answered / u.inbound : 0,
             avg_duration_seconds: u.total_calls > 0 ? u.total_duration_seconds / u.total_calls : 0,
           }));
           cache.period._hasNewWeeks = true;
