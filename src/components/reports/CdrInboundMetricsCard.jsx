@@ -14,7 +14,9 @@ import { formatDateToEST } from "@/components/DateUtils";
 
 const formatPercent = (value) => {
   if (value === null || value === undefined) return "—";
-  return Number(value).toFixed(2) + "%";
+  // Expects a value between 0 and 1 (e.g., 0.99 = 99%)
+  const numValue = Number(value);
+  return (numValue * 100).toFixed(2) + "%";
 };
 
 export default function CdrInboundMetricsCard({
