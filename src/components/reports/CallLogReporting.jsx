@@ -897,7 +897,7 @@ export default function CallLogReporting() {
       emptyRow.height = 18;
     } else {
       // Header row (userTableStartRow)
-      const userHRow = ws.addRow(["Week Start","Week End","User","Total Calls","Inbound","Outbound","Answered","Missed","Total Duration","Answer Rate","Avg Duration"]);
+      const userHRow = ws.addRow(["Week Start","Week End","User","Total Calls","Inbound","Outbound","Inbound Answered","Missed","Total Duration","Inbound Answer Rate","Avg Duration"]);
       styleTableHeader(userHRow, 11);
 
       // Freeze at the header row of this table
@@ -905,9 +905,9 @@ export default function CallLogReporting() {
 
       const tableRows = [];
       realUserRows.forEach((u, idx) => {
-        const ar = u.answer_rate;
-        const { bg, fg } = arColor(ar);
-        const arPct = parseFloat((ar * 100).toFixed(1)) / 100;
+        const ar = u.answer_rate; // null if no inbound
+        const { bg, fg } = ar !== null ? arColor(ar) : { bg: "FFFFFFFF", fg: "FF888888" };
+        const arVal = ar !== null ? parseFloat((ar * 100).toFixed(1)) / 100 : "";
         const bgArgb = idx % 2 === 0 ? WHITE : ALT_ROW;
 
         const rowValues = [
@@ -920,7 +920,7 @@ export default function CallLogReporting() {
           u.answered,
           u.missed,
           minutesToHHMMSS(u.total_duration_minutes),
-          arPct,
+          arVal,
           minutesToHHMMSS(u.avg_duration_minutes),
         ];
         const row = ws.addRow(rowValues);
@@ -931,7 +931,7 @@ export default function CallLogReporting() {
           cell.alignment = { horizontal: colNum <= 3 ? "left" : "center", vertical: "middle" };
           cell.border    = { bottom: thinBorder, right: thinBorder };
           if ([4,5,6,7,8].includes(colNum)) cell.numFmt = "#,##0";
-          if (colNum === 10) {
+          if (colNum === 10 && ar !== null) {
             cell.numFmt = "0.00%";
             cell.fill   = mkFill(bg);
             cell.font   = mkFont({ color: { argb: fg } });
@@ -952,17 +952,17 @@ export default function CallLogReporting() {
           showRowStripes: true,
         },
         columns: [
-          { name: "Week Start",     filterButton: true },
-          { name: "Week End",       filterButton: true },
-          { name: "User",           filterButton: true },
-          { name: "Total Calls",    filterButton: true },
-          { name: "Inbound",        filterButton: true },
-          { name: "Outbound",       filterButton: true },
-          { name: "Answered",       filterButton: true },
-          { name: "Missed",         filterButton: true },
-          { name: "Total Duration", filterButton: true },
-          { name: "Answer Rate",    filterButton: true },
-          { name: "Avg Duration",   filterButton: true },
+          { name: "Week Start",          filterButton: true },
+          { name: "Week End",            filterButton: true },
+          { name: "User",                filterButton: true },
+          { name: "Total Calls",         filterButton: true },
+          { name: "Inbound",             filterButton: true },
+          { name: "Outbound",            filterButton: true },
+          { name: "Inbound Answered",    filterButton: true },
+          { name: "Missed",              filterButton: true },
+          { name: "Total Duration",      filterButton: true },
+          { name: "Inbound Answer Rate", filterButton: true },
+          { name: "Avg Duration",        filterButton: true },
         ],
         rows: tableRows,
       });
