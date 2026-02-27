@@ -1657,6 +1657,197 @@ export default function CallLogReporting() {
       });
     }
 
+    // ==============================
+    // INBOUND CDR WORKSHEET (if CDR data exists)
+    // ==============================
+    if (cdrUploadData) {
+      const wsCdr = wb.addWorksheet("Inbound CDR", { views: [{ showGridLines: false }] });
+
+      // Column widths
+      wsCdr.columns = [
+        { width: 30 }, // User
+        { width: 16 }, // Location
+        { width: 20 }, // Extensions
+        { width: 14 }, // Inbound Calls
+        { width: 14 }, // Inbound Answered
+        { width: 14 }, // Inbound Not Answered
+        { width: 18 }, // Inbound Answer Rate
+      ];
+
+      // Title
+      wsCdr.addRow([`${periodLabel} - Inbound CDR`, ...Array(6).fill("")]);
+      wsCdr.mergeCells(`A1:G1`);
+      const cdrTitleCell = wsCdr.getCell("A1");
+      cdrTitleCell.font      = mkFont({ bold: true, size: 16, color: { argb: WHITE } });
+      cdrTitleCell.fill      = mkFill(DARK_NAVY);
+      cdrTitleCell.alignment = { horizontal: "center", vertical: "middle" };
+      wsCdr.getRow(1).height = 40;
+
+      // Reporting Period
+      wsCdr.addRow([`Reporting Period: ${periodLabel}`]);
+      wsCdr.getCell("A2").font = mkFont({ bold: true });
+      wsCdr.getRow(2).height = 18;
+
+      // Generated On
+      wsCdr.addRow([`Generated On: ${generatedOn}`]);
+      wsCdr.getCell("A3").font = mkFont({ color: { argb: "FF666666" } });
+      wsCdr.getRow(3).height = 18;
+
+      // Summary Header
+      addSectionHeader(wsCdr, "Summary", 4);
+
+      // Summary metrics (label | value)
+      const cdrMetrics = [
+        ["Total Inbound Calls",       cdrUploadData.total_inbound_calls,    "number"],
+        ["Inbound Answered",          cdrUploadData.total_inbound_answered, "number"],
+        ["Inbound Not Answered",      cdrUploadData.total_unanswered,       "number"],
+        ["Inbound Answer Rate",       cdrUploadData.total_inbound_calls > 0 ? cdrUploadData.total_inbound_answered / cdrUploadData.total_inbound_calls : "", "percent"],
+        ["Mapped Rows",               cdrUploadData.mapped_rows,            "number"],
+        ["Unmapped Rows",             cdrUploadData.unmapped_rows,          "number"],
+      ];
+
+      cdrMetrics.forEach(([label, val, type], idx) => {
+        const bgArgb = idx % 2 === 0 ? ALT_ROW : WHITE;
+        const row = wsCdr.addRow([label, val]);
+        row.height = 18;
+        const lc = row.getCell(1);
+        const vc = row.getCell(2);
+        lc.font  = mkFont({ bold: true });
+        lc.fill  = mkFill(bgArgb);
+        lc.alignment = { horizontal: "left", vertical: "middle" };
+        vc.font  = mkFont({ bold: true, size: 12 });
+        vc.fill  = mkFill(bgArgb);
+        vc.alignment = { horizontal: "right", vertical: "middle" };
+        if (type === "number")  vc.numFmt = "#,##0";
+        if (type === "percent") vc.numFmt = "0.00%";
+        [lc, vc].forEach(c => { c.border = { bottom: thinBorder }; });
+      });
+
+      // Blank row
+      wsCdr.addRow([]);
+
+      // User breakdown table
+      addSectionHeader(wsCdr, "User Breakdown", wsCdr.rowCount + 1);
+
+      const cdrTableHeaderRowNum = wsCdr.rowCount + 1;
+      const cdrHeaders = ["User", "Location", "Extensions", "Inbound Calls", "Inbound Answered", "Inbound Not Answered", "Inbound Answer Rate"];
+      const cdrHRow = wsCdr.addRow(cdrHeaders);
+      styleTableHeader(cdrHRow, 7, 2);
+
+      // Load CDR user stats
+      let cdrUserStats = [];
+      try {
+        cdrUserStats = await base44.entities.CallLogCdrUserStats.filter({
+          cdr_upload_id: cdrUploadData.id
+        });
+      } catch (err) {
+        console.warn("Could not load CDR user stats:", err);
+      }
+
+      // Sort by inbound_calls descending
+      cdrUserStats.sort((a, b) => b.inbound_calls - a.inbound_calls);
+
+      if (cdrUserStats.length === 0) {
+        const emptyRow = wsCdr.addRow(["No inbound CDR data found for this period.", ...Array(6).fill("")]);
+        wsCdr.mergeCells(`A${wsCdr.rowCount}:G${wsCdr.rowCount}`);
+        emptyRow.getCell(1).font = mkFont({ italic: true, color: { argb: "FF888888" } });
+        emptyRow.height = 18;
+      } else {
+        const cdrTableRows = [];
+        cdrUserStats.forEach((stat, idx) => {
+          const ar = stat.inbound_answer_rate !== null ? stat.inbound_answer_rate : 0;
+          const { bg, fg } = arColor(ar);
+          const bgArgb = idx % 2 === 0 ? WHITE : LIGHT_GRAY;
+
+          const row = wsCdr.addRow([
+            stat.user_name,
+            stat.location || "",
+            stat.extension || "",
+            stat.inbound_calls,
+            stat.inbound_answered,
+            stat.inbound_unanswered,
+            ar !== 0 && stat.inbound_calls > 0 ? ar : ""
+          ]);
+          row.height = 18;
+          cdrTableRows.push([
+            stat.user_name,
+            stat.location || "",
+            stat.extension || "",
+            stat.inbound_calls,
+            stat.inbound_answered,
+            stat.inbound_unanswered,
+            ar !== 0 && stat.inbound_calls > 0 ? ar : ""
+          ]);
+
+          row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+            cell.fill      = mkFill(bgArgb);
+            cell.font      = mkFont({});
+            cell.alignment = { horizontal: colNum <= 3 ? "left" : "center", vertical: "middle" };
+            cell.border    = { bottom: thinBorder, right: thinBorder };
+            if ([4, 5, 6].includes(colNum)) cell.numFmt = "#,##0";
+            if (colNum === 7 && ar !== 0 && stat.inbound_calls > 0) {
+              cell.numFmt = "0.00%";
+              cell.fill   = mkFill(bg);
+              cell.font   = mkFont({ color: { argb: fg } });
+            }
+          });
+        });
+
+        // Create Excel table for CDR data
+        if (cdrTableRows.length > 0) {
+          wsCdr.addTable({
+            name: "CdrUserStats",
+            ref: `A${cdrTableHeaderRowNum}:G${wsCdr.rowCount}`,
+            headerRow: true,
+            totalsRow: false,
+            style: { theme: "TableStyleMedium2", showRowStripes: true },
+            columns: [
+              { name: "User",                    filterButton: true },
+              { name: "Location",                filterButton: true },
+              { name: "Extensions",              filterButton: true },
+              { name: "Inbound Calls",           filterButton: true },
+              { name: "Inbound Answered",        filterButton: true },
+              { name: "Inbound Not Answered",    filterButton: true },
+              { name: "Inbound Answer Rate",     filterButton: true },
+            ],
+            rows: cdrTableRows,
+          });
+        }
+      }
+    } else {
+      // No CDR data — add empty sheet with message
+      const wsCdrEmpty = wb.addWorksheet("Inbound CDR", { views: [{ showGridLines: false }] });
+
+      wsCdrEmpty.columns = [{ width: 60 }];
+
+      wsCdrEmpty.addRow([`${periodLabel} - Inbound CDR`, ...Array(6).fill("")]);
+      wsCdrEmpty.mergeCells(`A1:G1`);
+      const emptyTitleCell = wsCdrEmpty.getCell("A1");
+      emptyTitleCell.font      = mkFont({ bold: true, size: 16, color: { argb: WHITE } });
+      emptyTitleCell.fill      = mkFill(DARK_NAVY);
+      emptyTitleCell.alignment = { horizontal: "center", vertical: "middle" };
+      wsCdrEmpty.getRow(1).height = 40;
+
+      wsCdrEmpty.addRow([`Reporting Period: ${periodLabel}`]);
+      wsCdrEmpty.getCell("A2").font = mkFont({ bold: true });
+      wsCdrEmpty.getRow(2).height = 18;
+
+      wsCdrEmpty.addRow([`Generated On: ${generatedOn}`]);
+      wsCdrEmpty.getCell("A3").font = mkFont({ color: { argb: "FF666666" } });
+      wsCdrEmpty.getRow(3).height = 18;
+
+      addSectionHeader(wsCdrEmpty, "Summary", 4);
+
+      const emptyRow = wsCdrEmpty.addRow(["No inbound CDR uploaded for this period."]);
+      emptyRow.getCell(1).font = mkFont({ italic: true, color: { argb: "FF888888" } });
+      emptyRow.height = 18;
+
+      wsCdrEmpty.addRow([]);
+      const infoRow = wsCdrEmpty.addRow(["Upload the Vonage \"Inbound Calls\" export to populate these metrics."]);
+      infoRow.getCell(1).font = mkFont({ italic: true, size: 10, color: { argb: "FFAAAAAA" } });
+      infoRow.height = 18;
+    }
+
     // ---- Write and download ----
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
