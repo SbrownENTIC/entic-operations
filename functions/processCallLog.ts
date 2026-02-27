@@ -324,6 +324,7 @@ Deno.serve(async (req) => {
               allUserTotals[key].inbound                   += u.inbound || 0;
               allUserTotals[key].outbound                  += u.outbound || 0;
               allUserTotals[key].answered                  += u.answered || 0;
+              allUserTotals[key].inbound_answered          += u.inbound_answered || 0;
               allUserTotals[key].missed                    += u.missed || 0;
               allUserTotals[key].voicemail                 += u.voicemail || 0;
               allUserTotals[key].total_duration_seconds    += Math.round((u.total_duration_minutes || 0) * 60);
