@@ -729,6 +729,10 @@ export default function CallLogReporting() {
       agg[key].total_duration_seconds += durSec;
     }
 
+    console.log(`[CDR] Aggregation complete: ${Object.keys(agg).length} buckets. Dropped: noDesk=${droppedNoDesk}, noStart=${droppedNoStart}, badTimestamp=${droppedBadTimestamp}`);
+    if (Object.keys(agg).length === 0) {
+      return { error: `All ${inboundRows.length} inbound rows were dropped. noDesk=${droppedNoDesk}, noStart=${droppedNoStart}, badTimestamp=${droppedBadTimestamp}. Check console for details.` };
+    }
     return { hourlySnapshot: Object.values(agg), uploadBatchId };
   };
 
