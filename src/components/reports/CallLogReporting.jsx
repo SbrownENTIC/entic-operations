@@ -1662,8 +1662,13 @@ export default function CallLogReporting() {
       <Tabs defaultValue="reporting">
         <TabsList className="mb-2">
           <TabsTrigger value="reporting" className="gap-2"><Phone className="w-3.5 h-3.5" /> Reporting</TabsTrigger>
+          <TabsTrigger value="extensions" className="gap-2"><BookOpen className="w-3.5 h-3.5" /> Extension Directory</TabsTrigger>
           <TabsTrigger value="users" className="gap-2"><Users className="w-3.5 h-3.5" /> User Directory</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="extensions">
+          <CallLogExtensionDirectoryAdmin />
+        </TabsContent>
 
         <TabsContent value="users">
           <CallLogUserConfigAdmin />
