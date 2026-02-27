@@ -170,6 +170,7 @@ function buildWeekSnapshot(weekStart, weekEnd, weekUserData, userConfigMap) {
     inbound:                   user_snapshot.reduce((s, u) => s + (u.inbound || 0), 0),
     outbound:                  user_snapshot.reduce((s, u) => s + (u.outbound || 0), 0),
     answered:                  user_snapshot.reduce((s, u) => s + (u.answered || 0), 0),
+    inbound_answered:          user_snapshot.reduce((s, u) => s + (u.inbound_answered || 0), 0),
     missed:                    user_snapshot.reduce((s, u) => s + (u.missed || 0), 0),
     voicemail:                 user_snapshot.reduce((s, u) => s + (u.voicemail || 0), 0),
     total_duration_minutes:    user_snapshot.reduce((s, u) => s + (u.total_duration_minutes || 0), 0),
