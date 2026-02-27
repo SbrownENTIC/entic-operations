@@ -62,8 +62,7 @@ Deno.serve(async (req) => {
 
     // Check if CDR upload already exists for this period
     const existing = await base44.entities.CallLogCdrUploads.filter({
-      reporting_period_key: reporting_period_key,
-      period_type: period_type
+      reporting_period_key: reporting_period_key
     });
 
     let cdrUploadId;
