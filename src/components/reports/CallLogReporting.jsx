@@ -589,8 +589,14 @@ export default function CallLogReporting() {
    *   duration_seconds    → "Duration" (raw seconds, no conversion)
    *   direction           → "Direction"
    *   location            → "Location" (optional, falls back to userConfigMap)
+   *
+   * Additional fields stamped during processing:
+   *   reporting_month    → user-selected YYYY-MM
+   *   reporting_type     → "weekly" or "monthly"
+   *   week_start         → YYYY-MM-DD (if weekly, null if monthly)
+   *   upload_batch_id    → auto-generated UUID
    */
-  const parseCdrRows = (rows) => {
+  const parseCdrRows = (rows, reportingMonth, reportingType, weekStart) => {
     if (!rows || rows.length === 0) return { error: "No CDR rows found." };
 
     const normalize = h => String(h).toLowerCase().replace(/\s+/g, " ").trim();
