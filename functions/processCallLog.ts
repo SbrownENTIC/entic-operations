@@ -144,7 +144,7 @@ function aggregateUsers(rows, headerMap, extensionMap) {
 
       if (extEntry && extEntry.active !== false) {
         inboundUserName = extEntry.user_name;
-      } else if (!extEntry) {
+      } else {
         // Unmapped — group under a special key but still count for totals
         inboundUserName = toRaw ? `Unmapped (${toRaw})` : 'Unmapped Extension';
         unmapped = true;
