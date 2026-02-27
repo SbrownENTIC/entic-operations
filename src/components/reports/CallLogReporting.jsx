@@ -1003,6 +1003,7 @@ export default function CallLogReporting() {
     // the FILTER formula in the main sheet (C4=$C$4) can do a date-to-date comparison.
     const pivotDataRows = [];
     userWeekRows.filter(u => !u._warning && (u.total_calls || 0) > 0).forEach(u => {
+        const ar = u.answer_rate;
       pivotDataRows.push({
         week_start:             parseWeekDate(u.week_start),   // real Date — must match C4
         week_end:               parseWeekDate(u.week_end),     // real Date
@@ -1010,10 +1011,10 @@ export default function CallLogReporting() {
         total_calls:            u.total_calls,
         inbound:                u.inbound,
         outbound:               u.outbound,
-        answered:               u.answered,
+        answered:               u.answered, // inbound answered
         missed:                 u.missed,
         total_duration_minutes: minutesToHHMMSS(u.total_duration_minutes),
-        answer_rate:            parseFloat((u.answer_rate * 100).toFixed(1)) / 100,
+        answer_rate:            ar !== null ? parseFloat((ar * 100).toFixed(1)) / 100 : "",
         avg_duration_minutes:   minutesToHHMMSS(u.avg_duration_minutes),
       });
     });
