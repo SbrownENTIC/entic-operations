@@ -30,11 +30,18 @@ export default function CdrInboundMetricsCard({
     queryKey: ["cdr-metrics", periodKey],
     queryFn: async () => {
       if (!periodKey) return null;
-      
+
+      console.log("[CdrInboundMetricsCard] Fetching CDR data for period_key:", periodKey);
+
       const upload = await base44.entities.CallLogCdrUploads.filter({
         reporting_period_key: periodKey,
       });
-      if (!upload.length) return null;
+      if (!upload.length) {
+        console.log("[CdrInboundMetricsCard] No CDR found for period_key:", periodKey);
+        return null;
+      }
+
+      console.log("[CdrInboundMetricsCard] Found CDR upload for period_key:", periodKey, "with id:", upload[0].id);
 
       const cdrUpload = upload[0];
       const stats = await base44.entities.CallLogCdrUserStats.filter({
