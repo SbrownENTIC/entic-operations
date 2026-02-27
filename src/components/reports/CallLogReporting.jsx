@@ -346,7 +346,11 @@ export default function CallLogReporting() {
   };
 
   const getSortValue = (u, key) => {
-    if (key === "answer_rate") return u.total_calls ? (u.answered || 0) / u.total_calls : (u.answer_rate || 0);
+    if (key === "answer_rate") {
+      const inbound = u.inbound || 0;
+      const inboundAnswered = u.inbound_answered != null ? u.inbound_answered : (u.answered || 0);
+      return inbound > 0 ? inboundAnswered / inbound : -1; // -1 so blank (0 inbound) sorts last
+    }
     return u[key] ?? 0;
   };
 
