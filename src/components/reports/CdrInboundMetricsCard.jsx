@@ -307,6 +307,13 @@ export default function CdrInboundMetricsCard({
 
   return (
     <Card className="border-slate-200 shadow-sm">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".csv,.xlsx"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div>
