@@ -702,8 +702,26 @@ export default function CallLogReporting() {
 
   const handleCdrUpload = async () => {
     setCdrError("");
-    if (!cdrFile) { setCdrError("Please select a CDR file."); return; }
-    if (!selectedPeriod) { setCdrError("No reporting period selected."); return; }
+
+    // Validation
+    if (!cdrFile) {
+      setCdrError("Please select a CDR file.");
+      return;
+    }
+    if (!cdrReportingMonth || !/^\d{4}-\d{2}$/.test(cdrReportingMonth)) {
+      setCdrError("Please select a valid Reporting Month (YYYY-MM).");
+      return;
+    }
+    if (cdrReportingType === "weekly") {
+      if (!cdrWeekStart || !/^\d{4}-\d{2}-\d{2}$/.test(cdrWeekStart)) {
+        setCdrError("Please select a valid Week Start Date (YYYY-MM-DD).");
+        return;
+      }
+    }
+    if (!selectedPeriod) {
+      setCdrError("No reporting period selected.");
+      return;
+    }
 
     setCdrUploading(true);
 
@@ -718,12 +736,30 @@ export default function CallLogReporting() {
       rows = await readCSV(cdrFile);
     }
 
-    const { hourlySnapshot: snap, error } = parseCdrRows(rows);
+    const { hourlySnapshot: snap, uploadBatchId, error } = parseCdrRows(rows, cdrReportingMonth, cdrReportingType, cdrReportingType === "weekly" ? cdrWeekStart : null);
     if (error) { setCdrError(error); setCdrUploading(false); return; }
 
+    // Duplicate protection: delete existing rows before inserting new ones
+    let existingHourly = selectedPeriod.hourly_snapshot || [];
+    if (cdrReportingType === "monthly") {
+      // Delete existing rows with same reporting_month and type=monthly
+      existingHourly = existingHourly.filter(r =>
+        !(r.reporting_month === cdrReportingMonth && r.reporting_type === "monthly")
+      );
+    } else if (cdrReportingType === "weekly") {
+      // Delete existing rows with same week_start
+      existingHourly = existingHourly.filter(r => r.week_start !== cdrWeekStart);
+    }
+
+    // Merge with existing (filtered) rows and new rows
+    const updatedHourly = [...existingHourly, ...snap];
+
     await base44.entities.CallLogPeriod.update(selectedPeriod.id, {
-      hourly_snapshot: snap,
+      hourly_snapshot: updatedHourly,
       hourly_uploaded_at: new Date().toISOString(),
+      cdr_reporting_type: cdrReportingType, // store for display
+      cdr_reporting_month: cdrReportingMonth,
+      cdr_week_start: cdrReportingType === "weekly" ? cdrWeekStart : null,
     });
 
     await queryClient.invalidateQueries({ queryKey: ["call-log-periods"] });
@@ -732,7 +768,10 @@ export default function CallLogReporting() {
     const fresh = await base44.entities.CallLogPeriod.filter({ id: selectedPeriod.id });
     if (fresh && fresh[0]) setSelectedPeriod(fresh[0]);
 
-    toast({ title: "CDR Upload Successful", description: `${snap.length} hourly records stored.` });
+    toast({
+      title: "CDR Upload Successful",
+      description: `${snap.length} hourly records stored. Reporting ${cdrReportingType === "monthly" ? "Month: " + cdrReportingMonth : "Week: " + cdrWeekStart}.`
+    });
     resetCdrUpload();
     setCdrUploading(false);
   };
