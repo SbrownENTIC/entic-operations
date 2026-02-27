@@ -20,7 +20,11 @@ export default function CdrInboundMetricsCard({
   periodLabel,
   onUploadClick,
 }) {
+  const fileInputRef = useRef(null);
+  const queryClient = useQueryClient();
   const [showUnmappedModal, setShowUnmappedModal] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
 
   const { data: cdrData, refetch } = useQuery({
     queryKey: ["cdr-metrics", periodKey],
