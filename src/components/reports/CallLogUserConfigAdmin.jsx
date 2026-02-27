@@ -360,10 +360,10 @@ export default function CallLogUserConfigAdmin() {
                       <>
                         <td className="px-3 py-1.5">
                           <Input
-                            value={editValues.extension}
-                            onChange={e => setEditValues(v => ({ ...v, extension: e.target.value }))}
-                            className="h-7 text-xs w-24 font-mono"
-                            placeholder="e.g. 1001"
+                            value={editValues.extensions_str}
+                            onChange={e => setEditValues(v => ({ ...v, extensions_str: e.target.value }))}
+                            className="h-7 text-xs w-32 font-mono"
+                            placeholder="e.g. 1001, 1002"
                           />
                         </td>
                         <td className="px-3 py-1.5">
@@ -431,7 +431,12 @@ export default function CallLogUserConfigAdmin() {
                       </>
                     ) : (
                       <>
-                        <td className="px-3 py-2 font-mono text-slate-700 whitespace-nowrap">{config.extension || <span className="text-slate-300">—</span>}</td>
+                        <td className="px-3 py-2 font-mono text-slate-700 whitespace-nowrap">
+                          {(() => {
+                            const exts = Array.isArray(config.extensions) ? config.extensions : (config.extension ? [config.extension] : []);
+                            return exts.length > 0 ? exts.join(", ") : <span className="text-slate-300">—</span>;
+                          })()}
+                        </td>
                         <td className="px-3 py-2 text-slate-600">{config.location || <span className="text-slate-300">—</span>}</td>
                         <td className="px-3 py-2">
                           <Badge variant="outline" className={`text-xs ${
