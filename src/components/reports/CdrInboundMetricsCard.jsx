@@ -428,8 +428,8 @@ export default function CdrInboundMetricsCard({
         </div>
 
         {/* Top Users Table */}
-        {topUsers.length > 0 && (
-          <div className="overflow-auto rounded-lg border border-slate-200">
+         {topUsers.length > 0 && (
+           <div className="overflow-auto rounded-lg border border-slate-200 max-h-96">
             <table className="w-full text-xs">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
