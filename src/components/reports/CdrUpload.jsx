@@ -257,7 +257,10 @@ export default function CdrUpload({ periodKey: propPeriodKey, periodType, period
 
   const handleProcess = async () => {
     if (!file) { setError("Please select a file."); return; }
-    if (!periodKey) { setError("Please select a reporting period."); return; }
+    if (!periodKey) { 
+      setError("Please enter a Reporting Period (example January 2026) before processing."); 
+      return; 
+    }
     setError("");
     setProcessing(true);
 
