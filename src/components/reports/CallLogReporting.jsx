@@ -356,7 +356,7 @@ export default function CallLogReporting() {
     { key: "total_calls",           label: "Total Calls",             type: "num"   },
     { key: "inbound",               label: "Inbound",                 type: "num"   },
     { key: "outbound",              label: "Outbound",                type: "num"   },
-    { key: "answered",              label: "Answered",                type: "num"   },
+    { key: "answered",              label: "Connected (All)",         type: "num"   },
     { key: "missed",                label: "Missed",                  type: "num"   },
     { key: "total_duration_seconds",label: "Duration (HH:MM:SS)",     type: "num"   },
     { key: "answer_rate",           label: "Inbound Answer Rate",     type: "num"   },
