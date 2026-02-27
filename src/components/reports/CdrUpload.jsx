@@ -248,12 +248,12 @@ export default function CdrUpload() {
       <div className="bg-blue-50/40 border border-blue-200 rounded-lg p-4 space-y-3">
         <div>
           <label className="text-xs font-medium text-slate-700 block mb-1">
-            CDR File (.csv) <span className="text-red-500">*</span>
+            CDR File (.csv or .xlsx) <span className="text-red-500">*</span>
           </label>
           <input
             ref={fileInputRef}
             type="file"
-            accept=".csv"
+            accept=".csv,.xlsx"
             onChange={handleFileSelect}
             className="block w-full text-sm text-slate-700 file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
           />
