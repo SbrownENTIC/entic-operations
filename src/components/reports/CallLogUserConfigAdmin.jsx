@@ -341,6 +341,14 @@ export default function CallLogUserConfigAdmin() {
                     {isEditing ? (
                       <>
                         <td className="px-3 py-1.5">
+                          <Input
+                            value={editValues.extension}
+                            onChange={e => setEditValues(v => ({ ...v, extension: e.target.value }))}
+                            className="h-7 text-xs w-24 font-mono"
+                            placeholder="e.g. 1001"
+                          />
+                        </td>
+                        <td className="px-3 py-1.5">
                           <select
                             value={editValues.location || ""}
                             onChange={e => setEditValues(v => ({ ...v, location: e.target.value }))}
@@ -405,6 +413,7 @@ export default function CallLogUserConfigAdmin() {
                       </>
                     ) : (
                       <>
+                        <td className="px-3 py-2 font-mono text-slate-700 whitespace-nowrap">{config.extension || <span className="text-slate-300">—</span>}</td>
                         <td className="px-3 py-2 text-slate-600">{config.location || <span className="text-slate-300">—</span>}</td>
                         <td className="px-3 py-2">
                           <Badge variant="outline" className={`text-xs ${
