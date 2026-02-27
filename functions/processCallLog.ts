@@ -183,9 +183,12 @@ function aggregateUsers(rows, headerMap, extensionMap) {
 /**
  * Build the enforced week snapshot shape:
  * { week_start, week_end, totals: {...}, user_snapshot: [...] }
+ * Unmapped extension entries are EXCLUDED from performance metrics.
  */
 function buildWeekSnapshot(weekStart, weekEnd, weekUserData, userConfigMap) {
-  const user_snapshot = weekUserData.map(u => {
+  const user_snapshot = weekUserData
+    .filter(u => !u.unmapped_extension) // exclude unmapped from snapshot
+    .map(u => {
     const cfg = userConfigMap[u.user] || null;
     const isActive = cfg && cfg.active !== false;
     return {
