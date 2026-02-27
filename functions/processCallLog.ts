@@ -14,12 +14,8 @@ function buildHeaderMap(sampleRow) {
 
 const REQUIRED_NORMALIZED = [
   "user",
-  "total calls",
-  "inbound calls",
-  "outbound calls",
-  "answered calls",
-  "missed calls",
-  "voicemail calls",
+  "direction",
+  "result",
   "total call duration (minutes)",
   "inbound call duration (minutes)",
   "outbound call duration (minutes)"
