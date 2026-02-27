@@ -28,9 +28,35 @@ Deno.serve(async (req) => {
     } = payload;
 
     // Validate required fields
-    if (!reporting_period_key || !period_type || !period_start || !period_end) {
+    if (!reporting_period_key) {
       return Response.json({ 
-        error: 'Missing required period fields' 
+        error: 'Missing reporting_period_key' 
+      }, { status: 400 });
+    }
+    
+    // period_type defaults to 'month' for manual CDR uploads
+    const finalPeriodType = period_type || 'month';
+    
+    // If period_start or period_end not provided, calculate from reporting_period_key (YYYY-MM format)
+    let finalPeriodStart = period_start;
+    let finalPeriodEnd = period_end;
+    
+    if (!finalPeriodStart && reporting_period_key.includes('-')) {
+      const [year, month] = reporting_period_key.split('-');
+      finalPeriodStart = `${year}-${month}-01`;
+      
+      // Calculate next month
+      const monthNum = parseInt(month, 10);
+      const yearNum = parseInt(year, 10);
+      const nextMonth = monthNum === 12 ? 1 : monthNum + 1;
+      const nextYear = monthNum === 12 ? yearNum + 1 : yearNum;
+      const nextMonthStr = String(nextMonth).padStart(2, '0');
+      finalPeriodEnd = `${nextYear}-${nextMonthStr}-01`;
+    }
+    
+    if (!finalPeriodStart || !finalPeriodEnd) {
+      return Response.json({ 
+        error: 'Could not determine period dates. Please provide period_start and period_end or use YYYY-MM format for reporting_period_key.' 
       }, { status: 400 });
     }
 
