@@ -2295,9 +2295,11 @@ export default function CallLogReporting() {
                       </thead>
                       <tbody>
                         {filteredSummaries.map((u, i) => {
-                           const inbound = u.inbound || 0;
-                           const connected = u.answered || 0;
-                           const ar = u.inbound_answer_rate_cdr;
+                          const inbound = u.inbound || 0;
+                          const connected = u.answered || 0;
+                          const inboundCallsCdr = u.inbound_calls_cdr || 0;
+                          const inboundAnsweredCdr = u.inbound_answered_cdr || 0;
+                          const ar = inboundCallsCdr > 0 ? inboundAnsweredCdr / inboundCallsCdr : null;
                           return (
                             <tr key={u.id} className={`border-b border-slate-100 ${i % 2 !== 0 ? "bg-slate-50/50" : ""}`}>
                               <td className="px-4 py-2.5 font-medium text-slate-800">{highlightUser(u.user)}</td>
@@ -2311,8 +2313,8 @@ export default function CallLogReporting() {
                                 {ar === null ? (
                                   <span className="text-slate-400">—</span>
                                 ) : (
-                                  <span className={`font-semibold ${ar >= 80 ? "text-green-700" : ar >= 50 ? "text-yellow-700" : "text-red-600"}`}>
-                                    {ar.toFixed(2)}%
+                                  <span className={`font-semibold ${ar >= 0.8 ? "text-green-700" : ar >= 0.5 ? "text-yellow-700" : "text-red-600"}`}>
+                                    {(ar * 100).toFixed(1)}%
                                   </span>
                                 )}
                               </td>
