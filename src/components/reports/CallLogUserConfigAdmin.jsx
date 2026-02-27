@@ -80,6 +80,7 @@ export default function CallLogUserConfigAdmin() {
   const startEdit = (config) => {
     setEditingId(config.id);
     setEditValues({
+      extension: config.extension || "",
       location: config.location || "",
       benchmark_group: config.benchmark_group || "Other",
       daily_goal: config.daily_goal || "",
@@ -89,11 +90,21 @@ export default function CallLogUserConfigAdmin() {
     });
   };
 
+  const isExtensionDuplicate = (ext, excludeId = null) => {
+    if (!ext || !ext.trim()) return false;
+    return configs.some(c => c.id !== excludeId && (c.extension || "").trim() === ext.trim());
+  };
+
   const cancelEdit = () => { setEditingId(null); setEditValues({}); };
 
   const saveEdit = async (id) => {
+    if (editValues.extension && isExtensionDuplicate(editValues.extension, id)) {
+      toast({ title: "Error", description: `Extension "${editValues.extension.trim()}" is already assigned to another user.`, variant: "destructive" });
+      return;
+    }
     setSaving(true);
-    await base44.entities.CallLogUserConfig.update(id, editValues);
+    const saveData = { ...editValues, extension: editValues.extension ? editValues.extension.trim() : null };
+    await base44.entities.CallLogUserConfig.update(id, saveData);
     queryClient.invalidateQueries({ queryKey: ["call-log-user-configs"] });
     setEditingId(null);
     setEditValues({});
