@@ -12,6 +12,11 @@ import {
 } from "@/components/ui/dialog";
 import { formatDateToEST } from "@/components/DateUtils";
 
+const formatPercent = (value) => {
+  if (value === null || value === undefined) return "—";
+  return Number(value).toFixed(2) + "%";
+};
+
 export default function CdrInboundMetricsCard({
   periodKey,
   periodType,
