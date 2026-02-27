@@ -207,6 +207,24 @@ export default function CdrUpload({ periodKey: propPeriodKey, periodType, period
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const handlePeriodInput = (value) => {
+    setManualPeriodInput(value);
+    setPeriodValidationError("");
+    
+    if (!value.trim()) {
+      setParsedPeriod(null);
+      return;
+    }
+    
+    const parsed = parseReportingPeriod(value);
+    if (parsed) {
+      setParsedPeriod(parsed);
+    } else {
+      setPeriodValidationError('Reporting Period must be like "January 2026".');
+      setParsedPeriod(null);
+    }
+  };
+
   const handleFileSelect = (e) => {
     const f = e.target.files[0];
     if (!f) return;
