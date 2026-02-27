@@ -252,6 +252,13 @@ export default function CdrInboundMetricsCard({
   if (!cdrData) {
     return (
       <Card className="border-slate-200 shadow-sm">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv,.xlsx"
+          onChange={handleFileSelect}
+          className="hidden"
+        />
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Upload className="w-4 h-4 text-blue-600" />
