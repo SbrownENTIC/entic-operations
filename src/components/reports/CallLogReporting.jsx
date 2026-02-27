@@ -10,6 +10,8 @@ import CallLogUserConfigAdmin from "./CallLogUserConfigAdmin";
 import PerformanceViews from "./PerformanceViews";
 import CdrUpload from "./CdrUpload";
 import CdrInboundMetricsCard from "./CdrInboundMetricsCard";
+import UserBreakdownTable from "./UserBreakdownTable";
+import { minutesToHHMMSS, secondsToHHMMSS, formatDate, parseWeekDate } from "./ExcelExportHelpers";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,26 +24,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
 import ExcelJS from "exceljs";
-
-// ---- Formatting helpers ----
-function minutesToHHMMSS(minutes) {
-  if (!minutes || minutes === 0) return "0:00:00";
-  const totalSeconds = Math.round(minutes * 60);
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = totalSeconds % 60;
-  return [h, m, s].map(v => String(v).padStart(2, "0")).join(":");
-}
-
-// Legacy: convert stored seconds to HH:MM:SS (used only for monthly summary from CallLogUserSummary entity)
-function secondsToHHMMSS(seconds) {
-  if (!seconds || seconds === 0) return "0:00:00";
-  const total = Math.round(seconds);
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const s = total % 60;
-  return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
 
 function formatPercent(value) {
   if (value === null || value === undefined || value === "") return "—";
