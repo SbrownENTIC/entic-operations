@@ -263,13 +263,6 @@ export default function CdrInboundMetricsCard({
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".csv,.xlsx"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
           <div className="flex gap-2">
             <Button
               size="sm"
