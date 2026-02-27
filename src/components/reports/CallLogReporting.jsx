@@ -2311,8 +2311,8 @@ export default function CallLogReporting() {
                                 {ar === null ? (
                                   <span className="text-slate-400">—</span>
                                 ) : (
-                                  <span className={`font-semibold ${ar >= 0.8 ? "text-green-700" : ar >= 0.5 ? "text-yellow-700" : "text-red-600"}`}>
-                                    {(ar * 100).toFixed(2)}%
+                                  <span className={`font-semibold ${ar >= 80 ? "text-green-700" : ar >= 50 ? "text-yellow-700" : "text-red-600"}`}>
+                                    {ar.toFixed(2)}%
                                   </span>
                                 )}
                               </td>
