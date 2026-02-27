@@ -2,7 +2,8 @@ import React, { useState, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Upload, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
+import { Upload, AlertCircle, CheckCircle, Loader2, X } from "lucide-react";
+import { formatDateToEST } from "@/components/DateUtils";
 
 // --- CSV parsing (handles quoted fields with embedded commas) ---
 function parseCSVLine(line) {
@@ -131,16 +132,29 @@ function processRows(rows, extensionMap) {
   };
 }
 
-export default function CdrUpload() {
+export default function CdrUpload({ periodKey, periodType, periodStart, periodEnd }) {
   const fileInputRef = useRef(null);
   const [file, setFile] = useState(null);
   const [error, setError] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [result, setResult] = useState(null);
 
   const { data: configs = [] } = useQuery({
     queryKey: ["call-log-user-configs"],
     queryFn: () => base44.entities.CallLogUserConfig.list(),
+  });
+
+  const { data: existingCdr } = useQuery({
+    queryKey: ["cdr-upload", periodKey],
+    queryFn: async () => {
+      if (!periodKey) return null;
+      const records = await base44.entities.CallLogCdrUploads.filter({
+        reporting_period_key: periodKey
+      });
+      return records.length > 0 ? records[0] : null;
+    },
+    enabled: !!periodKey
   });
 
   const extensionMap = React.useMemo(() => buildExtensionMap(configs), [configs]);
@@ -184,6 +198,7 @@ export default function CdrUpload() {
 
   const handleProcess = async () => {
     if (!file) { setError("Please select a file."); return; }
+    if (!periodKey) { setError("Please select a reporting period."); return; }
     setError("");
     setProcessing(true);
 
@@ -214,10 +229,75 @@ export default function CdrUpload() {
 
       const processed = processRows(rows, extensionMap);
       setResult(processed);
+
+      // Auto-save after processing
+      await handleSave(processed, file.name);
     } catch (err) {
       setError("Failed to parse file: " + (err.message || "unknown error"));
     }
     setProcessing(false);
+  };
+
+  const handleSave = async (processed, fileName) => {
+    if (!processed || !periodKey || !periodStart || !periodEnd) {
+      setError("Missing period or processing data");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // Build unmapped extensions list (top 10 by count)
+      const unmappedExtMap = {};
+      processed.userRows
+        .filter(u => u.user.startsWith("Unmapped"))
+        .forEach(u => {
+          const ext = u.user.replace("Unmapped (", "").replace(")", "");
+          unmappedExtMap[ext] = (unmappedExtMap[ext] || 0) + u.inbound;
+        });
+
+      const unmappedExts = Object.entries(unmappedExtMap)
+        .map(([ext, count]) => ({ extension: ext, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+
+      // Build user stats for database
+      const userStats = processed.userRows
+        .filter(u => !u.user.startsWith("Unmapped"))
+        .map(u => ({
+          user_name: u.user,
+          extension: null,
+          location: null,
+          inbound_calls: u.inbound,
+          inbound_answered: u.inbound_answered,
+          inbound_unanswered: u.inbound - u.inbound_answered,
+          inbound_answer_rate: u.answer_rate || 0
+        }));
+
+      const response = await base44.functions.invoke('saveCdrUpload', {
+        reporting_period_key: periodKey,
+        period_type: periodType,
+        period_start: periodStart,
+        period_end: periodEnd,
+        original_filename: fileName,
+        total_rows: processed.totalInbound,
+        total_inbound_calls: processed.totalInbound,
+        total_inbound_answered: processed.totalAnswered,
+        total_unanswered: processed.totalUnanswered,
+        mapped_rows: processed.totalMapped,
+        unmapped_rows: processed.totalUnmapped,
+        unmapped_extensions: unmappedExts,
+        userStats
+      });
+
+      if (response.data?.success) {
+        // Refetch existing CDR
+        // Note: normally useQuery auto refetch, but we can manually invalidate if needed
+      }
+    } catch (err) {
+      console.error("Failed to save CDR:", err);
+      setError("Failed to save CDR data: " + (err.message || "unknown error"));
+    }
+    setSaving(false);
   };
 
   const formatRate = (rate) => {
@@ -230,6 +310,16 @@ export default function CdrUpload() {
     if (rate >= 0.8) return "text-green-700 font-semibold";
     if (rate >= 0.5) return "text-yellow-700 font-semibold";
     return "text-red-600 font-semibold";
+  };
+
+  const formatPeriodLabel = () => {
+    if (!periodKey) return "No period selected";
+    if (periodType === "month") {
+      const date = new Date(periodStart);
+      return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+    } else {
+      return `${periodStart} to ${periodEnd}`;
+    }
   };
 
   return (
@@ -246,14 +336,20 @@ export default function CdrUpload() {
 
         {/* Upload type label */}
         <div className="mt-2 flex items-center gap-4 text-xs font-medium">
-          <span className="text-slate-500">Upload Type:</span>
-          <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 cursor-default">
-            User Summary (Aggregated)
-          </span>
-          <span className="px-2.5 py-1 rounded-full bg-blue-600 text-white shadow-sm">
-            ✓ Inbound Call Detail (CDR)
+          <span className="text-slate-500">Period:</span>
+          <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+            {formatPeriodLabel()}
           </span>
         </div>
+
+        {existingCdr && (
+          <div className="mt-2 flex items-center gap-2 text-xs text-green-700 bg-green-50 border border-green-200 rounded px-3 py-2">
+            <CheckCircle className="w-3.5 h-3.5" />
+            <span>
+              Saved for {formatPeriodLabel()}, uploaded {formatDateToEST(existingCdr.uploaded_at, "MMM d, yyyy 'at' h:mm a")}
+            </span>
+          </div>
+        )}
 
         <div className="mt-2 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 text-xs text-amber-800">
           <strong>Upload Type: Inbound Call Detail (CDR)</strong> — feeds advanced analytics only.<br />
@@ -294,12 +390,12 @@ export default function CdrUpload() {
           <Button
             size="sm"
             onClick={handleProcess}
-            disabled={processing || !file}
+            disabled={processing || saving || !file || !periodKey}
             className="gap-2 bg-blue-600 hover:bg-blue-700"
           >
-            {processing
-              ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Processing…</>
-              : <><Upload className="w-3.5 h-3.5" /> Process CDR</>}
+            {processing || saving
+              ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {saving ? "Saving…" : "Processing…"}</>
+              : <><Upload className="w-3.5 h-3.5" /> {existingCdr ? "Replace CDR for this period" : "Process & Save CDR"}</>}
           </Button>
           {(file || result) && (
             <Button size="sm" variant="outline" onClick={reset}>Clear</Button>
