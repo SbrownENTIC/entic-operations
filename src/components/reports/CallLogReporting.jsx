@@ -1182,14 +1182,18 @@ export default function CallLogReporting() {
       if (cfg.user_name) userConfigMap[cfg.user_name] = cfg;
     }
 
-    // Load CDR data for this period
+    // Load CDR data for this period using canonical period_key
+    console.log("Excel export fetching CDR for:", selectedPeriod.monthly_key);
     let cdrUploadData = null;
     try {
       const cdrUploads = await base44.entities.CallLogCdrUploads.filter({
-        reporting_period_key: selectedPeriod?.id || ""
+        period_key: selectedPeriod?.monthly_key || ""
       });
       if (cdrUploads.length > 0) {
         cdrUploadData = cdrUploads[0];
+        console.log("Found CDR upload for period_key:", selectedPeriod.monthly_key, cdrUploadData);
+      } else {
+        console.log("No CDR upload found for period_key:", selectedPeriod.monthly_key);
       }
     } catch (err) {
       console.warn("Could not load CDR data:", err);
