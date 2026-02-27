@@ -629,6 +629,7 @@ export default function CallLogReporting() {
     }
 
     // Aggregate: key = date|hour|desk
+    const uploadBatchId = generateUUID();
     const agg = {};
 
     for (const row of rows) {
@@ -672,7 +673,21 @@ export default function CallLogReporting() {
 
       const key = `${date}|${hour}|${desk}`;
       if (!agg[key]) {
-        agg[key] = { date, hour, desk, location, total_inbound: 0, answered: 0, missed: 0, total_duration_seconds: 0, hourly_target: target };
+        agg[key] = {
+          date,
+          hour,
+          desk,
+          location,
+          total_inbound: 0,
+          answered: 0,
+          missed: 0,
+          total_duration_seconds: 0,
+          hourly_target: target,
+          reporting_month: reportingMonth,
+          reporting_type: reportingType,
+          week_start: reportingType === "weekly" ? weekStart : null,
+          upload_batch_id: uploadBatchId,
+        };
       }
       agg[key].total_inbound       += 1;
       agg[key].answered            += answered;
@@ -682,7 +697,7 @@ export default function CallLogReporting() {
 
     const result = Object.values(agg);
     if (result.length === 0) return { error: "No inbound calls found in the CDR file." };
-    return { hourlySnapshot: result };
+    return { hourlySnapshot: result, uploadBatchId };
   };
 
   const handleCdrUpload = async () => {
