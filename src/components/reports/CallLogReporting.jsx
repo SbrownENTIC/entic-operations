@@ -278,6 +278,9 @@ export default function CallLogReporting() {
   const [cdrFile, setCdrFile] = useState(null);
   const [cdrUploading, setCdrUploading] = useState(false);
   const [cdrError, setCdrError] = useState("");
+  const [cdrReportingType, setCdrReportingType] = useState("monthly"); // "weekly" or "monthly"
+  const [cdrReportingMonth, setCdrReportingMonth] = useState(""); // YYYY-MM
+  const [cdrWeekStart, setCdrWeekStart] = useState(""); // YYYY-MM-DD (for weekly only)
 
   const { data: periods = [], isLoading: periodsLoading } = useQuery({
     queryKey: ["call-log-periods"],
