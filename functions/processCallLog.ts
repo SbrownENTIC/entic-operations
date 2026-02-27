@@ -90,31 +90,32 @@ function groupRowsByWeek(rows, headerMap) {
   return { groups: [...groups.values()] };
 }
 
-/** Normalize direction/result values: trim + lowercase */
-function normalizeField(val) {
-  return String(val == null ? '' : val).trim().toLowerCase();
+function parseNum(val) {
+  if (val == null || val === '') return 0;
+  return parseFloat(String(val).trim()) || 0;
 }
 
 /**
- * Aggregate user data from CDR rows.
- * Inbound ownership: determined by the "To" column → extension directory lookup.
- * Outbound: determined by the "User" column (existing behavior).
- * extensionMap: { extension_raw_lower: { user_display_name, desk_name, location } }
+ * Aggregate user data from Vonage User Summary (pre-aggregated) rows.
+ * Each row is already one user's summary for a period — no CDR direction/result splitting needed.
  */
-function aggregateUsers(rows, headerMap, extensionMap) {
+function aggregateUsers(rows, headerMap) {
   const get = (row, name) => row[headerMap[name]];
   const agg = {};
 
-  const ensureUser = (key, displayName) => {
+  for (const row of rows) {
+    const userName = String(get(row, 'user') || '').trim();
+    if (!userName) continue;
+
+    const key = userName.toLowerCase();
     if (!agg[key]) {
       agg[key] = {
-        user: displayName,
+        user: userName,
         total_calls: 0,
         inbound: 0,
         outbound: 0,
-        answered: 0,        // inbound answered only
+        answered: 0,
         inbound_answered: 0,
-        outbound_answered: 0,
         missed: 0,
         voicemail: 0,
         total_duration_minutes: 0,
@@ -123,62 +124,28 @@ function aggregateUsers(rows, headerMap, extensionMap) {
         unmapped_extension: false,
       };
     }
-  };
 
-  for (const row of rows) {
-    const direction = normalizeField(get(row, 'direction'));
-    const result    = normalizeField(get(row, 'result'));
-    const isInbound  = direction === 'inbound';
-    const isOutbound = direction === 'outbound';
-    const isAnswered = result === 'answered';
+    const totalCalls  = parseNum(get(row, 'total calls'));
+    const inbound     = parseNum(get(row, 'inbound calls'));
+    const outbound    = parseNum(get(row, 'outbound calls'));
+    const answered    = parseNum(get(row, 'answered calls'));
+    const missed      = parseNum(get(row, 'missed calls'));
+    const totalMin    = parseNum(get(row, 'total call duration (minutes)'));
+    const inMin       = parseNum(get(row, 'inbound call duration (minutes)'));
+    const outMin      = parseNum(get(row, 'outbound call duration (minutes)'));
 
-    const totalMin = parseFloat(String(get(row, 'total call duration (minutes)') || '0').trim()) || 0;
-    const inMin    = parseFloat(String(get(row, 'inbound call duration (minutes)') || '0').trim()) || 0;
-    const outMin   = parseFloat(String(get(row, 'outbound call duration (minutes)') || '0').trim()) || 0;
+    // Inbound answer rate = answered / inbound (answered here = inbound answered per Vonage's User Summary)
+    const inboundAnswered = inbound > 0 ? answered : 0;
 
-    if (isInbound) {
-      // Inbound: look up "To" column in extension directory
-      const toRaw = headerMap[TO_COL] ? String(get(row, TO_COL) || '').trim() : '';
-      const toLower = toRaw.toLowerCase();
-      const extEntry = toLower ? extensionMap[toLower] : null;
-
-      let inboundUserName;
-      let unmapped = false;
-
-      if (extEntry && extEntry.active !== false) {
-        inboundUserName = extEntry.user_name;
-      } else {
-        // Unmapped — group under a special key but still count for totals
-        inboundUserName = toRaw ? `Unmapped (${toRaw})` : 'Unmapped Extension';
-        unmapped = true;
-      }
-
-      const key = inboundUserName.toLowerCase();
-      ensureUser(key, inboundUserName);
-      if (unmapped) agg[key].unmapped_extension = true;
-
-      agg[key].total_calls               += 1;
-      agg[key].inbound                   += 1;
-      if (isAnswered) { agg[key].inbound_answered += 1; agg[key].answered += 1; }
-      if (result === 'missed')    agg[key].missed    += 1;
-      if (result === 'voicemail') agg[key].voicemail += 1;
-      agg[key].total_duration_minutes    += totalMin;
-      agg[key].inbound_duration_minutes  += inMin;
-    }
-
-    if (isOutbound) {
-      // Outbound: use "User" column
-      const outUserName = headerMap[USER_COL] ? String(get(row, USER_COL) || '').trim() : '';
-      if (!outUserName) continue;
-      const key = outUserName.toLowerCase();
-      ensureUser(key, outUserName);
-
-      agg[key].total_calls                += 1;
-      agg[key].outbound                   += 1;
-      if (isAnswered) agg[key].outbound_answered += 1;
-      agg[key].total_duration_minutes     += totalMin;
-      agg[key].outbound_duration_minutes  += outMin;
-    }
+    agg[key].total_calls                += totalCalls;
+    agg[key].inbound                    += inbound;
+    agg[key].outbound                   += outbound;
+    agg[key].answered                   += inboundAnswered;
+    agg[key].inbound_answered           += inboundAnswered;
+    agg[key].missed                     += missed;
+    agg[key].total_duration_minutes     += totalMin;
+    agg[key].inbound_duration_minutes   += inMin;
+    agg[key].outbound_duration_minutes  += outMin;
   }
   return Object.values(agg);
 }
