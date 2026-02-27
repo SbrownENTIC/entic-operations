@@ -673,6 +673,7 @@ export default function CallLogReporting() {
           inbound:                snap.reduce((s, u) => s + (u.inbound || 0), 0),
           outbound:               snap.reduce((s, u) => s + (u.outbound || 0), 0),
           answered:               snap.reduce((s, u) => s + (u.answered || 0), 0),
+          inbound_answered:       snap.reduce((s, u) => s + (u.inbound_answered != null ? u.inbound_answered : (u.answered || 0)), 0),
           missed:                 snap.reduce((s, u) => s + (u.missed || 0), 0),
           total_duration_minutes: snap.reduce((s, u) => s + (u.total_duration_minutes || 0), 0),
         };
