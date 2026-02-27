@@ -321,6 +321,7 @@ export default function CallLogUserConfigAdmin() {
             <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
               <tr>
                 <th className="text-left px-3 py-2.5 text-xs font-semibold text-slate-600 whitespace-nowrap">User Name</th>
+                <th className="text-left px-3 py-2.5 text-xs font-semibold text-slate-600">Extension</th>
                 <th className="text-left px-3 py-2.5 text-xs font-semibold text-slate-600">Location</th>
                 <th className="text-left px-3 py-2.5 text-xs font-semibold text-slate-600">Group</th>
                 <th className="text-left px-3 py-2.5 text-xs font-semibold text-slate-600">Daily Goal</th>
