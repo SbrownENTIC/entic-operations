@@ -79,8 +79,11 @@ export default function CallLogUserConfigAdmin() {
 
   const startEdit = (config) => {
     setEditingId(config.id);
+    // Support legacy single extension field
+    const exts = Array.isArray(config.extensions) ? config.extensions
+      : (config.extension ? [config.extension] : []);
     setEditValues({
-      extension: config.extension || "",
+      extensions_str: exts.join(", "),
       location: config.location || "",
       benchmark_group: config.benchmark_group || "Other",
       daily_goal: config.daily_goal || "",
@@ -90,20 +93,35 @@ export default function CallLogUserConfigAdmin() {
     });
   };
 
-  const isExtensionDuplicate = (ext, excludeId = null) => {
-    if (!ext || !ext.trim()) return false;
-    return configs.some(c => c.id !== excludeId && (c.extension || "").trim() === ext.trim());
+  const parseExtensions = (str) => {
+    return str.split(",").map(e => e.trim()).filter(Boolean);
+  };
+
+  const isExtensionDuplicate = (extsArr, excludeId = null) => {
+    for (const ext of extsArr) {
+      const conflict = configs.find(c => {
+        if (c.id === excludeId) return false;
+        const cExts = Array.isArray(c.extensions) ? c.extensions
+          : (c.extension ? [c.extension] : []);
+        return cExts.some(e => e.trim() === ext);
+      });
+      if (conflict) return conflict.user_name;
+    }
+    return null;
   };
 
   const cancelEdit = () => { setEditingId(null); setEditValues({}); };
 
   const saveEdit = async (id) => {
-    if (editValues.extension && isExtensionDuplicate(editValues.extension, id)) {
-      toast({ title: "Error", description: `Extension "${editValues.extension.trim()}" is already assigned to another user.`, variant: "destructive" });
+    const extsArr = parseExtensions(editValues.extensions_str || "");
+    const dupUser = isExtensionDuplicate(extsArr, id);
+    if (dupUser) {
+      toast({ title: "Error", description: `One of those extensions is already assigned to "${dupUser}".`, variant: "destructive" });
       return;
     }
     setSaving(true);
-    const saveData = { ...editValues, extension: editValues.extension ? editValues.extension.trim() : null };
+    const { extensions_str, ...rest } = editValues;
+    const saveData = { ...rest, extensions: extsArr.length > 0 ? extsArr : null };
     await base44.entities.CallLogUserConfig.update(id, saveData);
     queryClient.invalidateQueries({ queryKey: ["call-log-user-configs"] });
     setEditingId(null);
