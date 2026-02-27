@@ -1014,7 +1014,7 @@ export default function CallLogReporting() {
           ar = cdrStat.inbound_answered / cdrStat.inbound_calls;
         }
         const { bg, fg } = arColor(ar);
-        const arPct = ar !== null ? parseFloat((ar * 100).toFixed(2)) / 100 : "";
+        const arPct = ar !== null ? ar : "";
         const bgArgb = idx % 2 === 0 ? WHITE : ALT_ROW;
 
         const rowValues = [
