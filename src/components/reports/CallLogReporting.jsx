@@ -42,16 +42,8 @@ function secondsToHHMMSS(seconds) {
 }
 
 function formatPercent(val) {
-  if (val == null || val === "") return "—";
+  if (!val && val !== 0) return "0.0%";
   return (val * 100).toFixed(1) + "%";
-}
-
-/** Inbound answer rate: inbound_answered / inbound. Returns null if inbound === 0. */
-function calcAnswerRate(u) {
-  const inbound = u.inbound || 0;
-  if (inbound === 0) return null;
-  const inboundAnswered = u.inbound_answered != null ? u.inbound_answered : (u.answered || 0);
-  return inboundAnswered / inbound;
 }
 
 // Parse a YYYY-MM-DD string to a JS Date at noon UTC to avoid timezone-shift issues
@@ -353,10 +345,7 @@ export default function CallLogReporting() {
   };
 
   const getSortValue = (u, key) => {
-    if (key === "answer_rate") {
-      const r = calcAnswerRate(u);
-      return r === null ? -1 : r; // null (no inbound) sorts last
-    }
+    if (key === "answer_rate") return u.total_calls ? (u.answered || 0) / u.total_calls : (u.answer_rate || 0);
     return u[key] ?? 0;
   };
 
@@ -402,14 +391,9 @@ export default function CallLogReporting() {
   const totalInbound  = activeSummaries.reduce((s, u) => s + (u.inbound || 0), 0);
   const totalOutbound = activeSummaries.reduce((s, u) => s + (u.outbound || 0), 0);
   const totalAnswered = activeSummaries.reduce((s, u) => s + (u.answered || 0), 0);
-  const totalInboundAnswered = activeSummaries.reduce((s, u) => {
-    const ia = u.inbound_answered != null ? u.inbound_answered : (u.answered || 0);
-    return s + ia;
-  }, 0);
   const totalMissed   = activeSummaries.reduce((s, u) => s + (u.missed || 0), 0);
   const totalDurationSec = activeSummaries.reduce((s, u) => s + (u.total_duration_seconds || 0), 0);
-  // Inbound answer rate = total inbound answered / total inbound (blank if 0 inbound)
-  const overallAnswerRate   = totalInbound > 0 ? totalInboundAnswered / totalInbound : null;
+  const overallAnswerRate   = totalCalls > 0 ? totalAnswered / totalCalls : 0;
   const overallAvgDurationSec = totalCalls > 0 ? totalDurationSec / totalCalls : 0;
 
   const resetUpload = () => {
@@ -673,7 +657,6 @@ export default function CallLogReporting() {
           inbound:                snap.reduce((s, u) => s + (u.inbound || 0), 0),
           outbound:               snap.reduce((s, u) => s + (u.outbound || 0), 0),
           answered:               snap.reduce((s, u) => s + (u.answered || 0), 0),
-          inbound_answered:       snap.reduce((s, u) => s + (u.inbound_answered != null ? u.inbound_answered : (u.answered || 0)), 0),
           missed:                 snap.reduce((s, u) => s + (u.missed || 0), 0),
           total_duration_minutes: snap.reduce((s, u) => s + (u.total_duration_minutes || 0), 0),
         };
@@ -688,7 +671,7 @@ export default function CallLogReporting() {
         missed:                 totals.missed || 0,
         total_duration_minutes: totals.total_duration_minutes || 0,
         avg_duration_minutes:   (totals.total_calls || 0) > 0 ? (totals.total_duration_minutes || 0) / totals.total_calls : 0,
-        answer_rate:            (totals.inbound || 0) > 0 ? ((totals.inbound_answered != null ? totals.inbound_answered : (totals.answered || 0)) / totals.inbound) : null,
+        answer_rate:            (totals.total_calls || 0) > 0 ? (totals.answered || 0) / totals.total_calls : 0,
         user_snapshot:          Array.isArray(week.user_snapshot) ? week.user_snapshot : [],
         missing_snapshot:       !Array.isArray(week.user_snapshot) || week.user_snapshot.length === 0,
       };
@@ -709,21 +692,18 @@ export default function CallLogReporting() {
           console.warn(`[CallLog Export] Duration field missing in user_snapshot for user "${u.user}" week ${week.week_start}`);
         }
         const durMin = u.total_duration_minutes || 0;
-        const uInboundAnswered = u.inbound_answered != null ? u.inbound_answered : (u.answered || 0);
-        const uInbound = u.inbound || 0;
         userWeekRows.push({
           week_start:             week.week_start,
           week_end:               week.week_end,
           user:                   u.user || "",
           total_calls:            tc,
-          inbound:                uInbound,
+          inbound:                u.inbound  || 0,
           outbound:               u.outbound || 0,
-          answered:               uInboundAnswered,
-          inbound_answered:       uInboundAnswered,
+          answered:               u.answered || 0,
           missed:                 u.missed   || 0,
           total_duration_minutes: durMin,
           avg_duration_minutes:   tc > 0 ? durMin / tc : 0,
-          answer_rate:            uInbound > 0 ? uInboundAnswered / uInbound : null,
+          answer_rate:            tc > 0 ? (u.answered || 0) / tc : 0,
         });
       });
     });
@@ -793,7 +773,7 @@ export default function CallLogReporting() {
       ["Outbound",         totalOutbound,                                      "number"],
       ["Answered",         totalAnswered,                                      "number"],
       ["Missed",           totalMissed,                                        "number"],
-      ["Inbound Answer Rate", overallAnswerRate !== null ? overallAnswerRate : "",  "percent"],
+      ["Answer Rate",      totalCalls > 0 ? overallAnswerRate : 0,             "percent"],
       ["Total Duration",   secondsToHHMMSS(totalDurationSec),                  "text"],
       ["Average Duration", secondsToHHMMSS(overallAvgDurationSec),             "text"],
     ];
@@ -823,7 +803,7 @@ export default function CallLogReporting() {
     addSectionHeader(ws, "Weekly Summary", 10);
 
     const weekTableHeaderRowNum = ws.rowCount + 1;
-    const weekHeaders = ["Week Start","Week End","Total Calls","Inbound","Outbound","Inbound Answered","Missed","Inbound Answer Rate","Total Duration","Avg Duration"];
+    const weekHeaders = ["Week Start","Week End","Total Calls","Inbound","Outbound","Answered","Missed","Answer Rate","Total Duration","Avg Duration"];
     const weekHRow = ws.addRow(weekHeaders);
     styleTableHeader(weekHRow, 10, 2);
 
@@ -834,8 +814,8 @@ export default function CallLogReporting() {
       emptyRow.height = 18;
     } else {
       weekRows.forEach((wk, idx) => {
-        const ar = wk.answer_rate; // null if no inbound
-        const { bg, fg } = ar !== null ? arColor(ar) : { bg: "FFFFFFFF", fg: "FF888888" };
+        const ar = wk.answer_rate;
+        const { bg, fg } = arColor(ar);
         const bgArgb = idx % 2 === 0 ? WHITE : LIGHT_GRAY;
 
         const row = ws.addRow([
@@ -846,7 +826,7 @@ export default function CallLogReporting() {
           wk.outbound,
           wk.answered,
           wk.missed,
-          ar !== null ? ar : "",
+          ar,
           minutesToHHMMSS(wk.total_duration_minutes),
           minutesToHHMMSS(wk.avg_duration_minutes),
         ]);
@@ -857,7 +837,7 @@ export default function CallLogReporting() {
           cell.alignment = { horizontal: colNum <= 2 ? "left" : "center", vertical: "middle" };
           cell.border    = { bottom: thinBorder, right: thinBorder };
           if ([3,4,5,6,7].includes(colNum)) cell.numFmt = "#,##0";
-          if (colNum === 8 && ar !== null) {
+          if (colNum === 8) {
             cell.numFmt = "0.00%";
             cell.fill   = mkFill(bg);
             cell.font   = mkFont({ color: { argb: fg } });
@@ -897,7 +877,7 @@ export default function CallLogReporting() {
       emptyRow.height = 18;
     } else {
       // Header row (userTableStartRow)
-      const userHRow = ws.addRow(["Week Start","Week End","User","Total Calls","Inbound","Outbound","Inbound Answered","Missed","Total Duration","Inbound Answer Rate","Avg Duration"]);
+      const userHRow = ws.addRow(["Week Start","Week End","User","Total Calls","Inbound","Outbound","Answered","Missed","Total Duration","Answer Rate","Avg Duration"]);
       styleTableHeader(userHRow, 11);
 
       // Freeze at the header row of this table
@@ -905,9 +885,9 @@ export default function CallLogReporting() {
 
       const tableRows = [];
       realUserRows.forEach((u, idx) => {
-        const ar = u.answer_rate; // null if no inbound
-        const { bg, fg } = ar !== null ? arColor(ar) : { bg: "FFFFFFFF", fg: "FF888888" };
-        const arVal = ar !== null ? parseFloat((ar * 100).toFixed(1)) / 100 : "";
+        const ar = u.answer_rate;
+        const { bg, fg } = arColor(ar);
+        const arPct = parseFloat((ar * 100).toFixed(1)) / 100;
         const bgArgb = idx % 2 === 0 ? WHITE : ALT_ROW;
 
         const rowValues = [
@@ -920,7 +900,7 @@ export default function CallLogReporting() {
           u.answered,
           u.missed,
           minutesToHHMMSS(u.total_duration_minutes),
-          arVal,
+          arPct,
           minutesToHHMMSS(u.avg_duration_minutes),
         ];
         const row = ws.addRow(rowValues);
@@ -931,7 +911,7 @@ export default function CallLogReporting() {
           cell.alignment = { horizontal: colNum <= 3 ? "left" : "center", vertical: "middle" };
           cell.border    = { bottom: thinBorder, right: thinBorder };
           if ([4,5,6,7,8].includes(colNum)) cell.numFmt = "#,##0";
-          if (colNum === 10 && ar !== null) {
+          if (colNum === 10) {
             cell.numFmt = "0.00%";
             cell.fill   = mkFill(bg);
             cell.font   = mkFont({ color: { argb: fg } });
@@ -952,17 +932,17 @@ export default function CallLogReporting() {
           showRowStripes: true,
         },
         columns: [
-          { name: "Week Start",          filterButton: true },
-          { name: "Week End",            filterButton: true },
-          { name: "User",                filterButton: true },
-          { name: "Total Calls",         filterButton: true },
-          { name: "Inbound",             filterButton: true },
-          { name: "Outbound",            filterButton: true },
-          { name: "Inbound Answered",    filterButton: true },
-          { name: "Missed",              filterButton: true },
-          { name: "Total Duration",      filterButton: true },
-          { name: "Inbound Answer Rate", filterButton: true },
-          { name: "Avg Duration",        filterButton: true },
+          { name: "Week Start",     filterButton: true },
+          { name: "Week End",       filterButton: true },
+          { name: "User",           filterButton: true },
+          { name: "Total Calls",    filterButton: true },
+          { name: "Inbound",        filterButton: true },
+          { name: "Outbound",       filterButton: true },
+          { name: "Answered",       filterButton: true },
+          { name: "Missed",         filterButton: true },
+          { name: "Total Duration", filterButton: true },
+          { name: "Answer Rate",    filterButton: true },
+          { name: "Avg Duration",   filterButton: true },
         ],
         rows: tableRows,
       });
@@ -1003,7 +983,6 @@ export default function CallLogReporting() {
     // the FILTER formula in the main sheet (C4=$C$4) can do a date-to-date comparison.
     const pivotDataRows = [];
     userWeekRows.filter(u => !u._warning && (u.total_calls || 0) > 0).forEach(u => {
-        const ar = u.answer_rate;
       pivotDataRows.push({
         week_start:             parseWeekDate(u.week_start),   // real Date — must match C4
         week_end:               parseWeekDate(u.week_end),     // real Date
@@ -1011,10 +990,10 @@ export default function CallLogReporting() {
         total_calls:            u.total_calls,
         inbound:                u.inbound,
         outbound:               u.outbound,
-        answered:               u.answered, // inbound answered
+        answered:               u.answered,
         missed:                 u.missed,
         total_duration_minutes: minutesToHHMMSS(u.total_duration_minutes),
-        answer_rate:            ar !== null ? parseFloat((ar * 100).toFixed(1)) / 100 : "",
+        answer_rate:            parseFloat((u.answer_rate * 100).toFixed(1)) / 100,
         avg_duration_minutes:   minutesToHHMMSS(u.avg_duration_minutes),
       });
     });
@@ -1031,7 +1010,7 @@ export default function CallLogReporting() {
         // Col 1 = Week Start, Col 2 = Week End — format as date so FILTER comparison works
         if (colNum === 1 || colNum === 2) cell.numFmt = "mmm d, yyyy";
         if ([4,5,6,7,8].includes(colNum)) cell.numFmt = "#,##0";
-        if (colNum === 10 && rowData.answer_rate !== "") {
+        if (colNum === 10) {
           cell.numFmt = "0.00%";
           const { bg, fg } = arColor(rowData.answer_rate);
           cell.fill = mkFill(bg);
@@ -1052,17 +1031,17 @@ export default function CallLogReporting() {
           showRowStripes: true,
         },
         columns: [
-          { name: "Week Start",          filterButton: true },
-          { name: "Week End",            filterButton: true },
-          { name: "User",                filterButton: true },
-          { name: "Total Calls",         filterButton: true },
-          { name: "Inbound",             filterButton: true },
-          { name: "Outbound",            filterButton: true },
-          { name: "Inbound Answered",    filterButton: true },
-          { name: "Missed",              filterButton: true },
-          { name: "Total Duration",      filterButton: true },
-          { name: "Inbound Answer Rate", filterButton: true },
-          { name: "Avg Duration",        filterButton: true },
+          { name: "Week Start",     filterButton: true },
+          { name: "Week End",       filterButton: true },
+          { name: "User",           filterButton: true },
+          { name: "Total Calls",    filterButton: true },
+          { name: "Inbound",        filterButton: true },
+          { name: "Outbound",       filterButton: true },
+          { name: "Answered",       filterButton: true },
+          { name: "Missed",         filterButton: true },
+          { name: "Total Duration", filterButton: true },
+          { name: "Answer Rate",    filterButton: true },
+          { name: "Avg Duration",   filterButton: true },
         ],
         rows: pivotDataRows.map(r => [
           r.week_start, r.week_end, r.user, r.total_calls, r.inbound,
@@ -1870,11 +1849,10 @@ export default function CallLogReporting() {
                   { label: "Total Calls",    value: totalCalls.toLocaleString(),            color: "text-slate-900" },
                   { label: "Inbound",        value: totalInbound.toLocaleString(),           color: "text-blue-700" },
                   { label: "Outbound",       value: totalOutbound.toLocaleString(),          color: "text-indigo-700" },
-                  { label: "Answered (Inbound)", value: totalInboundAnswered.toLocaleString(), color: "text-green-700" },
+                  { label: "Answered",       value: totalAnswered.toLocaleString(),          color: "text-green-700" },
                   { label: "Missed",         value: totalMissed.toLocaleString(),            color: "text-red-600" },
-                  { label: "Inbound Answer Rate",
-                    value: overallAnswerRate === null ? "—" : (overallAnswerRate * 100).toFixed(1) + "%",
-                    color: overallAnswerRate === null ? "text-slate-400" : overallAnswerRate >= 0.8 ? "text-green-700" : overallAnswerRate >= 0.5 ? "text-yellow-700" : "text-red-600" },
+                  { label: "Answer Rate",    value: (totalCalls > 0 ? (overallAnswerRate * 100).toFixed(1) : "0.0") + "%",
+                    color: overallAnswerRate >= 0.8 ? "text-green-700" : overallAnswerRate >= 0.5 ? "text-yellow-700" : "text-red-600" },
                   { label: "Total Duration", value: secondsToHHMMSS(totalDurationSec),      color: "text-slate-700" },
                   { label: "Avg Duration",   value: secondsToHHMMSS(overallAvgDurationSec), color: "text-slate-700" },
                 ].map(m => (
@@ -1938,26 +1916,20 @@ export default function CallLogReporting() {
                       </thead>
                       <tbody>
                         {filteredSummaries.map((u, i) => {
-                          const ar = calcAnswerRate(u);
+                          const ar = u.answered != null && u.total_calls ? u.answered / u.total_calls : (u.answer_rate || 0);
                           return (
                             <tr key={u.id} className={`border-b border-slate-100 ${i % 2 !== 0 ? "bg-slate-50/50" : ""}`}>
                               <td className="px-4 py-2.5 font-medium text-slate-800">{highlightUser(u.user)}</td>
                               <td className="px-4 py-2.5 text-slate-700">{(u.total_calls || 0).toLocaleString()}</td>
                               <td className="px-4 py-2.5 text-blue-700">{(u.inbound || 0).toLocaleString()}</td>
                               <td className="px-4 py-2.5 text-indigo-700">{(u.outbound || 0).toLocaleString()}</td>
-                              <td className="px-4 py-2.5 text-green-700">
-                                {(u.inbound_answered != null ? u.inbound_answered : (u.answered || 0)).toLocaleString()}
-                              </td>
+                              <td className="px-4 py-2.5 text-green-700">{(u.answered || 0).toLocaleString()}</td>
                               <td className="px-4 py-2.5 text-red-600">{(u.missed || 0).toLocaleString()}</td>
                               <td className="px-4 py-2.5 text-slate-600">{secondsToHHMMSS(u.total_duration_seconds)}</td>
                               <td className="px-4 py-2.5">
-                                {ar === null ? (
-                                  <span className="text-slate-400">—</span>
-                                ) : (
-                                  <span className={`font-semibold ${ar >= 0.8 ? "text-green-700" : ar >= 0.5 ? "text-yellow-700" : "text-red-600"}`}>
-                                    {(ar * 100).toFixed(1)}%
-                                  </span>
-                                )}
+                                <span className={`font-semibold ${ar >= 0.8 ? "text-green-700" : ar >= 0.5 ? "text-yellow-700" : "text-red-600"}`}>
+                                  {(ar * 100).toFixed(1)}%
+                                </span>
                               </td>
                               <td className="px-4 py-2.5 text-slate-600">{secondsToHHMMSS(u.avg_duration_seconds)}</td>
                             </tr>
