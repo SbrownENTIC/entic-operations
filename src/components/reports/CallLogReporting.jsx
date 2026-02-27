@@ -2230,8 +2230,8 @@ export default function CallLogReporting() {
                   { label: "Inbound Answered", value: totalInboundAnswered.toLocaleString(), color: "text-green-700" },
                   { label: "Missed",           value: totalMissed.toLocaleString(),          color: "text-red-600" },
                   { label: "Inbound Answer Rate",
-                    value: overallAnswerRate === null ? "—" : (overallAnswerRate * 100).toFixed(1) + "%",
-                    color: overallAnswerRate === null ? "text-slate-400" : overallAnswerRate >= 0.8 ? "text-green-700" : overallAnswerRate >= 0.5 ? "text-yellow-700" : "text-red-600" },
+                   value: overallAnswerRate === null ? "—" : (overallAnswerRate * 100).toFixed(2) + "%",
+                   color: overallAnswerRate === null ? "text-slate-400" : overallAnswerRate >= 0.8 ? "text-green-700" : overallAnswerRate >= 0.5 ? "text-yellow-700" : "text-red-600" },
                   { label: "Total Duration", value: secondsToHHMMSS(totalDurationSec),      color: "text-slate-700" },
                   { label: "Avg Duration",   value: secondsToHHMMSS(overallAvgDurationSec), color: "text-slate-700" },
                 ].map(m => (
