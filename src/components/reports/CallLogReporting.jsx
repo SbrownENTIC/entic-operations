@@ -628,8 +628,9 @@ export default function CallLogReporting() {
       }
     };
 
-    // Answer rate conditional color
+    // Answer rate conditional color (null = no inbound calls, no color)
     const arColor = (rate) => {
+      if (rate === null || rate === undefined) return { bg: WHITE, fg: "FF888888" };
       if (rate >= 0.5)  return { bg: "FFC6EFCE", fg: "FF276221" };
       if (rate >= 0.2)  return { bg: "FFFFEB9C", fg: "FF9C6500" };
       return                   { bg: "FFFFC7CE", fg: "FF9C0006" };
