@@ -375,7 +375,7 @@ export default function CdrUpload({ periodKey: propPeriodKey, periodType, period
           inbound_calls: u.inbound,
           inbound_answered: u.inbound_answered,
           inbound_unanswered: u.inbound - u.inbound_answered,
-          inbound_answer_rate: u.answer_rate || 0
+          inbound_answer_rate: u.answer_rate !== null && u.answer_rate !== undefined ? u.answer_rate : 0
         }));
 
       const response = await base44.functions.invoke('saveCdrUpload', {
