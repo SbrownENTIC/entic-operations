@@ -165,21 +165,32 @@ function parseReportingPeriod(inputText) {
 }
 
 export default function CdrUpload({ periodKey: propPeriodKey, periodType, periodStart: propPeriodStart, periodEnd: propPeriodEnd }) {
-  const fileInputRef = useRef(null);
-  const [file, setFile] = useState(null);
-  const [manualPeriodInput, setManualPeriodInput] = useState("");
-  const [periodValidationError, setPeriodValidationError] = useState("");
-  const [error, setError] = useState("");
-  const [processing, setProcessing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [result, setResult] = useState(null);
-  
-  // Use manual period if provided, otherwise fall back to prop
-  const [parsedPeriod, setParsedPeriod] = useState(null);
-  const periodKey = parsedPeriod?.periodKey || propPeriodKey;
-  const periodStart = parsedPeriod?.periodStart || propPeriodStart;
-  const periodEnd = parsedPeriod?.periodEnd || propPeriodEnd;
-  const effectivePeriodLabel = parsedPeriod?.periodLabel || formatPeriodLabelFromProps();
+   const fileInputRef = useRef(null);
+   const [file, setFile] = useState(null);
+   const [manualPeriodInput, setManualPeriodInput] = useState("");
+   const [periodValidationError, setPeriodValidationError] = useState("");
+   const [error, setError] = useState("");
+   const [processing, setProcessing] = useState(false);
+   const [saving, setSaving] = useState(false);
+   const [result, setResult] = useState(null);
+
+   // Format period label from props (month format)
+   const formatPeriodLabelFromProps = () => {
+     if (!propPeriodKey) return "No period selected";
+     if (periodType === "month") {
+       const date = new Date(propPeriodStart);
+       return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+     } else {
+       return `${propPeriodStart} to ${propPeriodEnd}`;
+     }
+   };
+
+   // Use manual period if provided, otherwise fall back to prop
+   const [parsedPeriod, setParsedPeriod] = useState(null);
+   const periodKey = parsedPeriod?.periodKey || propPeriodKey;
+   const periodStart = parsedPeriod?.periodStart || propPeriodStart;
+   const periodEnd = parsedPeriod?.periodEnd || propPeriodEnd;
+   const effectivePeriodLabel = parsedPeriod?.periodLabel || formatPeriodLabelFromProps();
 
   const { data: configs = [] } = useQuery({
     queryKey: ["call-log-user-configs"],
