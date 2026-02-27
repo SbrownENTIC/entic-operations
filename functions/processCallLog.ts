@@ -103,6 +103,7 @@ function aggregateUsers(rows, headerMap) {
         inbound: 0,
         outbound: 0,
         answered: 0,
+        inbound_answered: 0,
         missed: 0,
         voicemail: 0,
         total_duration_minutes: 0,
