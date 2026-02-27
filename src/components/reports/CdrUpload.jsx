@@ -33,11 +33,8 @@ function parseCSV(text) {
     const obj = {};
     headers.forEach((h, i) => { obj[h] = cols[i] ?? ""; });
     return obj;
-  });
+  }).filter(row => Object.values(row).some(v => v !== ""));
 }
-
-// --- Required headers (case-insensitive) ---
-const REQUIRED_HEADERS = ["direction", "to", "result", "date/time", "duration"];
 
 function normalizeKey(k) {
   return String(k).toLowerCase().trim();
@@ -47,8 +44,11 @@ function findKey(obj, normalized) {
   return Object.keys(obj).find(k => normalizeKey(k) === normalized);
 }
 
+// Required headers (normalized)
+const REQUIRED_HEADERS = ["to", "result"];
+
 function buildExtensionMap(configs) {
-  const map = {}; // ext string -> user_name
+  const map = {}; // normalized ext string -> user_name
   for (const cfg of configs) {
     const exts = Array.isArray(cfg.extensions) ? cfg.extensions
       : (cfg.extension ? [cfg.extension] : []);
@@ -60,7 +60,6 @@ function buildExtensionMap(configs) {
 }
 
 function processRows(rows, extensionMap) {
-  // Build per-user aggregates
   const users = {}; // user_name -> { inbound, inbound_answered }
 
   const ensure = (name) => {
@@ -72,18 +71,13 @@ function processRows(rows, extensionMap) {
   let totalUnmapped = 0;
 
   for (const row of rows) {
-    const dirKey    = findKey(row, "direction");
     const toKey     = findKey(row, "to");
     const resultKey = findKey(row, "result");
 
-    if (!dirKey) continue;
-
-    const direction = String(row[dirKey] || "").trim().toLowerCase();
-    if (direction !== "inbound") continue;
-
+    // Every row is an inbound call
     totalInbound++;
 
-    const toRaw = toKey ? String(row[toKey] || "").trim() : "";
+    const toRaw   = toKey ? String(row[toKey] || "").trim() : "";
     const toLower = toRaw.toLowerCase();
     const result  = resultKey ? String(row[resultKey] || "").trim().toLowerCase() : "";
 
@@ -107,7 +101,6 @@ function processRows(rows, extensionMap) {
     inbound_answered: vals.inbound_answered,
     answer_rate: vals.inbound > 0 ? vals.inbound_answered / vals.inbound : null,
   })).sort((a, b) => {
-    // Unmapped at bottom, then sort by inbound desc
     const aUnmapped = a.user.startsWith("Unmapped");
     const bUnmapped = b.user.startsWith("Unmapped");
     if (aUnmapped && !bUnmapped) return 1;
@@ -123,7 +116,7 @@ export default function CdrUpload() {
   const [file, setFile] = useState(null);
   const [error, setError] = useState("");
   const [processing, setProcessing] = useState(false);
-  const [result, setResult] = useState(null); // { userRows, totalInbound, totalMapped, totalUnmapped }
+  const [result, setResult] = useState(null);
 
   const { data: configs = [] } = useQuery({
     queryKey: ["call-log-user-configs"],
@@ -153,17 +146,20 @@ export default function CdrUpload() {
     setProcessing(true);
 
     try {
-      let rows;
       const text = await file.text();
-      rows = parseCSV(text);
+      const rows = parseCSV(text);
 
-      if (!rows.length) { setError("File contains no data rows."); setProcessing(false); return; }
+      if (!rows.length) {
+        setError("File contains no data rows.");
+        setProcessing(false);
+        return;
+      }
 
       // Validate required headers
       const sampleKeys = Object.keys(rows[0]).map(normalizeKey);
       const missing = REQUIRED_HEADERS.filter(h => !sampleKeys.includes(h));
       if (missing.length > 0) {
-        setError(`Missing required column(s): ${missing.join(", ")}. Expected: Direction, To, Result, Date/Time, Duration`);
+        setError(`Missing required column(s): ${missing.join(", ")}. Expected headers: Direction, To, From, Destination Device, Date/Time, Result, Duration, Location`);
         setProcessing(false);
         return;
       }
@@ -193,11 +189,14 @@ export default function CdrUpload() {
       <div>
         <h3 className="text-base font-semibold text-slate-800 flex items-center gap-2">
           <Upload className="w-4 h-4 text-blue-600" />
-          Upload CDR (Inbound Mapping)
+          Upload CDR (Inbound Only)
         </h3>
         <p className="text-xs text-slate-500 mt-0.5">
-          Upload a Vonage CDR export to map inbound calls to users by extension.
-          Required columns: <strong>Direction, To, Result, Date/Time, Duration</strong>
+          Upload a Vonage inbound CDR export. Every row is treated as an inbound call.
+          Calls are mapped to users via the <strong>To</strong> (extension) column.
+        </p>
+        <p className="text-xs text-slate-400 mt-0.5">
+          Expected columns: Direction, To, From, Destination Device, Date/Time, Result, Duration, Location
         </p>
       </div>
 
@@ -249,9 +248,9 @@ export default function CdrUpload() {
           {/* Summary bar */}
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label: "Total Inbound", value: result.totalInbound, color: "text-blue-700" },
-              { label: "Mapped",        value: result.totalMapped,   color: "text-green-700" },
-              { label: "Unmapped",      value: result.totalUnmapped, color: result.totalUnmapped > 0 ? "text-orange-600" : "text-slate-400" },
+              { label: "Total Inbound Calls", value: result.totalInbound,  color: "text-blue-700" },
+              { label: "Mapped",              value: result.totalMapped,   color: "text-green-700" },
+              { label: "Unmapped",            value: result.totalUnmapped, color: result.totalUnmapped > 0 ? "text-orange-600" : "text-slate-400" },
             ].map(m => (
               <div key={m.label} className="bg-white border border-slate-200 rounded-lg p-3 text-center shadow-sm">
                 <p className="text-xs text-slate-500 mb-1">{m.label}</p>
@@ -275,9 +274,11 @@ export default function CdrUpload() {
                 {result.userRows.map((u, i) => (
                   <tr
                     key={u.user}
-                    className={`border-b border-slate-100 ${i % 2 !== 0 ? "bg-slate-50/40" : ""} ${u.user.startsWith("Unmapped") ? "text-slate-400 italic" : ""}`}
+                    className={`border-b border-slate-100 ${i % 2 !== 0 ? "bg-slate-50/40" : ""} ${u.user.startsWith("Unmapped") ? "opacity-60" : ""}`}
                   >
-                    <td className="px-3 py-2 font-medium">{u.user}</td>
+                    <td className={`px-3 py-2 font-medium ${u.user.startsWith("Unmapped") ? "italic text-slate-400" : "text-slate-800"}`}>
+                      {u.user}
+                    </td>
                     <td className="px-3 py-2 text-right text-blue-700">{u.inbound.toLocaleString()}</td>
                     <td className="px-3 py-2 text-right text-green-700">{u.inbound_answered.toLocaleString()}</td>
                     <td className={`px-3 py-2 text-right ${rateColor(u.answer_rate)}`}>
@@ -287,13 +288,16 @@ export default function CdrUpload() {
                 ))}
                 {result.userRows.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-3 py-8 text-center text-slate-400">No inbound calls found in file.</td>
+                    <td colSpan={4} className="px-3 py-8 text-center text-slate-400">No rows found in file.</td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-          <p className="text-xs text-slate-400">{result.userRows.length} user{result.userRows.length !== 1 ? "s" : ""} with inbound activity</p>
+          <p className="text-xs text-slate-400">
+            {result.userRows.filter(u => !u.user.startsWith("Unmapped")).length} mapped user{result.userRows.filter(u => !u.user.startsWith("Unmapped")).length !== 1 ? "s" : ""}
+            {result.totalUnmapped > 0 && ` · ${result.totalUnmapped} unmapped call${result.totalUnmapped !== 1 ? "s" : ""}`}
+          </p>
         </div>
       )}
     </div>
