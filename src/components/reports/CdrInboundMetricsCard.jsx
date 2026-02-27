@@ -155,21 +155,27 @@ export default function CdrInboundMetricsCard({
     const findKey = (obj, normalized) => Object.keys(obj).find(k => normalizeKey(k) === normalized);
 
     for (const row of rows) {
-      const toKey = findKey(row, "to");
-      const resultKey = findKey(row, "result");
-      totalInbound++;
-      const toRaw = toKey ? String(row[toKey] || "").trim() : "";
-      const toLower = toRaw.toLowerCase();
-      const resultNorm = resultKey ? String(row[resultKey] || "").trim().toLowerCase() : "";
+       const toKey = findKey(row, "to");
+       const resultKey = findKey(row, "result");
+       totalInbound++;
+       const toRaw = toKey ? String(row[toKey] || "").trim() : "";
+       const resultNorm = resultKey ? String(row[resultKey] || "").trim().toLowerCase() : "";
 
-      let userName;
-      if (toLower && extensionMap[toLower]) {
-        userName = extensionMap[toLower];
-        totalMapped++;
-      } else {
-        userName = toRaw ? `Unmapped (${toRaw})` : "Unmapped Extension";
-        totalUnmapped++;
-      }
+       // Extract last 4 digits from phone numbers like "(860) 284-4951"
+       let toMatch = toRaw.toLowerCase();
+       const digitsOnly = toRaw.replace(/\D/g, "");
+       if (digitsOnly.length >= 4) {
+         toMatch = digitsOnly.slice(-4);
+       }
+
+       let userName;
+       if (toMatch && extensionMap[toMatch]) {
+         userName = extensionMap[toMatch];
+         totalMapped++;
+       } else {
+         userName = toRaw ? `Unmapped (${toRaw})` : "Unmapped Extension";
+         totalUnmapped++;
+       }
 
       ensure(userName);
       users[userName].inbound++;
