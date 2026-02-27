@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload, Phone, AlertCircle, CheckCircle, Loader2, Download, Trash2, ChevronUp, ChevronDown, Users } from "lucide-react";
+import { Upload, Phone, AlertCircle, CheckCircle, Loader2, Download, Trash2, ChevronUp, ChevronDown, Users, BookOpen } from "lucide-react";
 import CallLogUserConfigAdmin from "./CallLogUserConfigAdmin";
+import CallLogExtensionDirectoryAdmin from "./CallLogExtensionDirectoryAdmin";
 import PerformanceViews from "./PerformanceViews";
 import {
   AlertDialog,
