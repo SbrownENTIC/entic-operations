@@ -85,6 +85,7 @@ function HeatmapView({ rows }) {
     }
     for (const row of rows) {
       if (!DISPLAY_HOURS.includes(row.hour)) continue;
+      if (!isWeekday(row.date)) continue;
       const loc = row.location;
       if (!LOCATIONS.includes(loc)) continue;
       m[row.hour][loc].answered += row.answered || 0;
