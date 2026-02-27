@@ -1,12 +1,20 @@
 import React, { useState, useMemo } from "react";
 import { AlertTriangle } from "lucide-react";
 
-// ── Hourly benchmark targets (calls/hour derived from daily goal ÷ 7.5h) ──
-export const HOURLY_TARGETS = {
-  Bloomfield:  { check_in: 4.5, check_out: 4.7 },
-  Manchester:  { check_in: 3.7, check_out: 4.0 },
-  Glastonbury: { check_in: 2.9, check_out: 3.3 },
-  Farmington:  { check_in: 1.1, check_out: 1.9, phone_only: 4.3 },
+// ── Daily goals per location / desk type ──────────────────────────────────
+const DAILY_GOALS = {
+  Bloomfield:  { check_in: 34, check_out: 35 },
+  Manchester:  { check_in: 28, check_out: 30 },
+  Glastonbury: { check_in: 22, check_out: 25 },
+  Farmington:  { check_in: 8,  check_out: 14, phone_only: 32 },
+};
+
+// ── Operating hours per location (used as divisor for hourly target) ───────
+const OPERATING_HOURS = {
+  Bloomfield:  7.5,
+  Manchester:  7.5,
+  Glastonbury: 7.5,
+  Farmington:  7.5,
 };
 
 export const DISPLAY_HOURS = [8, 9, 10, 11, 12, 13, 14, 15, 16]; // 8AM–4PM (last slot = 4PM–5PM)
