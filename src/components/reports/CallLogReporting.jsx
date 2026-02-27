@@ -390,7 +390,30 @@ export default function CallLogReporting() {
     setSortDir("asc");
   }, [selectedPeriod?.id]);
 
-  const activeSummaries = [...userSummaries.filter(u => (u.total_calls || 0) > 0)]
+  // Build CDR stats map by user_name
+  const cdrStatsMap = React.useMemo(() => {
+    const map = {};
+    for (const stat of cdrUserStats) {
+      map[stat.user_name] = {
+        inbound_calls_cdr: stat.inbound_calls || 0,
+        inbound_answered_cdr: stat.inbound_answered || 0,
+        inbound_unanswered_cdr: stat.inbound_unanswered || 0,
+      };
+    }
+    return map;
+  }, [cdrUserStats]);
+
+  // Merge CDR data into summaries
+  const enrichedSummaries = React.useMemo(() => {
+    return userSummaries.map(u => ({
+      ...u,
+      inbound_calls_cdr: cdrStatsMap[u.user]?.inbound_calls_cdr || 0,
+      inbound_answered_cdr: cdrStatsMap[u.user]?.inbound_answered_cdr || 0,
+      inbound_unanswered_cdr: cdrStatsMap[u.user]?.inbound_unanswered_cdr || 0,
+    }));
+  }, [userSummaries, cdrStatsMap]);
+
+  const activeSummaries = [...enrichedSummaries.filter(u => (u.total_calls || 0) > 0)]
     .sort((a, b) => {
       const col = TABLE_COLS.find(c => c.key === sortCol);
       if (!col) return 0;
