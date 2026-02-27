@@ -142,10 +142,17 @@ function HeatmapView({ rows }) {
 }
 
 // ── Detail Table ──────────────────────────────────────────────────────────
+function isWeekday(dateStr) {
+  if (!dateStr) return false;
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const day = new Date(y, m - 1, d).getDay(); // 0=Sun, 6=Sat
+  return day !== 0 && day !== 6;
+}
+
 function DetailTable({ rows }) {
   const sorted = useMemo(() =>
     [...rows]
-      .filter(r => r.hourly_target > 0)
+      .filter(r => r.hourly_target > 0 && DISPLAY_HOURS.includes(r.hour) && isWeekday(r.date))
       .sort((a, b) => {
         const dc = (a.date || "").localeCompare(b.date || "");
         if (dc !== 0) return dc;
