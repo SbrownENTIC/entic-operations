@@ -5,10 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload, Phone, AlertCircle, CheckCircle, Loader2, Download, Trash2, ChevronUp, ChevronDown, Users, Clock } from "lucide-react";
+import { Upload, Phone, AlertCircle, CheckCircle, Loader2, Download, Trash2, ChevronUp, ChevronDown, Users } from "lucide-react";
 import CallLogUserConfigAdmin from "./CallLogUserConfigAdmin";
 import PerformanceViews from "./PerformanceViews";
-import { getHourlyTarget, getDeskType } from "./HourlyView";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -272,15 +271,6 @@ export default function CallLogReporting() {
   const [sortCol, setSortCol] = useState("user");
   const [sortDir, setSortDir] = useState("asc");
   const [userSearch, setUserSearch] = useState("");
-
-  // CDR hourly upload state
-  const [showCdrUpload, setShowCdrUpload] = useState(false);
-  const [cdrFile, setCdrFile] = useState(null);
-  const [cdrUploading, setCdrUploading] = useState(false);
-  const [cdrError, setCdrError] = useState("");
-  const [cdrReportingType, setCdrReportingType] = useState("monthly"); // "weekly" or "monthly"
-  const [cdrReportingMonth, setCdrReportingMonth] = useState(""); // YYYY-MM
-  const [cdrWeekStart, setCdrWeekStart] = useState(""); // YYYY-MM-DD (for weekly only)
 
   const { data: periods = [], isLoading: periodsLoading } = useQuery({
     queryKey: ["call-log-periods"],
@@ -554,281 +544,6 @@ export default function CallLogReporting() {
       setUploadError(err.message || "Upload failed.");
     }
     setUploading(false);
-  };
-
-  // ── CDR hourly upload ────────────────────────────────────────────────────
-  const resetCdrUpload = () => {
-    setShowCdrUpload(false);
-    setCdrFile(null);
-    setCdrError("");
-    setCdrReportingType("monthly");
-    setCdrReportingMonth("");
-    setCdrWeekStart("");
-  };
-
-  // Generate UUID v4
-  const generateUUID = () => {
-    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0;
-      const v = c === "x" ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
-  };
-
-  /**
-   * Parse raw CDR rows (one row per call) into hourly_snapshot records.
-   * Answered = duration_seconds >= 90. Inbound only.
-   *
-   * Supports Vonage CDR export format with headers:
-   *   Direction, To, From, Destination Device, Date/Time, Result,
-   *   Duration, Rate, Charge, Location, Account Code, Service Type, Spam Rating
-   *
-   * Internal mapping:
-   *   start_datetime      → "Date/Time"
-   *   destination_device  → "Destination Device"
-   *   duration_seconds    → "Duration" (raw seconds, no conversion)
-   *   direction           → "Direction"
-   *   location            → "Location" (optional, falls back to userConfigMap)
-   *
-   * Additional fields stamped during processing:
-   *   reporting_month    → user-selected YYYY-MM
-   *   reporting_type     → "weekly" or "monthly"
-   *   week_start         → YYYY-MM-DD (if weekly, null if monthly)
-   *   upload_batch_id    → auto-generated UUID
-   */
-  const parseCdrRows = (rows, reportingMonth, reportingType, weekStart) => {
-    if (!rows || rows.length === 0) return { error: "No CDR rows found." };
-
-    const normalize = h => String(h).toLowerCase().replace(/\s+/g, " ").trim();
-    const hdr = {};
-    for (const k of Object.keys(rows[0])) hdr[normalize(k)] = k;
-
-    // Flexible header mapping — Vonage CDR format
-    const startKey = hdr["date/time"] || hdr["call start datetime"] || hdr["call start"] || hdr["start datetime"] || hdr["start time"];
-    const destKey  = hdr["destination device"] || hdr["destination"] || hdr["device"] || hdr["dest device"] || hdr["user"];
-    const durKey   = hdr["duration"] || hdr["duration (seconds)"] || hdr["call duration (seconds)"] || hdr["duration seconds"];
-    const dirKey   = hdr["direction"] || hdr["call direction"];
-    const locKey   = hdr["location"];
-
-    // Debug mapping log
-    console.log("[parseCdrRows] Mapped Fields:");
-    console.log(`  start_datetime     → ${startKey || "(not found)"}`);
-    console.log(`  destination_device → ${destKey  || "(not found)"}`);
-    console.log(`  duration_seconds   → ${durKey   || "(not found)"}`);
-    console.log(`  direction          → ${dirKey   || "(not found)"}`);
-    console.log(`  location           → ${locKey   || "(not found, will use userConfigMap)"}`);
-
-    // Validation — only require the 4 core fields
-    const missing = [];
-    if (!startKey) missing.push("Date/Time");
-    if (!destKey)  missing.push("Destination Device");
-    if (!durKey)   missing.push("Duration");
-    if (!dirKey)   missing.push("Direction");
-    if (missing.length > 0) {
-      return { error: `Missing required CDR columns: ${missing.join(", ")}` };
-    }
-
-    // Normalize direction using the resolved dirKey (not hardcoded "Direction")
-    // dirKey is the actual column name as it appears in the file (e.g. "Direction", "direction", "DIRECTION")
-    const inboundRows = rows.filter(row => {
-      const raw = row[dirKey];
-      if (!raw) return false;
-      const direction = String(raw).trim().toLowerCase();
-      return direction === "inbound";
-    });
-
-    // Debug logging
-    console.log("Total rows:", rows.length);
-    console.log("dirKey resolved to:", dirKey);
-    console.log("Sample direction values:", rows.slice(0, 5).map(r => r[dirKey]));
-    console.log("Inbound rows after normalization:", inboundRows.length);
-
-    if (inboundRows.length === 0) {
-      const distinctVals = [...new Set(rows.map(r => String(r[dirKey] ?? "").trim().toLowerCase()))];
-      console.warn("[CDR] No inbound rows detected. dirKey=" + dirKey + " Distinct direction values:", distinctVals);
-      return { error: `No inbound calls found after normalization. Direction column key: "${dirKey}". Distinct direction values: ${distinctVals}` };
-    }
-
-    // Aggregate: key = date|hour|desk
-    const uploadBatchId = generateUUID();
-    const agg = {};
-    let droppedNoDesk = 0, droppedNoStart = 0, droppedBadTimestamp = 0;
-
-    // Log the first 3 inbound rows for diagnosis
-    console.log("[CDR] First 3 inbound rows sample:");
-    for (const r of inboundRows.slice(0, 3)) {
-      console.log(`  startKey="${startKey}" → "${r[startKey]}"  destKey="${destKey}" → "${r[destKey]}"  durKey="${durKey}" → "${r[durKey]}"`);
-    }
-
-    for (const row of inboundRows) {
-      const rawStart = row[startKey];
-      const rawDur   = row[durKey];
-      const desk     = String(row[destKey] || "").trim();
-      if (!desk) { droppedNoDesk++; continue; }
-      if (!rawStart) { droppedNoStart++; continue; }
-
-      // Parse datetime → date string + hour integer
-      let date = "";
-      let hour = -1;
-      // rawStart may be a Date object (ExcelJS), a number (Excel serial), or a string
-      if (rawStart instanceof Date) {
-        // ExcelJS returns Date objects — use UTC to avoid timezone shift
-        date = `${rawStart.getUTCFullYear()}-${String(rawStart.getUTCMonth()+1).padStart(2,"0")}-${String(rawStart.getUTCDate()).padStart(2,"0")}`;
-        hour = rawStart.getUTCHours();
-      } else if (typeof rawStart === "number") {
-        // Excel serial date (days since 1899-12-30)
-        const d = new Date(Math.round((rawStart - 25569) * 86400 * 1000));
-        date = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,"0")}-${String(d.getUTCDate()).padStart(2,"0")}`;
-        hour = d.getUTCHours();
-      } else {
-        const s = String(rawStart).trim();
-        // ISO: YYYY-MM-DD HH or YYYY-MM-DDTHH
-        const isoMatch = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})[T ](\d{1,2})/);
-        // M/D/YYYY H or MM/DD/YYYY HH (with or without leading zeros)
-        const mdyMatch = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2})/);
-        // M/D/YY H (2-digit year)
-        const mdy2Match = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})\s+(\d{1,2})/);
-        if (isoMatch) {
-          date = `${isoMatch[1]}-${String(isoMatch[2]).padStart(2,"0")}-${String(isoMatch[3]).padStart(2,"0")}`;
-          hour = parseInt(isoMatch[4], 10);
-        } else if (mdyMatch) {
-          date = `${mdyMatch[3]}-${String(mdyMatch[1]).padStart(2,"0")}-${String(mdyMatch[2]).padStart(2,"0")}`;
-          hour = parseInt(mdyMatch[4], 10);
-        } else if (mdy2Match) {
-          const yr = 2000 + parseInt(mdy2Match[3], 10);
-          date = `${yr}-${String(mdy2Match[1]).padStart(2,"0")}-${String(mdy2Match[2]).padStart(2,"0")}`;
-          hour = parseInt(mdy2Match[4], 10);
-        } else {
-          droppedBadTimestamp++;
-          if (droppedBadTimestamp <= 3) console.warn(`[CDR] Could not parse timestamp: "${s}"`);
-          continue;
-        }
-      }
-
-      // Duration is raw seconds from Vonage — parseInt only, no HH:MM:SS conversion
-      // Not used as a gate — file is pre-filtered by Vonage to duration >= 90s
-      let durSec = 0;
-      const parsedDur = parseInt(String(rawDur ?? "").trim(), 10);
-      if (!isNaN(parsedDur)) {
-        durSec = parsedDur;
-      } else {
-        console.warn(`[CDR] Could not parse duration for row:`, row);
-      }
-      const answered = 1; // Pre-filtered by Vonage: all rows are answered (>= 90s)
-
-      // Lookup location: prefer userConfigMap, fall back to "Location" column if present
-      const cfg = userConfigMap[desk];
-      const location = (cfg && cfg.location && cfg.location !== "N/A")
-        ? cfg.location
-        : (locKey ? String(row[locKey] || "").trim() : "");
-
-      const target = getHourlyTarget(location, desk);
-
-      const key = `${date}|${hour}|${desk}`;
-      if (!agg[key]) {
-        agg[key] = {
-          date,
-          hour,
-          desk,
-          location,
-          total_inbound: 0,
-          answered: 0,
-          missed: 0,
-          total_duration_seconds: 0,
-          hourly_target: target,
-          reporting_month: reportingMonth,
-          reporting_type: reportingType,
-          week_start: reportingType === "weekly" ? weekStart : null,
-          upload_batch_id: uploadBatchId,
-        };
-      }
-      agg[key].total_inbound          += 1;
-      agg[key].answered               += answered;
-      agg[key].missed                 += (1 - answered);
-      agg[key].total_duration_seconds += durSec;
-    }
-
-    console.log(`[CDR] Aggregation complete: ${Object.keys(agg).length} buckets. Dropped: noDesk=${droppedNoDesk}, noStart=${droppedNoStart}, badTimestamp=${droppedBadTimestamp}`);
-    if (Object.keys(agg).length === 0) {
-      return { error: `All ${inboundRows.length} inbound rows were dropped. noDesk=${droppedNoDesk}, noStart=${droppedNoStart}, badTimestamp=${droppedBadTimestamp}. Check console for details.` };
-    }
-    return { hourlySnapshot: Object.values(agg), uploadBatchId };
-  };
-
-  const handleCdrUpload = async () => {
-    setCdrError("");
-
-    // Validation
-    if (!cdrFile) {
-      setCdrError("Please select a CDR file.");
-      return;
-    }
-    if (!cdrReportingMonth || !/^\d{4}-\d{2}$/.test(cdrReportingMonth)) {
-      setCdrError("Please select a valid Reporting Month (YYYY-MM).");
-      return;
-    }
-    if (cdrReportingType === "weekly") {
-      if (!cdrWeekStart || !/^\d{4}-\d{2}-\d{2}$/.test(cdrWeekStart)) {
-        setCdrError("Please select a valid Week Start Date (YYYY-MM-DD).");
-        return;
-      }
-    }
-    if (!selectedPeriod) {
-      setCdrError("No reporting period selected.");
-      return;
-    }
-
-    setCdrUploading(true);
-
-    const isXlsx = cdrFile.name.toLowerCase().endsWith(".xlsx") || cdrFile.name.toLowerCase().endsWith(".xls");
-    let rows;
-    if (isXlsx) {
-      const { workbook: wb } = await readWorkbookFile(cdrFile);
-      const ws = wb.worksheets[0];
-      if (!ws) { setCdrError("Workbook has no worksheets."); setCdrUploading(false); return; }
-      rows = sheetToJson(ws);
-    } else {
-      rows = await readCSV(cdrFile);
-    }
-
-    const { hourlySnapshot: snap, uploadBatchId, error } = parseCdrRows(rows, cdrReportingMonth, cdrReportingType, cdrReportingType === "weekly" ? cdrWeekStart : null);
-    if (error) { setCdrError(error); setCdrUploading(false); return; }
-
-    // Duplicate protection: delete existing rows before inserting new ones
-    let existingHourly = selectedPeriod.hourly_snapshot || [];
-    if (cdrReportingType === "monthly") {
-      // Delete existing rows with same reporting_month and type=monthly
-      existingHourly = existingHourly.filter(r =>
-        !(r.reporting_month === cdrReportingMonth && r.reporting_type === "monthly")
-      );
-    } else if (cdrReportingType === "weekly") {
-      // Delete existing rows with same week_start
-      existingHourly = existingHourly.filter(r => r.week_start !== cdrWeekStart);
-    }
-
-    // Merge with existing (filtered) rows and new rows
-    const updatedHourly = [...existingHourly, ...snap];
-
-    await base44.entities.CallLogPeriod.update(selectedPeriod.id, {
-      hourly_snapshot: updatedHourly,
-      hourly_uploaded_at: new Date().toISOString(),
-      cdr_reporting_type: cdrReportingType, // store for display
-      cdr_reporting_month: cdrReportingMonth,
-      cdr_week_start: cdrReportingType === "weekly" ? cdrWeekStart : null,
-    });
-
-    await queryClient.invalidateQueries({ queryKey: ["call-log-periods"] });
-
-    // Refresh selectedPeriod so HourlyView sees new data
-    const fresh = await base44.entities.CallLogPeriod.filter({ id: selectedPeriod.id });
-    if (fresh && fresh[0]) setSelectedPeriod(fresh[0]);
-
-    toast({
-      title: "CDR Upload Successful",
-      description: `${snap.length} hourly records stored. Reporting ${cdrReportingType === "monthly" ? "Month: " + cdrReportingMonth : "Week: " + cdrWeekStart}.`
-    });
-    resetCdrUpload();
-    setCdrUploading(false);
   };
 
   const handleDelete = async () => {
@@ -2102,29 +1817,6 @@ export default function CallLogReporting() {
             <span className={`text-xs font-semibold px-2 py-1 rounded-full ${STATUS_COLORS[selectedPeriod.status] || "bg-slate-100 text-slate-700"}`}>
               {selectedPeriod.status}
             </span>
-
-            {/* CDR Reporting Period Display */}
-            {(selectedPeriod.cdr_reporting_month || selectedPeriod.cdr_reporting_type) && (
-              <div className="flex items-center gap-2 text-xs text-slate-600">
-                <span className="font-semibold">Reporting Period:</span>
-                {selectedPeriod.cdr_reporting_type === "monthly" ? (
-                  <span>
-                    {new Date(selectedPeriod.cdr_reporting_month + "-01").toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-                    <span className="text-slate-400 ml-1.5">(Monthly Full Upload)</span>
-                  </span>
-                ) : (
-                  <span>
-                    Week of {formatDate(selectedPeriod.cdr_week_start)}
-                    {selectedPeriod.hourly_snapshot && (
-                      <span className="text-slate-400 ml-1.5">
-                        ({selectedPeriod.hourly_snapshot.filter(r => r.week_start === selectedPeriod.cdr_week_start).length} hourly records)
-                      </span>
-                    )}
-                  </span>
-                )}
-              </div>
-            )}
-
             {selectedPeriod.uploaded_weeks && selectedPeriod.uploaded_weeks.length > 0 && (
               <span className="text-xs text-slate-500">
                 {selectedPeriod.uploaded_weeks.length} week{selectedPeriod.uploaded_weeks.length !== 1 ? "s" : ""} uploaded
@@ -2138,105 +1830,12 @@ export default function CallLogReporting() {
                 )}
               </span>
             )}
-            <div className="ml-auto flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setShowCdrUpload(v => !v)} className="gap-2">
-                <Clock className="w-4 h-4" /> Upload CDR File
-                {selectedPeriod?.hourly_snapshot?.length > 0 && (
-                  <span className="ml-1 inline-block w-2 h-2 rounded-full bg-green-500" title="Hourly data loaded" />
-                )}
-              </Button>
+            <div className="ml-auto">
               <Button variant="outline" size="sm" onClick={exportPeriodExcel} className="gap-2">
                 <Download className="w-4 h-4" /> Export Excel Report
               </Button>
             </div>
           </div>
-
-          {/* CDR Hourly Upload Panel */}
-          {showCdrUpload && (
-            <Card className="border-indigo-200 bg-indigo-50/40">
-              <CardContent className="p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-slate-800">Upload CDR Call-Level File</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">Supports Vonage export format. Required columns: Date/Time, Destination Device, Duration, Direction</p>
-                  </div>
-                  <Button variant="ghost" size="sm" onClick={resetCdrUpload}>✕</Button>
-                </div>
-
-                {/* Reporting Period Selection */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-medium text-slate-700 block mb-1">
-                      Reporting Period Type <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={cdrReportingType}
-                      onChange={e => setCdrReportingType(e.target.value)}
-                      className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-sm text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    >
-                      <option value="monthly">Monthly</option>
-                      <option value="weekly">Weekly</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-slate-700 block mb-1">
-                      Reporting Month (YYYY-MM) <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="month"
-                      value={cdrReportingMonth}
-                      onChange={e => setCdrReportingMonth(e.target.value)}
-                      className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-sm text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Week Start (conditional) */}
-                {cdrReportingType === "weekly" && (
-                  <div>
-                    <label className="text-xs font-medium text-slate-700 block mb-1">
-                      Week Start Date (YYYY-MM-DD) <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="date"
-                      value={cdrWeekStart}
-                      onChange={e => setCdrWeekStart(e.target.value)}
-                      className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-sm text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-                )}
-
-                {/* File Input */}
-                <div>
-                  <label className="text-xs font-medium text-slate-700 block mb-1">
-                    CDR File (.xlsx or .csv) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="file"
-                    accept=".xlsx,.csv"
-                    onChange={e => { setCdrFile(e.target.files[0] || null); setCdrError(""); }}
-                    className="block w-full text-sm text-slate-700 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer"
-                  />
-                  {cdrFile && <p className="text-xs text-slate-500 mt-1 flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-600" />{cdrFile.name}</p>}
-                </div>
-
-                {/* Error Display */}
-                {cdrError && (
-                  <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
-                    <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />{cdrError}
-                  </div>
-                )}
-
-                {/* Action Buttons */}
-                <div className="flex gap-2">
-                  <Button onClick={handleCdrUpload} disabled={cdrUploading} className="gap-2 bg-indigo-600 hover:bg-indigo-700">
-                    {cdrUploading ? <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</> : <><Upload className="w-4 h-4" /> Process CDR</>}
-                  </Button>
-                  <Button variant="outline" onClick={resetCdrUpload}>Cancel</Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
           {summariesLoading ? (
             <div className="flex items-center justify-center py-16 text-slate-500 gap-2">
@@ -2270,7 +1869,7 @@ export default function CallLogReporting() {
               {sortedWeeks.length > 0 && (
                 <Card className="border-slate-200 shadow-sm">
                   <CardContent className="p-4">
-                    <PerformanceViews sortedWeeks={sortedWeeks} userConfigMap={userConfigMap} hourlySnapshot={selectedPeriod?.hourly_snapshot || []} />
+                    <PerformanceViews sortedWeeks={sortedWeeks} userConfigMap={userConfigMap} />
                   </CardContent>
                 </Card>
               )}

@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from "react";
-import HourlyView from "./HourlyView";
 
 // ── Shared constants (mirrors Excel export) ────────────────────────────────
 const LOCATION_GOALS = {
@@ -308,10 +307,9 @@ const VIEWS = [
   { key: "frontend",   label: "Front End" },
   { key: "individual", label: "Individual" },
   { key: "np",         label: "NP Team" },
-  { key: "hourly",     label: "Hourly" },
 ];
 
-export default function PerformanceViews({ sortedWeeks, userConfigMap, hourlySnapshot }) {
+export default function PerformanceViews({ sortedWeeks, userConfigMap }) {
   const [active, setActive] = useState(null);
 
   const toggle = (key) => setActive(prev => prev === key ? null : key);
@@ -358,7 +356,6 @@ export default function PerformanceViews({ sortedWeeks, userConfigMap, hourlySna
           {active === "frontend"   && <FrontEndView   sortedWeeks={sortedWeeks} configMap={userConfigMap} />}
           {active === "individual" && <IndividualView sortedWeeks={sortedWeeks} configMap={userConfigMap} />}
           {active === "np"         && <NPTeamView     sortedWeeks={sortedWeeks} configMap={userConfigMap} />}
-          {active === "hourly"     && <HourlyView     hourlySnapshot={hourlySnapshot} />}
         </div>
       )}
     </div>
