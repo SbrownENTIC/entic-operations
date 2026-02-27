@@ -32,6 +32,8 @@ export default function CdrInboundMetricsCard({
   const [showUnmappedModal, setShowUnmappedModal] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [sortKey, setSortKey] = useState("user_name");
+  const [sortDir, setSortDir] = useState("asc");
 
   const { data: cdrData, refetch } = useQuery({
     queryKey: ["cdr-metrics", periodKey],
