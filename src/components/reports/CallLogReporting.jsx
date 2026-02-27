@@ -42,8 +42,13 @@ function secondsToHHMMSS(seconds) {
 }
 
 function formatPercent(val) {
-  if (!val && val !== 0) return "0.0%";
+  if (val == null || val === "") return "—";
   return (val * 100).toFixed(1) + "%";
+}
+
+function formatAnswerRate(inboundAnswered, inbound) {
+  if (!inbound) return "—";
+  return ((inboundAnswered / inbound) * 100).toFixed(1) + "%";
 }
 
 // Parse a YYYY-MM-DD string to a JS Date at noon UTC to avoid timezone-shift issues
