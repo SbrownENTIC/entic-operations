@@ -1760,8 +1760,8 @@ export default function CallLogReporting() {
             )}
 
             <div className="text-xs text-slate-500 bg-white/60 border border-slate-200 rounded p-2.5">
-              <strong>Required Vonage headers:</strong> User, Total Calls, Inbound Calls, Outbound Calls, Answered Calls, Missed Calls, Voicemail Calls, Total call Duration (Minutes), Inbound Call Duration (Minutes), Outbound call Duration (Minutes)<br />
-              <span className="text-slate-400">Header matching is case-insensitive. Duration columns must be the numeric minutes columns.</span>
+              <strong>Required Vonage headers:</strong> User, Direction, Result, Total call Duration (Minutes), Inbound Call Duration (Minutes), Outbound call Duration (Minutes)<br />
+              <span className="text-slate-400">Direction and Result values are normalized (trimmed + lowercase). Inbound Answer Rate = Inbound Answered ÷ Inbound Calls only.</span>
             </div>
 
             {uploadError && (
