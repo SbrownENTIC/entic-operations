@@ -56,7 +56,9 @@ function fmtDate(str) {
 
 function fmtPct(pct) {
   if (pct === null || pct === undefined) return "—";
-  return Number(pct).toFixed(2) + "%";
+  // Expects a value between 0 and 1 (e.g., 0.99 = 99%)
+  const numValue = Number(pct);
+  return (numValue * 100).toFixed(2) + "%";
 }
 
 // ── Conditional formatting ─────────────────────────────────────────────────
