@@ -900,10 +900,17 @@ export default function CallLogReporting() {
 
     const userTableStartRow = ws.rowCount + 1;
 
-    // Sort A–Z by user name before rendering; exclude zero-activity rows for that week
+    // Sort by Answer Rate ascending (nulls last), then user A-Z as tiebreaker
     const realUserRows = userWeekRows
       .filter(u => !u._warning && (u.total_calls || 0) > 0)
-      .sort((a, b) => (a.user || "").localeCompare(b.user || ""));
+      .sort((a, b) => {
+        const aHasAr = a.answer_rate !== null && a.answer_rate !== undefined;
+        const bHasAr = b.answer_rate !== null && b.answer_rate !== undefined;
+        if (aHasAr && !bHasAr) return -1;
+        if (!aHasAr && bHasAr) return 1;
+        if (aHasAr && bHasAr && a.answer_rate !== b.answer_rate) return a.answer_rate - b.answer_rate;
+        return (a.user || "").localeCompare(b.user || "");
+      });
 
     if (realUserRows.length === 0) {
       const emptyRow = ws.addRow(["No user-level weekly data found.", ...Array(10).fill("")]);
