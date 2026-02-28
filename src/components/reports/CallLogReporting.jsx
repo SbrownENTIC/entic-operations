@@ -725,7 +725,8 @@ export default function CallLogReporting() {
         }
         const durMin = u.total_duration_minutes || 0;
         const uInbound = u.inbound || 0;
-        const uInboundAnswered = u.inbound_answered != null ? u.inbound_answered : (u.answered || 0);
+        const rawUInboundAnswered = u.inbound_answered != null ? u.inbound_answered : (u.answered || 0);
+        const uInboundAnswered = Math.min(rawUInboundAnswered, uInbound);
         userWeekRows.push({
           week_start:             week.week_start,
           week_end:               week.week_end,
@@ -737,7 +738,7 @@ export default function CallLogReporting() {
           missed:                 u.missed   || 0,
           total_duration_minutes: durMin,
           avg_duration_minutes:   tc > 0 ? durMin / tc : 0,
-          answer_rate:            uInbound > 0 ? (uInbound - (u.missed || 0)) / uInbound : null,
+          answer_rate:            uInbound > 0 ? uInboundAnswered / uInbound : null,
         });
       });
     });
