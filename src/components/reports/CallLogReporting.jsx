@@ -1684,8 +1684,8 @@ export default function CallLogReporting() {
       ];
 
       // Title
-      wsCdr.addRow([`${periodLabel} - Inbound CDR`, ...Array(6).fill("")]);
-      wsCdr.mergeCells(`A1:G1`);
+      wsCdr.addRow([`${periodLabel} - Inbound CDR`, ...Array(4).fill("")]);
+      wsCdr.mergeCells(`A1:E1`);
       const cdrTitleCell = wsCdr.getCell("A1");
       cdrTitleCell.font      = mkFont({ bold: true, size: 16, color: { argb: WHITE } });
       cdrTitleCell.fill      = mkFill(DARK_NAVY);
