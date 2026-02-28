@@ -1026,7 +1026,7 @@ export default function CallLogReporting() {
         answered:               u.answered,
         missed:                 u.missed,
         total_duration_minutes: minutesToHHMMSS(u.total_duration_minutes),
-        answer_rate:            u.answer_rate !== null ? parseFloat((u.answer_rate * 100).toFixed(1)) / 100 : "",
+        answer_rate:            u.answer_rate !== null && u.answer_rate !== undefined ? Math.min(parseFloat((u.answer_rate * 100).toFixed(1)) / 100, 1) : "",
         avg_duration_minutes:   minutesToHHMMSS(u.avg_duration_minutes),
       });
     });
