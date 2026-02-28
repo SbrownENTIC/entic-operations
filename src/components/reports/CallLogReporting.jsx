@@ -1132,7 +1132,7 @@ export default function CallLogReporting() {
     // STRICT: uses only CallLogUserConfig — never falls back to snapshot fields.
     // Must be Front Desk + include_in_benchmark true + active not false.
     const isFrontDeskBenchmark = (userName) => {
-      const cfg = userConfigMap[userName];
+      const cfg = exportUserConfigMap[userName];
       if (!cfg) {
         console.log(`[CallLog Export] isFrontDeskBenchmark("${userName}"): NO CONFIG FOUND => false`);
         return false;
