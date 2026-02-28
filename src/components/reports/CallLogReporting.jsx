@@ -798,7 +798,10 @@ export default function CallLogReporting() {
     // Row 4: Monthly Summary header
     addSectionHeader(ws, "Monthly Summary", 4);
 
-    // Rows 6-13: metrics (label | value in cols A and B)
+    // Clarity note — informational only, no effect on calculations
+    { const nr = ws.addRow([`Totals on this worksheet reflect operational call log activity. For inbound-only telecom validation from Vonage CDR, see the "Inbound CDR" worksheet.`,"","","","",""]); ws.mergeCells(`A${ws.rowCount}:F${ws.rowCount}`); const nc = ws.getCell(`A${ws.rowCount}`); nc.font = mkFont({ italic: true, size: 9, color: { argb: "FFAAAAAA" } }); nc.alignment = { horizontal: "left", vertical: "middle", wrapText: true }; nr.height = 24; }
+
+    // Metrics (label | value in cols A and B)
     const metrics = [
       ["Total Calls",      totalCalls,                                         "number"],
       ["Inbound",          totalInbound,                                       "number"],
