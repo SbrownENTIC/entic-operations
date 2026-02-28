@@ -702,7 +702,7 @@ export default function CallLogReporting() {
         missed:                 totals.missed || 0,
         total_duration_minutes: totals.total_duration_minutes || 0,
         avg_duration_minutes:   (totals.total_calls || 0) > 0 ? (totals.total_duration_minutes || 0) / totals.total_calls : 0,
-        answer_rate:            inboundCount > 0 ? inboundAnswered / inboundCount : null,
+        answer_rate:            inboundCount > 0 ? (inboundCount - (totals.missed || 0)) / inboundCount : null,
         user_snapshot:          Array.isArray(week.user_snapshot) ? week.user_snapshot : [],
         missing_snapshot:       !Array.isArray(week.user_snapshot) || week.user_snapshot.length === 0,
       };
