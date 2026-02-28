@@ -1097,8 +1097,7 @@ export default function CallLogReporting() {
       instrRow2.height = 30;
     }
 
-    // Auto-fit main sheet columns
-    autoFitColumns(ws);
+    // NOTE: autoFitColumns(ws) is called after all sheets are built — see end of export function
 
     // ---- Hide Pivot Data sheet (keep in workbook but not visible to user) ----
     wsPivot.state = "hidden";
