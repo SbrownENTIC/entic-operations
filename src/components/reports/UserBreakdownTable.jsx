@@ -44,9 +44,7 @@ export default function UserBreakdownTable({
 
   const getSortValue = (u, key) => {
     if (key === "answer_rate") {
-      const inboundCallsCdr = u.inbound_calls_cdr || 0;
-      const inboundAnsweredCdr = u.inbound_answered_cdr || 0;
-      return inboundCallsCdr > 0 ? inboundAnsweredCdr / inboundCallsCdr : -1;
+      return u.inbound_answer_rate !== null && u.inbound_answer_rate !== undefined ? u.inbound_answer_rate : -1;
     }
     return u[key] ?? 0;
   };
