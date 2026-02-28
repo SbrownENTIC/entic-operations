@@ -1677,8 +1677,6 @@ export default function CallLogReporting() {
       // Column widths
       wsCdr.columns = [
         { width: 30 }, // User
-        { width: 16 }, // Location
-        { width: 20 }, // Extensions
         { width: 14 }, // Inbound Calls
         { width: 14 }, // Inbound Answered
         { width: 14 }, // Inbound Not Answered
