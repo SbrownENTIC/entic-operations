@@ -1441,8 +1441,8 @@ export default function CallLogReporting() {
         ],
         rows: deskTableRows,
       });
-      autoFitColumns(wsDesk);
     }
+    autoFitColumns(wsDesk);
 
     // ==============================
     // SHEET 3: INDIVIDUAL PERFORMANCE
