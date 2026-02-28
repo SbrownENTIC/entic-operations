@@ -1757,64 +1757,42 @@ export default function CallLogReporting() {
       cdrUserStats.sort((a, b) => (b.inbound_calls || 0) - (a.inbound_calls || 0));
 
       if (cdrUserStats.length === 0) {
-        const emptyRow = wsCdr.addRow(["No inbound CDR data found for this period.", ...Array(6).fill("")]);
-        wsCdr.mergeCells(`A${wsCdr.rowCount}:G${wsCdr.rowCount}`);
+        const emptyRow = wsCdr.addRow(["No inbound CDR data found for this period.", ...Array(4).fill("")]);
+        wsCdr.mergeCells(`A${wsCdr.rowCount}:E${wsCdr.rowCount}`);
         emptyRow.getCell(1).font = mkFont({ italic: true, color: { argb: "FF888888" } });
         emptyRow.height = 18;
       } else {
         const cdrTableRows = [];
         cdrUserStats.forEach((stat, idx) => {
-          // Calculate answer rate from CDR data only: inbound_answered / inbound_calls
-          const ar = stat.inbound_calls > 0 ? stat.inbound_answered / stat.inbound_calls : null;
-          const { bg, fg } = arColor(ar);
+          const inbound = Number(stat.inbound_calls || 0);
+          const answered = Number(stat.inbound_answered || 0);
+          const notAnswered = inbound - answered;
+          const arStr = inbound > 0 ? ((answered / inbound) * 100).toFixed(2) + "%" : "";
           const bgArgb = idx % 2 === 0 ? WHITE : LIGHT_GRAY;
 
-          const row = wsCdr.addRow([
-            stat.user_name,
-            stat.location || "",
-            stat.extension || "",
-            stat.inbound_calls,
-            stat.inbound_answered,
-            stat.inbound_unanswered,
-            ar !== null ? ar : ""
-          ]);
+          const rowValues = [stat.user_name, inbound, answered, notAnswered, arStr];
+          const row = wsCdr.addRow(rowValues);
           row.height = 18;
-          cdrTableRows.push([
-            stat.user_name,
-            stat.location || "",
-            stat.extension || "",
-            stat.inbound_calls,
-            stat.inbound_answered,
-            stat.inbound_unanswered,
-            ar !== null ? ar : ""
-          ]);
+          cdrTableRows.push(rowValues);
 
           row.eachCell({ includeEmpty: true }, (cell, colNum) => {
             cell.fill      = mkFill(bgArgb);
             cell.font      = mkFont({});
-            cell.alignment = { horizontal: colNum <= 3 ? "left" : "center", vertical: "middle" };
+            cell.alignment = { horizontal: colNum === 1 ? "left" : "center", vertical: "middle" };
             cell.border    = { bottom: thinBorder, right: thinBorder };
-            if ([4, 5, 6].includes(colNum)) cell.numFmt = "#,##0";
-            if (colNum === 7 && ar !== null) {
-              cell.numFmt = "0.00%";
-              cell.fill   = mkFill(bg);
-              cell.font   = mkFont({ color: { argb: fg } });
-            }
+            if ([2, 3, 4].includes(colNum)) cell.numFmt = "#,##0";
           });
         });
 
-        // Create Excel table for CDR data
         if (cdrTableRows.length > 0) {
           wsCdr.addTable({
             name: "CdrUserStats",
-            ref: `A${cdrTableHeaderRowNum}:G${wsCdr.rowCount}`,
+            ref: `A${cdrTableHeaderRowNum}:E${wsCdr.rowCount}`,
             headerRow: true,
             totalsRow: false,
             style: { theme: "TableStyleMedium2", showRowStripes: true },
             columns: [
               { name: "User",                    filterButton: true },
-              { name: "Location",                filterButton: true },
-              { name: "Extensions",              filterButton: true },
               { name: "Inbound Calls",           filterButton: true },
               { name: "Inbound Answered",        filterButton: true },
               { name: "Inbound Not Answered",    filterButton: true },
