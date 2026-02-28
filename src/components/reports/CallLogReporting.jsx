@@ -575,19 +575,15 @@ export default function CallLogReporting() {
 
   const exportPeriodExcel = async () => {
     if (!selectedPeriod) return;
-
-    // Fetch fresh CallLogPeriod record to ensure we have latest data
-    const freshPeriod = await base44.entities.CallLogPeriod.get(selectedPeriod.id);
-    if (!freshPeriod) {
-      alert("Error: Could not load period data. Please try again.");
+    if (!enrichedSummaries || enrichedSummaries.length === 0) {
+      console.warn("[Export] No benchmark-filtered data to export");
+      alert("No user data to export for this period.");
       return;
     }
 
-    const monthKey = freshPeriod.monthly_key;
-    console.log("Exporting month:", monthKey);
-
-    const periodLabel = formatPeriodLabel(freshPeriod);
-    const uploadedWeeks = freshPeriod.uploaded_weeks || [];
+    const periodLabel = formatPeriodLabel(selectedPeriod);
+    const uploadedWeeks = selectedPeriod.uploaded_weeks || [];
+    console.log("Exporting period:", periodLabel, "users:", enrichedSummaries.length);
 
     const now = new Date();
     const generatedOn = now.toLocaleDateString("en-US", { month:"2-digit", day:"2-digit", year:"numeric" }) +
