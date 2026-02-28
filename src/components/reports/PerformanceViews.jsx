@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 
 // ── Shared constants (mirrors Excel export) ────────────────────────────────
 const LOCATION_GOALS = {
@@ -9,7 +10,7 @@ const LOCATION_GOALS = {
 };
 const WORK_DAYS_PER_WEEK = 5;
 
-// ── Helpers (identical logic to Excel export) ──────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────
 function coerceBool(val) {
   if (typeof val === "boolean") return val;
   if (val === null || val === undefined) return false;
@@ -56,28 +57,67 @@ function fmtDate(str) {
 
 function fmtPct(pct) {
   if (pct === null || pct === undefined) return "—";
-  // Expects a value between 0 and 1 (e.g., 0.99 = 99%)
-  const numValue = Number(pct);
-  return (numValue * 100).toFixed(2) + "%";
+  return (Number(pct) * 100).toFixed(2) + "%";
 }
 
-// ── Conditional formatting ─────────────────────────────────────────────────
 function pctBadge(pct) {
-  if (pct === null || pct === undefined)
-    return "bg-slate-100 text-slate-400";
+  if (pct === null || pct === undefined) return "bg-slate-100 text-slate-400";
   if (pct >= 1.0) return "bg-green-100 text-green-800 font-semibold";
   if (pct >= 0.9) return "bg-yellow-100 text-yellow-800 font-semibold";
   return "bg-red-100 text-red-700 font-semibold";
 }
 
+// ── Sorting hook ───────────────────────────────────────────────────────────
+function useSort(rows, defaultCol, defaultDir = "asc") {
+  const [sortCol, setSortCol] = useState(defaultCol);
+  const [sortDir, setSortDir] = useState(defaultDir);
+
+  const handleSort = (col) => {
+    if (sortCol === col) {
+      setSortDir(d => d === "asc" ? "desc" : "asc");
+    } else {
+      setSortCol(col);
+      setSortDir("asc");
+    }
+  };
+
+  const sorted = useMemo(() => {
+    if (!sortCol) return rows;
+    return [...rows].sort((a, b) => {
+      const av = a[sortCol];
+      const bv = b[sortCol];
+      // nulls always last
+      if (av === null || av === undefined) return 1;
+      if (bv === null || bv === undefined) return -1;
+      const dir = sortDir === "asc" ? 1 : -1;
+      if (typeof av === "string") return dir * av.localeCompare(bv);
+      return dir * (av - bv);
+    });
+  }, [rows, sortCol, sortDir]);
+
+  return { sorted, sortCol, sortDir, handleSort };
+}
+
 // ── Shared table chrome ────────────────────────────────────────────────────
-function TH({ children, right }) {
+function SortableTH({ children, col, sortCol, sortDir, onSort, right }) {
+  const active = sortCol === col;
   return (
-    <th className={`px-3 py-2.5 text-xs font-semibold text-slate-600 whitespace-nowrap bg-slate-50 border-b border-slate-200 ${right ? "text-right" : "text-left"}`}>
-      {children}
+    <th
+      onClick={() => onSort(col)}
+      className={`px-3 py-2.5 text-xs font-semibold whitespace-nowrap bg-slate-50 border-b border-slate-200 cursor-pointer select-none hover:bg-slate-100 transition-colors ${right ? "text-right" : "text-left"} ${active ? "text-blue-700" : "text-slate-600"}`}
+    >
+      <span className="inline-flex items-center gap-1">
+        {children}
+        {active
+          ? sortDir === "asc"
+            ? <ChevronUp className="w-3 h-3" />
+            : <ChevronDown className="w-3 h-3" />
+          : <ChevronsUpDown className="w-3 h-3 text-slate-300" />}
+      </span>
     </th>
   );
 }
+
 function TD({ children, right, muted }) {
   return (
     <td className={`px-3 py-2 text-sm ${right ? "text-right" : "text-left"} ${muted ? "text-slate-400" : "text-slate-800"}`}>
@@ -85,6 +125,7 @@ function TD({ children, right, muted }) {
     </td>
   );
 }
+
 function EmptyRow({ cols, msg }) {
   return (
     <tr>
@@ -95,7 +136,7 @@ function EmptyRow({ cols, msg }) {
 
 // ── Front End Performance ──────────────────────────────────────────────────
 function FrontEndView({ sortedWeeks, configMap }) {
-  const rows = useMemo(() => {
+  const baseRows = useMemo(() => {
     const map = {};
     sortedWeeks.forEach(week => {
       (week.user_snapshot || []).forEach(u => {
@@ -115,54 +156,47 @@ function FrontEndView({ sortedWeeks, configMap }) {
         map[key].answered += inboundAnswered;
       });
     });
-
-    return Object.values(map).sort((a, b) => {
-      const wc = a.week_start.localeCompare(b.week_start);
-      if (wc !== 0) return wc;
-      const pa = a.goal > 0 ? a.answered / a.goal : null;
-      const pb = b.goal > 0 ? b.answered / b.goal : null;
-      if (pa !== null && pb !== null) return pa - pb;
-      if (pa !== null) return -1;
-      if (pb !== null) return 1;
-      return a.desk.localeCompare(b.desk);
-    });
+    return Object.values(map).map(r => ({
+      ...r,
+      pct: r.goal > 0 ? r.answered / r.goal : null,
+    }));
   }, [sortedWeeks, configMap]);
+
+  const { sorted, sortCol, sortDir, handleSort } = useSort(baseRows, "pct", "asc");
+  const thProps = { sortCol, sortDir, onSort: handleSort };
 
   return (
     <div className="overflow-auto max-h-[480px]">
       <table className="w-full border-collapse">
         <thead className="sticky top-0 z-10">
           <tr>
-            <TH>Week</TH>
-            <TH>Desk</TH>
-            <TH>Location</TH>
-            <TH right>Total Answered</TH>
-            <TH right>Weekly Goal</TH>
-            <TH right>% of Weekly Goal</TH>
+            <SortableTH col="week_start" {...thProps}>Week</SortableTH>
+            <SortableTH col="desk"       {...thProps}>Desk</SortableTH>
+            <SortableTH col="location"   {...thProps}>Location</SortableTH>
+            <SortableTH col="answered"   {...thProps} right>Total Answered</SortableTH>
+            <SortableTH col="goal"       {...thProps} right>Weekly Goal</SortableTH>
+            <SortableTH col="pct"        {...thProps} right>% of Weekly Goal</SortableTH>
           </tr>
         </thead>
         <tbody>
-          {rows.length === 0 ? (
+          {sorted.length === 0 ? (
             <EmptyRow cols={6} msg="No Front Desk benchmark data found for this period." />
-          ) : rows.map((r, i) => {
-            const pct = r.goal > 0 ? r.answered / r.goal : null;
-            return (
-              <tr key={i} className={`border-b border-slate-100 ${i % 2 !== 0 ? "bg-slate-50/40" : ""}`}>
-                <TD muted>{fmtDate(r.week_start)}</TD>
-                <TD><span className="font-medium">{r.desk}</span></TD>
-                <TD>{r.location || "—"}</TD>
-                <TD right>{r.answered.toLocaleString()}</TD>
-                <TD right muted>{r.goal > 0 ? r.goal.toLocaleString() : "—"}</TD>
-                <td className="px-3 py-2 text-right">
-                  {pct !== null ? (
-                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs ${pctBadge(pct)}`}>
-                      {fmtPct(pct)}
-                    </span>
-                  ) : <span className="text-slate-300 text-xs">—</span>}
-                </td>
-              </tr>
-            );
-          })}
+          ) : sorted.map((r, i) => (
+            <tr key={i} className={`border-b border-slate-100 ${i % 2 !== 0 ? "bg-slate-50/40" : ""}`}>
+              <TD muted>{fmtDate(r.week_start)}</TD>
+              <TD><span className="font-medium">{r.desk}</span></TD>
+              <TD>{r.location || "—"}</TD>
+              <TD right>{r.answered.toLocaleString()}</TD>
+              <TD right muted>{r.goal > 0 ? r.goal.toLocaleString() : "—"}</TD>
+              <td className="px-3 py-2 text-right">
+                {r.pct !== null ? (
+                  <span className={`inline-block px-2 py-0.5 rounded-full text-xs ${pctBadge(r.pct)}`}>
+                    {fmtPct(r.pct)}
+                  </span>
+                ) : <span className="text-slate-300 text-xs">—</span>}
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>
@@ -171,7 +205,7 @@ function FrontEndView({ sortedWeeks, configMap }) {
 
 // ── Individual Performance ─────────────────────────────────────────────────
 function IndividualView({ sortedWeeks, configMap }) {
-  const rows = useMemo(() => {
+  const baseRows = useMemo(() => {
     const raw = [];
     sortedWeeks.forEach(week => {
       (week.user_snapshot || []).forEach(u => {
@@ -190,40 +224,29 @@ function IndividualView({ sortedWeeks, configMap }) {
         });
       });
     });
-
-    // % asc (blanks at bottom), then week asc
-    raw.sort((a, b) => {
-      const aHas = a.pct !== null;
-      const bHas = b.pct !== null;
-      if (aHas && !bHas) return -1;
-      if (!aHas && bHas) return 1;
-      if (aHas && bHas) {
-        const diff = a.pct - b.pct;
-        if (diff !== 0) return diff;
-      }
-      return a.week_start.localeCompare(b.week_start);
-    });
-
     return raw;
   }, [sortedWeeks, configMap]);
+
+  const { sorted, sortCol, sortDir, handleSort } = useSort(baseRows, "pct", "asc");
+  const thProps = { sortCol, sortDir, onSort: handleSort };
 
   return (
     <div className="overflow-auto max-h-[480px]">
       <table className="w-full border-collapse">
         <thead className="sticky top-0 z-10">
           <tr>
-            <TH>Week</TH>
-            <TH>User</TH>
-            <TH>Location</TH>
-            <TH right>Answered</TH>
-            <TH right>Weekly Goal</TH>
-            <TH right>% of Weekly Goal</TH>
+            <SortableTH col="week_start" {...thProps}>Week</SortableTH>
+            <SortableTH col="user"       {...thProps}>User</SortableTH>
+            <SortableTH col="location"   {...thProps}>Location</SortableTH>
+            <SortableTH col="answered"   {...thProps} right>Answered</SortableTH>
+            <SortableTH col="goal"       {...thProps} right>Weekly Goal</SortableTH>
+            <SortableTH col="pct"        {...thProps} right>% of Weekly Goal</SortableTH>
           </tr>
         </thead>
         <tbody>
-          {rows.length === 0 ? (
+          {sorted.length === 0 ? (
             <EmptyRow cols={6} msg="No individual performance data found for this period." />
-          ) : rows.map((r, i) => (
+          ) : sorted.map((r, i) => (
             <tr key={i} className={`border-b border-slate-100 ${i % 2 !== 0 ? "bg-slate-50/40" : ""}`}>
               <TD muted>{fmtDate(r.week_start)}</TD>
               <TD><span className="font-medium">{r.user}</span></TD>
@@ -247,7 +270,7 @@ function IndividualView({ sortedWeeks, configMap }) {
 
 // ── NP Team Performance ────────────────────────────────────────────────────
 function NPTeamView({ sortedWeeks, configMap }) {
-  const rows = useMemo(() => {
+  const baseRows = useMemo(() => {
     const raw = [];
     sortedWeeks.forEach(week => {
       (week.user_snapshot || []).forEach(u => {
@@ -262,41 +285,34 @@ function NPTeamView({ sortedWeeks, configMap }) {
         });
       });
     });
-
-    raw.sort((a, b) => {
-      const wc = a.week_start.localeCompare(b.week_start);
-      return wc !== 0 ? wc : a.user.localeCompare(b.user);
-    });
-
     return raw;
   }, [sortedWeeks, configMap]);
+
+  const { sorted, sortCol, sortDir, handleSort } = useSort(baseRows, "week_start", "asc");
+  const thProps = { sortCol, sortDir, onSort: handleSort };
 
   return (
     <div className="overflow-auto max-h-[480px]">
       <table className="w-full border-collapse">
         <thead className="sticky top-0 z-10">
           <tr>
-            <TH>Week</TH>
-            <TH>User</TH>
-            <TH>Location</TH>
-            <TH right>Total Calls</TH>
-            <TH right>Answered</TH>
-            <TH right>NP Goal</TH>
+            <SortableTH col="week_start"  {...thProps}>Week</SortableTH>
+            <SortableTH col="user"        {...thProps}>User</SortableTH>
+            <SortableTH col="location"    {...thProps}>Location</SortableTH>
+            <SortableTH col="total_calls" {...thProps} right>Total Calls</SortableTH>
+            <SortableTH col="answered"    {...thProps} right>Answered</SortableTH>
           </tr>
         </thead>
         <tbody>
-          {rows.length === 0 ? (
-            <EmptyRow cols={6} msg='No NP team members found. Ensure users have benchmark_group = "NP" in the User Directory.' />
-          ) : rows.map((r, i) => (
+          {sorted.length === 0 ? (
+            <EmptyRow cols={5} msg='No NP team members found. Ensure users have benchmark_group = "NP" in the User Directory.' />
+          ) : sorted.map((r, i) => (
             <tr key={i} className={`border-b border-slate-100 ${i % 2 !== 0 ? "bg-slate-50/40" : ""}`}>
               <TD muted>{fmtDate(r.week_start)}</TD>
               <TD><span className="font-medium">{r.user}</span></TD>
               <TD>{r.location || "—"}</TD>
               <TD right>{r.total_calls.toLocaleString()}</TD>
               <TD right>{r.answered.toLocaleString()}</TD>
-              <td className="px-3 py-2 text-right">
-                <span className="inline-block px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-400">TBD</span>
-              </td>
             </tr>
           ))}
         </tbody>
@@ -314,12 +330,10 @@ const VIEWS = [
 
 export default function PerformanceViews({ sortedWeeks, userConfigMap }) {
   const [active, setActive] = useState(null);
-
   const toggle = (key) => setActive(prev => prev === key ? null : key);
 
   return (
     <div className="space-y-3">
-      {/* Section title + toggle buttons */}
       <div className="flex items-center gap-3 flex-wrap">
         <h3 className="text-sm font-semibold text-slate-700 whitespace-nowrap">Performance Analytics</h3>
         <div className="flex items-center gap-1.5">
@@ -339,10 +353,8 @@ export default function PerformanceViews({ sortedWeeks, userConfigMap }) {
         </div>
       </div>
 
-      {/* Active view panel */}
       {active && (
         <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm">
-          {/* Panel header */}
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100 bg-slate-50">
             <span className="text-xs font-semibold text-slate-700 tracking-wide uppercase">
               {VIEWS.find(v => v.key === active)?.label} Performance
@@ -355,7 +367,6 @@ export default function PerformanceViews({ sortedWeeks, userConfigMap }) {
             </button>
           </div>
 
-          {/* Table */}
           {active === "frontend"   && <FrontEndView   sortedWeeks={sortedWeeks} configMap={userConfigMap} />}
           {active === "individual" && <IndividualView sortedWeeks={sortedWeeks} configMap={userConfigMap} />}
           {active === "np"         && <NPTeamView     sortedWeeks={sortedWeeks} configMap={userConfigMap} />}
