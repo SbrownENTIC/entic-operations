@@ -1647,16 +1647,7 @@ export default function CallLogReporting() {
         ],
         rows: indivTableRows,
       });
-
-      // Auto-fit column widths for individual sheet based on content
-      wsIndiv.columns.forEach((col) => {
-        let maxLen = 10;
-        col.eachCell({ includeEmpty: false }, (cell) => {
-          const val = cell.value != null ? String(cell.value) : "";
-          if (val.length > maxLen) maxLen = val.length;
-        });
-        col.width = Math.min(maxLen + 2, 40);
-      });
+      autoFitColumns(wsIndiv);
     }
 
     // ==============================
