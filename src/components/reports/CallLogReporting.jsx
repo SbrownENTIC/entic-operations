@@ -808,7 +808,7 @@ export default function CallLogReporting() {
       ["Outbound",         totalOutbound,                                      "number"],
       ["Inbound Answered",  totalInboundAnswered,                                                   "number"],
       ["Missed",            totalMissed,                                                             "number"],
-      ["Inbound Answer Rate", overallAnswerRate !== null ? overallAnswerRate : "",                   "percent"],
+      ["Inbound Answer Rate", totalInbound > 0 ? Math.min(totalInboundAnswered, totalInbound) / totalInbound : "",  "percent"],
       ["Total Duration",   secondsToHHMMSS(totalDurationSec),                  "text"],
       ["Average Duration", secondsToHHMMSS(overallAvgDurationSec),             "text"],
     ];
