@@ -1237,9 +1237,13 @@ export default function CallLogReporting() {
       });
     });
 
+    // Sort by % of Weekly Goal ascending (within each week), then desk A-Z as tiebreaker
     const deskRows = Object.values(deskWeekMap).sort((a, b) => {
-      const ws = a.week_start.localeCompare(b.week_start);
-      if (ws !== 0) return ws;
+      const wsCmp = a.week_start.localeCompare(b.week_start);
+      if (wsCmp !== 0) return wsCmp;
+      const aPct = a.weeklyGoal > 0 ? a.totalAnswered / a.weeklyGoal : 0;
+      const bPct = b.weeklyGoal > 0 ? b.totalAnswered / b.weeklyGoal : 0;
+      if (aPct !== bPct) return aPct - bPct;
       return a.desk.localeCompare(b.desk);
     });
 
