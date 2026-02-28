@@ -95,24 +95,41 @@ export async function buildCdrSheet(wb, { periodLabel, generatedOn, cdrUploadDat
     emptyRow.getCell(1).font = mkFont({ italic: true, color: { argb: "FF888888" } });
     emptyRow.height = 18;
   } else {
-    const cdrTableRows = [];
-    cdrStats.forEach((stat, idx) => {
+    // Build table data rows
+    const cdrTableRows = cdrStats.map(stat => {
       const inbound     = Number(stat.inbound_calls || 0);
       const answered    = Math.min(Number(stat.inbound_answered || 0), inbound);
       const notAnswered = inbound - answered;
       const ar          = inbound > 0 ? answered / inbound : null;
-      const bgArgb      = idx % 2 === 0 ? WHITE : LIGHT_GRAY;
+      return [stat.user_name, inbound, answered, notAnswered, ar !== null ? ar : ""];
+    });
 
-      const rowValues = [stat.user_name, inbound, answered, notAnswered, ar !== null ? ar : ""];
-      const row = wsCdr.addRow(rowValues);
+    // Register as official Excel Table — addTable writes both header and data rows
+    wsCdr.addTable({
+      name: "CdrUserStats",
+      ref: `A${cdrTableHeaderRowNum}:E${cdrTableHeaderRowNum + cdrTableRows.length}`,
+      headerRow: true,
+      totalsRow: false,
+      style: { theme: "TableStyleMedium2", showRowStripes: true },
+      columns: [
+        { name: "User",                 filterButton: true },
+        { name: "Inbound Calls",        filterButton: true },
+        { name: "Inbound Answered",     filterButton: true },
+        { name: "Inbound Not Answered", filterButton: true },
+        { name: "Inbound Answer Rate",  filterButton: true },
+      ],
+      rows: cdrTableRows,
+    });
+
+    // Apply number/percent formatting and colors to data rows
+    cdrStats.forEach((stat, idx) => {
+      const inbound  = Number(stat.inbound_calls || 0);
+      const answered = Math.min(Number(stat.inbound_answered || 0), inbound);
+      const ar       = inbound > 0 ? answered / inbound : null;
+      const row      = wsCdr.getRow(cdrTableHeaderRowNum + 1 + idx);
       row.height = 18;
-      cdrTableRows.push(rowValues);
-
       row.eachCell({ includeEmpty: true }, (cell, colNum) => {
-        cell.fill      = mkFill(bgArgb);
-        cell.font      = mkFont({});
         cell.alignment = { horizontal: colNum === 1 ? "left" : "center", vertical: "middle" };
-        cell.border    = { bottom: thinBorder, right: thinBorder };
         if ([2, 3, 4].includes(colNum)) cell.numFmt = "#,##0";
         if (colNum === 5 && ar !== null) {
           cell.numFmt = "0.00%";
@@ -123,23 +140,6 @@ export async function buildCdrSheet(wb, { periodLabel, generatedOn, cdrUploadDat
       });
     });
 
-    if (cdrTableRows.length > 0) {
-      wsCdr.addTable({
-        name: "CdrUserStats",
-        ref: `A${cdrTableHeaderRowNum}:E${wsCdr.rowCount}`,
-        headerRow: true,
-        totalsRow: false,
-        style: { theme: "TableStyleMedium2", showRowStripes: true },
-        columns: [
-          { name: "User",                 filterButton: true },
-          { name: "Inbound Calls",        filterButton: true },
-          { name: "Inbound Answered",     filterButton: true },
-          { name: "Inbound Not Answered", filterButton: true },
-          { name: "Inbound Answer Rate",  filterButton: true },
-        ],
-        rows: cdrTableRows,
-      });
-    }
     autoFitColumns(wsCdr);
   }
 }
