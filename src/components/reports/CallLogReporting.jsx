@@ -690,8 +690,9 @@ export default function CallLogReporting() {
           total_duration_minutes: snap.reduce((s, u) => s + (u.total_duration_minutes || 0), 0),
         };
       }
-      const inboundAnswered = totals.inbound_answered != null ? totals.inbound_answered : (totals.answered || 0);
+      const rawInboundAnswered = totals.inbound_answered != null ? totals.inbound_answered : (totals.answered || 0);
       const inboundCount = totals.inbound || 0;
+      const inboundAnswered = Math.min(rawInboundAnswered, inboundCount);
       return {
         week_start:             week.week_start,
         week_end:               week.week_end,
@@ -702,7 +703,7 @@ export default function CallLogReporting() {
         missed:                 totals.missed || 0,
         total_duration_minutes: totals.total_duration_minutes || 0,
         avg_duration_minutes:   (totals.total_calls || 0) > 0 ? (totals.total_duration_minutes || 0) / totals.total_calls : 0,
-        answer_rate:            inboundCount > 0 ? (inboundCount - (totals.missed || 0)) / inboundCount : null,
+        answer_rate:            inboundCount > 0 ? inboundAnswered / inboundCount : null,
         user_snapshot:          Array.isArray(week.user_snapshot) ? week.user_snapshot : [],
         missing_snapshot:       !Array.isArray(week.user_snapshot) || week.user_snapshot.length === 0,
       };
