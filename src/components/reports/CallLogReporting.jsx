@@ -1097,7 +1097,8 @@ export default function CallLogReporting() {
       instrRow2.height = 30;
     }
 
-    // NOTE: autoFitColumns(ws) is called after all sheets are built — see end of export function
+    // Auto-fit main sheet columns
+    autoFitColumns(ws);
 
     // ---- Hide Pivot Data sheet (keep in workbook but not visible to user) ----
     wsPivot.state = "hidden";
@@ -1441,7 +1442,7 @@ export default function CallLogReporting() {
         rows: deskTableRows,
       });
     }
-    // autoFitColumns(wsDesk) called at end
+    autoFitColumns(wsDesk);
 
     // ==============================
     // SHEET 3: INDIVIDUAL PERFORMANCE
@@ -1653,18 +1654,12 @@ export default function CallLogReporting() {
         rows: indivTableRows,
       });
     }
-    // autoFitColumns(wsIndiv) called at end
+    autoFitColumns(wsIndiv);
 
     // ==============================
     // INBOUND CDR WORKSHEET
     // ==============================
     await buildCdrSheet(wb, { periodLabel, generatedOn, cdrUploadData, mkFill, mkFont, thinBorder, addSectionHeader, styleTableHeader, arColor, DARK_NAVY, ALT_ROW, WHITE, LIGHT_GRAY });
-
-    // AutoFit all sheets unconditionally — must run AFTER all rows/formatting complete
-    autoFitColumns(ws);
-    autoFitColumns(wsDesk);
-    autoFitColumns(wsIndiv);
-    // wsCdr autoFit is handled inside buildCdrSheet
 
     // ---- Write and download ----
     const buffer = await wb.xlsx.writeBuffer();
