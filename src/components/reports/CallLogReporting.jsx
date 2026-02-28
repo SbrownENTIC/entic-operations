@@ -832,6 +832,7 @@ export default function CallLogReporting() {
 
     // ==============================
     // SECTION 2: WEEKLY SUMMARY TABLE
+
     // ==============================
     addSectionHeader(ws, "Weekly Summary", 10);
 
