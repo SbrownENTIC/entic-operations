@@ -30,3 +30,15 @@ export function parseWeekDate(str) {
   const [y, m, d] = str.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
 }
+
+/** Auto-fit all column widths in an ExcelJS worksheet based on cell content */
+export function autoFitColumns(worksheet) {
+  worksheet.columns.forEach((col) => {
+    let maxLen = 10;
+    col.eachCell({ includeEmpty: false }, (cell) => {
+      const val = cell.value != null ? String(cell.value) : "";
+      if (val.length > maxLen) maxLen = val.length;
+    });
+    col.width = Math.min(maxLen + 2, 50);
+  });
+}
