@@ -596,13 +596,10 @@ export default function CallLogReporting() {
     const LIGHT_GRAY = "FFF5F5F5";
     const ALT_ROW    = "FFEEF2FA";
     const WHITE      = "FFFFFFFF";
-    const TOTALS_BG  = "FFD9E1F2";
     const HEADER_BG  = "FF344D7E";
-
     const mkFill = (argb) => ({ type: "pattern", pattern: "solid", fgColor: { argb } });
     const mkFont = (opts) => ({ name: "Calibri", size: 11, ...opts });
     const thinBorder = { style: "thin", color: { argb: "FFDDDDDD" } };
-    const medBorder  = { style: "medium", color: { argb: DARK_NAVY } };
 
     // Helper: style a section header row (spans numCols columns starting at col 1)
     const addSectionHeader = (ws, text, numCols, startCol = "A") => {
