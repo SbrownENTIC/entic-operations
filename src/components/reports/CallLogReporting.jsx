@@ -917,12 +917,7 @@ export default function CallLogReporting() {
 
       const tableRows = [];
       realUserRows.forEach((u, idx) => {
-        // Use CDR answer rate if available, otherwise use call log rate
-        let ar = null;
-        const cdrStat = cdrUserStatsMap[u.user];
-        if (cdrStat && cdrStat.inbound_calls > 0) {
-          ar = cdrStat.inbound_answered / cdrStat.inbound_calls;
-        }
+        const ar = u.answer_rate !== undefined ? u.answer_rate : null;
         const { bg, fg } = arColor(ar);
         const arPct = ar !== null ? ar : "";
         const bgArgb = idx % 2 === 0 ? WHITE : ALT_ROW;
