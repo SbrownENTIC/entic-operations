@@ -57,7 +57,7 @@ export async function buildCdrSheet(wb, { periodLabel, generatedOn, cdrUploadDat
     ["Total Inbound Calls",  cdrUploadData.total_inbound_calls,    "number"],
     ["Inbound Answered",     cdrUploadData.total_inbound_answered, "number"],
     ["Inbound Not Answered", cdrUploadData.total_unanswered,       "number"],
-    ["Inbound Answer Rate",  cdrUploadData.total_inbound_calls > 0 ? cdrUploadData.total_inbound_answered / cdrUploadData.total_inbound_calls : "", "percent"],
+    ["Inbound Answer Rate",  cdrUploadData.total_inbound_calls > 0 ? Math.min(cdrUploadData.total_inbound_answered, cdrUploadData.total_inbound_calls) / cdrUploadData.total_inbound_calls : "", "percent"],
     ["Mapped Rows",          cdrUploadData.mapped_rows,            "number"],
     ["Unmapped Rows",        cdrUploadData.unmapped_rows,          "number"],
   ];
