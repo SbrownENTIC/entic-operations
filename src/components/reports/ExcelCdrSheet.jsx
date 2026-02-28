@@ -44,12 +44,23 @@ export async function buildCdrSheet(wb, { periodLabel, generatedOn, cdrUploadDat
   cdrTitleCell.alignment = { horizontal: "center", vertical: "middle" };
   wsCdr.getRow(1).height = 40;
 
+  // Row 2: Clarity note (informational only)
+  const cdrNoteRow = wsCdr.addRow([
+    "Inbound-only telecom data sourced directly from the Vonage CDR upload. This tab reflects raw inbound phone system activity.",
+    "", "", "", ""
+  ]);
+  wsCdr.mergeCells(`A2:E2`);
+  const cdrNoteCell = wsCdr.getCell("A2");
+  cdrNoteCell.font      = mkFont({ italic: true, size: 9, color: { argb: "FFAAAAAA" } });
+  cdrNoteCell.alignment = { horizontal: "left", vertical: "middle", wrapText: true };
+  cdrNoteRow.height = 22;
+
   wsCdr.addRow([`Reporting Period: ${periodLabel}`]);
-  wsCdr.getCell("A2").font = mkFont({ bold: true });
-  wsCdr.getRow(2).height = 18;
-  wsCdr.addRow([`Generated On: ${generatedOn}`]);
-  wsCdr.getCell("A3").font = mkFont({ color: { argb: "FF666666" } });
+  wsCdr.getCell("A3").font = mkFont({ bold: true });
   wsCdr.getRow(3).height = 18;
+  wsCdr.addRow([`Generated On: ${generatedOn}`]);
+  wsCdr.getCell("A4").font = mkFont({ color: { argb: "FF666666" } });
+  wsCdr.getRow(4).height = 18;
 
   addSectionHeader(wsCdr, "Summary", 4);
 
