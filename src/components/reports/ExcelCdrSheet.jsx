@@ -98,7 +98,7 @@ export async function buildCdrSheet(wb, { periodLabel, generatedOn, cdrUploadDat
     const cdrTableRows = [];
     cdrStats.forEach((stat, idx) => {
       const inbound  = Number(stat.inbound_calls || 0);
-      const answered = Number(stat.inbound_answered || 0);
+      const answered = Math.min(Number(stat.inbound_answered || 0), inbound);
       const notAnswered = inbound - answered;
       const ar = inbound > 0 ? answered / inbound : null;
       const bgArgb = idx % 2 === 0 ? WHITE : LIGHT_GRAY;
