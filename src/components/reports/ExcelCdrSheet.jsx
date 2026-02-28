@@ -31,7 +31,7 @@ export async function buildCdrSheet(wb, { periodLabel, generatedOn, cdrUploadDat
     return;
   }
 
-  const wsCdr = wb.addWorksheet("Inbound CDR", { views: [{ showGridLines: false, state: "frozen", ySplit: 14, xSplit: 0 }] });
+  const wsCdr = wb.addWorksheet("Inbound CDR", { views: [{ showGridLines: false }] });
   wsCdr.columns = [
     { width: 30 }, { width: 14 }, { width: 14 }, { width: 18 }, { width: 18 },
   ];
