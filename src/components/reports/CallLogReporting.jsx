@@ -1660,6 +1660,12 @@ export default function CallLogReporting() {
     // ==============================
     await buildCdrSheet(wb, { periodLabel, generatedOn, cdrUploadData, mkFill, mkFont, thinBorder, addSectionHeader, styleTableHeader, arColor, DARK_NAVY, ALT_ROW, WHITE, LIGHT_GRAY });
 
+    // AutoFit all sheets unconditionally — must run AFTER all rows/formatting complete
+    autoFitColumns(ws);
+    autoFitColumns(wsDesk);
+    autoFitColumns(wsIndiv);
+    // wsCdr autoFit is handled inside buildCdrSheet
+
     // ---- Write and download ----
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
