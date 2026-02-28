@@ -11,7 +11,7 @@ import PerformanceViews from "./PerformanceViews";
 import CdrUpload from "./CdrUpload";
 import CdrInboundMetricsCard from "./CdrInboundMetricsCard";
 import UserBreakdownTable from "./UserBreakdownTable";
-import { minutesToHHMMSS, secondsToHHMMSS, formatDate, parseWeekDate } from "./ExcelExportHelpers";
+import { minutesToHHMMSS, secondsToHHMMSS, formatDate, parseWeekDate, autoFitColumns } from "./ExcelExportHelpers";
 import {
   AlertDialog,
   AlertDialogAction,
