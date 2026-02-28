@@ -897,21 +897,6 @@ export default function CallLogReporting() {
 
     const userTableStartRow = ws.rowCount + 1;
 
-    // Build a CDR user stats map for answer rate lookup
-    const cdrUserStatsMap = {};
-    if (cdrUploadData) {
-      try {
-        const cdrStats = await base44.entities.CallLogCdrUserStats.filter({
-          cdr_upload_id: cdrUploadData.id
-        });
-        cdrStats.forEach(stat => {
-          cdrUserStatsMap[stat.user_name] = stat;
-        });
-      } catch (err) {
-        console.warn("Could not load CDR user stats for User Breakdown:", err);
-      }
-    }
-
     // Sort A–Z by user name before rendering; exclude zero-activity rows for that week
     const realUserRows = userWeekRows
       .filter(u => !u._warning && (u.total_calls || 0) > 0)
