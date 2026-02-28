@@ -1739,9 +1739,9 @@ export default function CallLogReporting() {
       addSectionHeader(wsCdr, "User Breakdown", 7);
 
       const cdrTableHeaderRowNum = wsCdr.rowCount + 1;
-      const cdrHeaders = ["User", "Location", "Extensions", "Inbound Calls", "Inbound Answered", "Inbound Not Answered", "Inbound Answer Rate"];
+      const cdrHeaders = ["User", "Inbound Calls", "Inbound Answered", "Inbound Not Answered", "Inbound Answer Rate"];
       const cdrHRow = wsCdr.addRow(cdrHeaders);
-      styleTableHeader(cdrHRow, 7, 2);
+      styleTableHeader(cdrHRow, 5, 2);
 
       // Load ALL CDR user stats — no benchmark filtering
       let cdrUserStats = [];
