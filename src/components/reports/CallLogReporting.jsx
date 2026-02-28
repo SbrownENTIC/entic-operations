@@ -2116,7 +2116,7 @@ export default function CallLogReporting() {
               </span>
             )}
             <div className="ml-auto">
-              <Button variant="outline" size="sm" onClick={exportPeriodExcel} className="gap-2">
+              <Button variant="outline" size="sm" onClick={exportPeriodExcel} disabled={!enrichedSummaries || enrichedSummaries.length === 0} className="gap-2">
                 <Download className="w-4 h-4" /> Export Excel Report
               </Button>
             </div>
