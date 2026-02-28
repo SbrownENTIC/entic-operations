@@ -357,9 +357,9 @@ export default function CallLogReporting() {
 
   React.useEffect(() => { setUserSearch(""); setSortCol("user"); setSortDir("asc"); }, [selectedPeriod?.id]);
 
-  // Enrich ONLY CallLogUserSummary rows (no CDR-only users)
-  const cdrMap = React.useMemo(() => { const m = {}; cdrUserStats.forEach(s => { if(s.user_name) { const n = s.user_name.trim().toLowerCase().replace(/\s+/g, " "); m[n] = {t: Number(s.inbound_calls||0), a: Number(s.inbound_answered||0)}; } }); return m; }, [cdrUserStats]);
-  const enrichedSummaries = React.useMemo(() => { const enriched = userSummaries.map(u => { const n = (u.user||"").trim().toLowerCase().replace(/\s+/g, " "); const c = cdrMap[n]; const r = c && c.t > 0 ? (c.a/c.t)*100 : null; return {...u, inbound_answer_rate_cdr: r}; }); console.log("ENRICHED_SUMMARY_COUNT", enriched.length, "SOURCE_SUMMARY_COUNT", userSummaries.length); return enriched; }, [userSummaries, cdrMap]);
+  // Benchmark-filtered enrichment: only users with in_benchmark===true in CallLogUserConfig
+  const norm = (s) => (s||"").trim().toLowerCase().replace(/\s+/g, " "); const cdrMap = React.useMemo(() => { const m = {}; cdrUserStats.forEach(s => { if(s.user_name) m[norm(s.user_name)] = {t: Number(s.inbound_calls||0), a: Number(s.inbound_answered||0)}; }); return m; }, [cdrUserStats]); const benchmarkSet = React.useMemo(() => new Set(allUserConfigs.filter(c => c.in_benchmark === true).map(c => norm(c.user_name))), [allUserConfigs]);
+  const enrichedSummaries = React.useMemo(() => { const enriched = userSummaries.filter(u => benchmarkSet.has(norm(u.user))).map(u => { const c = cdrMap[norm(u.user)]; return {...u, inbound_answer_rate_cdr: c && c.t > 0 ? (c.a/c.t)*100 : null}; }); console.log("BENCHMARK_USER_COUNT", enriched.length, "TOTAL_SUMMARY_COUNT", userSummaries.length); return enriched; }, [userSummaries, cdrMap, benchmarkSet]);
 
   const activeSummaries = [...enrichedSummaries.filter(u => (u.total_calls || 0) > 0)]
     .sort((a, b) => {
