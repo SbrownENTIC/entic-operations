@@ -1653,7 +1653,7 @@ export default function CallLogReporting() {
         rows: indivTableRows,
       });
     }
-    autoFitColumns(wsIndiv);
+    // autoFitColumns(wsIndiv) called at end
 
     // ==============================
     // INBOUND CDR WORKSHEET
