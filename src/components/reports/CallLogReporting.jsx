@@ -1745,7 +1745,7 @@ export default function CallLogReporting() {
       const cdrHRow = wsCdr.addRow(cdrHeaders);
       styleTableHeader(cdrHRow, 7, 2);
 
-      // Load CDR user stats
+      // Load ALL CDR user stats — no benchmark filtering
       let cdrUserStats = [];
       try {
         cdrUserStats = await base44.entities.CallLogCdrUserStats.filter({
@@ -1755,8 +1755,8 @@ export default function CallLogReporting() {
         console.warn("Could not load CDR user stats:", err);
       }
 
-      // Sort by inbound_calls descending
-      cdrUserStats.sort((a, b) => b.inbound_calls - a.inbound_calls);
+      // Sort by inbound_calls descending (all rows, unfiltered)
+      cdrUserStats.sort((a, b) => (b.inbound_calls || 0) - (a.inbound_calls || 0));
 
       if (cdrUserStats.length === 0) {
         const emptyRow = wsCdr.addRow(["No inbound CDR data found for this period.", ...Array(6).fill("")]);
