@@ -142,4 +142,5 @@ export async function buildCdrSheet(wb, { periodLabel, generatedOn, cdrUploadDat
     }
     autoFitColumns(wsCdr);
   }
+  }
 }
