@@ -1107,11 +1107,11 @@ export default function CallLogReporting() {
       if (cfg.user_name) exportUserConfigMap[cfg.user_name] = cfg;
     }
 
-    // Load CDR data for this period using canonical period_key
+    // Load CDR data for this period using canonical reporting_period_key
     let cdrUploadData = null;
     try {
       const cdrUploads = await base44.entities.CallLogCdrUploads.filter({
-        period_key: selectedPeriod?.monthly_key || ""
+        reporting_period_key: selectedPeriod?.monthly_key || ""
       });
       if (cdrUploads.length > 0) {
         cdrUploadData = cdrUploads[0];
