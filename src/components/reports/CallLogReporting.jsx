@@ -1098,17 +1098,16 @@ export default function CallLogReporting() {
     wsPivot.state = "hidden";
 
     // ==============================
-    // LOAD CallLogUserConfig and CDR data for export enrichment
+    // LOAD CallLogUserConfig for export enrichment
     // ==============================
-    const allUserConfigs = await base44.entities.CallLogUserConfig.list();
+    const exportUserConfigs = await base44.entities.CallLogUserConfig.list();
     // Map all configs by user_name (exact match, used for every lookup at export time)
-    const userConfigMap = {};
-    for (const cfg of allUserConfigs) {
-      if (cfg.user_name) userConfigMap[cfg.user_name] = cfg;
+    const exportUserConfigMap = {};
+    for (const cfg of exportUserConfigs) {
+      if (cfg.user_name) exportUserConfigMap[cfg.user_name] = cfg;
     }
 
     // Load CDR data for this period using canonical period_key
-    console.log("Excel export fetching CDR for:", selectedPeriod.monthly_key);
     let cdrUploadData = null;
     try {
       const cdrUploads = await base44.entities.CallLogCdrUploads.filter({
@@ -1116,9 +1115,6 @@ export default function CallLogReporting() {
       });
       if (cdrUploads.length > 0) {
         cdrUploadData = cdrUploads[0];
-        console.log("Found CDR upload for period_key:", selectedPeriod.monthly_key, cdrUploadData);
-      } else {
-        console.log("No CDR upload found for period_key:", selectedPeriod.monthly_key);
       }
     } catch (err) {
       console.warn("Could not load CDR data:", err);
