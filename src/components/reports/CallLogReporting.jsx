@@ -736,7 +736,7 @@ export default function CallLogReporting() {
           missed:                 u.missed   || 0,
           total_duration_minutes: durMin,
           avg_duration_minutes:   tc > 0 ? durMin / tc : 0,
-          answer_rate:            uInbound > 0 ? uInboundAnswered / uInbound : null,
+          answer_rate:            uInbound > 0 ? (uInbound - (u.missed || 0)) / uInbound : null,
         });
       });
     });
