@@ -87,7 +87,17 @@ export async function buildCdrSheet(wb, { periodLabel, generatedOn, cdrUploadDat
   } catch (err) {
     console.warn("Could not load CDR user stats:", err);
   }
-  cdrStats.sort((a, b) => (b.inbound_calls || 0) - (a.inbound_calls || 0));
+  // Sort ascending by Inbound Answer Rate (nulls/zero-inbound last), then user A-Z
+  cdrStats.sort((a, b) => {
+    const aInbound = Number(a.inbound_calls || 0);
+    const bInbound = Number(b.inbound_calls || 0);
+    const aAr = aInbound > 0 ? Math.min(Number(a.inbound_answered || 0), aInbound) / aInbound : null;
+    const bAr = bInbound > 0 ? Math.min(Number(b.inbound_answered || 0), bInbound) / bInbound : null;
+    if (aAr !== null && bAr === null) return -1;
+    if (aAr === null && bAr !== null) return 1;
+    if (aAr !== null && bAr !== null && aAr !== bAr) return aAr - bAr;
+    return (a.user_name || "").localeCompare(b.user_name || "");
+  });
 
   if (cdrStats.length === 0) {
     const emptyRow = wsCdr.addRow(["No inbound CDR data found for this period.", ...Array(4).fill("")]);
