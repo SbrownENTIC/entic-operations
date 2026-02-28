@@ -1148,7 +1148,7 @@ export default function CallLogReporting() {
 
     // Helper: get location from directory only (never parse from name)
     const getUserLocation = (userName) => {
-      const cfg = userConfigMap[userName];
+      const cfg = exportUserConfigMap[userName];
       if (!cfg || !cfg.location || cfg.location === "N/A") return "";
       return cfg.location;
     };
