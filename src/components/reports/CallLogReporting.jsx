@@ -1808,8 +1808,8 @@ export default function CallLogReporting() {
 
       wsCdrEmpty.columns = [{ width: 60 }];
 
-      wsCdrEmpty.addRow([`${periodLabel} - Inbound CDR`, ...Array(6).fill("")]);
-      wsCdrEmpty.mergeCells(`A1:G1`);
+      wsCdrEmpty.addRow([`${periodLabel} - Inbound CDR`, ...Array(4).fill("")]);
+      wsCdrEmpty.mergeCells(`A1:E1`);
       const emptyTitleCell = wsCdrEmpty.getCell("A1");
       emptyTitleCell.font      = mkFont({ bold: true, size: 16, color: { argb: WHITE } });
       emptyTitleCell.fill      = mkFill(DARK_NAVY);
