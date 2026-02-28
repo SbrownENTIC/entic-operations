@@ -1738,7 +1738,7 @@ export default function CallLogReporting() {
       wsCdr.addRow([]);
 
       // User breakdown table
-      addSectionHeader(wsCdr, "User Breakdown", wsCdr.rowCount + 1);
+      addSectionHeader(wsCdr, "User Breakdown", 7);
 
       const cdrTableHeaderRowNum = wsCdr.rowCount + 1;
       const cdrHeaders = ["User", "Location", "Extensions", "Inbound Calls", "Inbound Answered", "Inbound Not Answered", "Inbound Answer Rate"];
