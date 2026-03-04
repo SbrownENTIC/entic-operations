@@ -42,6 +42,9 @@ export default function PendingInvoicesWidget({ providersWithPendingInvoices }) 
                   <div>
                     <span className="font-medium text-slate-900 text-sm block group-hover:text-indigo-700 transition-colors">{provider.full_name}</span>
                     <span className="text-xs text-slate-500">{provider.pendingCount} Invoice{provider.pendingCount !== 1 ? 's' : ''}</span>
+                    {provider.programGroups && provider.programGroups.length > 0 && (
+                      <span className="text-xs text-indigo-600 font-medium block">{provider.programGroups.join(', ')}</span>
+                    )}
                   </div>
                 </div>
                 <div className="w-6 h-6 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
