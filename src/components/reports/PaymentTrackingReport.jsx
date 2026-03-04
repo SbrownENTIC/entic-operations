@@ -307,8 +307,20 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
           };
 
           // Exclude any invoice already classified as directorship
-          const directorshipInvoiceIds = new Set(directorshipInvoices.map(inv => inv.id));
-          const onCallInvoices = groupInvoices.filter(inv => !directorshipInvoiceIds.has(inv.id));
+          const onCallInvoices = groupInvoices.filter(inv => {
+            // Check invoice number
+            if (inv.invoice_number && inv.invoice_number.includes('(Directorship)')) return false;
+            // Check linked outside income
+            const linkedIncomes = (inv.outside_income_ids || []).map(id => outsideIncome.find(inc => inc.id === id)).filter(Boolean);
+            return !linkedIncomes.some(income => {
+              if (income.facility_name && income.facility_name.toLowerCase().includes('directorship')) return true;
+              if (income.program_location_id) {
+                const loc = programLocations.find(pl => pl.id === income.program_location_id);
+                if (loc?.program_type === 'Directorship') return true;
+              }
+              return false;
+            });
+          });
 
           // Sort by month
           sortByMonth(onCallInvoices);
