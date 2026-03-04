@@ -1021,19 +1021,19 @@ export default function Invoices() {
   };
 
   const statusColors = {
-    not_started: "bg-gray-100 text-gray-800",
-    draft: "bg-gray-100 text-gray-800",
+    not_started: "bg-gray-100 text-gray-700",
+    draft: "bg-slate-200 text-slate-700",
     pending_providers_approval: "bg-yellow-100 text-yellow-800",
-    pending_providers_time: "bg-yellow-100 text-yellow-800",
-    sent_to_provider_for_approval: "bg-indigo-100 text-indigo-800",
-    sent_to_provider_for_review: "bg-purple-100 text-purple-800",
+    pending_providers_time: "bg-orange-100 text-orange-800",
+    sent_to_provider_for_approval: "bg-sky-100 text-sky-800",
+    sent_to_provider_for_review: "bg-violet-100 text-violet-800",
     sent_for_approval: "bg-blue-100 text-blue-800",
     sent_to_coo_for_approval: "bg-indigo-100 text-indigo-800",
     approved: "bg-green-100 text-green-800",
-    sent_to_vendor: "bg-blue-100 text-blue-800",
-    paid_to_entic: "bg-green-100 text-green-800",
+    sent_to_vendor: "bg-teal-100 text-teal-800",
+    paid_to_entic: "bg-emerald-100 text-emerald-800",
     provider_paid: "bg-purple-100 text-purple-800",
-    partial: "bg-blue-100 text-blue-800"
+    partial: "bg-cyan-100 text-cyan-800"
   };
 
   const getStatusLabel = (invoice) => {
