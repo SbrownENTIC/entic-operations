@@ -278,7 +278,7 @@ export default function ProviderCredentialingReport() {
         }
 
         rowIdx++;
-    });
+    });  // end flatRows.forEach
 
     // ── Register as Excel Table ─────────────────────────────────────────────
     const tableEndRow = ws.rowCount;
