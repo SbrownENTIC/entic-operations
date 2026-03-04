@@ -211,10 +211,21 @@ export default function ProviderCredentialingReport() {
       cell.border    = { bottom: med, right: thin };
     });
 
-    // ── Data rows: one row per provider-facility combo ──────────────────────
-    let rowIdx = 0;
+    // ── Data rows: one row per facility-provider combo, sorted by facility then provider ──
+    const flatRows = [];
     processedData.forEach(provider => {
       allFacilities.forEach(facility => {
+        flatRows.push({ provider, facility });
+      });
+    });
+    flatRows.sort((a, b) => {
+      const facCmp = allFacilities.indexOf(a.facility) - allFacilities.indexOf(b.facility);
+      if (facCmp !== 0) return facCmp;
+      return a.provider.full_name.localeCompare(b.provider.full_name);
+    });
+
+    let rowIdx = 0;
+    flatRows.forEach(({ provider, facility }) => {
         const priv = provider.facilityStatus[facility];
         const hasPriv = !!priv;
 
