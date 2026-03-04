@@ -486,18 +486,21 @@ export default function OutsideIncome() {
     } else if (sortField === 'workMonth') {
       aValue = a.workMonth;
       bValue = b.workMonth;
-    } else if (sortField === 'temp_oncall_start_date') { // The column header is 'temp_oncall_start_date' but we use 'onCallStart' for sorting
+    } else if (sortField === 'invoice_month_sortable') {
+      aValue = a.invoice_month_sortable || "";
+      bValue = b.invoice_month_sortable || "";
+      const cmp = aValue.localeCompare(bValue);
+      return sortDirection === 'asc' ? cmp : -cmp;
+    } else if (sortField === 'temp_oncall_start_date') {
       aValue = a.onCallStart ? new Date(a.onCallStart) : null;
       bValue = b.onCallStart ? new Date(b.onCallStart) : null;
 
-      // Handle null dates: nulls come last in asc, first in desc
       if (aValue === null && bValue === null) return 0;
       if (aValue === null) return sortDirection === 'asc' ? 1 : -1;
       if (bValue === null) return sortDirection === 'asc' ? -1 : 1;
       
       return sortDirection === 'asc' ? aValue.getTime() - bValue.getTime() : bValue.getTime() - aValue.getTime();
-    }
-    else if (sortField === 'days_worked' || sortField === 'total_rvus' || sortField === 'rate' || sortField === 'total_amount') {
+    } else if (sortField === 'days_worked' || sortField === 'total_rvus' || sortField === 'rate' || sortField === 'total_amount') {
       aValue = a[sortField] || 0;
       bValue = b[sortField] || 0;
       return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
