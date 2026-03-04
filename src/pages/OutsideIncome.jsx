@@ -454,7 +454,19 @@ export default function OutsideIncome() {
       isDirectorship: isDirectorship(income),
       programLocation: location,
       workMonth: getWorkMonth(income),
-      onCallStart: income.work_dates && income.work_dates.length > 0 ? income.work_dates[0] : null
+      onCallStart: income.work_dates && income.work_dates.length > 0 ? income.work_dates[0] : null,
+      invoice_month_sortable: (() => {
+        // Convert "February 2026" → "2026-02" for chronological sorting
+        const monthStr = income.invoice_month;
+        if (!monthStr) return "";
+        try {
+          const d = new Date(monthStr + " 1");
+          if (isNaN(d)) return monthStr;
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, "0");
+          return `${y}-${m}`;
+        } catch { return monthStr; }
+      })(),
     };
   });
 
