@@ -306,37 +306,9 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
             rows: []
           };
 
-          const onCallInvoices = groupInvoices.filter(inv => {
-            // For Hartford Hospital, ONLY use invoice number
-            if (programGroup === 'Hartford Hospital') {
-              return !inv.invoice_number || !inv.invoice_number.includes('(Directorship)');
-            }
-            
-            // For other programs (St. Francis), check invoice number first
-            if (inv.invoice_number && inv.invoice_number.includes('(Directorship)')) {
-              return false;
-            }
-            
-            // Then check linked outside income to exclude directorship
-            const linkedIncomes = (inv.outside_income_ids || []).map(incomeId => 
-              outsideIncome.find(income => income.id === incomeId)
-            ).filter(Boolean);
-
-            const hasDirectorshipIncome = linkedIncomes.some(income => {
-              if (income.facility_name && income.facility_name.toLowerCase().includes('directorship')) {
-                return true;
-              }
-              if (income.program_location_id) {
-                const incomeLocation = programLocations.find(pl => pl.id === income.program_location_id);
-                if (incomeLocation?.program_type === 'Directorship') {
-                  return true;
-                }
-              }
-              return false;
-            });
-            
-            return !hasDirectorshipIncome;
-          });
+          // Exclude any invoice already classified as directorship
+          const directorshipInvoiceIds = new Set(directorshipInvoices.map(inv => inv.id));
+          const onCallInvoices = groupInvoices.filter(inv => !directorshipInvoiceIds.has(inv.id));
 
           // Sort by month
           sortByMonth(onCallInvoices);
