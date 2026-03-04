@@ -342,7 +342,7 @@ export default function ProviderCredentialingReport() {
                     <SelectItem value="missing">Not Credentialed</SelectItem>
                 </SelectContent>
             </Select>
-            <Button onClick={exportToCSV} variant="outline" className="gap-2">
+            <Button onClick={exportToExcel} variant="outline" className="gap-2">
               <Download className="w-4 h-4" />
               Export
             </Button>
