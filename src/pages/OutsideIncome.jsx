@@ -40,7 +40,7 @@ export default function OutsideIncome() {
   const [selectedIncomes, setSelectedIncomes] = useState([]);
   const [bulkProviderId, setBulkProviderId] = useState("");
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
-  const [sortField, setSortField] = useState('created_date');
+  const [sortField, setSortField] = useState('invoice_month_sortable');
   const [sortDirection, setSortDirection] = useState('desc');
   const [linkingOnCall, setLinkingOnCall] = useState(false);
   const [linkingProviders, setLinkingProviders] = useState(false);
