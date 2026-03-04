@@ -4,10 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, CheckCircle, AlertCircle, Clock, XCircle, Search } from "lucide-react";
+import { Download, CheckCircle, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, parseISO, isPast, addDays } from "date-fns";
+import ExcelJS from "exceljs";
 
 export default function ProviderCredentialingReport() {
   const [searchTerm, setSearchTerm] = useState("");
