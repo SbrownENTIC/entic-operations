@@ -504,10 +504,27 @@ export default function Dashboard() {
         });
     });
     
+    // Also collect program groups per provider
+    const providerGroups = {};
+    pendingInvoices.forEach(inv => {
+      const invoiceProviderIds = new Set();
+      if (inv.staff_member_id) invoiceProviderIds.add(inv.staff_member_id);
+      if (inv.outside_income_ids && inv.outside_income_ids.length > 0) {
+        inv.outside_income_ids.forEach(incId => {
+          const income = outsideIncomes.find(inc => inc.id === incId);
+          if (income && income.provider_id) invoiceProviderIds.add(income.provider_id);
+        });
+      }
+      invoiceProviderIds.forEach(pid => {
+        if (!providerGroups[pid]) providerGroups[pid] = new Set();
+        if (inv.program_group) providerGroups[pid].add(inv.program_group);
+      });
+    });
+
     return Object.entries(providerCounts).map(([id, count]) => {
         const provider = providers.find(p => p.id === id);
         if (!provider) return null;
-        return { ...provider, pendingCount: count };
+        return { ...provider, pendingCount: count, programGroups: Array.from(providerGroups[id] || []) };
     }).filter(Boolean).sort((a, b) => b.pendingCount - a.pendingCount);
   }, [invoices, providers, outsideIncomes]);
 
