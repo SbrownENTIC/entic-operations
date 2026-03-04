@@ -278,7 +278,6 @@ export default function ProviderCredentialingReport() {
         }
 
         rowIdx++;
-      });
     });
 
     // ── Register as Excel Table ─────────────────────────────────────────────
