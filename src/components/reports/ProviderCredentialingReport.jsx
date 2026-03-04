@@ -137,22 +137,22 @@ export default function ProviderCredentialingReport() {
 
   const exportToExcel = async () => {
     const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet("Privileges by Location", { views: [{ showGridLines: false }] });
+    wb.creator = "ENTIC Operations Center";
 
-    const DARK_NAVY   = "FF1F3864";
-    const HEADER_BG   = "FF2E5096";
-    const WHITE       = "FFFFFFFF";
-    const ALT_ROW     = "FFEEF2FA";
-    const GREEN_BG    = "FFC6EFCE"; const GREEN_FG = "FF276221";
-    const RED_BG      = "FFFFC7CE"; const RED_FG   = "FF9C0006";
-    const ORANGE_BG   = "FFFFEB9C"; const ORANGE_FG = "FF9C6500";
-    const YELLOW_BG   = "FFFFFF99"; const YELLOW_FG = "FF7D6608";
-    const GRAY_BG     = "FFF2F2F2"; const GRAY_FG  = "FF808080";
+    // ── Shared constants ─────────────────────────────────────────────────────
+    const DARK_NAVY  = "FF1F3864";
+    const HEADER_BG  = "FF2E5096";
+    const FAC_HDR_BG = "FFD6E4F7";  // light blue for facility group headers
+    const WHITE      = "FFFFFFFF";
+    const ALT_ROW    = "FFEEF2FA";
+    const GREEN_BG   = "FFC6EFCE"; const GREEN_FG  = "FF276221";
+    const RED_BG     = "FFFFC7CE"; const RED_FG    = "FF9C0006";
+    const YELLOW_BG  = "FFFFFF99"; const YELLOW_FG = "FF7D6608";
+    const GRAY_FG    = "FF808080";
 
     const mkFont = (opts) => ({ name: "Calibri", size: 11, ...opts });
     const mkFill = (argb) => ({ type: "pattern", pattern: "solid", fgColor: { argb } });
-    const thin   = { style: "thin", color: { argb: "FFCCCCCC" } };
-    const med    = { style: "medium", color: { argb: DARK_NAVY } };
+    const thin = { style: "thin", color: { argb: "FFCCCCCC" } };
 
     const fmtDate = (d) => {
       if (!d) return "";
@@ -164,149 +164,229 @@ export default function ProviderCredentialingReport() {
       "Manchester / ECHN", "Bloomfield", "CCMC", "CTSC- CT Surgery Center"
     ];
 
-    // ── Column definitions ──────────────────────────────────────────────────
-    // Provider Name | Facility | Privileges | Location | Staff Status | Department | Specialty | Start Date | Through Date | Notes
-    ws.columns = [
-      { width: 28 }, // Provider Name
-      { width: 30 }, // Facility Name
-      { width: 12 }, // Privileges
-      { width: 20 }, // Location / Contact
-      { width: 14 }, // Staff Status
-      { width: 28 }, // Department
-      { width: 20 }, // Specialty
+    // Helper: determine status display + colors for a privilege record
+    const getPrivStyle = (priv) => {
+      if (!priv) return { label: "—", bg: WHITE, fg: GRAY_FG, statusText: "" };
+      const isExpired = priv.status === "expired" || (priv.expiration_date && isPast(parseISO(priv.expiration_date)));
+      const isPending = priv.status === "pending";
+      let bg = GREEN_BG; let fg = GREEN_FG; let label = "Active";
+      if (isExpired)  { bg = RED_BG;    fg = RED_FG;    label = "Expired"; }
+      else if (isPending) { bg = YELLOW_BG; fg = YELLOW_FG; label = "Pending"; }
+      const statusText = priv.expiration_date ? `${label} – ${fmtDate(priv.expiration_date)}` : label;
+      return { label, bg, fg, statusText };
+    };
+
+    // ════════════════════════════════════════════════════════════════════════
+    // WORKSHEET 1: "Privileges by Location"
+    // ════════════════════════════════════════════════════════════════════════
+    const ws1 = wb.addWorksheet("Privileges by Location", { views: [{ showGridLines: false }] });
+
+    // Columns: Provider Name | Privilege Status | Start Date | Through Date | Staff Status | Department | Specialty | Notes
+    const W1_COLS = 8;
+    ws1.columns = [
+      { width: 32 }, // Provider Name
+      { width: 16 }, // Privilege Status
       { width: 18 }, // Privileges Start Date
       { width: 20 }, // Privileges Through Date
-      { width: 35 }, // Notes
+      { width: 14 }, // Staff Status
+      { width: 26 }, // Department
+      { width: 20 }, // Specialty
+      { width: 38 }, // Notes
     ];
 
-    // ── Title row ───────────────────────────────────────────────────────────
-    ws.addRow(["Provider Credentialing — Privileges by Location", ...Array(9).fill("")]);
-    ws.mergeCells("A1:J1");
-    const titleCell = ws.getCell("A1");
-    titleCell.font      = mkFont({ bold: true, size: 16, color: { argb: WHITE } });
-    titleCell.fill      = mkFill(DARK_NAVY);
-    titleCell.alignment = { horizontal: "center", vertical: "middle" };
-    ws.getRow(1).height = 38;
+    // Title row
+    ws1.addRow(["Provider Credentialing — Privileges by Location", ...Array(W1_COLS - 1).fill("")]);
+    ws1.mergeCells(`A1:H1`);
+    const t1 = ws1.getCell("A1");
+    t1.font      = mkFont({ bold: true, size: 16, color: { argb: WHITE } });
+    t1.fill      = mkFill(DARK_NAVY);
+    t1.alignment = { horizontal: "center", vertical: "middle" };
+    ws1.getRow(1).height = 38;
 
     // Generated on
-    ws.addRow([`Generated: ${format(new Date(), "MMMM d, yyyy")}`, ...Array(9).fill("")]);
-    ws.mergeCells("A2:J2");
-    ws.getCell("A2").font      = mkFont({ italic: true, size: 9, color: { argb: "FFAAAAAA" } });
-    ws.getCell("A2").alignment = { horizontal: "left", vertical: "middle" };
-    ws.getRow(2).height = 16;
+    ws1.addRow([`Generated: ${format(new Date(), "MMMM d, yyyy")}`, ...Array(W1_COLS - 1).fill("")]);
+    ws1.mergeCells("A2:H2");
+    ws1.getCell("A2").font      = mkFont({ italic: true, size: 9, color: { argb: "FFAAAAAA" } });
+    ws1.getCell("A2").alignment = { horizontal: "left", vertical: "middle" };
+    ws1.getRow(2).height = 16;
 
-    ws.addRow([]); ws.getRow(3).height = 6;
+    // Freeze after row 1 (title)
+    ws1.views = [{ showGridLines: false, state: "frozen", ySplit: 1, xSplit: 0 }];
 
-    // ── Table header (row 4) ────────────────────────────────────────────────
-    const hRow = ws.addRow([
-      "Provider Name", "Facility Name", "Privileges", "Location",
-      "Staff Status", "Department", "Specialty",
-      "Privileges Start Date", "Privileges Through Date", "Notes"
-    ]);
-    hRow.height = 22;
-    hRow.eachCell({ includeEmpty: true }, (cell) => {
-      cell.font      = mkFont({ bold: true, color: { argb: WHITE } });
-      cell.fill      = mkFill(HEADER_BG);
-      cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
-      cell.border    = { bottom: med, right: thin };
-    });
+    // Column header row definition (reusable per facility section)
+    const COL_HEADERS = ["Provider Name", "Privilege Status", "Privileges Start Date", "Privileges Through Date", "Staff Status", "Department", "Specialty", "Notes"];
 
-    // ── Data rows: one row per facility-provider combo, sorted by facility then provider ──
-    const flatRows = [];
-    processedData.forEach(provider => {
-      allFacilities.forEach(facility => {
-        flatRows.push({ provider, facility });
+    // Group by facility
+    allFacilities.forEach((facility) => {
+      // Blank spacer row before each section
+      ws1.addRow([]);
+
+      // Facility group header row
+      ws1.addRow([facility.toUpperCase(), ...Array(W1_COLS - 1).fill("")]);
+      ws1.mergeCells(`A${ws1.rowCount}:H${ws1.rowCount}`);
+      const facCell = ws1.getCell(`A${ws1.rowCount}`);
+      facCell.font      = mkFont({ bold: true, size: 13, color: { argb: DARK_NAVY } });
+      facCell.fill      = mkFill(FAC_HDR_BG);
+      facCell.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
+      ws1.getRow(ws1.rowCount).height = 24;
+
+      // Column headers for this section
+      const colHdrRow = ws1.addRow(COL_HEADERS);
+      colHdrRow.height = 20;
+      colHdrRow.eachCell({ includeEmpty: true }, (cell) => {
+        cell.font      = mkFont({ bold: true, color: { argb: WHITE } });
+        cell.fill      = mkFill(HEADER_BG);
+        cell.alignment = { horizontal: "center", vertical: "middle" };
+        cell.border    = { bottom: { style: "medium", color: { argb: DARK_NAVY } }, right: thin };
       });
-    });
-    flatRows.sort((a, b) => {
-      const facCmp = allFacilities.indexOf(a.facility) - allFacilities.indexOf(b.facility);
-      if (facCmp !== 0) return facCmp;
-      return a.provider.full_name.localeCompare(b.provider.full_name);
-    });
 
-    let rowIdx = 0;
-    flatRows.forEach(({ provider, facility }) => {
+      // Providers for this facility, sorted A-Z
+      const sectionProviders = processedData
+        .slice()
+        .sort((a, b) => a.full_name.localeCompare(b.full_name));
+
+      sectionProviders.forEach((provider, idx) => {
         const priv = provider.facilityStatus[facility];
+        const { label, bg, fg, statusText } = getPrivStyle(priv);
         const hasPriv = !!priv;
+        const bgArgb = idx % 2 === 0 ? WHITE : ALT_ROW;
+        const staffStatus = hasPriv && priv.status
+          ? priv.status.charAt(0).toUpperCase() + priv.status.slice(1)
+          : "";
 
-        // Determine status label + colors
-        let statusLabel = "Yes";
-        let statusBg = GREEN_BG; let statusFg = GREEN_FG;
-        let staffStatus = "";
-        if (!hasPriv) {
-          statusLabel = "—";
-          statusBg = GRAY_BG; statusFg = GRAY_FG;
-        } else {
-          staffStatus = priv.status ? priv.status.charAt(0).toUpperCase() + priv.status.slice(1) : "";
-          const isExpired = priv.status === "expired" || (priv.expiration_date && isPast(parseISO(priv.expiration_date)));
-          if (isExpired) { statusBg = RED_BG; statusFg = RED_FG; }
-          else if (priv.status === "pending") { statusBg = YELLOW_BG; statusFg = YELLOW_FG; }
-          else if (priv.expiration_date) {
-            const exp = parseISO(priv.expiration_date);
-            if (exp > new Date() && exp <= addDays(new Date(), 90)) { statusBg = ORANGE_BG; statusFg = ORANGE_FG; }
-          }
-        }
-
-        const bgArgb = rowIdx % 2 === 0 ? WHITE : ALT_ROW;
-        const row = ws.addRow([
+        const row = ws1.addRow([
           provider.full_name,
-          facility,
-          hasPriv ? statusLabel : "—",
-          "", // Location / Contact — not stored in our entity, leave blank
+          hasPriv ? label : "—",
+          hasPriv && priv.granted_date    ? fmtDate(priv.granted_date)    : "",
+          hasPriv && priv.expiration_date ? fmtDate(priv.expiration_date) : "",
           staffStatus,
           "", // Department
           "", // Specialty
-          hasPriv && priv.granted_date   ? fmtDate(priv.granted_date)    : "",
-          hasPriv && priv.expiration_date ? fmtDate(priv.expiration_date) : "",
           priv?.notes || "",
         ]);
         row.height = 18;
         row.eachCell({ includeEmpty: true }, (cell, colNum) => {
           cell.fill      = mkFill(bgArgb);
           cell.font      = mkFont({});
-          cell.alignment = { horizontal: colNum === 1 ? "left" : colNum === 10 ? "left" : "center", vertical: "middle" };
+          cell.alignment = { horizontal: colNum === 1 || colNum === 8 ? "left" : "center", vertical: "middle" };
           cell.border    = { bottom: thin, right: thin };
         });
 
-        // Color-code the "Privileges" cell (col 3)
-        const privCell = row.getCell(3);
+        // Color the status cell (col 2)
         if (hasPriv) {
-          privCell.fill = mkFill(statusBg);
-          privCell.font = mkFont({ bold: true, color: { argb: statusFg } });
+          row.getCell(2).fill = mkFill(bg);
+          row.getCell(2).font = mkFont({ bold: true, color: { argb: fg } });
         } else {
-          privCell.font = mkFont({ color: { argb: GRAY_FG } });
+          row.getCell(2).font = mkFont({ color: { argb: GRAY_FG } });
         }
+      });
+    });
 
-        rowIdx++;
-    });  // end flatRows.forEach
+    // ════════════════════════════════════════════════════════════════════════
+    // WORKSHEET 2: "Credentialing Matrix"
+    // ════════════════════════════════════════════════════════════════════════
+    const ws2 = wb.addWorksheet("Credentialing Matrix", { views: [{ showGridLines: false }] });
 
-    // ── Register as Excel Table ─────────────────────────────────────────────
-    const tableEndRow = ws.rowCount;
-    if (tableEndRow >= 4) {
-      ws.addTable({
-        name: "PrivilegesByLocation",
-        ref: `A4:J${tableEndRow}`,
+    // For each provider/facility, pick the privilege with the most recent expiration_date
+    const getBestPriv = (provider, facility) => {
+      const matches = privileges.filter(
+        p => p.provider_id === provider.id && p.facility_name === facility
+      );
+      if (!matches.length) return null;
+      return matches.sort((a, b) => {
+        if (!a.expiration_date) return 1;
+        if (!b.expiration_date) return -1;
+        return b.expiration_date.localeCompare(a.expiration_date);
+      })[0];
+    };
+
+    // Providers sorted A-Z
+    const matrixProviders = processedData.slice().sort((a, b) => a.full_name.localeCompare(b.full_name));
+
+    const numFacCols = allFacilities.length;
+
+    // Column widths: Provider Name + one col per facility
+    ws2.columns = [
+      { width: 32 },
+      ...allFacilities.map(() => ({ width: 22 })),
+    ];
+
+    // Title row
+    ws2.addRow(["Provider Credentialing Matrix", ...Array(numFacCols).fill("")]);
+    ws2.mergeCells(`A1:${String.fromCharCode(65 + numFacCols)}1`);
+    const t2 = ws2.getCell("A1");
+    t2.font      = mkFont({ bold: true, size: 16, color: { argb: WHITE } });
+    t2.fill      = mkFill(DARK_NAVY);
+    t2.alignment = { horizontal: "center", vertical: "middle" };
+    ws2.getRow(1).height = 38;
+
+    // Generated on
+    ws2.addRow([`Generated: ${format(new Date(), "MMMM d, yyyy")}`, ...Array(numFacCols).fill("")]);
+    ws2.mergeCells(`A2:${String.fromCharCode(65 + numFacCols)}2`);
+    ws2.getCell("A2").font      = mkFont({ italic: true, size: 9, color: { argb: "FFAAAAAA" } });
+    ws2.getCell("A2").alignment = { horizontal: "left", vertical: "middle" };
+    ws2.getRow(2).height = 16;
+
+    // Header row (row 3): Provider Name + facility names
+    const matHdrRow = ws2.addRow(["Provider Name", ...allFacilities]);
+    matHdrRow.height = 24;
+    matHdrRow.eachCell({ includeEmpty: true }, (cell, colNum) => {
+      cell.font      = mkFont({ bold: true, color: { argb: WHITE } });
+      cell.fill      = mkFill(HEADER_BG);
+      cell.alignment = { horizontal: colNum === 1 ? "left" : "center", vertical: "middle", wrapText: true };
+      cell.border    = { bottom: { style: "medium", color: { argb: DARK_NAVY } }, right: thin };
+    });
+
+    // Freeze row 3 (header)
+    ws2.views = [{ showGridLines: false, state: "frozen", ySplit: 3, xSplit: 0 }];
+
+    // Data rows
+    matrixProviders.forEach((provider, idx) => {
+      const bgArgb = idx % 2 === 0 ? WHITE : ALT_ROW;
+      const rowValues = [provider.full_name, ...allFacilities.map(facility => {
+        const priv = getBestPriv(provider, facility);
+        if (!priv) return "";
+        const { statusText } = getPrivStyle(priv);
+        return statusText;
+      })];
+
+      const row = ws2.addRow(rowValues);
+      row.height = 18;
+      row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+        cell.fill      = mkFill(bgArgb);
+        cell.font      = mkFont({});
+        cell.alignment = { horizontal: colNum === 1 ? "left" : "center", vertical: "middle" };
+        cell.border    = { bottom: thin, right: thin };
+      });
+
+      // Color each facility cell
+      allFacilities.forEach((facility, fIdx) => {
+        const priv = getBestPriv(provider, facility);
+        const cell = row.getCell(fIdx + 2);
+        if (priv) {
+          const { bg, fg } = getPrivStyle(priv);
+          cell.fill = mkFill(bg);
+          cell.font = mkFont({ color: { argb: fg } });
+        }
+      });
+    });
+
+    // Register matrix as Excel Table with filters
+    const matTableEnd = ws2.rowCount;
+    if (matTableEnd >= 3) {
+      ws2.addTable({
+        name: "CredentialingMatrix",
+        ref: `A3:${String.fromCharCode(65 + numFacCols)}${matTableEnd}`,
         headerRow: true,
         totalsRow: false,
         style: { theme: "TableStyleMedium2", showRowStripes: true },
         columns: [
-          { name: "Provider Name",          filterButton: true },
-          { name: "Facility Name",          filterButton: true },
-          { name: "Privileges",             filterButton: true },
-          { name: "Location",               filterButton: true },
-          { name: "Staff Status",           filterButton: true },
-          { name: "Department",             filterButton: true },
-          { name: "Specialty",              filterButton: true },
-          { name: "Privileges Start Date",  filterButton: true },
-          { name: "Privileges Through Date", filterButton: true },
-          { name: "Notes",                  filterButton: true },
+          { name: "Provider Name", filterButton: true },
+          ...allFacilities.map(f => ({ name: f, filterButton: true })),
         ],
-        rows: [], // rows already added above
+        rows: [],
       });
     }
-
-    // Freeze header row
-    ws.views = [{ showGridLines: false, state: "frozen", ySplit: 4, xSplit: 0 }];
 
     // ── Download ────────────────────────────────────────────────────────────
     const buffer = await wb.xlsx.writeBuffer();
