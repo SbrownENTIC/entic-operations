@@ -229,12 +229,17 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
           };
 
           const directorshipInvoices = groupInvoices.filter(inv => {
-            // Check invoice number first (legacy naming)
+            // For Hartford Hospital, ONLY use invoice number
+            if (programGroup === 'Hartford Hospital') {
+              return inv.invoice_number && inv.invoice_number.includes('(Directorship)');
+            }
+            
+            // For other programs (St. Francis), check invoice number first
             if (inv.invoice_number && inv.invoice_number.includes('(Directorship)')) {
               return true;
             }
             
-            // Check linked outside income for directorship
+            // Then check linked outside income for directorship
             const linkedIncomes = (inv.outside_income_ids || []).map(incomeId => 
               outsideIncome.find(income => income.id === incomeId)
             ).filter(Boolean);
@@ -306,20 +311,36 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
             rows: []
           };
 
-          // Exclude any invoice already classified as directorship
           const onCallInvoices = groupInvoices.filter(inv => {
-            // Check invoice number
-            if (inv.invoice_number && inv.invoice_number.includes('(Directorship)')) return false;
-            // Check linked outside income
-            const linkedIncomes = (inv.outside_income_ids || []).map(id => outsideIncome.find(inc => inc.id === id)).filter(Boolean);
-            return !linkedIncomes.some(income => {
-              if (income.facility_name && income.facility_name.toLowerCase().includes('directorship')) return true;
+            // For Hartford Hospital, ONLY use invoice number
+            if (programGroup === 'Hartford Hospital') {
+              return !inv.invoice_number || !inv.invoice_number.includes('(Directorship)');
+            }
+            
+            // For other programs (St. Francis), check invoice number first
+            if (inv.invoice_number && inv.invoice_number.includes('(Directorship)')) {
+              return false;
+            }
+            
+            // Then check linked outside income to exclude directorship
+            const linkedIncomes = (inv.outside_income_ids || []).map(incomeId => 
+              outsideIncome.find(income => income.id === incomeId)
+            ).filter(Boolean);
+
+            const hasDirectorshipIncome = linkedIncomes.some(income => {
+              if (income.facility_name && income.facility_name.toLowerCase().includes('directorship')) {
+                return true;
+              }
               if (income.program_location_id) {
-                const loc = programLocations.find(pl => pl.id === income.program_location_id);
-                if (loc?.program_type === 'Directorship') return true;
+                const incomeLocation = programLocations.find(pl => pl.id === income.program_location_id);
+                if (incomeLocation?.program_type === 'Directorship') {
+                  return true;
+                }
               }
               return false;
             });
+            
+            return !hasDirectorshipIncome;
           });
 
           // Sort by month
