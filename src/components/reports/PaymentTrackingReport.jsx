@@ -229,17 +229,12 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
           };
 
           const directorshipInvoices = groupInvoices.filter(inv => {
-            // For Hartford Hospital, ONLY use invoice number
-            if (programGroup === 'Hartford Hospital') {
-              return inv.invoice_number && inv.invoice_number.includes('(Directorship)');
-            }
-            
-            // For other programs (St. Francis), check invoice number first
+            // Check invoice number first (legacy naming)
             if (inv.invoice_number && inv.invoice_number.includes('(Directorship)')) {
               return true;
             }
             
-            // Then check linked outside income for directorship
+            // Check linked outside income for directorship
             const linkedIncomes = (inv.outside_income_ids || []).map(incomeId => 
               outsideIncome.find(income => income.id === incomeId)
             ).filter(Boolean);
