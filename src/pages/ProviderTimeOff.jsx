@@ -331,12 +331,12 @@ export default function ProviderTimeOff() {
 
       // Grid wrapper
       const grid = document.createElement('div');
-      grid.style.cssText = 'display:grid;grid-template-columns:repeat(7,1fr);gap:6px;';
+      grid.style.cssText = 'display:grid;grid-template-columns:repeat(7,1fr);gap:0;border:1px solid #94a3b8;';
 
       // Day-of-week headers
       ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => {
         const th = document.createElement('div');
-        th.style.cssText = 'text-align:center;font-weight:600;font-size:13px;color:#475569;padding:6px 0;';
+        th.style.cssText = 'text-align:center;font-weight:700;font-size:13px;color:#1e293b;padding:7px 0;background:#f1f5f9;border-right:1px solid #94a3b8;border-bottom:2px solid #64748b;';
         th.textContent = d;
         grid.appendChild(th);
       });
