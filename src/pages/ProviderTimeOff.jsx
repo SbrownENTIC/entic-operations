@@ -351,7 +351,7 @@ export default function ProviderTimeOff() {
         }
 
         const isToday = isSameDay(day, new Date());
-        cell.style.cssText = `min-height:90px;padding:6px 7px 7px 7px;border:1px solid #94a3b8;background:${isToday ? '#eff6ff' : '#fff'};vertical-align:top;`;
+        cell.style.cssText = `min-height:90px;padding:6px 7px 7px 7px;border-right:1px solid #94a3b8;border-bottom:1px solid #94a3b8;background:${isToday ? '#eff6ff' : '#fff'};vertical-align:top;`;
 
         const dayNum = document.createElement('div');
         dayNum.style.cssText = `font-size:14px;font-weight:700;margin-bottom:5px;padding-bottom:3px;border-bottom:1px solid #e2e8f0;color:${isToday ? '#1d4ed8' : '#1e293b'};`;
