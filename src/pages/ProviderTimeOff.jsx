@@ -345,16 +345,16 @@ export default function ProviderTimeOff() {
       cells.forEach(day => {
         const cell = document.createElement('div');
         if (!day) {
-          cell.style.cssText = 'min-height:80px;';
+          cell.style.cssText = 'min-height:90px;border:1px solid #cbd5e1;background:#f8fafc;';
           grid.appendChild(cell);
           return;
         }
 
         const isToday = isSameDay(day, new Date());
-        cell.style.cssText = `padding:6px;border:1px solid ${isToday ? '#93c5fd' : '#e2e8f0'};border-radius:6px;background:${isToday ? '#eff6ff' : '#fff'};`;
+        cell.style.cssText = `min-height:90px;padding:6px 7px 7px 7px;border:1px solid #94a3b8;background:${isToday ? '#eff6ff' : '#fff'};vertical-align:top;`;
 
         const dayNum = document.createElement('div');
-        dayNum.style.cssText = `font-size:13px;font-weight:600;margin-bottom:4px;color:${isToday ? '#1d4ed8' : '#334155'};`;
+        dayNum.style.cssText = `font-size:14px;font-weight:700;margin-bottom:5px;padding-bottom:3px;border-bottom:1px solid #e2e8f0;color:${isToday ? '#1d4ed8' : '#1e293b'};`;
         dayNum.textContent = format(day, 'd');
         cell.appendChild(dayNum);
 
@@ -365,19 +365,19 @@ export default function ProviderTimeOff() {
           return isWithinInterval(day, { start: s, end: e }) || isSameDay(day, s) || isSameDay(day, e);
         });
 
-        dayEntries.forEach(entry => {
-          const typeColorMap = {
-            time_off: { bg: '#dbeafe', color: '#1e40af' },
-            cme: { bg: '#ede9fe', color: '#5b21b6' },
-            partial_day: { bg: '#ffedd5', color: '#9a3412' },
-            holiday: { bg: '#dcfce7', color: '#166534' },
-          };
-          const colors = typeColorMap[entry.type] || { bg: '#f1f5f9', color: '#334155' };
+        const typeColorMap = {
+          time_off: { bg: '#dbeafe', color: '#1e3a8a' },
+          cme: { bg: '#ede9fe', color: '#4c1d95' },
+          partial_day: { bg: '#ffedd5', color: '#7c2d12' },
+          holiday: { bg: '#dcfce7', color: '#14532d' },
+        };
 
-          const pill = document.createElement('div');
-          pill.style.cssText = `font-size:11px;font-weight:500;padding:2px 5px;border-radius:4px;margin-bottom:2px;background:${colors.bg};color:${colors.color};white-space:normal;word-break:break-word;`;
-          pill.textContent = entry.provider?.full_name || '';
-          cell.appendChild(pill);
+        dayEntries.forEach(entry => {
+          const colors = typeColorMap[entry.type] || { bg: '#f1f5f9', color: '#1e293b' };
+          const nameEl = document.createElement('div');
+          nameEl.style.cssText = `font-size:11px;font-weight:500;padding:2px 4px;margin-bottom:2px;background:${colors.bg};color:${colors.color};white-space:normal;word-break:break-word;border-left:3px solid ${colors.color};`;
+          nameEl.textContent = entry.provider?.full_name || '';
+          cell.appendChild(nameEl);
         });
 
         grid.appendChild(cell);
