@@ -139,24 +139,95 @@ export default function ProviderTimeOff() {
     }
   });
 
+  // Expand a start/end range into individual 'yyyy-MM-dd' strings
+  const expandRange = (start_date, end_date) => {
+    const days = [];
+    const start = parseISO(start_date);
+    const end = parseISO(end_date);
+    const count = differenceInDays(end, start);
+    for (let i = 0; i <= count; i++) {
+      days.push(format(addDays(start, i), 'yyyy-MM-dd'));
+    }
+    return days;
+  };
+
+  // Regroup sorted array of 'yyyy-MM-dd' strings into consecutive ranges
+  const regroupIntoRanges = (sortedDates) => {
+    if (sortedDates.length === 0) return [];
+    const ranges = [];
+    let currentRange = { start: sortedDates[0], end: sortedDates[0] };
+    for (let i = 1; i < sortedDates.length; i++) {
+      const diff = differenceInDays(parseISO(sortedDates[i]), parseISO(sortedDates[i - 1]));
+      if (diff === 1) {
+        currentRange.end = sortedDates[i];
+      } else {
+        ranges.push(currentRange);
+        currentRange = { start: sortedDates[i], end: sortedDates[i] };
+      }
+    }
+    ranges.push(currentRange);
+    return ranges;
+  };
+
   const handleSubmit = async (data) => {
     if (editingTimeOff) {
       updateMutation.mutate({ id: editingTimeOff.id, data });
-    } else {
-      if (Array.isArray(data)) {
-        // Handle multiple entries (bulk creation)
-        try {
-          await Promise.all(data.map(entry => base44.entities.ProviderTimeOff.create(entry)));
-          queryClient.invalidateQueries({ queryKey: ['provider-timeoff'] });
-          setShowForm(false);
-          setEditingTimeOff(null);
-        } catch (error) {
-          console.error("Error creating multiple time off entries:", error);
-          // Optionally show error toast
-        }
-      } else {
-        createMutation.mutate(data);
-      }
+      return;
+    }
+
+    // Normalise to array of entries
+    const entries = Array.isArray(data) ? data : [data];
+    if (entries.length === 0) return;
+
+    const providerId = entries[0].provider_id;
+
+    // Build set of existing days for this provider (excluding declined)
+    const existingDays = new Set(
+      timeOffEntries
+        .filter(e => e.provider_id === providerId && e.status !== 'declined')
+        .flatMap(e => expandRange(e.start_date, e.end_date))
+    );
+
+    // Expand all new entries into individual days
+    const newDays = entries.flatMap(e => expandRange(e.start_date, e.end_date));
+    const originalCount = newDays.length;
+
+    // Filter out duplicates
+    const uniqueDays = [...new Set(newDays.filter(d => !existingDays.has(d)))].sort();
+    const skippedCount = originalCount - uniqueDays.length;
+
+    if (uniqueDays.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "All dates already exist",
+        description: "Every selected date already has an entry for this provider.",
+      });
+      return;
+    }
+
+    if (skippedCount > 0) {
+      toast({
+        title: "Some dates were skipped",
+        description: `${skippedCount} date${skippedCount > 1 ? 's were' : ' was'} skipped because ${skippedCount > 1 ? 'they already exist' : 'it already exists'}.`,
+      });
+    }
+
+    // Regroup remaining days into consecutive ranges
+    const ranges = regroupIntoRanges(uniqueDays);
+    const finalEntries = ranges.map(range => ({
+      ...entries[0],
+      start_date: range.start,
+      end_date: range.end,
+    }));
+
+    try {
+      await Promise.all(finalEntries.map(entry => base44.entities.ProviderTimeOff.create(entry)));
+      queryClient.invalidateQueries({ queryKey: ['provider-timeoff'] });
+      setShowForm(false);
+      setEditingTimeOff(null);
+    } catch (error) {
+      console.error("Error creating time off entries:", error);
+      toast({ variant: "destructive", title: "Error", description: error.message });
     }
   };
 
