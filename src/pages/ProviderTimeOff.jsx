@@ -345,7 +345,7 @@ export default function ProviderTimeOff() {
       cells.forEach(day => {
         const cell = document.createElement('div');
         if (!day) {
-          cell.style.cssText = 'min-height:90px;border:1px solid #cbd5e1;background:#f8fafc;';
+          cell.style.cssText = 'min-height:90px;border-right:1px solid #94a3b8;border-bottom:1px solid #94a3b8;background:#f8fafc;';
           grid.appendChild(cell);
           return;
         }
