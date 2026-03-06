@@ -308,102 +308,120 @@ export default function ProviderTimeOff() {
   };
 
   const exportCalendarToPDF = async () => {
-    if (!calendarRef.current) return;
-    
     setIsExporting(true);
-    const originalMonth = currentMonth;
-    
-    try {
-      const pdf = new jsPDF({
-        orientation: 'landscape',
-        unit: 'mm',
-        format: 'a4'
+
+    // Build a hidden export-only DOM node, capture it, then remove it
+    const renderExportMonth = async (pdf, monthIndex) => {
+      const targetMonth = new Date(2026, monthIndex, 1);
+      const mStart = startOfMonth(targetMonth);
+      const mEnd = endOfMonth(targetMonth);
+      const mDays = eachDayOfInterval({ start: mStart, end: mEnd });
+      const startDow = getDay(mStart);
+      const cells = [...Array(startDow).fill(null), ...mDays];
+
+      // Create container
+      const container = document.createElement('div');
+      container.style.cssText = 'position:fixed;left:-9999px;top:0;width:1400px;background:#fff;padding:24px;font-family:sans-serif;';
+
+      // Header
+      const header = document.createElement('div');
+      header.style.cssText = 'font-size:22px;font-weight:700;margin-bottom:16px;color:#1e293b;';
+      header.textContent = format(targetMonth, 'MMMM yyyy');
+      container.appendChild(header);
+
+      // Grid wrapper
+      const grid = document.createElement('div');
+      grid.style.cssText = 'display:grid;grid-template-columns:repeat(7,1fr);gap:6px;';
+
+      // Day-of-week headers
+      ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => {
+        const th = document.createElement('div');
+        th.style.cssText = 'text-align:center;font-weight:600;font-size:13px;color:#475569;padding:6px 0;';
+        th.textContent = d;
+        grid.appendChild(th);
       });
-      
-      // Loop through all 12 months of 2026
+
+      // Day cells
+      cells.forEach(day => {
+        const cell = document.createElement('div');
+        if (!day) {
+          cell.style.cssText = 'min-height:80px;';
+          grid.appendChild(cell);
+          return;
+        }
+
+        const isToday = isSameDay(day, new Date());
+        cell.style.cssText = `padding:6px;border:1px solid ${isToday ? '#93c5fd' : '#e2e8f0'};border-radius:6px;background:${isToday ? '#eff6ff' : '#fff'};`;
+
+        const dayNum = document.createElement('div');
+        dayNum.style.cssText = `font-size:13px;font-weight:600;margin-bottom:4px;color:${isToday ? '#1d4ed8' : '#334155'};`;
+        dayNum.textContent = format(day, 'd');
+        cell.appendChild(dayNum);
+
+        // ALL entries for this day — no slice, name only
+        const dayEntries = sortedEntries.filter(entry => {
+          const s = parseISO(entry.start_date);
+          const e = parseISO(entry.end_date);
+          return isWithinInterval(day, { start: s, end: e }) || isSameDay(day, s) || isSameDay(day, e);
+        });
+
+        dayEntries.forEach(entry => {
+          const typeColorMap = {
+            time_off: { bg: '#dbeafe', color: '#1e40af' },
+            cme: { bg: '#ede9fe', color: '#5b21b6' },
+            partial_day: { bg: '#ffedd5', color: '#9a3412' },
+            holiday: { bg: '#dcfce7', color: '#166534' },
+          };
+          const colors = typeColorMap[entry.type] || { bg: '#f1f5f9', color: '#334155' };
+
+          const pill = document.createElement('div');
+          pill.style.cssText = `font-size:11px;font-weight:500;padding:2px 5px;border-radius:4px;margin-bottom:2px;background:${colors.bg};color:${colors.color};white-space:normal;word-break:break-word;`;
+          pill.textContent = entry.provider?.full_name || '';
+          cell.appendChild(pill);
+        });
+
+        grid.appendChild(cell);
+      });
+
+      container.appendChild(grid);
+      document.body.appendChild(container);
+
+      // Wait for layout
+      await new Promise(resolve => setTimeout(resolve, 150));
+
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        logging: false,
+        useCORS: true,
+      });
+
+      document.body.removeChild(container);
+      return canvas;
+    };
+
+    try {
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
       for (let month = 0; month < 12; month++) {
-        const targetMonth = new Date(2026, month, 1);
-        setCurrentMonth(targetMonth);
-        
-        // Wait for state update and rendering
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        // Store original styles
-        const contentElement = calendarRef.current.querySelector('.calendar-content');
-        const truncateElements = calendarRef.current.querySelectorAll('.truncate');
-        
-        const originalStyles = {
-          cardOverflow: calendarRef.current.style.overflow,
-          cardHeight: calendarRef.current.style.height,
-          contentOverflow: contentElement ? contentElement.style.overflow : null,
-          contentHeight: contentElement ? contentElement.style.height : null,
-        };
-        
-        // Remove truncation from all elements
-        truncateElements.forEach(el => {
-          el.classList.remove('truncate');
-          el.style.whiteSpace = 'normal';
-          el.style.wordBreak = 'break-word';
-        });
-        
-        // Make everything visible
-        calendarRef.current.style.overflow = 'visible';
-        calendarRef.current.style.height = 'auto';
-        if (contentElement) {
-          contentElement.style.overflow = 'visible';
-          contentElement.style.height = 'auto';
-        }
-        
-        // Wait for layout to settle
-        await new Promise(resolve => setTimeout(resolve, 200));
-        
-        const canvas = await html2canvas(calendarRef.current, {
-          scale: 2,
-          backgroundColor: '#ffffff',
-          logging: false,
-          useCORS: true,
-        });
-        
-        // Restore original styles
-        calendarRef.current.style.overflow = originalStyles.cardOverflow;
-        calendarRef.current.style.height = originalStyles.cardHeight;
-        if (contentElement) {
-          contentElement.style.overflow = originalStyles.contentOverflow;
-          contentElement.style.height = originalStyles.contentHeight;
-        }
-        truncateElements.forEach(el => {
-          el.classList.add('truncate');
-          el.style.whiteSpace = '';
-          el.style.wordBreak = '';
-        });
-        
+        const canvas = await renderExportMonth(pdf, month);
         const imgData = canvas.toDataURL('image/png');
-        
         const pdfWidth = 297;
         const pdfHeight = 210;
-        const imgWidth = canvas.width;
-        const imgHeight = canvas.height;
-        const ratio = Math.min(pdfWidth / (imgWidth * 0.264583), pdfHeight / (imgHeight * 0.264583));
-        
-        const finalWidth = imgWidth * 0.264583 * ratio;
-        const finalHeight = imgHeight * 0.264583 * ratio;
-        
+        const ratio = Math.min(pdfWidth / (canvas.width * 0.264583), pdfHeight / (canvas.height * 0.264583));
+        const finalWidth = canvas.width * 0.264583 * ratio;
+        const finalHeight = canvas.height * 0.264583 * ratio;
         const xOffset = (pdfWidth - finalWidth) / 2;
         const yOffset = (pdfHeight - finalHeight) / 2;
-        
-        if (month > 0) {
-          pdf.addPage();
-        }
-        
+        if (month > 0) pdf.addPage();
         pdf.addImage(imgData, 'PNG', xOffset, yOffset, finalWidth, finalHeight);
       }
-      
+
       pdf.save('calendar_2026_full_year.pdf');
     } catch (error) {
       console.error('Export failed:', error);
       alert('Failed to export calendar');
     } finally {
-      setCurrentMonth(originalMonth);
       setIsExporting(false);
     }
   };
