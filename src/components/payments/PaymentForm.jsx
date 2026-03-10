@@ -1148,8 +1148,16 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
           </div>
 
           <DialogFooter className="flex justify-between items-center mt-4">
-            <div className="text-sm text-slate-500">
-              {selectedBulkInvoices.size} invoices selected
+            <div className="text-sm text-slate-600">
+              <span className="font-medium">{selectedBulkInvoices.size} invoice{selectedBulkInvoices.size !== 1 ? 's' : ''} selected</span>
+              {selectedBulkInvoices.size > 0 && (
+                <span className="ml-2 text-green-700 font-semibold">
+                  — Total: ${Array.from(selectedBulkInvoices).reduce((sum, id) => {
+                    const inv = invoices.find(i => i.id === id);
+                    return sum + ((inv?.amount_expected || inv?.total || 0) - (inv?.amount_received || 0));
+                  }, 0).toFixed(2)}
+                </span>
+              )}
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setShowBulkSelect(false)}>Cancel</Button>
