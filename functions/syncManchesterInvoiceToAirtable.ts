@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
 
     // Construct Email Content
     const emailSubject = `Manchester ${invoiceMonth} Invoices`;
-    const toRecipient = "apacileo@echn.org";
+    const toRecipient = "AnnMarie.Pacileo@hhchealth.org";
     // Ensure these are the correct CCs
     const ccRecipients = "steve.brown@enticmd.com";
     
