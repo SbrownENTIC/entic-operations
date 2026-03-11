@@ -36,6 +36,7 @@ export default function ContactReferenceSheet() {
 
   const credentialingContacts = contacts.filter(c => c.section === 'credentialing');
   const fluContacts = contacts.filter(c => c.section === 'flu');
+  const apContacts = contacts.filter(c => c.section === 'accounts_payable');
 
   const groupByFacility = (list) => {
     const grouped = {};
