@@ -543,7 +543,7 @@ export default function Dashboard() {
   const today = startOfDay(new Date());
   const licensesExpiring60Days = licenses.filter(l => {
     const provider = providers.find(p => p.id === l.provider_id);
-    if (provider?.status !== 'active') return false;
+    if (!provider || provider.status !== 'active') return false;
     const days = differenceInDays(parseISO(l.expiration_date), today);
     return days > 0 && days <= 60;
   });
