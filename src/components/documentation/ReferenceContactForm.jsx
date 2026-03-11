@@ -16,6 +16,7 @@ const FACILITIES = [
   "Constitution Surgery Alliance",
   "Hartford Hospital",
   "Integrated Practice Management Solutions (IPMS)",
+  "Manchester / ECHN",
   "St. Francis Hospital / Trinity Health",
   "UConn Health"
 ];
