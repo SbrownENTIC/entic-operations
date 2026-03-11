@@ -184,6 +184,10 @@ export default function Licenses() {
 
     if (!matchesSearch) return false;
 
+    // When using an expiring filter (from dashboard link), only show active providers
+    const isExpiringFilter = ['expiring_7', 'expiring_14', 'expiring_30', 'expiring_60'].includes(filterType);
+    if (isExpiringFilter && license.provider?.status !== 'active') return false;
+
     if (filterType === 'expiring_7') {
       return license.daysUntilExpiration <= 7 && license.daysUntilExpiration > 0;
     }
