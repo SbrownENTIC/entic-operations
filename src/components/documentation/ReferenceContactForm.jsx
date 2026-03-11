@@ -219,6 +219,7 @@ export default function ReferenceContactForm({ open, onOpenChange, contact, sect
                   <SelectItem value="credentialing">COI & Credentialing</SelectItem>
                   <SelectItem value="flu">Flu Vaccine</SelectItem>
                   <SelectItem value="it">IT Team</SelectItem>
+                  <SelectItem value="accounts_payable">Accounts Payable</SelectItem>
                 </SelectContent>
              </Select>
           </div>
