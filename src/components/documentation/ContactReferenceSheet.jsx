@@ -54,6 +54,7 @@ export default function ContactReferenceSheet() {
 
   const groupedCredentialing = groupByFacility(credentialingContacts);
   const groupedFlu = groupByFacility(fluContacts);
+  const groupedAP = groupByFacility(apContacts);
 
   const handleEdit = (contact) => {
     setSelectedContact(contact);
