@@ -25,7 +25,7 @@ export default function ReferenceContactForm({ open, onOpenChange, contact, sect
   const queryClient = useQueryClient();
   const [isCustomFacility, setIsCustomFacility] = React.useState(false);
   
-  const { register, control, handleSubmit, reset, setValue, watch } = useForm({
+  const { register, control, handleSubmit, reset, setValue, watch, getValues } = useForm({
     defaultValues: {
       facility: "",
       contact_person: "",
