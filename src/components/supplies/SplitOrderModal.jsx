@@ -22,7 +22,7 @@ export default function SplitOrderModal({ order, isOpen, onClose, onSplit, isLoa
 
   if (!order) return null;
 
-  const locations = ['Glastonbury', 'Manchester', 'Bloomfield', 'Farmington'].filter(
+  const locations = ['Glastonbury', 'Manchester', 'Bloomfield', 'Farmington', 'Waterside'].filter(
     loc => loc !== order.location
   );
 
