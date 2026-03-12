@@ -367,6 +367,7 @@ export default function PublicSupplyRequest() {
                       <SelectItem value="Manchester">Manchester</SelectItem>
                       <SelectItem value="Bloomfield">Bloomfield</SelectItem>
                       <SelectItem value="Farmington">Farmington</SelectItem>
+                      <SelectItem value="Waterside">Waterside</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
