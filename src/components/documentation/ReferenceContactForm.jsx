@@ -210,7 +210,7 @@ export default function ReferenceContactForm({ open, onOpenChange, contact, sect
              <Label>Section</Label>
              <Select 
                onValueChange={(val) => setValue("section", val)} 
-               defaultValue={watch("section")}
+               value={watch("section")}
              >
                 <SelectTrigger>
                   <SelectValue />
