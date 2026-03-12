@@ -215,7 +215,7 @@ export default function ReferenceContactForm({ open, onOpenChange, contact, sect
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-60 overflow-y-auto">
                   <SelectItem value="credentialing">COI & Credentialing</SelectItem>
                   <SelectItem value="flu">Flu Vaccine</SelectItem>
                   <SelectItem value="it">IT Team</SelectItem>
