@@ -317,15 +317,16 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Glastonbury">Glastonbury</SelectItem>
-                  <SelectItem value="Manchester">Manchester</SelectItem>
-                  <SelectItem value="Bloomfield">Bloomfield</SelectItem>
-                  <SelectItem value="Farmington">Farmington</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                   <SelectItem value="Manchester">Manchester</SelectItem>
+                   <SelectItem value="Bloomfield">Bloomfield</SelectItem>
+                   <SelectItem value="Farmington">Farmington</SelectItem>
+                   <SelectItem value="Waterside">Waterside</SelectItem>
+                  </SelectContent>
+                  </Select>
+                  </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="order_date">Order Date *</Label>
+                  <div className="space-y-2">
+                  <Label htmlFor="order_date">Order Date *</Label>
               <Input
                 id="order_date"
                 type="date"
