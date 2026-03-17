@@ -1680,7 +1680,7 @@ export default function CallLogReporting() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
+  }; // end _inlinedExportRemoved
 
   // ---- DROPDOWN DASHBOARD VIEW ----
   return (
