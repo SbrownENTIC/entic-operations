@@ -13,6 +13,7 @@ import CdrInboundMetricsCard from "./CdrInboundMetricsCard";
 import UserBreakdownTable from "./UserBreakdownTable";
 import { minutesToHHMMSS, secondsToHHMMSS, formatDate, parseWeekDate, autoFitColumns } from "./ExcelExportHelpers";
 import { buildCdrSheet } from "./ExcelCdrSheet";
+import { durationToMinutes, calcInboundAnswered, calcInboundAnswerRate, getPhoneRole, getExpectedAnswerRate, getAnswerRateStatus } from "./ExcelCallLogCalcs";
 import {
   AlertDialog,
   AlertDialogAction,
