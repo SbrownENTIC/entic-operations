@@ -24,7 +24,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
-import ExcelJS from "exceljs";
+// ExcelJS moved to ExcelExportRunner
 
 
 // ---- Header normalization ----
