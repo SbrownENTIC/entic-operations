@@ -69,3 +69,68 @@ export function getAnswerRateStatus(actualRate, expectedRate) {
   if (actualRate === null || actualRate === undefined) return "";
   return actualRate >= expectedRate ? "Meets Target" : "Below Target";
 }
+
+/**
+ * Compute outbound answered.
+ * outbound_answered = max(answered_calls - inbound_answered, 0)
+ */
+export function calcOutboundAnswered(answeredCalls, inboundAnswered) {
+  const answered = Number(answeredCalls  || 0);
+  const inbAns   = Number(inboundAnswered || 0);
+  return Math.max(answered - inbAns, 0);
+}
+
+/**
+ * Compute outbound rate as a decimal [0, 1].
+ * If total_calls == 0 → returns 0.
+ * outbound_rate = outbound_calls / total_calls
+ */
+export function calcOutboundRate(outboundCalls, totalCalls) {
+  const outbound = Number(outboundCalls || 0);
+  const total    = Number(totalCalls    || 0);
+  if (total === 0) return 0;
+  return outbound / total;
+}
+
+/**
+ * Get Expected Outbound % based on phone role.
+ * Call Center → 0.15, Client Facing → 0.25
+ */
+export function getExpectedOutboundRate(phoneRole) {
+  return phoneRole === "Call Center" ? 0.15 : 0.25;
+}
+
+/**
+ * Determine Outbound Activity status by comparing actual vs expected outbound rate.
+ * Returns "Meets Target" | "Below Target"
+ */
+export function getOutboundActivityStatus(actualRate, expectedRate) {
+  if (actualRate === null || actualRate === undefined) return "";
+  return actualRate >= expectedRate ? "Meets Target" : "Below Target";
+}
+
+/**
+ * Compute calls per hour.
+ * calls_per_hour = total_calls / 7.5
+ */
+export function calcCallsPerHour(totalCalls) {
+  const total = Number(totalCalls || 0);
+  return total / 7.5;
+}
+
+/**
+ * Get Expected Calls Per Hour based on phone role.
+ * Call Center → 10, Client Facing → 7
+ */
+export function getExpectedCallsPerHour(phoneRole) {
+  return phoneRole === "Call Center" ? 10 : 7;
+}
+
+/**
+ * Determine Call Volume Status by comparing actual vs expected calls per hour.
+ * Returns "Meets Target" | "Below Target"
+ */
+export function getCallVolumeStatus(actualCph, expectedCph) {
+  if (actualCph === null || actualCph === undefined) return "";
+  return actualCph >= expectedCph ? "Meets Target" : "Below Target";
+}
