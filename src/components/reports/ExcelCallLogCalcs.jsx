@@ -1,0 +1,71 @@
+/**
+ * Core March 2026 worksheet calculation helpers for Call Log Excel export.
+ * All functions are pure — no side effects.
+ */
+
+// Extension numbers classified as "Call Center" role
+const CALL_CENTER_EXTENSIONS = new Set([101, 123, 128, 105, 116, 106, 113, 127, 126, 120, 403, 114, 124, 115]);
+
+/**
+ * Convert a duration value stored in minutes to total minutes (numeric).
+ * Accepts numbers (already minutes) or HH:MM:SS strings.
+ */
+export function durationToMinutes(value) {
+  if (value == null || value === "") return 0;
+  if (typeof value === "number") return value;
+  const s = String(value).trim();
+  // HH:MM:SS or H:MM:SS
+  const parts = s.split(":").map(Number);
+  if (parts.length === 3) return parts[0] * 60 + parts[1] + parts[2] / 60;
+  if (parts.length === 2) return parts[0] + parts[1] / 60;
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+
+/**
+ * Compute inbound answered from raw inbound/missed counts.
+ * inbound_answered = max(inbound_calls - missed_calls, 0)
+ */
+export function calcInboundAnswered(inboundCalls, missedCalls) {
+  const inbound = Number(inboundCalls || 0);
+  const missed  = Number(missedCalls  || 0);
+  return Math.max(inbound - missed, 0);
+}
+
+/**
+ * Compute inbound answer rate as a decimal [0, 1].
+ * If inbound_calls == 0 → returns 0.
+ */
+export function calcInboundAnswerRate(inboundCalls, inboundAnswered) {
+  const inbound  = Number(inboundCalls   || 0);
+  const answered = Number(inboundAnswered || 0);
+  if (inbound === 0) return 0;
+  return answered / inbound;
+}
+
+/**
+ * Determine Phone Role based on extension number.
+ * Returns "Call Center" or "Client Facing".
+ */
+export function getPhoneRole(extension) {
+  const ext = typeof extension === "string" ? parseInt(extension, 10) : Number(extension);
+  if (!isNaN(ext) && CALL_CENTER_EXTENSIONS.has(ext)) return "Call Center";
+  return "Client Facing";
+}
+
+/**
+ * Get Expected Answer Rate based on phone role.
+ * Call Center → 0.85, Client Facing → 0.65
+ */
+export function getExpectedAnswerRate(phoneRole) {
+  return phoneRole === "Call Center" ? 0.85 : 0.65;
+}
+
+/**
+ * Determine Answer Rate Status by comparing actual vs expected.
+ * Returns "Meets Target" | "Below Target"
+ */
+export function getAnswerRateStatus(actualRate, expectedRate) {
+  if (actualRate === null || actualRate === undefined) return "";
+  return actualRate >= expectedRate ? "Meets Target" : "Below Target";
+}
