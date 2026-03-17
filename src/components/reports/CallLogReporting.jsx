@@ -574,18 +574,17 @@ export default function CallLogReporting() {
     toast({ title: "Deleted", description: "Reporting period deleted." });
   };
 
-  const exportPeriodExcel = async () => {
-    if (!selectedPeriod) return;
-    if (!enrichedSummaries || enrichedSummaries.length === 0) {
-      console.warn("[Export] No benchmark-filtered data to export");
-      alert("No user data to export for this period.");
-      return;
-    }
+  const exportPeriodExcel = () => runExportPeriodExcel({
+    selectedPeriod,
+    enrichedSummaries,
+    totalCalls, totalInbound, totalOutbound,
+    totalInboundAnswered, totalMissed, totalDurationSec, overallAvgDurationSec,
+    formatPeriodLabel,
+  });
 
+  const _inlinedExportRemoved = async () => {
     const periodLabel = formatPeriodLabel(selectedPeriod);
     const uploadedWeeks = selectedPeriod.uploaded_weeks || [];
-    console.log("Exporting period:", periodLabel, "users:", enrichedSummaries.length);
-
     const now = new Date();
     const generatedOn = now.toLocaleDateString("en-US", { month:"2-digit", day:"2-digit", year:"numeric" }) +
       " " + now.toLocaleTimeString("en-US", { hour:"numeric", minute:"2-digit", hour12:true });
