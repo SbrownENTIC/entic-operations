@@ -154,60 +154,107 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
         // Sort using existing helper
         sortByMonth(processedItems);
 
-        processedItems.forEach(item => {
-           // Find payment info
-           let paymentDate = '';
-           let voucherNumber = '';
-           let paymentQuarter = '';
-           let amountReceived = 0;
+        const cleanNotes = (notes) => {
+          if (!notes) return '';
+          const lower = notes.toLowerCase();
+          if (lower.includes('auto-generated') || lower.includes('auto-created')) return '';
+          return notes;
+        };
 
-           payments.forEach(payment => {
-             payment.allocations?.forEach(allocation => {
-               if (allocation.outside_income_id === item.id) {
-                 amountReceived += (allocation.amount || 0);
-                 const pDate = parseISO(payment.payment_date);
-                 paymentDate = format(pDate, 'MM/dd/yyyy');
-                 const q = Math.floor(pDate.getMonth() / 3) + 1;
-                 paymentQuarter = `Q${q} ${pDate.getFullYear()}`;
-                 voucherNumber = payment.reference_number || '';
-               }
-             });
-           });
+        if (isNationsHearing) {
+          // Group by voucher number — one row per voucher
+          const voucherMap = new Map();
 
-           const expectedAmount = item.amount_due || item.total_amount || 0;
+          processedItems.forEach(item => {
+            let voucherNumber = '';
+            let paymentDateObj = null;
+            let amountReceived = 0;
 
-           const cleanNotes = (notes) => {
-             if (!notes) return '';
-             const lower = notes.toLowerCase();
-             if (lower.includes('auto-generated') || lower.includes('auto-created')) return '';
-             return notes;
-           };
+            payments.forEach(payment => {
+              payment.allocations?.forEach(allocation => {
+                if (allocation.outside_income_id === item.id) {
+                  amountReceived += (allocation.amount || 0);
+                  const pDate = parseISO(payment.payment_date);
+                  if (!paymentDateObj || pDate < paymentDateObj) paymentDateObj = pDate;
+                  voucherNumber = payment.reference_number || '';
+                }
+              });
+            });
 
-           if (isNationsHearing) {
-             section.rows.push([
-               voucherNumber,
-               item.external_invoice_number || '-',
-               item.month,
-               expectedAmount, // Pass number
-               amountReceived, // Pass number
-               paymentDate,
-               paymentQuarter,
-               cleanNotes(item.notes)
-             ]);
-           } else {
-             section.rows.push([
-               item.external_invoice_number || '-',
-               item.month,
-               expectedAmount, // Pass number
-               amountReceived, // Pass number
-               paymentDate,
-               paymentQuarter,
-               voucherNumber,
-               '', // Date Paid Provider (N/A)
-               cleanNotes(item.notes)
-             ]);
-           }
-        });
+            const expectedAmount = item.amount_due || item.total_amount || 0;
+            const invoiceNum = item.external_invoice_number || '-';
+            const key = voucherNumber || invoiceNum; // fallback key if no voucher
+
+            if (voucherMap.has(key)) {
+              const existing = voucherMap.get(key);
+              existing.expectedAmount += expectedAmount;
+              existing.amountReceived += amountReceived;
+              if (paymentDateObj && (!existing.paymentDateObj || paymentDateObj < existing.paymentDateObj)) {
+                existing.paymentDateObj = paymentDateObj;
+              }
+              existing.invoiceNumbers.push(invoiceNum);
+            } else {
+              voucherMap.set(key, {
+                voucherNumber,
+                invoiceNumbers: [invoiceNum],
+                month: item.month,
+                expectedAmount,
+                amountReceived,
+                paymentDateObj,
+              });
+            }
+          });
+
+          voucherMap.forEach(v => {
+            const paymentDate = v.paymentDateObj ? format(v.paymentDateObj, 'MM/dd/yyyy') : '';
+            const q = v.paymentDateObj ? Math.floor(v.paymentDateObj.getMonth() / 3) + 1 : '';
+            const paymentQuarter = v.paymentDateObj ? `Q${q} ${v.paymentDateObj.getFullYear()}` : '';
+            section.rows.push([
+              v.voucherNumber,
+              v.invoiceNumbers.join(', '),
+              v.month,
+              v.expectedAmount,
+              v.amountReceived,
+              paymentDate,
+              paymentQuarter,
+              '' // Notes — not item-specific when grouped
+            ]);
+          });
+
+        } else {
+          processedItems.forEach(item => {
+            let paymentDate = '';
+            let voucherNumber = '';
+            let paymentQuarter = '';
+            let amountReceived = 0;
+
+            payments.forEach(payment => {
+              payment.allocations?.forEach(allocation => {
+                if (allocation.outside_income_id === item.id) {
+                  amountReceived += (allocation.amount || 0);
+                  const pDate = parseISO(payment.payment_date);
+                  paymentDate = format(pDate, 'MM/dd/yyyy');
+                  const q = Math.floor(pDate.getMonth() / 3) + 1;
+                  paymentQuarter = `Q${q} ${pDate.getFullYear()}`;
+                  voucherNumber = payment.reference_number || '';
+                }
+              });
+            });
+
+            const expectedAmount = item.amount_due || item.total_amount || 0;
+            section.rows.push([
+              item.external_invoice_number || '-',
+              item.month,
+              expectedAmount,
+              amountReceived,
+              paymentDate,
+              paymentQuarter,
+              voucherNumber,
+              '', // Date Paid Provider (N/A)
+              cleanNotes(item.notes)
+            ]);
+          });
+        }
         
         sections.push(section);
 
