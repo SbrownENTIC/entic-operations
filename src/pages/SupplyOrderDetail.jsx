@@ -185,7 +185,7 @@ export default function SupplyOrderDetail() {
                         <td className="p-4">
                           {itemNumber ? (
                             <Link 
-                              to={createPageUrl('Supplies') + '?search=' + encodeURIComponent(itemNumber)}
+                              to={createPageUrl('OfficeSupplyCatalog') + '?search=' + encodeURIComponent(itemNumber)}
                               className="text-blue-600 hover:text-blue-800 hover:underline"
                             >
                               {itemNumber}
@@ -261,7 +261,7 @@ export default function SupplyOrderDetail() {
           <Link to={createPageUrl('Reports')}>
             <Button variant="outline">Back to Reports</Button>
           </Link>
-          <Link to={createPageUrl('SupplyOrders')}>
+          <Link to={createPageUrl('OfficeSupplyOrders')}>
             <Button className="bg-blue-600 hover:bg-blue-700">View All Orders</Button>
           </Link>
         </div>
