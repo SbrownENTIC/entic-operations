@@ -1,148 +1,197 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 
 /**
- * Admin-only backfill + audit function.
+ * Admin-only: Comprehensive catalog alignment + backfill.
  *
- * Strategy for resolving blank item_numbers on order line items:
- *   1. Hardcoded known corrections (name-fragment → item_number)
- *   2. Exact supply_id lookup in catalog
+ * Pass { dry_run: true } to audit without writing.
+ * Pass { dry_run: false } (default) to apply all fixes.
+ *
+ * Resolution order for a blank item_number:
+ *   1. Hard-coded corrections table (handles known historical name variants)
+ *   2. Exact supply_id catalog lookup
  *   3. Exact product_name match (case-insensitive, trimmed)
- *   4. Partial/prefix match: does the order item name start with the catalog name
- *      stripped of any trailing parenthetical suffix like "(TR58090)"?
- *
- * After patching, returns a full audit of any STILL-blank item_numbers so
- * admins can see what remains.
+ *   4. Stripped-suffix match  (strips trailing " (CODE)" from catalog names)
+ *   5. Keyword match: order name starts with stripped catalog name (≥ 10 chars)
  */
 
-// Hard-coded corrections for cases where name matching is unreliable.
-// Key: substring of supply_name (lowercased), Value: item_number to assign
-const HARDCODED = [
+// ─── Hard-coded corrections ────────────────────────────────────────────────
+// Each entry: { match: fn(nameLower) => bool, item_number, canonical_name? }
+// Add new entries here whenever a historical name variant is identified.
+const CORRECTIONS = [
+  // Sharpie
   {
-    match: (n) => n.includes("sharpie retractable permanent marker") && n.includes("ultra fine"),
+    match: n => n.includes("sharpie retractable permanent marker") && n.includes("ultra fine"),
     item_number: "271674",
   },
+  // Staples Standard Staples
   {
-    match: (n) => n.includes("staples standard staples") && (n.includes("1/4") || n.includes("5000")),
+    match: n => n.includes("staples standard staples") && (n.includes("1/4") || n.includes("5000")),
     item_number: "24418183",
+  },
+  // Bounty Essentials Select-A-Size (various name lengths in old orders)
+  {
+    match: n => n.includes("bounty essentials select-a-size") || n.includes("bounty essentials select a size"),
+    item_number: "24413085",
+  },
+  // Softsoap Fresh Citrus 6/Carton (different from 11.25oz single)
+  {
+    match: n => n.includes("softsoap") && n.includes("fresh citrus") && (n.includes("6/carton") || n.includes("6 carton")),
+    item_number: "24567949",
+  },
+  // BIC Round Stic Xtra-Life 60/Pack
+  {
+    match: n => n.includes("bic round stic") && (n.includes("60/pack") || n.includes("60 pack") || n.includes("xtra-life") || n.includes("xtra life")),
+    item_number: "24440955",
+  },
+  // Angel Soft Compact Recycled Coreless 36 Rolls
+  {
+    match: n => n.includes("angel soft") && n.includes("compact") && n.includes("recycled") && n.includes("750"),
+    item_number: "24515195",
+  },
+  // Coastwide Recycled Toilet Paper 48 Rolls
+  {
+    match: n => n.includes("coastwide") && n.includes("recycled toilet paper") && (n.includes("48 rolls") || n.includes("48/case") || n.includes("360 sheets")),
+    item_number: "24463153",
+  },
+  // Scotch Magic Tape (various pack sizes referenced historically)
+  {
+    match: n => n.includes("scotch") && n.includes("magic tape") && !n.includes("12"),
+    item_number: "24347031",
+  },
+  // Post-it Notes 3x3 (yellow, various counts)
+  {
+    match: n => n.includes("post-it") && n.includes("3") && n.includes("yellow") && !n.includes("super sticky"),
+    item_number: "508315",
   },
 ];
 
-/**
- * Strip trailing parenthetical code from a catalog product name, e.g.:
- *   "Staples Standard Staples, 1/4\" Leg Length, 5000/Box (TR58090)" → "Staples Standard Staples, 1/4\" Leg Length, 5000/Box"
- */
-function stripCatalogSuffix(name) {
-  return name.replace(/\s*\([^)]+\)\s*$/, "").trim();
+// ─── Helper: strip trailing "(CODE)" suffix from catalog product names ─────
+function stripSuffix(name) {
+  return name.replace(/\s*\([^)]+\)\s*$/, "").replace(/™/g, "").trim();
 }
 
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
-
   const user = await base44.auth.me();
   if (user?.role !== 'admin') {
-    return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+    return Response.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  // ------------------------------------------------------------------
-  // Build catalog lookup maps
-  // ------------------------------------------------------------------
+  const body = await req.json().catch(() => ({}));
+  const dryRun = body.dry_run === true;
+
+  // ── Build catalog lookup maps ─────────────────────────────────────────────
   const supplies = await base44.asServiceRole.entities.Supply.list();
-  const byId = {};           // supply.id → supply
-  const byExactName = {};    // lower-trimmed product_name → supply
-  const byStrippedName = {}; // lower-trimmed stripped product_name → supply
+  const byId = {};
+  const byExact = {};
+  const byStripped = {};
+  const byItemNumber = {};
 
   for (const s of supplies) {
-    if (!s.item_number) continue; // catalog entry itself has no item_number — skip
     if (s.id) byId[s.id] = s;
+    if (s.item_number) byItemNumber[s.item_number] = s;
     if (s.product_name) {
-      const exact = s.product_name.toLowerCase().trim();
-      byExactName[exact] = s;
-      const stripped = stripCatalogSuffix(s.product_name).toLowerCase().trim();
-      if (stripped !== exact) byStrippedName[stripped] = s;
+      const e = s.product_name.toLowerCase().trim();
+      byExact[e] = s;
+      const stripped = stripSuffix(s.product_name).toLowerCase().trim();
+      if (stripped !== e) byStripped[stripped] = s;
     }
   }
 
-  // ------------------------------------------------------------------
-  // Iterate orders
-  // ------------------------------------------------------------------
+  // ── Iterate all orders ────────────────────────────────────────────────────
   const orders = await base44.asServiceRole.entities.SupplyOrder.list();
 
-  let totalFixed = 0;
-  let totalOrdersUpdated = 0;
-  const stillMissing = []; // items we couldn't resolve
+  let fixedCount = 0;
+  let ordersUpdated = 0;
+  const stillMissing = {};  // supply_name → { occurrences, supply_id, example_order }
+  const fixLog = [];
 
   for (const order of orders) {
-    if (!order.items || order.items.length === 0) continue;
+    if (!order.items?.length) continue;
 
     let changed = false;
     const updatedItems = order.items.map(item => {
-      // Already has an item_number — skip
-      if (item.item_number && item.item_number.trim() !== "") return item;
+      if (item.item_number?.trim()) return item; // already has one
 
       const nameLower = (item.supply_name || "").toLowerCase().trim();
+      let resolved = null;
+      let method = null;
 
-      // 1. Hardcoded corrections
-      for (const hc of HARDCODED) {
-        if (hc.match(nameLower)) {
-          totalFixed++;
-          changed = true;
-          return { ...item, item_number: hc.item_number };
-        }
+      // 1. Hard-coded corrections
+      for (const c of CORRECTIONS) {
+        if (c.match(nameLower)) { resolved = c.item_number; method = "hardcoded"; break; }
       }
 
       // 2. supply_id lookup
-      if (item.supply_id && byId[item.supply_id]) {
-        totalFixed++;
-        changed = true;
-        return { ...item, item_number: byId[item.supply_id].item_number };
+      if (!resolved && item.supply_id && byId[item.supply_id]?.item_number) {
+        resolved = byId[item.supply_id].item_number;
+        method = "supply_id";
       }
 
       // 3. Exact name match
-      if (nameLower && byExactName[nameLower]) {
-        totalFixed++;
-        changed = true;
-        return { ...item, item_number: byExactName[nameLower].item_number };
+      if (!resolved && nameLower && byExact[nameLower]?.item_number) {
+        resolved = byExact[nameLower].item_number;
+        method = "exact_name";
       }
 
-      // 4. Stripped-suffix name match
-      if (nameLower && byStrippedName[nameLower]) {
-        totalFixed++;
-        changed = true;
-        return { ...item, item_number: byStrippedName[nameLower].item_number };
+      // 4. Stripped-suffix match
+      if (!resolved && nameLower && byStripped[nameLower]?.item_number) {
+        resolved = byStripped[nameLower].item_number;
+        method = "stripped_name";
       }
 
-      // Could not resolve — record for audit
-      stillMissing.push({
-        order_id: order.id,
-        order_number: order.order_number || order.id,
-        order_date: order.order_date,
-        vendor: order.vendor,
-        supply_name: item.supply_name || "(blank)",
-        supply_id: item.supply_id || null,
-      });
+      // 5. Keyword prefix match (order name starts with stripped catalog name)
+      if (!resolved && nameLower.length >= 10) {
+        for (const [stripped, s] of Object.entries(byStripped)) {
+          if (s.item_number && stripped.length >= 10 && nameLower.startsWith(stripped)) {
+            resolved = s.item_number;
+            method = "prefix_match";
+            break;
+          }
+        }
+      }
+
+      if (resolved) {
+        fixedCount++;
+        changed = true;
+        fixLog.push({
+          order_number: order.order_number || order.id,
+          supply_name: item.supply_name,
+          item_number: resolved,
+          method,
+        });
+        return { ...item, item_number: resolved };
+      }
+
+      // Could not resolve
+      const key = item.supply_name || "(blank)";
+      if (!stillMissing[key]) {
+        stillMissing[key] = { supply_name: key, supply_id: item.supply_id || null, occurrences: 0, example_order: order.order_number || order.id };
+      }
+      stillMissing[key].occurrences++;
       return item;
     });
 
-    if (changed) {
-      totalOrdersUpdated++;
+    if (changed && !dryRun) {
+      ordersUpdated++;
       await base44.asServiceRole.entities.SupplyOrder.update(order.id, { items: updatedItems });
+    } else if (changed && dryRun) {
+      ordersUpdated++; // count as "would update"
     }
   }
 
-  // Deduplicate stillMissing by supply_name for a clean audit list
-  const missingByName = {};
-  for (const m of stillMissing) {
-    const key = m.supply_name;
-    if (!missingByName[key]) missingByName[key] = { ...m, occurrences: 0 };
-    missingByName[key].occurrences++;
-  }
+  const missingList = Object.values(stillMissing).sort((a, b) => b.occurrences - a.occurrences);
 
   return Response.json({
     success: true,
-    orders_updated: totalOrdersUpdated,
-    line_items_fixed: totalFixed,
-    message: `Backfill complete. Fixed ${totalFixed} line items across ${totalOrdersUpdated} orders.`,
-    still_missing_item_number: Object.values(missingByName).sort((a, b) => b.occurrences - a.occurrences),
-    still_missing_count: stillMissing.length,
+    dry_run: dryRun,
+    orders_updated: ordersUpdated,
+    line_items_fixed: fixedCount,
+    message: dryRun
+      ? `DRY RUN: Would fix ${fixedCount} line items across ${ordersUpdated} orders.`
+      : `Fixed ${fixedCount} line items across ${ordersUpdated} orders.`,
+    still_missing_count: Object.values(stillMissing).reduce((s, v) => s + v.occurrences, 0),
+    still_missing: missingList,
+    fix_log: dryRun ? fixLog : [],
   });
 });
