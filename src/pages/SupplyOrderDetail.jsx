@@ -185,7 +185,7 @@ export default function SupplyOrderDetail() {
                         <td className="p-4">
                           {itemNumber ? (
                             <Link 
-                              to={createPageUrl('OfficeSupplyCatalog') + '?search=' + encodeURIComponent(itemNumber)}
+                              to={createPageUrl('Supplies') + '?search=' + encodeURIComponent(itemNumber)}
                               className="text-blue-600 hover:text-blue-800 hover:underline"
                             >
                               {itemNumber}
