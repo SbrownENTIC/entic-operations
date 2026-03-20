@@ -356,56 +356,117 @@ export default function OfficeSupplyAnalytics({ orders = [], dateRange = {} }) {
         )}
 
         {/* 4. Pricing Metrics */}
-        {activeSection === "pricing" && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-slate-900">Pricing Metrics by Item # ({grouped.length} items)</h3>
-              <Button size="sm" variant="outline" className="gap-2" onClick={exportPricing}><Download className="w-4 h-4" /> Export CSV</Button>
+        {activeSection === "pricing" && (() => {
+          const fmtDate = (d) => d ? format(parseISO(d), "MM/dd/yy") : "—";
+
+          const SORT_COLS = {
+            item_number:   (g) => g.item_number,
+            supply_name:   (g) => g.supply_name,
+            totalQty:      (g) => g.totalQty,
+            avgUnitCost:   (g) => g.avgUnitCost,
+            minPrice:      (g) => g.minPrice ?? -1,
+            minPriceDate:  (g) => g.minPriceDate ?? "",
+            maxPrice:      (g) => g.maxPrice ?? -1,
+            maxPriceDate:  (g) => g.maxPriceDate ?? "",
+            priceVariance: (g) => g.priceVariance ?? -1,
+          };
+
+          const searchLower = pricingSearch.trim().toLowerCase();
+          const filtered = grouped.filter(g =>
+            !searchLower ||
+            g.item_number.toLowerCase().includes(searchLower) ||
+            g.supply_name.toLowerCase().includes(searchLower)
+          );
+
+          const sorted = [...filtered].sort((a, b) => {
+            const fn = SORT_COLS[pricingSort] || SORT_COLS.priceVariance;
+            const av = fn(a), bv = fn(b);
+            const cmp = typeof av === "string" ? av.localeCompare(bv) : av - bv;
+            return pricingDir === "asc" ? cmp : -cmp;
+          });
+
+          const handleSort = (col) => {
+            if (pricingSort === col) setPricingDir(d => d === "asc" ? "desc" : "asc");
+            else { setPricingSort(col); setPricingDir("desc"); }
+          };
+
+          const SortIcon = ({ col }) => {
+            if (pricingSort !== col) return <ChevronsUpDown className="w-3 h-3 text-slate-400 inline ml-1" />;
+            return pricingDir === "asc"
+              ? <ChevronUp className="w-3 h-3 text-blue-600 inline ml-1" />
+              : <ChevronDown className="w-3 h-3 text-blue-600 inline ml-1" />;
+          };
+
+          const SortableTh = ({ col, label, right }) => (
+            <th
+              onClick={() => handleSort(col)}
+              className={`p-3 text-sm font-semibold text-slate-700 cursor-pointer select-none hover:bg-slate-200 whitespace-nowrap ${right ? "text-right" : "text-left"}`}
+            >
+              {label}<SortIcon col={col} />
+            </th>
+          );
+
+          return (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h3 className="font-semibold text-slate-900">Pricing Metrics by Item # ({filtered.length}{filtered.length !== grouped.length ? ` of ${grouped.length}` : ""} items)</h3>
+                <Button size="sm" variant="outline" className="gap-2" onClick={exportPricing}><Download className="w-4 h-4" /> Export CSV</Button>
+              </div>
+              <div className="flex items-center gap-3">
+                <Input
+                  placeholder="Search by Item # or Product…"
+                  value={pricingSearch}
+                  onChange={e => setPricingSearch(e.target.value)}
+                  className="max-w-xs h-8 text-sm"
+                />
+                {pricingSearch && (
+                  <button onClick={() => setPricingSearch("")} className="text-xs text-slate-500 hover:text-slate-800 underline">Clear</button>
+                )}
+              </div>
+              <p className="text-xs text-slate-500">Price Variance % = (Max − Min) ÷ Min × 100. Click any column header to sort.</p>
+              <div className="overflow-auto max-h-[520px] border rounded-lg">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-100 border-b border-slate-200 sticky top-0">
+                    <tr>
+                      <SortableTh col="item_number"   label="Item #" />
+                      <SortableTh col="supply_name"   label="Product" />
+                      <SortableTh col="totalQty"      label="Total Qty"  right />
+                      <SortableTh col="avgUnitCost"   label="Avg Cost"   right />
+                      <SortableTh col="minPrice"      label="Min Price"  right />
+                      <SortableTh col="minPriceDate"  label="Min Date"   right />
+                      <SortableTh col="maxPrice"      label="Max Price"  right />
+                      <SortableTh col="maxPriceDate"  label="Max Date"   right />
+                      <SortableTh col="priceVariance" label="Variance %" right />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sorted.map((g, i) => {
+                      const variance = g.priceVariance;
+                      const varColor = variance === null ? "text-slate-400"
+                        : variance >= 20 ? "text-red-600 font-semibold"
+                        : variance >= 10 ? "text-orange-600 font-semibold"
+                        : "text-green-700";
+                      return (
+                        <tr key={g.item_number} className={`border-b border-slate-100 ${i % 2 === 0 ? "" : "bg-slate-50"}`}>
+                          <td className="p-3 font-mono text-xs text-slate-600">{g.item_number}</td>
+                          <td className="p-3 text-slate-900">{g.supply_name}</td>
+                          <td className="p-3 text-right text-slate-700">{g.totalQty.toLocaleString()}</td>
+                          <td className="p-3 text-right text-slate-600">{fmt(g.avgUnitCost)}</td>
+                          <td className="p-3 text-right text-green-700">{g.minPrice !== null ? fmt(g.minPrice) : "—"}</td>
+                          <td className="p-3 text-right text-slate-500 text-xs">{fmtDate(g.minPriceDate)}</td>
+                          <td className="p-3 text-right text-red-600">{g.maxPrice !== null ? fmt(g.maxPrice) : "—"}</td>
+                          <td className="p-3 text-right text-slate-500 text-xs">{fmtDate(g.maxPriceDate)}</td>
+                          <td className={`p-3 text-right ${varColor}`}>{variance !== null ? variance.toFixed(1) + "%" : "N/A"}</td>
+                        </tr>
+                      );
+                    })}
+                    {sorted.length === 0 && <tr><td colSpan={9} className="p-8 text-center text-slate-400">{grouped.length === 0 ? "No data in selected date range." : "No items match your search."}</td></tr>}
+                  </tbody>
+                </table>
+              </div>
             </div>
-            <p className="text-xs text-slate-500">Price Variance % = (Max − Min) ÷ Min × 100. Sorted by highest variance first. Items with a single observed price show N/A.</p>
-            <div className="overflow-auto max-h-[520px] border rounded-lg">
-              <table className="w-full text-sm">
-                <TableHeader cols={[
-                  { key: "num",     label: "Item #" },
-                  { key: "name",    label: "Product" },
-                  { key: "qty",     label: "Total Qty",    right: true },
-                  { key: "avg",     label: "Avg Cost",     right: true },
-                  { key: "min",     label: "Min Price",    right: true },
-                  { key: "minDate", label: "Min Date",     right: true },
-                  { key: "max",     label: "Max Price",    right: true },
-                  { key: "maxDate", label: "Max Date",     right: true },
-                  { key: "var",     label: "Variance %",   right: true },
-                ]} />
-                <tbody>
-                  {[...grouped].sort((a, b) => (b.priceVariance ?? -1) - (a.priceVariance ?? -1)).map((g, i) => {
-                    const variance = g.priceVariance;
-                    const varColor = variance === null ? "text-slate-400"
-                      : variance >= 20 ? "text-red-600 font-semibold"
-                      : variance >= 10 ? "text-orange-600 font-semibold"
-                      : "text-green-700";
-                    const fmtDate = (d) => d ? format(parseISO(d), "MM/dd/yy") : "—";
-                    return (
-                      <tr key={g.item_number} className={`border-b border-slate-100 ${i % 2 === 0 ? "" : "bg-slate-50"}`}>
-                        <td className="p-3 font-mono text-xs text-slate-600">{g.item_number}</td>
-                        <td className="p-3 text-slate-900">{g.supply_name}</td>
-                        <td className="p-3 text-right text-slate-700">{g.totalQty.toLocaleString()}</td>
-                        <td className="p-3 text-right text-slate-600">{fmt(g.avgUnitCost)}</td>
-                        <td className="p-3 text-right text-green-700">{g.minPrice !== null ? fmt(g.minPrice) : "—"}</td>
-                        <td className="p-3 text-right text-slate-500 text-xs">{fmtDate(g.minPriceDate)}</td>
-                        <td className="p-3 text-right text-red-600">{g.maxPrice !== null ? fmt(g.maxPrice) : "—"}</td>
-                        <td className="p-3 text-right text-slate-500 text-xs">{fmtDate(g.maxPriceDate)}</td>
-                        <td className={`p-3 text-right ${varColor}`}>
-                          {variance !== null ? variance.toFixed(1) + "%" : "N/A"}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {grouped.length === 0 && <tr><td colSpan={9} className="p-8 text-center text-slate-400">No data in selected date range.</td></tr>}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* 5. Monthly Spend Trend */}
         {activeSection === "trend" && (
