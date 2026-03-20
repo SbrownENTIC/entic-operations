@@ -175,10 +175,33 @@ export default function OfficeSupplyAnalytics({ orders = [], dateRange = {} }) {
     exportCSV(rows, "office_supply_vendor_comparison");
   };
 
+  const byPriceVariance = useMemo(() =>
+    [...grouped].filter(g => g.priceVariance !== null).sort((a, b) => b.priceVariance - a.priceVariance),
+  [grouped]);
+
+  const exportPricing = () => {
+    const fmtDate = (d) => d ? format(parseISO(d), "MM/dd/yyyy") : "";
+    const rows = [
+      ["Office Supply Analytics — Pricing Metrics by Item"],
+      ["Item #", "Product", "Total Qty", "Total Spend", "Avg Unit Cost", "Min Unit Price", "Min Price Date", "Max Unit Price", "Max Price Date", "Price Variance %"],
+      ...grouped.sort((a, b) => (b.priceVariance ?? -1) - (a.priceVariance ?? -1)).map(g => [
+        g.item_number, g.supply_name, g.totalQty, g.totalSpend.toFixed(2),
+        g.avgUnitCost.toFixed(2),
+        g.minPrice !== null ? g.minPrice.toFixed(2) : "",
+        fmtDate(g.minPriceDate),
+        g.maxPrice !== null ? g.maxPrice.toFixed(2) : "",
+        fmtDate(g.maxPriceDate),
+        g.priceVariance !== null ? g.priceVariance.toFixed(1) + "%" : "N/A",
+      ])
+    ];
+    exportCSV(rows, "office_supply_pricing_metrics");
+  };
+
   const sections = [
     { key: "spend",   label: "Total Spend by Item" },
     { key: "qty",     label: "Quantity Ordered" },
     { key: "avg",     label: "Avg Unit Cost" },
+    { key: "pricing", label: "Pricing Metrics" },
     { key: "trend",   label: "Monthly Trend" },
     { key: "top10",   label: "Top 10 Items" },
     { key: "vendor",  label: "Vendor Comparison" },
