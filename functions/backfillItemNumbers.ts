@@ -113,6 +113,11 @@ const CORRECTIONS = [
     match: n => n.includes("softsoap") && n.includes("fresh citrus") && n.includes("6/carton"),
     item_number: "24397022",
   },
+  // Swingline SF4 staples
+  {
+    match: n => n.includes("swingline") && n.includes("s.f. 4") && (n.includes("1/4") || n.includes("5000")),
+    item_number: "35464",
+  },
 ];
 
 // ─── Helper: strip trailing "(CODE)" suffix from catalog product names ─────
