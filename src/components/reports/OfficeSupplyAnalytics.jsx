@@ -120,6 +120,9 @@ function exportCSV(rows, filename) {
 
 export default function OfficeSupplyAnalytics({ orders = [], dateRange = {} }) {
   const [activeSection, setActiveSection] = useState("spend");
+  const [pricingSearch, setPricingSearch] = useState("");
+  const [pricingSort, setPricingSort] = useState("priceVariance");
+  const [pricingDir, setPricingDir] = useState("desc");
 
   const lineItems = useMemo(() => buildLineItems(orders, dateRange), [orders, dateRange]);
   const grouped   = useMemo(() => groupByItemNumber(lineItems), [lineItems]);
