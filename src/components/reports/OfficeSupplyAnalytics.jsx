@@ -29,6 +29,8 @@ function buildLineItems(orders, dateRange) {
         order_date:   order.order_date,
         vendor:       order.vendor || "(unknown)",
         location:     order.location || "(unknown)",
+        order_id:     order.id,
+        order_number: order.order_number || order.id,
       });
     }
   }
