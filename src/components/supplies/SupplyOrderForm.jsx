@@ -56,6 +56,14 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // Validate: every item must have an item_number
+    const missingItemNumber = formData.items.some(item => !item.item_number || item.item_number.trim() === "");
+    if (missingItemNumber) {
+      alert("All order line items must have an Item #. Please select products from the catalog or enter an Item # before saving.");
+      return;
+    }
+
     setIsDirty(false);
     const subtotal = formData.items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0);
     const total = subtotal + (formData.tax || 0);
