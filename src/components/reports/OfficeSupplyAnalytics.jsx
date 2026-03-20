@@ -145,7 +145,7 @@ export default function OfficeSupplyAnalytics({ orders = [], supplies = [], date
   [lineItems, catalogNameMap]);
 
   const grouped   = useMemo(() => groupByItemNumber(lineItemsWithCatalogNames), [lineItemsWithCatalogNames]);
-  const byMonth   = useMemo(() => groupByMonth(lineItems), [lineItems]);
+  const byMonth   = useMemo(() => groupByMonth(lineItemsWithCatalogNames), [lineItemsWithCatalogNames]);
 
   // Sorted views
   const bySpend   = useMemo(() => [...grouped].sort((a, b) => b.totalSpend - a.totalSpend), [grouped]);
