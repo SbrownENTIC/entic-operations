@@ -356,54 +356,11 @@ export default function OfficeSupplyAnalytics({ orders = [], dateRange = {} }) {
 
         {/* 4. Pricing Metrics */}
         {activeSection === "pricing" && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-slate-900">Pricing Metrics by Item # ({grouped.length} items)</h3>
-              <Button size="sm" variant="outline" className="gap-2" onClick={exportPricing}><Download className="w-4 h-4" /> Export CSV</Button>
-            </div>
-            <p className="text-xs text-slate-500">Price Variance % = (Max − Min) ÷ Min × 100. Sorted by highest variance first. Items with a single observed price show N/A.</p>
-            <div className="overflow-auto max-h-[520px] border rounded-lg">
-              <table className="w-full text-sm">
-                <TableHeader cols={[
-                  { key: "num",     label: "Item #" },
-                  { key: "name",    label: "Product" },
-                  { key: "qty",     label: "Total Qty",    right: true },
-                  { key: "avg",     label: "Avg Cost",     right: true },
-                  { key: "min",     label: "Min Price",    right: true },
-                  { key: "minDate", label: "Min Date",     right: true },
-                  { key: "max",     label: "Max Price",    right: true },
-                  { key: "maxDate", label: "Max Date",     right: true },
-                  { key: "var",     label: "Variance %",   right: true },
-                ]} />
-                <tbody>
-                  {[...grouped].sort((a, b) => (b.priceVariance ?? -1) - (a.priceVariance ?? -1)).map((g, i) => {
-                    const variance = g.priceVariance;
-                    const varColor = variance === null ? "text-slate-400"
-                      : variance >= 20 ? "text-red-600 font-semibold"
-                      : variance >= 10 ? "text-orange-600 font-semibold"
-                      : "text-green-700";
-                    const fmtDate = (d) => d ? format(parseISO(d), "MM/dd/yy") : "—";
-                    return (
-                      <tr key={g.item_number} className={`border-b border-slate-100 ${i % 2 === 0 ? "" : "bg-slate-50"}`}>
-                        <td className="p-3 font-mono text-xs text-slate-600">{g.item_number}</td>
-                        <td className="p-3 text-slate-900">{g.supply_name}</td>
-                        <td className="p-3 text-right text-slate-700">{g.totalQty.toLocaleString()}</td>
-                        <td className="p-3 text-right text-slate-600">{fmt(g.avgUnitCost)}</td>
-                        <td className="p-3 text-right text-green-700">{g.minPrice !== null ? fmt(g.minPrice) : "—"}</td>
-                        <td className="p-3 text-right text-slate-500 text-xs">{fmtDate(g.minPriceDate)}</td>
-                        <td className="p-3 text-right text-red-600">{g.maxPrice !== null ? fmt(g.maxPrice) : "—"}</td>
-                        <td className="p-3 text-right text-slate-500 text-xs">{fmtDate(g.maxPriceDate)}</td>
-                        <td className={`p-3 text-right ${varColor}`}>
-                          {variance !== null ? variance.toFixed(1) + "%" : "N/A"}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {grouped.length === 0 && <tr><td colSpan={9} className="p-8 text-center text-slate-400">No data in selected date range.</td></tr>}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <PricingMetricsTable
+            grouped={grouped}
+            lineItems={lineItems}
+            onExport={exportPricing}
+          />
         )}
 
         {/* 5. Monthly Spend Trend */}
