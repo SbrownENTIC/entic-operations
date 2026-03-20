@@ -53,15 +53,65 @@ const CORRECTIONS = [
     match: n => n.includes("coastwide") && n.includes("recycled toilet paper") && (n.includes("48 rolls") || n.includes("48/case") || n.includes("360 sheets")),
     item_number: "24463153",
   },
-  // Scotch Magic Tape (various pack sizes referenced historically)
+  // Scotch Magic Tape
   {
     match: n => n.includes("scotch") && n.includes("magic tape") && !n.includes("12"),
     item_number: "24347031",
   },
-  // Post-it Notes 3x3 (yellow, various counts)
+  // Post-it Notes 3x3 yellow
   {
     match: n => n.includes("post-it") && n.includes("3") && n.includes("yellow") && !n.includes("super sticky"),
     item_number: "508315",
+  },
+  // Kleenex Professional 12 Boxes
+  {
+    match: n => n.includes("kleenex") && n.includes("professional") && (n.includes("12 boxes") || n.includes("12/carton") || n.includes("125 tissues")),
+    item_number: "24347486",
+  },
+  // Arm & Hammer Air Freshener
+  {
+    match: n => n.includes("arm & hammer") && n.includes("air freshener"),
+    item_number: "24412599",
+  },
+  // LYSOL Disinfectant Spray Crisp Linen
+  {
+    match: n => n.includes("lysol") && n.includes("disinfectant spray") && n.includes("crisp linen"),
+    item_number: "24430820",
+  },
+  // Coastwide Recycled 550 sheets 80 rolls
+  {
+    match: n => n.includes("coastwide") && n.includes("recycled toilet paper") && (n.includes("80 rolls") || n.includes("550 sheets")),
+    item_number: "24463154",
+  },
+  // Scott Essential JRT
+  {
+    match: n => n.includes("scott essential") && n.includes("jrt"),
+    item_number: "24463155",
+  },
+  // Staples Jumbo Paper Clips 1000
+  {
+    match: n => n.includes("staples jumbo paper clips") && (n.includes("1000") || n.includes("10/pack")),
+    item_number: "24347031",
+  },
+  // Staples 2-Pocket Plastic Folder
+  {
+    match: n => n.includes("staples 2-pocket plastic presentation folder") || (n.includes("staples") && n.includes("2-pocket") && n.includes("plastic")),
+    item_number: "24362525",
+  },
+  // Staples Comfort Grip Tape Dispenser
+  {
+    match: n => n.includes("comfort grip tape dispenser"),
+    item_number: "24421765",
+  },
+  // Staples Washable Glue Sticks 18/Pack
+  {
+    match: n => n.includes("staples washable glue sticks") && n.includes("18"),
+    item_number: "24362524",
+  },
+  // Softsoap Fresh Citrus 6/Carton (variant)
+  {
+    match: n => n.includes("softsoap") && n.includes("fresh citrus") && n.includes("6/carton"),
+    item_number: "24397022",
   },
 ];
 
