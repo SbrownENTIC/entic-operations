@@ -48,6 +48,10 @@ function groupByItemNumber(lineItems) {
         orderCount: 0,
         vendors: new Set(),
         vendorPrices: {},
+        minPrice: null,
+        maxPrice: null,
+        minPriceDate: null,
+        maxPriceDate: null,
       };
     }
     const g = map[key];
@@ -57,13 +61,31 @@ function groupByItemNumber(lineItems) {
     g.vendors.add(li.vendor);
     if (!g.vendorPrices[li.vendor]) g.vendorPrices[li.vendor] = [];
     g.vendorPrices[li.vendor].push(li.unit_price);
+
+    // Track min/max unit price with dates (skip $0 prices)
+    if (li.unit_price > 0) {
+      if (g.minPrice === null || li.unit_price < g.minPrice) {
+        g.minPrice = li.unit_price;
+        g.minPriceDate = li.order_date;
+      }
+      if (g.maxPrice === null || li.unit_price > g.maxPrice) {
+        g.maxPrice = li.unit_price;
+        g.maxPriceDate = li.order_date;
+      }
+    }
   }
 
-  return Object.values(map).map(g => ({
-    ...g,
-    avgUnitCost: g.totalQty > 0 ? g.totalSpend / g.totalQty : 0,
-    vendors: [...g.vendors],
-  }));
+  return Object.values(map).map(g => {
+    const priceVariance = (g.minPrice !== null && g.maxPrice !== null && g.minPrice > 0)
+      ? ((g.maxPrice - g.minPrice) / g.minPrice) * 100
+      : null;
+    return {
+      ...g,
+      avgUnitCost: g.totalQty > 0 ? g.totalSpend / g.totalQty : 0,
+      vendors: [...g.vendors],
+      priceVariance,
+    };
+  });
 }
 
 /** Group line items by month (YYYY-MM) returning sorted chart data. */
