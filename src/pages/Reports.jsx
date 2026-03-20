@@ -1099,6 +1099,13 @@ export default function Reports() {
             />
           </TabsContent>
 
+          <TabsContent value="office-supply-analytics">
+            <OfficeSupplyAnalytics
+              orders={officeSupplyOrders}
+              dateRange={dateRange}
+            />
+          </TabsContent>
+
           <TabsContent value="clinical-supplies">
             <SupplyOrderReportView 
               orders={clinicalSupplyOrders}
