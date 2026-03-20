@@ -68,7 +68,12 @@ export default function Reports() {
     queryFn: () => base44.entities.VendorInvoice.list('-invoice_date', 1000)
   });
 
-  const isLoading = paymentsLoading || invoicesLoading || providersLoading || incomesLoading || ordersLoading || programLocationsLoading || audiologyOrdersLoading || vendorInvoicesLoading;
+  const { data: officeSupplies = [], isLoading: officeSuppliesLoading } = useQuery({
+    queryKey: ['office-supplies-catalog'],
+    queryFn: () => base44.entities.Supply.filter({ category: 'office' })
+  });
+
+  const isLoading = paymentsLoading || invoicesLoading || providersLoading || incomesLoading || ordersLoading || programLocationsLoading || audiologyOrdersLoading || vendorInvoicesLoading || officeSuppliesLoading;
 
   const formatCurrency = (amount) => {
     return '$' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -1102,6 +1107,7 @@ export default function Reports() {
           <TabsContent value="office-supply-analytics">
             <OfficeSupplyAnalytics
               orders={officeSupplyOrders}
+              supplies={officeSupplies}
               dateRange={dateRange}
             />
           </TabsContent>

@@ -120,11 +120,31 @@ function exportCSV(rows, filename) {
   link.click();
 }
 
-export default function OfficeSupplyAnalytics({ orders = [], dateRange = {} }) {
+export default function OfficeSupplyAnalytics({ orders = [], supplies = [], dateRange = {} }) {
   const [activeSection, setActiveSection] = useState("spend");
 
+  // Build a catalog lookup map: item_number → canonical product_name
+  const catalogNameMap = useMemo(() => {
+    const map = {};
+    for (const s of supplies) {
+      if (s.item_number && s.product_name) {
+        map[String(s.item_number).trim()] = s.product_name;
+      }
+    }
+    return map;
+  }, [supplies]);
+
   const lineItems = useMemo(() => buildLineItems(orders, dateRange), [orders, dateRange]);
-  const grouped   = useMemo(() => groupByItemNumber(lineItems), [lineItems]);
+
+  // Override supply_name from catalog where available
+  const lineItemsWithCatalogNames = useMemo(() =>
+    lineItems.map(li => ({
+      ...li,
+      supply_name: catalogNameMap[li.item_number] || li.supply_name,
+    })),
+  [lineItems, catalogNameMap]);
+
+  const grouped   = useMemo(() => groupByItemNumber(lineItemsWithCatalogNames), [lineItemsWithCatalogNames]);
   const byMonth   = useMemo(() => groupByMonth(lineItems), [lineItems]);
 
   // Sorted views
