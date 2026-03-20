@@ -18,6 +18,7 @@ import ProviderCredentialingReport from "../components/reports/ProviderCredentia
 import ProviderLicensesReport from "../components/reports/ProviderLicensesReport";
 import { PaymentTrendChart, InvoiceAgingChart, IncomeDistributionChart, SupplySpendingChart } from "../components/reports/ReportCharts";
 import CallLogReporting from "../components/reports/CallLogReporting";
+import OfficeSupplyAnalytics from "../components/reports/OfficeSupplyAnalytics";
 
 export default function Reports() {
   const [dateRange, setDateRange] = useState({
