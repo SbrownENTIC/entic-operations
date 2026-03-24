@@ -127,6 +127,7 @@ function validatePeriodColumns(rows) {
 
 /** Reads an xlsx/xls file with ExcelJS and returns { workbook, sheetNames } */
 async function readWorkbookFile(file) {
+  const ExcelJS = (await import("exceljs")).default;
   const buffer = await file.arrayBuffer();
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(buffer);
