@@ -581,14 +581,8 @@ export default function CallLogReporting() {
     formatPeriodLabel,
   });
 
-...
-    const uploadedWeeks = selectedPeriod.uploaded_weeks || [];
-    const now = new Date();
-    const generatedOn = now.toLocaleDateString("en-US", { month:"2-digit", day:"2-digit", year:"numeric" }) +
-      " " + now.toLocaleTimeString("en-US", { hour:"numeric", minute:"2-digit", hour12:true });
-
-    // ---- Colors ----
-    const DARK_NAVY  = "FF1F3864";
+  // dead code removed — export logic lives in ExcelExportRunner
+  const _REMOVED_DARK_NAVY  = "FF1F3864";
     const SECTION_BG = "FF2E5096";
     const LIGHT_GRAY = "FFF5F5F5";
     const ALT_ROW    = "FFEEF2FA";
