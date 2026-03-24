@@ -1638,8 +1638,7 @@ export default function CallLogReporting() {
           { name: "Desk",             filterButton: true },
           { name: "Location",         filterButton: true },
           { name: "Answered",         filterButton: true },
-          { name: "Weekly Goal",      filterButton: true },
-      return (
+  return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
