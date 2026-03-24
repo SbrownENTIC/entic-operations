@@ -581,13 +581,7 @@ export default function CallLogReporting() {
     formatPeriodLabel,
   });
 
-  // dead code removed — export logic lives in ExcelExportRunner
-  const _REMOVED_DARK_NAVY  = "FF1F3864";
-    const SECTION_BG = "FF2E5096";
-    const LIGHT_GRAY = "FFF5F5F5";
-    const ALT_ROW    = "FFEEF2FA";
-    const WHITE      = "FFFFFFFF";
-    const HEADER_BG  = "FF344D7E";
+  // ---- DROPDOWN DASHBOARD VIEW ----
     const mkFill = (argb) => ({ type: "pattern", pattern: "solid", fgColor: { argb } });
     const mkFont = (opts) => ({ name: "Calibri", size: 11, ...opts });
     const thinBorder = { style: "thin", color: { argb: "FFDDDDDD" } };
