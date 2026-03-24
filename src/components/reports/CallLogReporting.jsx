@@ -583,7 +583,6 @@ export default function CallLogReporting() {
 
   // ---- DROPDOWN DASHBOARD VIEW ----
   return (
-      const row = ws.addRow([text, ...Array(numCols - 1).fill("")]);
       const endCol = String.fromCharCode(startCol.charCodeAt(0) + numCols - 1);
       ws.mergeCells(`${startCol}${ws.rowCount}:${endCol}${ws.rowCount}`);
       const cell = ws.getCell(`${startCol}${ws.rowCount}`);
