@@ -213,6 +213,13 @@ function formatPeriodLabel(period) {
   return fmtShort(start);
 }
 
+function formatDate(str) {
+  if (!str) return "";
+  const parts = str.split("-");
+  if (parts.length !== 3) return str;
+  return `${parseInt(parts[1], 10)}/${parseInt(parts[2], 10)}/${parts[0]}`;
+}
+
 const STATUS_COLORS = {
   "Monthly": "bg-blue-100 text-blue-800",
   "Monthly (Aggregated)": "bg-indigo-100 text-indigo-800",
