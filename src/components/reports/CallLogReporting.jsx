@@ -127,7 +127,6 @@ function validatePeriodColumns(rows) {
 
 /** Reads an xlsx/xls file with ExcelJS and returns { workbook, sheetNames } */
 async function readWorkbookFile(file) {
-  const ExcelJS = (await import("exceljs")).default;
   const buffer = await file.arrayBuffer();
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(buffer);
@@ -211,13 +210,6 @@ function formatPeriodLabel(period) {
     return `${parseInt(m, 10)}/${parseInt(day, 10)}/${y}`;
   };
   return fmtShort(start);
-}
-
-function formatDate(str) {
-  if (!str) return "";
-  const parts = str.split("-");
-  if (parts.length !== 3) return str;
-  return `${parseInt(parts[1], 10)}/${parseInt(parts[2], 10)}/${parts[0]}`;
 }
 
 const STATUS_COLORS = {
@@ -323,6 +315,15 @@ export default function CallLogReporting() {
     const uploadedWeeks = selectedPeriod?.uploaded_weeks || [];
     return uploadedWeeks.slice().sort((a, b) => (a.week_start || "").localeCompare(b.week_start || ""));
   }, [selectedPeriod]);
+
+  // Helper: convert HH:MM:SS string to seconds for sort
+  const hmsToSeconds = (hms) => {
+    if (!hms || hms === "0:00:00") return 0;
+    const parts = String(hms).split(":").map(Number);
+    if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    if (parts.length === 2) return parts[0] * 60 + parts[1];
+    return 0;
+  };
 
   const TABLE_COLS = [
     { key: "user",                  label: "User",                    type: "alpha" },
@@ -581,8 +582,29 @@ export default function CallLogReporting() {
     formatPeriodLabel,
   });
 
-  // ---- DROPDOWN DASHBOARD VIEW ----
+  const _inlinedExportRemoved = async () => {
+    const periodLabel = formatPeriodLabel(selectedPeriod);
+    const uploadedWeeks = selectedPeriod.uploaded_weeks || [];
+    const now = new Date();
+    const generatedOn = now.toLocaleDateString("en-US", { month:"2-digit", day:"2-digit", year:"numeric" }) +
+      " " + now.toLocaleTimeString("en-US", { hour:"numeric", minute:"2-digit", hour12:true });
 
+    // ---- Colors ----
+    const DARK_NAVY  = "FF1F3864";
+    const SECTION_BG = "FF2E5096";
+    const LIGHT_GRAY = "FFF5F5F5";
+    const ALT_ROW    = "FFEEF2FA";
+    const WHITE      = "FFFFFFFF";
+    const HEADER_BG  = "FF344D7E";
+    const mkFill = (argb) => ({ type: "pattern", pattern: "solid", fgColor: { argb } });
+    const mkFont = (opts) => ({ name: "Calibri", size: 11, ...opts });
+    const thinBorder = { style: "thin", color: { argb: "FFDDDDDD" } };
+
+    // Helper: style a section header row (spans numCols columns starting at col 1)
+    const addSectionHeader = (ws, text, numCols, startCol = "A") => {
+      const row = ws.addRow([text, ...Array(numCols - 1).fill("")]);
+      const endCol = String.fromCharCode(startCol.charCodeAt(0) + numCols - 1);
+      ws.mergeCells(`${startCol}${ws.rowCount}:${endCol}${ws.rowCount}`);
       const cell = ws.getCell(`${startCol}${ws.rowCount}`);
       cell.font      = mkFont({ bold: true, size: 13, color: { argb: WHITE } });
       cell.fill      = mkFill(SECTION_BG);
@@ -1635,6 +1657,32 @@ export default function CallLogReporting() {
           { name: "User",             filterButton: true },
           { name: "Desk",             filterButton: true },
           { name: "Location",         filterButton: true },
+          { name: "Answered",         filterButton: true },
+          { name: "Weekly Goal",      filterButton: true },
+          { name: "% of Weekly Goal", filterButton: true },
+        ],
+        rows: indivTableRows,
+      });
+    }
+    autoFitColumns(wsIndiv);
+
+    // ==============================
+    // INBOUND CDR WORKSHEET
+    // ==============================
+    await buildCdrSheet(wb, { periodLabel, generatedOn, cdrUploadData, mkFill, mkFont, thinBorder, addSectionHeader, styleTableHeader, arColor, DARK_NAVY, ALT_ROW, WHITE, LIGHT_GRAY });
+
+    // ---- Write and download ----
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${periodLabel} – Call Performance Report.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }; // end _inlinedExportRemoved
+
+  // ---- DROPDOWN DASHBOARD VIEW ----
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
