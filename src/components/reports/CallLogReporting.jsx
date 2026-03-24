@@ -583,8 +583,8 @@ export default function CallLogReporting() {
     formatPeriodLabel,
   });
 
-  const _inlinedExportRemoved = async () => {
-    const periodLabel = formatPeriodLabel(selectedPeriod);
+  // _inlinedExportRemoved intentionally deleted — export logic lives in ExcelExportRunner
+...
     const uploadedWeeks = selectedPeriod.uploaded_weeks || [];
     const now = new Date();
     const generatedOn = now.toLocaleDateString("en-US", { month:"2-digit", day:"2-digit", year:"numeric" }) +
