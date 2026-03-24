@@ -11,6 +11,7 @@ import PerformanceViews from "./PerformanceViews";
 import CdrUpload from "./CdrUpload";
 import CdrInboundMetricsCard from "./CdrInboundMetricsCard";
 import UserBreakdownTable from "./UserBreakdownTable";
+import ExcelJS from "exceljs";
 import { secondsToHHMMSS } from "./ExcelExportHelpers";
 import { exportPeriodExcel as runExportPeriodExcel } from "./ExcelExportRunner";
 import {
