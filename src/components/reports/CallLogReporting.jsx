@@ -582,9 +582,7 @@ export default function CallLogReporting() {
   });
 
   // ---- DROPDOWN DASHBOARD VIEW ----
-
-    // Helper: style a section header row (spans numCols columns starting at col 1)
-    const addSectionHeader = (ws, text, numCols, startCol = "A") => {
+  return (
       const row = ws.addRow([text, ...Array(numCols - 1).fill("")]);
       const endCol = String.fromCharCode(startCol.charCodeAt(0) + numCols - 1);
       ws.mergeCells(`${startCol}${ws.rowCount}:${endCol}${ws.rowCount}`);
