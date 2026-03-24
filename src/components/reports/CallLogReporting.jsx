@@ -317,15 +317,6 @@ export default function CallLogReporting() {
     return uploadedWeeks.slice().sort((a, b) => (a.week_start || "").localeCompare(b.week_start || ""));
   }, [selectedPeriod]);
 
-  // Helper: convert HH:MM:SS string to seconds for sort
-  const hmsToSeconds = (hms) => {
-    if (!hms || hms === "0:00:00") return 0;
-    const parts = String(hms).split(":").map(Number);
-    if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
-    if (parts.length === 2) return parts[0] * 60 + parts[1];
-    return 0;
-  };
-
   const TABLE_COLS = [
     { key: "user",                  label: "User",                    type: "alpha" },
     { key: "total_calls",           label: "Total Calls",             type: "num"   },
