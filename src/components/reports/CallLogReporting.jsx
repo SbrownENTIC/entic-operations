@@ -582,9 +582,8 @@ export default function CallLogReporting() {
   });
 
   // ---- DROPDOWN DASHBOARD VIEW ----
-  return (
-    <div className="space-y-4-DEAD_START>
-      ws.mergeCells(`${startCol}${ws.rowCount}:${endCol}${ws.rowCount}`);
+  // dead code removed
+  return_placeholder_DEAD
       const cell = ws.getCell(`${startCol}${ws.rowCount}`);
       cell.font      = mkFont({ bold: true, size: 13, color: { argb: WHITE } });
       cell.fill      = mkFill(SECTION_BG);
