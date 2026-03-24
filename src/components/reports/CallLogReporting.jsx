@@ -582,9 +582,6 @@ export default function CallLogReporting() {
   });
 
   // ---- DROPDOWN DASHBOARD VIEW ----
-    const mkFill = (argb) => ({ type: "pattern", pattern: "solid", fgColor: { argb } });
-    const mkFont = (opts) => ({ name: "Calibri", size: 11, ...opts });
-    const thinBorder = { style: "thin", color: { argb: "FFDDDDDD" } };
 
     // Helper: style a section header row (spans numCols columns starting at col 1)
     const addSectionHeader = (ws, text, numCols, startCol = "A") => {
