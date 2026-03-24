@@ -1662,24 +1662,6 @@ export default function CallLogReporting() {
         rows: indivTableRows,
       });
     }
-    autoFitColumns(wsIndiv);
-
-    // ==============================
-    // INBOUND CDR WORKSHEET
-    // ==============================
-    await buildCdrSheet(wb, { periodLabel, generatedOn, cdrUploadData, mkFill, mkFont, thinBorder, addSectionHeader, styleTableHeader, arColor, DARK_NAVY, ALT_ROW, WHITE, LIGHT_GRAY });
-
-    // ---- Write and download ----
-    const buffer = await wb.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `${periodLabel} – Call Performance Report.xlsx`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }; // end _inlinedExportRemoved
-
   // ---- DROPDOWN DASHBOARD VIEW ----
   return (
     <div className="space-y-4">
