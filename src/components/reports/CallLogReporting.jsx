@@ -1659,10 +1659,7 @@ export default function CallLogReporting() {
           { name: "Weekly Goal",      filterButton: true },
           { name: "% of Weekly Goal", filterButton: true },
         ],
-        rows: indivTableRows,
-      });
-    }
-  // ---- DROPDOWN DASHBOARD VIEW ----
+      // ---- DROPDOWN DASHBOARD VIEW ----
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
