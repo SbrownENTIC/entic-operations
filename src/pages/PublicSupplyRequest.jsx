@@ -24,6 +24,7 @@ export default function PublicSupplyRequest() {
     notes: ''
   });
   const [itemSelectOpen, setItemSelectOpen] = useState({});
+  const [pendingQuantities, setPendingQuantities] = useState({}); // supply.id -> qty while in dropdown
   const [submitting, setSubmitting] = useState(false);
   const [isNewName, setIsNewName] = useState(false);
   const [isNewEmail, setIsNewEmail] = useState(false);
