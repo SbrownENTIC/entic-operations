@@ -409,49 +409,64 @@ export default function PublicSupplyRequest() {
                               const alreadyAdded = formData.items.some(item => item.supply_id === supply.id);
                               return (
                                 <CommandItem
-                                  key={supply.id}
-                                  value={`${supply.item_number || ''} ${supply.product_name}`}
-                                  onSelect={(currentValue) => {
-                                    if (!alreadyAdded) {
-                                      setFormData(prev => ({
-                                       ...prev,
-                                       items: [...prev.items, {
-                                         supply_id: supply.id,
-                                         supply_name: supply.product_name,
-                                         quantity: 1,
-                                         unit_price: supply.unit_price || 0,
-                                         item_number: supply.item_number || ''
-                                       }]
-                                      }));
-                                    }
-                                    // Don't close the popover - keep it open for multiple selections
-                                  }}
-                                  className="flex items-start gap-2 py-3"
-                                  disabled={alreadyAdded}
+                                 key={supply.id}
+                                 value={`${supply.item_number || ''} ${supply.product_name}`}
+                                 onSelect={() => {
+                                   if (!alreadyAdded) {
+                                     const qty = pendingQuantities[supply.id] || 1;
+                                     setFormData(prev => ({
+                                      ...prev,
+                                      items: [{
+                                        supply_id: supply.id,
+                                        supply_name: supply.product_name,
+                                        quantity: qty,
+                                        unit_price: supply.unit_price || 0,
+                                        item_number: supply.item_number || ''
+                                      }, ...prev.items]
+                                     }));
+                                     setPendingQuantities(prev => { const n = {...prev}; delete n[supply.id]; return n; });
+                                   }
+                                   // Don't close the popover - keep it open for multiple selections
+                                 }}
+                                 className="flex items-start gap-2 py-3"
+                                 disabled={alreadyAdded}
                                 >
-                                  <Check
-                                    className={`h-4 w-4 flex-shrink-0 mt-1 ${
-                                      alreadyAdded ? "opacity-100" : "opacity-0"
-                                    }`}
-                                  />
-                                  <div className="h-10 w-10 rounded-md bg-white border border-slate-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
-                                    {supply.image_url ? (
-                                      <img 
-                                        src={supply.image_url} 
-                                        alt="" 
-                                        className="h-full w-full object-contain p-0.5"
-                                      />
-                                    ) : (
-                                      <ImageIcon className="h-5 w-5 text-slate-300" />
-                                    )}
-                                  </div>
-                                  <div className="flex flex-col flex-1 min-w-0">
-                                    <span className="break-words font-medium text-sm leading-snug">{supply.product_name}</span>
-                                    <span className="text-xs text-slate-500">
-                                      {supply.item_number && `Item# ${supply.item_number}`}
-                                      {supply.units && ` • Units: ${supply.units}`}
-                                    </span>
-                                  </div>
+                                 <Check
+                                   className={`h-4 w-4 flex-shrink-0 mt-1 ${
+                                     alreadyAdded ? "opacity-100" : "opacity-0"
+                                   }`}
+                                 />
+                                 <div className="h-10 w-10 rounded-md bg-white border border-slate-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                                   {supply.image_url ? (
+                                     <img 
+                                       src={supply.image_url} 
+                                       alt="" 
+                                       className="h-full w-full object-contain p-0.5"
+                                     />
+                                   ) : (
+                                     <ImageIcon className="h-5 w-5 text-slate-300" />
+                                   )}
+                                 </div>
+                                 <div className="flex flex-col flex-1 min-w-0">
+                                   <span className="break-words font-medium text-sm leading-snug">{supply.product_name}</span>
+                                   <span className="text-xs text-slate-500">
+                                     {supply.item_number && `Item# ${supply.item_number}`}
+                                     {supply.units && ` • Units: ${supply.units}`}
+                                   </span>
+                                 </div>
+                                 {!alreadyAdded && (
+                                   <div className="flex-shrink-0 flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                                     <span className="text-xs text-slate-500">Qty:</span>
+                                     <input
+                                       type="number"
+                                       min="1"
+                                       value={pendingQuantities[supply.id] || 1}
+                                       onChange={e => setPendingQuantities(prev => ({ ...prev, [supply.id]: Math.max(1, parseInt(e.target.value) || 1) }))}
+                                       className="w-14 border border-slate-300 rounded px-1 py-0.5 text-sm text-center"
+                                       onClick={e => e.stopPropagation()}
+                                     />
+                                   </div>
+                                 )}
                                 </CommandItem>
                               );
                             })}
