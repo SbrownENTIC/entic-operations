@@ -1,0 +1,51 @@
+{
+  "name": "ClinicalPrivilege",
+  "type": "object",
+  "properties": {
+    "provider_id": {
+      "type": "string",
+      "description": "Reference to Provider"
+    },
+    "facility_name": {
+      "type": "string",
+      "enum": [
+        "Bloomfield",
+        "Hartford Hospital",
+        "St. Francis",
+        "UConn",
+        "HH - Manchester/ECHN",
+        "CCMC",
+        "CTSC- CT Surgery Center"
+      ],
+      "description": "Name of the facility"
+    },
+    "granted_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date privileges were granted"
+    },
+    "expiration_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date privileges expire"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "expired",
+        "pending"
+      ],
+      "default": "active"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "provider_id",
+    "facility_name",
+    "granted_date",
+    "expiration_date"
+  ]
+}
