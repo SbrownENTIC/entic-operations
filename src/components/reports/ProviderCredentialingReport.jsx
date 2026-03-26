@@ -29,7 +29,7 @@ export default function ProviderCredentialingReport() {
     "Hartford Hospital",
     "St. Francis",
     "UConn",
-    "Manchester / ECHN",
+    "HH - Manchester/ECHN",
     "Bloomfield",
     "CCMC",
     "CTSC- CT Surgery Center"
@@ -161,7 +161,7 @@ export default function ProviderCredentialingReport() {
 
     const allFacilities = [
       "Hartford Hospital", "St. Francis", "UConn",
-      "Manchester / ECHN", "Bloomfield", "CCMC", "CTSC- CT Surgery Center"
+      "HH - Manchester/ECHN", "Bloomfield", "CCMC", "CTSC- CT Surgery Center"
     ];
 
     // Helper: determine status display + colors for a privilege record
