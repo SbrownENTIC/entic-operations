@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Search, Check, CheckCircle, AlertCircle, HeartPulse, X, Image as ImageIcon, Edit, Clock } from "lucide-react";
+import { Plus, Trash2, Search, Check, CheckCircle, AlertCircle, HeartPulse, X, Image as ImageIcon, Edit, Clock, History, ChevronDown, ChevronUp } from "lucide-react";
 import { format, isToday, parseISO } from "date-fns";
 
 export default function PublicSupplyRequest() {
@@ -33,6 +33,9 @@ export default function PublicSupplyRequest() {
   const [editingOrder, setEditingOrder] = useState(null);
   const [orderSearchTerm, setOrderSearchTerm] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showPastOrders, setShowPastOrders] = useState(false);
+  const [pastOrdersLocation, setPastOrdersLocation] = useState('');
+  const [pastOrdersSearch, setPastOrdersSearch] = useState('');
 
   useEffect(() => {
     base44.auth.me()
@@ -43,6 +46,15 @@ export default function PublicSupplyRequest() {
   const { data: supplies = [] } = useQuery({
     queryKey: ['supplies', 'office'],
     queryFn: () => base44.entities.Supply.filter({ category: 'office' })
+  });
+
+  const { data: pastOrders = [], isLoading: pastOrdersLoading } = useQuery({
+    queryKey: ['past-public-orders', pastOrdersLocation],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getPastPublicOrders', { location: pastOrdersLocation, limit: 30 });
+      return response.data?.orders || [];
+    },
+    enabled: showPastOrders
   });
 
   const { data: todaysOrders = [], isLoading: ordersLoading } = useQuery({
@@ -529,6 +541,92 @@ export default function PublicSupplyRequest() {
               </Button>
             </CardFooter>
           </form>
+        </Card>
+
+        {/* Past Orders */}
+        <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
+          <CardHeader
+            className="border-b border-slate-100 cursor-pointer select-none"
+            onClick={() => setShowPastOrders(v => !v)}
+          >
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <History className="w-5 h-5" />
+                Past Orders
+              </span>
+              {showPastOrders ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+            </CardTitle>
+            {!showPastOrders && (
+              <p className="text-sm text-slate-500 mt-1">Click to view previously submitted orders</p>
+            )}
+          </CardHeader>
+          {showPastOrders && (
+            <CardContent className="p-4 space-y-3">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Select value={pastOrdersLocation} onValueChange={setPastOrdersLocation}>
+                  <SelectTrigger className="sm:w-48">
+                    <SelectValue placeholder="All locations" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={null}>All Locations</SelectItem>
+                    <SelectItem value="Glastonbury">Glastonbury</SelectItem>
+                    <SelectItem value="Manchester">Manchester</SelectItem>
+                    <SelectItem value="Bloomfield">Bloomfield</SelectItem>
+                    <SelectItem value="Farmington">Farmington</SelectItem>
+                    <SelectItem value="Waterside">Waterside</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Input
+                    placeholder="Search items or notes..."
+                    value={pastOrdersSearch}
+                    onChange={e => setPastOrdersSearch(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              {pastOrdersLoading ? (
+                <div className="py-6 text-center text-slate-500 text-sm">Loading past orders...</div>
+              ) : pastOrders.length === 0 ? (
+                <div className="py-6 text-center text-slate-400 text-sm">No past orders found.</div>
+              ) : (
+                <div className="divide-y divide-slate-100 max-h-96 overflow-y-auto rounded-lg border border-slate-100">
+                  {pastOrders.filter(order => {
+                    if (!pastOrdersSearch) return true;
+                    const s = pastOrdersSearch.toLowerCase();
+                    return (
+                      order.location?.toLowerCase().includes(s) ||
+                      order.notes?.toLowerCase().includes(s) ||
+                      order.items?.some(item => item.supply_name?.toLowerCase().includes(s))
+                    );
+                  }).map(order => (
+                    <div key={order.id} className="p-4 hover:bg-slate-50 transition-colors">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-slate-900 text-sm">{order.location}</span>
+                            <span className="text-xs text-slate-400">{order.order_date}</span>
+                            <Badge variant="outline" className="text-xs">{order.items?.length || 0} items</Badge>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5 mt-1">
+                            {order.items?.map((item, idx) => (
+                              <span key={idx} className="inline-flex items-center text-xs bg-slate-100 text-slate-700 rounded px-2 py-0.5">
+                                {item.supply_name} <span className="ml-1 text-slate-400">×{item.quantity}</span>
+                              </span>
+                            ))}
+                          </div>
+                          {order.notes && (
+                            <p className="text-xs text-slate-500 mt-1 italic">{order.notes}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          )}
         </Card>
 
         {/* Orders Window Logic */}
