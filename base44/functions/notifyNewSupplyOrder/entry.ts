@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
     `;
 
     await base44.asServiceRole.integrations.Core.SendEmail({
-      to: 'steve.brown@enticmd.com',
+      to: 'brownsteven89@icloud.com',
       subject,
       body: body_html,
       from_name: 'ENTIC Supply Orders'
