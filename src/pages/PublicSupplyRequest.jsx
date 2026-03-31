@@ -612,6 +612,7 @@ export default function PublicSupplyRequest() {
                           <div className="flex flex-wrap gap-1.5 mt-1">
                             {order.items?.map((item, idx) => (
                               <span key={idx} className="inline-flex items-center text-xs bg-slate-100 text-slate-700 rounded px-2 py-0.5">
+                                {item.item_number && <span className="mr-1 text-slate-400 font-mono">#{item.item_number}</span>}
                                 {item.supply_name} <span className="ml-1 text-slate-400">×{item.quantity}</span>
                               </span>
                             ))}
