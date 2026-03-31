@@ -31,12 +31,20 @@ Deno.serve(async (req) => {
       <p style="margin-top:16px; color:#888; font-size:12px;">You can review this order in the ENTIC Operations Center under Office Supply Orders.</p>
     `;
 
-    await base44.asServiceRole.integrations.Core.SendEmail({
-      to: 'brownsteven89@icloud.com',
-      subject,
-      body: body_html,
-      from_name: 'ENTIC Supply Orders'
-    });
+    await Promise.all([
+      base44.asServiceRole.integrations.Core.SendEmail({
+        to: 'steve.brown@enticmd.com',
+        subject,
+        body: body_html,
+        from_name: 'ENTIC Supply Orders'
+      }),
+      base44.asServiceRole.integrations.Core.SendEmail({
+        to: 'brownsteven89@icloud.com',
+        subject,
+        body: body_html,
+        from_name: 'ENTIC Supply Orders'
+      })
+    ]);
 
     return Response.json({ success: true });
   } catch (error) {
