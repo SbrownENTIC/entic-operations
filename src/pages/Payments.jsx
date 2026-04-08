@@ -192,8 +192,8 @@ export default function Payments() {
 
         let newStatus = payment.status;
         if (Math.abs(unallocated) < 0.01 && totalAllocated > 0 && payment.status === 'pending') {
-          newStatus = 'cleared';
-        } else if (unallocated > 0.01 && payment.status === 'cleared') {
+          newStatus = 'entic_paid';
+        } else if (unallocated > 0.01 && (payment.status === 'cleared' || payment.status === 'entic_paid')) {
           newStatus = 'pending';
         }
 
@@ -246,7 +246,7 @@ export default function Payments() {
 
       let status = data.status;
       if (Math.abs(unallocated) < 0.01 && totalAllocated > 0 && status === 'pending') {
-        status = 'cleared';
+        status = 'entic_paid';
       }
 
       const normalizedUnallocated = Math.abs(unallocated) < 0.01 ? 0 : unallocated;
@@ -301,8 +301,8 @@ export default function Payments() {
 
       let status = data.status;
       if (Math.abs(unallocated) < 0.01 && totalAllocated > 0 && status === 'pending') {
-        status = 'cleared';
-      } else if (unallocated > 0.01 && status === 'cleared') {
+        status = 'entic_paid';
+      } else if (unallocated > 0.01 && (status === 'cleared' || status === 'entic_paid')) {
         status = 'pending';
       }
 
@@ -380,7 +380,7 @@ export default function Payments() {
 
       let status = payment.status;
       if (Math.abs(unallocated) < 0.01 && totalAllocated > 0) {
-        status = 'cleared';
+        status = 'entic_paid';
       } else if (unallocated > 0.01) {
         status = 'pending';
       }
@@ -785,7 +785,6 @@ export default function Payments() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="cleared">Cleared</SelectItem>
                       <SelectItem value="reversed">Reversed</SelectItem>
                       <SelectItem value="entic_paid">ENTIC Paid</SelectItem>
                     </SelectContent>

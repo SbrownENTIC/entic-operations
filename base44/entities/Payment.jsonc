@@ -1,0 +1,91 @@
+{
+  "name": "Payment",
+  "type": "object",
+  "properties": {
+    "payment_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date payment was received"
+    },
+    "payment_month": {
+      "type": "string",
+      "description": "Month(s) from invoice allocations (e.g., October 2025, or multiple months)"
+    },
+    "total_amount": {
+      "type": "number",
+      "description": "Total payment amount"
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "check",
+        "wire_transfer",
+        "ach",
+        "credit_card",
+        "other"
+      ],
+      "description": "Method of payment"
+    },
+    "reference_number": {
+      "type": "string",
+      "description": "Check number or transaction reference"
+    },
+    "payer": {
+      "type": "string",
+      "description": "Who made the payment"
+    },
+    "allocations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "invoice_id": {
+            "type": "string",
+            "description": "Invoice being paid"
+          },
+          "outside_income_id": {
+            "type": "string",
+            "description": "Direct link to Outside Income (if not invoiced)"
+          },
+          "provider_id": {
+            "type": "string",
+            "description": "Provider receiving payment"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Amount allocated"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Payment allocations to invoices and providers"
+    },
+    "unallocated_amount": {
+      "type": "number",
+      "description": "Amount not yet allocated"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "reversed",
+        "entic_paid"
+      ],
+      "default": "pending"
+    },
+    "remittance_url": {
+      "type": "string",
+      "description": "URL to the uploaded remittance advice/document"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "payment_date",
+    "total_amount",
+    "payer"
+  ]
+}
