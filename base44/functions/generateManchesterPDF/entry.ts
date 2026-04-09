@@ -2,11 +2,14 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 import { PDFDocument } from 'npm:pdf-lib@1.17.1';
 import { format, parseISO, getMonth, getYear } from 'npm:date-fns@2.30.0';
 
-const safeSetField = (form, fieldName, value) => {
+const safeSetField = (form, fieldName, value, fontSize) => {
     try {
         const field = form.getTextField(fieldName);
         if (field) {
             field.setText(value ? String(value) : '');
+            if (fontSize) {
+                field.setFontSize(fontSize);
+            }
         }
     } catch (e) {
         // Field probably doesn't exist or is not a text field
@@ -68,18 +71,18 @@ Deno.serve(async (req) => {
         const pdfDoc = await PDFDocument.load(templateBuffer);
         const form = pdfDoc.getForm();
 
-        // Invoice Number: EARNOSETHROATCALL MM/YY
+        // Invoice Number: template already has "EARNOSETHROATCALL" prefix — only write MM/YY
         const invoiceDateFormatted = invoice.invoice_date ? parseISO(invoice.invoice_date) : new Date();
         const invoiceMMYY = format(invoiceDateFormatted, 'MM/yy');
-        safeSetField(form, 'invoice_number', `EARNOSETHROATCALL ${invoiceMMYY}`);
+        safeSetField(form, 'invoice_number', invoiceMMYY, 11);
 
         // Invoice Date: MM/DD/YYYY
-        safeSetField(form, 'invoice_date', format(invoiceDateFormatted, 'MM/dd/yyyy'));
+        safeSetField(form, 'invoice_date', format(invoiceDateFormatted, 'MM/dd/yyyy'), 11);
 
         // Month & Year of Service: e.g. "March 2026"
-        safeSetField(form, 'month_year_service', `${monthName} ${yearStr}`);
+        safeSetField(form, 'month_year_service', `${monthName} ${yearStr}`, 11);
 
-        // Providers: full names with M.D. suffix, joined by "; "
+        // Providers
         const uniqueProviderIds = [...new Set(linkedIncomes.map(inc => inc.provider_id).filter(Boolean))];
         const providerFullNames = uniqueProviderIds.map(pid => {
             const p = providers.find(prov => prov.id === pid);
@@ -88,12 +91,20 @@ Deno.serve(async (req) => {
 
         // Number of shifts = sum of days_worked from linked OutsideIncome records
         const totalShifts = linkedIncomes.reduce((sum, inc) => sum + (inc.days_worked || 0), 0);
-        safeSetField(form, 'Shift Count', String(totalShifts));
+        safeSetField(form, 'Shift Count', String(totalShifts), 11);
 
-        // Compensation amounts from invoice.total_amount
-        const totalAmount = invoice.total_amount ? invoice.total_amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00';
-        safeSetField(form, 'subtotal', totalAmount);
-        safeSetField(form, 'Total', totalAmount);
+        // Subtotal = shifts * $1,000 per shift
+        const subtotalAmount = totalShifts * 1000;
+        const subtotalFormatted = subtotalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        // Total = invoice.total_amount
+        console.log('invoice.total_amount:', invoice.total_amount);
+        const totalAmount = invoice.total_amount
+            ? invoice.total_amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+            : subtotalFormatted;
+
+        safeSetField(form, 'subtotal', subtotalFormatted, 11);
+        safeSetField(form, 'Total', totalAmount, 11);
 
         // Flatten form
         try {
