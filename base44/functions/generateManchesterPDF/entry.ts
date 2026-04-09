@@ -106,12 +106,7 @@ Deno.serve(async (req) => {
         safeSetField(form, 'subtotal', formatCurrency(subtotalAmount), 11, TextAlignment.Right);
         safeSetField(form, 'Total', formatCurrency(totalDue), 11, TextAlignment.Right);
 
-        // Flatten form
-        try {
-            form.flatten();
-        } catch (e) {
-            console.error("Error flattening form:", e);
-        }
+        // Do NOT flatten — preserve interactive fields (Signature, DATE, PRINT NAME)
 
         // Get all unique provider full names for the filename
         let providerNamesStr = "Provider";
