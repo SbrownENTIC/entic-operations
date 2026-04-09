@@ -2,17 +2,22 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 import { PDFDocument } from 'npm:pdf-lib@1.17.1';
 import { format, parseISO, getMonth, getYear } from 'npm:date-fns@2.30.0';
 
-const safeSetField = (form, fieldName, value, fontSize) => {
+import { TextAlignment } from 'npm:pdf-lib@1.17.1';
+
+const formatCurrency = (amount) => {
+    return '$' + Number(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
+const safeSetField = (form, fieldName, value, fontSize, align) => {
     try {
         const field = form.getTextField(fieldName);
         if (field) {
             field.setText(value ? String(value) : '');
-            if (fontSize) {
-                field.setFontSize(fontSize);
-            }
+            if (fontSize) field.setFontSize(fontSize);
+            if (align !== undefined) field.setAlignment(align);
         }
     } catch (e) {
-        // Field probably doesn't exist or is not a text field
+        // Field doesn't exist or wrong type
     }
 };
 
@@ -95,16 +100,11 @@ Deno.serve(async (req) => {
 
         // Subtotal = shifts * $1,000 per shift
         const subtotalAmount = totalShifts * 1000;
-        const subtotalFormatted = subtotalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-        // Total = invoice.total_amount
         console.log('invoice.total_amount:', invoice.total_amount);
-        const totalAmount = invoice.total_amount
-            ? invoice.total_amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-            : subtotalFormatted;
+        const totalDue = invoice.total_amount || subtotalAmount;
 
-        safeSetField(form, 'subtotal', subtotalFormatted, 11);
-        safeSetField(form, 'Total', totalAmount, 11);
+        safeSetField(form, 'subtotal', formatCurrency(subtotalAmount), 11, TextAlignment.Right);
+        safeSetField(form, 'Total', formatCurrency(totalDue), 11, TextAlignment.Right);
 
         // Flatten form
         try {
