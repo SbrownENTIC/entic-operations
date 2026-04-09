@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
         const targetYear = getYear(targetDate);
 
         // 4. Load Template
-        const templateUrl = "https://media.base44.com/files/public/691521cbabed77e5043c7037/272e9f6ed_HH-ManchesterECHNInvoicetemplate-ENTIC.pdf";
+        const templateUrl = "https://media.base44.com/files/public/691521cbabed77e5043c7037/23b640b06_TestHH-Manchester-ECHNInvoicetemplate-ENTIC.pdf";"https://media.base44.com/files/public/691521cbabed77e5043c7037/272e9f6ed_HH-ManchesterECHNInvoicetemplate-ENTIC.pdf";
         
         const templateResponse = await fetch(templateUrl);
         if (!templateResponse.ok) {
@@ -71,20 +71,13 @@ Deno.serve(async (req) => {
         // Invoice Number: EARNOSETHROATCALL MM/YY
         const invoiceDateFormatted = invoice.invoice_date ? parseISO(invoice.invoice_date) : new Date();
         const invoiceMMYY = format(invoiceDateFormatted, 'MM/yy');
-        safeSetField(form, 'EARNOSETHROATCALL', `EARNOSETHROATCALL ${invoiceMMYY}`);
+        safeSetField(form, 'invoice_number', `EARNOSETHROATCALL ${invoiceMMYY}`);
 
         // Invoice Date: MM/DD/YYYY
-        const invoiceDateFull = format(invoiceDateFormatted, 'MM/dd/yyyy');
-        safeSetField(form, 'EARNOSETHROATCALL MMYYINVOICE DATE', invoiceDateFull);
+        safeSetField(form, 'invoice_date', format(invoiceDateFormatted, 'MM/dd/yyyy'));
 
         // Month & Year of Service: e.g. "March 2026"
-        safeSetField(form, '2002576809MONTH  YEAR OF SERVICE', `${monthName} ${yearStr}`);
-
-        // Compensation static text
-        safeSetField(form, 'COMPENSATION', '$1,000 PER 24 HOUR SHIFT FOR CLINICIAN ON-CALL COVERAGE (NOT TO EXCEED $108,000 PER YEAR)');
-
-        // P.O. Number (static)
-        safeSetField(form, '2002576809', '2002576809');
+        safeSetField(form, 'month_year_service', `${monthName} ${yearStr}`);
 
         // Providers: full names with M.D. suffix, joined by "; "
         const uniqueProviderIds = [...new Set(linkedIncomes.map(inc => inc.provider_id).filter(Boolean))];
@@ -92,16 +85,15 @@ Deno.serve(async (req) => {
             const p = providers.find(prov => prov.id === pid);
             return p ? `${p.full_name}, M.D.` : null;
         }).filter(Boolean);
-        safeSetField(form, 'PROVIDERS', providerFullNames.join('; '));
 
         // Number of shifts = sum of days_worked from linked OutsideIncome records
         const totalShifts = linkedIncomes.reduce((sum, inc) => sum + (inc.days_worked || 0), 0);
-        safeSetField(form, 'Clinician Call Coverage 1000 per 24hour shift x shil', String(totalShifts));
+        safeSetField(form, 'Shift Count', String(totalShifts));
 
         // Compensation amounts from invoice.total_amount
         const totalAmount = invoice.total_amount ? invoice.total_amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00';
-        safeSetField(form, 'fill_12', totalAmount);
-        safeSetField(form, 'fill_13', totalAmount);
+        safeSetField(form, 'subtotal', totalAmount);
+        safeSetField(form, 'Total', totalAmount);
 
         // Flatten form
         try {
