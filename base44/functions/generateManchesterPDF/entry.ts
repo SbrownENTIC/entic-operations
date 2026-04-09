@@ -1,6 +1,6 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 import { PDFDocument } from 'npm:pdf-lib@1.17.1';
-import { format, parseISO, getDate, getMonth, getYear } from 'npm:date-fns@2.30.0';
+import { format, parseISO, getMonth, getYear } from 'npm:date-fns@2.30.0';
 
 const safeSetField = (form, fieldName, value) => {
     try {
@@ -10,7 +10,6 @@ const safeSetField = (form, fieldName, value) => {
         }
     } catch (e) {
         // Field probably doesn't exist or is not a text field
-        // console.log(`Field ${fieldName} skipped: ${e.message}`);
     }
 };
 
@@ -39,17 +38,13 @@ Deno.serve(async (req) => {
 
         const providers = await base44.entities.Provider.list();
 
-        // 3. Determine Month and Year
-        let targetDate = new Date();
-        if (invoice.invoice_date) {
-            targetDate = parseISO(invoice.invoice_date);
-        }
-        
+        // 3. Determine Month and Year from linked OutsideIncome work dates
+        let targetDate = invoice.invoice_date ? parseISO(invoice.invoice_date) : new Date();
+
         if (linkedIncomes.length > 0) {
             const allDates = linkedIncomes.reduce((acc, inc) => {
                 return inc.work_dates ? [...acc, ...inc.work_dates] : acc;
             }, []).sort();
-            
             if (allDates.length > 0) {
                 targetDate = parseISO(allDates[0]);
             }
@@ -57,11 +52,11 @@ Deno.serve(async (req) => {
 
         const monthName = format(targetDate, 'MMMM');
         const yearStr = format(targetDate, 'yyyy');
-        const targetMonthIdx = getMonth(targetDate); // 0-indexed
+        const targetMonthIdx = getMonth(targetDate);
         const targetYear = getYear(targetDate);
 
         // 4. Load Template
-        const templateUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/691521cbabed77e5043c7037/2a7f46392_ManchesterHospitalInvocieTemplateWithInitials.pdf";
+        const templateUrl = "https://media.base44.com/files/public/691521cbabed77e5043c7037/272e9f6ed_HH-ManchesterECHNInvoicetemplate-ENTIC.pdf";
         
         const templateResponse = await fetch(templateUrl);
         if (!templateResponse.ok) {
@@ -73,46 +68,40 @@ Deno.serve(async (req) => {
         const pdfDoc = await PDFDocument.load(templateBuffer);
         const form = pdfDoc.getForm();
 
-        // Fill Header Fields using safe setter
-        safeSetField(form, 'Group', 'ENTIC');
-        safeSetField(form, 'Payment Rate', '1,000');
-        safeSetField(form, 'MD Coverage Services Provided', monthName);
-        // PDF field names appear to be swapped relative to visual labels
-        safeSetField(form, 'Month', yearStr);
-        safeSetField(form, 'Year', monthName);
+        // Invoice Number: EARNOSETHROATCALL MM/YY
+        const invoiceDateFormatted = invoice.invoice_date ? parseISO(invoice.invoice_date) : new Date();
+        const invoiceMMYY = format(invoiceDateFormatted, 'MM/yy');
+        safeSetField(form, 'EARNOSETHROATCALL', `EARNOSETHROATCALL ${invoiceMMYY}`);
 
-        // Fill Calendar Days
-        for (const income of linkedIncomes) {
-            const provider = providers.find(p => p.id === income.provider_id);
-            const providerName = provider ? provider.full_name : "Unknown";
+        // Invoice Date: MM/DD/YYYY
+        const invoiceDateFull = format(invoiceDateFormatted, 'MM/dd/yyyy');
+        safeSetField(form, 'EARNOSETHROATCALL MMYYINVOICE DATE', invoiceDateFull);
 
-            if (income.work_dates && income.work_dates.length > 0) {
-                for (const dateStr of income.work_dates) {
-                    const date = parseISO(dateStr);
-                    
-                    // Only map dates that match the target invoice month/year
-                    if (getMonth(date) === targetMonthIdx && getYear(date) === targetYear) {
-                        const dayOfMonth = getDate(date);
-                        const fieldName = dayOfMonth.toString();
-                        
-                        try {
-                            const dayField = form.getTextField(fieldName);
-                            if (dayField) {
-                                const existingText = dayField.getText();
-                                if (existingText && existingText.length > 0 && !existingText.includes(providerName)) {
-                                    dayField.setText(`${existingText}\n${providerName}`);
-                                    dayField.setFontSize(8);
-                                } else if (!existingText || existingText.length === 0) {
-                                    dayField.setText(providerName);
-                                }
-                            }
-                        } catch (e) {
-                            // Ignore missing day fields
-                        }
-                    }
-                }
-            }
-        }
+        // Month & Year of Service: e.g. "March 2026"
+        safeSetField(form, '2002576809MONTH  YEAR OF SERVICE', `${monthName} ${yearStr}`);
+
+        // Compensation static text
+        safeSetField(form, 'COMPENSATION', '$1,000 PER 24 HOUR SHIFT FOR CLINICIAN ON-CALL COVERAGE (NOT TO EXCEED $108,000 PER YEAR)');
+
+        // P.O. Number (static)
+        safeSetField(form, '2002576809', '2002576809');
+
+        // Providers: full names with M.D. suffix, joined by "; "
+        const uniqueProviderIds = [...new Set(linkedIncomes.map(inc => inc.provider_id).filter(Boolean))];
+        const providerFullNames = uniqueProviderIds.map(pid => {
+            const p = providers.find(prov => prov.id === pid);
+            return p ? `${p.full_name}, M.D.` : null;
+        }).filter(Boolean);
+        safeSetField(form, 'PROVIDERS', providerFullNames.join('; '));
+
+        // Number of shifts = sum of days_worked from linked OutsideIncome records
+        const totalShifts = linkedIncomes.reduce((sum, inc) => sum + (inc.days_worked || 0), 0);
+        safeSetField(form, 'Clinician Call Coverage 1000 per 24hour shift x shil', String(totalShifts));
+
+        // Compensation amounts from invoice.total_amount
+        const totalAmount = invoice.total_amount ? invoice.total_amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00';
+        safeSetField(form, 'fill_12', totalAmount);
+        safeSetField(form, 'fill_13', totalAmount);
 
         // Flatten form
         try {
@@ -121,33 +110,16 @@ Deno.serve(async (req) => {
             console.error("Error flattening form:", e);
         }
 
-        // Get all unique provider names from linked incomes for the filename
+        // Get all unique provider full names for the filename
         let providerNamesStr = "Provider";
-        if (linkedIncomes.length > 0) {
-            const uniqueProviderIds = [...new Set(linkedIncomes.map(inc => inc.provider_id).filter(Boolean))];
-            const lastNames = uniqueProviderIds.map(pid => {
-                const p = providers.find(prov => prov.id === pid);
-                if (p) {
-                    const nameParts = p.full_name.trim().split(' ');
-                    return nameParts[nameParts.length - 1];
-                }
-                return '';
-            }).filter(Boolean);
-            
-            if (lastNames.length > 0) {
-                providerNamesStr = lastNames.join(', ');
-            }
-        } else {
-             // Fallback to invoice staff member if no incomes linked
-             const invoiceProvider = providers.find(p => p.id === invoice.staff_member_id);
-             if (invoiceProvider) {
-                const nameParts = invoiceProvider.full_name.trim().split(' ');
-                providerNamesStr = nameParts[nameParts.length - 1];
-             }
+        if (providerFullNames.length > 0) {
+            providerNamesStr = providerFullNames.map(name => name.replace(', M.D.', '')).join(', ');
+        } else if (invoice.staff_member_id) {
+            const invoiceProvider = providers.find(p => p.id === invoice.staff_member_id);
+            if (invoiceProvider) providerNamesStr = invoiceProvider.full_name;
         }
 
         const safeProgramGroup = (invoice.program_group || "Manchester").replace(/\//g, "-");
-        // Format: November 2025- Manchester-ECHN On Call Invoice- Obrien, Alday Approved
         const filename = `${monthName} ${yearStr}- ${safeProgramGroup} On Call Invoice- ${providerNamesStr} Approved.pdf`;
 
         // Check if we should save to record
