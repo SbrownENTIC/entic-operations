@@ -106,12 +106,13 @@ Deno.serve(async (req) => {
         safeSetField(form, 'subtotal', formatCurrency(subtotalAmount), 11, TextAlignment.Right);
         safeSetField(form, 'Total', formatCurrency(totalDue), 11, TextAlignment.Right);
 
-        // Selectively flatten all fields EXCEPT DATE and PRINT NAME
+        // Mark all fields except DATE and PRINT NAME as read-only
         const KEEP_INTERACTIVE = ['DATE', 'PRINT NAME'];
-        const fieldsToFlatten = form.getFields().filter(f => !KEEP_INTERACTIVE.includes(f.getName()));
-        if (fieldsToFlatten.length > 0) {
-            form.flatten({ fields: fieldsToFlatten });
-        }
+        form.getFields().forEach(field => {
+            if (!KEEP_INTERACTIVE.includes(field.getName())) {
+                try { field.enableReadOnly(); } catch (e) {}
+            }
+        });
 
         // Get all unique provider full names for the filename
         let providerNamesStr = "Provider";
