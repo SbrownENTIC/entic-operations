@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
         const targetYear = getYear(targetDate);
 
         // 4. Load Template
-        const templateUrl = "https://media.base44.com/files/public/691521cbabed77e5043c7037/f85160c21_TestHH-Manchester-ECHNInvoicetemplate-ENTIC.pdf";"https://media.base44.com/files/public/691521cbabed77e5043c7037/23b640b06_TestHH-Manchester-ECHNInvoicetemplate-ENTIC.pdf";"https://media.base44.com/files/public/691521cbabed77e5043c7037/272e9f6ed_HH-ManchesterECHNInvoicetemplate-ENTIC.pdf";
+        const templateUrl = "https://media.base44.com/files/public/691521cbabed77e5043c7037/90efb151f_TestHH-Manchester-ECHNInvoicetemplate-ENTIC.pdf";"https://media.base44.com/files/public/691521cbabed77e5043c7037/f85160c21_TestHH-Manchester-ECHNInvoicetemplate-ENTIC.pdf";"https://media.base44.com/files/public/691521cbabed77e5043c7037/23b640b06_TestHH-Manchester-ECHNInvoicetemplate-ENTIC.pdf";"https://media.base44.com/files/public/691521cbabed77e5043c7037/272e9f6ed_HH-ManchesterECHNInvoicetemplate-ENTIC.pdf";
         
         const templateResponse = await fetch(templateUrl);
         if (!templateResponse.ok) {
