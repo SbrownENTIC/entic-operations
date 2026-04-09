@@ -70,11 +70,11 @@ Deno.serve(async (req) => {
 
     // Construct Email Content
     const emailSubject = `Manchester ${invoiceMonth} Invoices`;
-    const toRecipient = "AnnMarie.Pacileo@hhchealth.org";
+    const toRecipient = "AP@hhchealth.org";
     // Ensure these are the correct CCs
     const ccRecipients = "steve.brown@enticmd.com";
     
-    const emailBody = `Hey Ann Marie,\n\nHope your week is off to a fantastic start.\n\nThe ${invoiceMonth} clinic session details are attached for you to process and enter for:\n\n${providerList}\n\nThank you so much,\n\nSteve Brown\n\nOperations Manager`;
+    const emailBody = `Hey Team,\n\nHope your week is off to a fantastic start.\n\nThe ${invoiceMonth} clinic session details are attached for you to process and enter for:\n\n${providerList}\n\nThank you so much,\n\nSteve Brown\n\nOperations Manager`;
 
     // Prepare Airtable Record Fields - Mapping to the generic Notifications table
     const fields = {
