@@ -252,7 +252,7 @@ Deno.serve(async (req) => {
     const weekGroups = groupResult.groups;
 
     // ---- LOG: detected weeks overview ----
-    const monthKeys = [...new Set(weekGroups.map(g => g.weekStart.substring(0, 7)))];
+    const monthKeys = [...new Set(weekGroups.map(g => g.weekEnd.substring(0, 7)))];
     console.log(`[processCallLog] File: "${fileName}" | monthKeys: [${monthKeys.join(", ")}] | detectedWeeks: ${weekGroups.length}`);
     for (const g of weekGroups) {
       const distinctUsers = [...new Set(g.rows.map(r => String(r[headerMap['user']] || '').trim()).filter(Boolean))];
@@ -276,7 +276,7 @@ Deno.serve(async (req) => {
 
     for (const group of weekGroups) {
       const { weekStart, weekEnd, rows: weekRows } = group;
-      const monthKey = weekStart.substring(0, 7);
+      const monthKey = weekEnd.substring(0, 7);
       const cache = monthCache.get(monthKey);
 
       // Aggregate users for this period (pre-aggregated Vonage User Summary rows)
