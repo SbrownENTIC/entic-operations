@@ -242,7 +242,7 @@ export default function Licenses() {
   }
 
   return (
-    <div className="h-screen overflow-hidden flex flex-col bg-slate-50">
+    <div className={`flex flex-col bg-slate-50 ${showForm ? 'min-h-[calc(100vh-9rem)]' : 'h-[calc(100vh-9rem)] overflow-hidden'}`}>
       <div className="flex-shrink-0 p-2 md:p-3">
         <div className="max-w-7xl mx-auto space-y-2">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
