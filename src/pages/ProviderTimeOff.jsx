@@ -427,7 +427,10 @@ export default function ProviderTimeOff() {
   };
 
   const exportToCSV = () => {
+    const exportDate = format(new Date(), 'MMMM d, yyyy h:mm a');
     const rows = [
+      [`Date Exported: ${exportDate}`],
+      [],
       ['Provider', 'Type', 'Start Date', 'End Date', 'Days', 'End Time', 'Reason', 'Status', 'Notes']
     ];
     
