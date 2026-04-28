@@ -1,0 +1,189 @@
+{
+  "version": "1.0",
+  "generated": "2026-04-28",
+  "description": "Structured export schema for ENTIC Operations Center datasets. Use this as the canonical field reference when pulling data from the Base44 App Data API.",
+
+  "datasets": {
+
+    "OutsideIncome": {
+      "entity_name": "OutsideIncome",
+      "sort_default": "-created_date",
+      "recommended_filter": null,
+      "export_fields": [
+        "id", "created_date", "updated_date", "created_by",
+        "provider_id", "program_location_id", "facility_name",
+        "work_dates", "days_worked", "total_rvus",
+        "rate", "total_amount", "amount_due",
+        "invoice_id", "invoice_month", "status",
+        "external_invoice_number", "external_po_number",
+        "description", "notes"
+      ],
+      "join_for_display": {
+        "provider_id": "Provider.full_name",
+        "program_location_id": "ProgramLocation.program_location"
+      },
+      "calculated_fields": {
+        "workMonth": "FORMAT(work_dates[0], 'MMMM yyyy')",
+        "onCallStart": "work_dates[0]",
+        "balance": "Not stored; use Invoice.amount_expected - Invoice.amount_received"
+      }
+    },
+
+    "Invoice": {
+      "entity_name": "Invoice",
+      "sort_default": "-invoice_date",
+      "recommended_filter": null,
+      "export_fields": [
+        "id", "created_date", "updated_date", "created_by",
+        "invoice_number", "program_group", "staff_member_id", "work_email",
+        "invoice_date", "month", "status", "manual_status_override",
+        "outside_income_ids",
+        "days_worked", "subtotal", "total",
+        "amount_expected", "amount_received", "under_over_amount",
+        "date_provider_paid", "provider_paid",
+        "invoice_ready_to_send", "invoice_sent_for_approval", "invoice_sent_to_vendor",
+        "sent_for_approval_at", "sent_to_vendor_at",
+        "draft_invoice_url", "approved_invoice_url",
+        "auto_generated", "notes"
+      ],
+      "join_for_display": {
+        "staff_member_id": "Provider.full_name"
+      },
+      "calculated_fields": {
+        "balance": "amount_expected - amount_received",
+        "quarter": "Derived from linked Payment.payment_date — Q1/Q2/Q3/Q4 YYYY"
+      }
+    },
+
+    "Payment": {
+      "entity_name": "Payment",
+      "sort_default": "-payment_date",
+      "recommended_filter": null,
+      "export_fields": [
+        "id", "created_date", "updated_date", "created_by",
+        "payment_date", "payment_month", "total_amount",
+        "payment_method", "reference_number", "payer",
+        "allocations",
+        "unallocated_amount", "status",
+        "remittance_url", "notes"
+      ],
+      "allocations_schema": {
+        "invoice_id": "FK → Invoice.id",
+        "outside_income_id": "FK → OutsideIncome.id",
+        "provider_id": "FK → Provider.id",
+        "amount": "Number",
+        "notes": "Text"
+      }
+    },
+
+    "Provider": {
+      "entity_name": "Provider",
+      "sort_default": "full_name",
+      "recommended_filter": { "status": "active" },
+      "export_fields": [
+        "id", "created_date", "updated_date", "created_by",
+        "full_name", "email", "phone",
+        "status", "role", "program_locations",
+        "start_date", "termination_date",
+        "flu_vaccine_year", "flu_vaccine_date",
+        "notes"
+      ]
+    },
+
+    "License": {
+      "entity_name": "License",
+      "sort_default": "expiration_date",
+      "recommended_filter": null,
+      "export_fields": [
+        "id", "created_date", "updated_date", "created_by",
+        "provider_id", "license_type", "internal_license_number",
+        "issue_date", "expiration_date", "status",
+        "document_url",
+        "reminder_30_sent", "reminder_14_sent", "reminder_7_sent",
+        "notes"
+      ],
+      "join_for_display": {
+        "provider_id": "Provider.full_name"
+      }
+    },
+
+    "SupplyOrder": {
+      "entity_name": "SupplyOrder",
+      "sort_default": "-order_date",
+      "recommended_filter": null,
+      "export_fields": [
+        "id", "created_date", "updated_date", "created_by",
+        "order_number", "vendor", "location",
+        "order_date", "status", "order_type", "category", "submission_source",
+        "items",
+        "subtotal", "tax", "total_amount",
+        "notes", "review_flags",
+        "approval_notes", "approved_by", "approved_date",
+        "updated_after_submission", "merged_into_id"
+      ],
+      "items_schema": {
+        "supply_id": "FK → Supply.id",
+        "supply_name": "Text",
+        "item_number": "Text",
+        "quantity": "Number",
+        "unit_price": "Number",
+        "line_total": "Number (quantity × unit_price)",
+        "received": "Boolean",
+        "lot_number": "Text"
+      }
+    },
+
+    "AudiologySupplyOrder": {
+      "entity_name": "AudiologySupplyOrder",
+      "sort_default": "-order_date",
+      "recommended_filter": null,
+      "export_fields": [
+        "id", "created_date", "updated_date", "created_by",
+        "order_number", "vendor", "location",
+        "order_date", "status", "order_type",
+        "items",
+        "subtotal", "tax", "total_amount",
+        "notes", "review_flags",
+        "approval_notes", "approved_by", "approved_date",
+        "updated_after_submission"
+      ],
+      "note": "Same structure as SupplyOrder but without category and merged_into_id fields"
+    },
+
+    "ProgramLocation": {
+      "entity_name": "ProgramLocation",
+      "sort_default": "program_location",
+      "recommended_filter": null,
+      "export_fields": [
+        "id", "created_date", "updated_date",
+        "program_location", "program_group", "program_type",
+        "daily_rate", "invoice_counter",
+        "notes"
+      ]
+    },
+
+    "ClinicalPrivilege": {
+      "entity_name": "ClinicalPrivilege",
+      "sort_default": "expiration_date",
+      "recommended_filter": null,
+      "export_fields": [
+        "id", "created_date", "updated_date",
+        "provider_id", "facility_name",
+        "granted_date", "expiration_date", "status",
+        "notes"
+      ],
+      "join_for_display": {
+        "provider_id": "Provider.full_name"
+      }
+    }
+  },
+
+  "api_notes": {
+    "base_url": "https://api.base44.com/api/apps/{APP_ID}/entities/",
+    "auth": "Bearer {API_KEY}",
+    "pagination": "Use ?limit=100&skip=0 for pagination",
+    "sorting": "Prefix field with - for descending: ?sort=-created_date",
+    "filtering": "Filter by field: ?field=value or use $in, $gte, $lte operators",
+    "example_request": "GET /entities/OutsideIncome?sort=-created_date&limit=100"
+  }
+}
