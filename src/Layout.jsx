@@ -182,7 +182,34 @@ function LayoutContent({ children, currentPageName }) {
       if (currentPageName === 'PublicSupplyRequest') {
         document.title = "ENTIC Supply Order Form";
       } else {
-        document.title = "ENTIC Operations Center";
+        const pageTitleMap = {
+          Dashboard: "Dashboard",
+          Providers: "Providers",
+          OnCallSchedule: "On-Call Schedule",
+          OutsideIncome: "Outside Income",
+          Invoices: "Invoices",
+          Payments: "Payments",
+          OfficeSupplyOrders: "Office Supply Orders",
+          ClinicalSupplyOrders: "Clinical Supply Orders",
+          AudiologySupplyOrders: "Audiology Supply Orders",
+          ProviderTimeOff: "Time Off & CME",
+          Reminders: "Notifications & Closures",
+          Licenses: "Licenses",
+          Reports: "Reports",
+          DocumentManagement: "Document Management",
+          ClinicalPrivileges: "Clinical Privileges",
+          CMETracking: "CME Tracking",
+          OfficeSupplyCatalog: "Office Catalog",
+          ClinicalSupplyCatalog: "Clinical Catalog",
+          AudiologySupplyCatalog: "Audiology Catalog",
+          SystemDocumentation: "System Documentation",
+          ProgramLocations: "Program Locations",
+          ProviderDetail: "Provider Detail",
+        };
+        const pageTitle = pageTitleMap[currentPageName];
+        document.title = pageTitle
+          ? `ENTIC Operations Center – ${pageTitle}`
+          : "ENTIC Operations Center";
       }
 
       // Auth logic
