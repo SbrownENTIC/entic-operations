@@ -376,9 +376,11 @@ export default function Dashboard() {
   }, [invoices, payments, outsideIncomes]);
 
   // Missing Prior Month Invoices Tracking
-  // Rule: St. Francis → all providers with income but no invoice last month
-  // Rule: Hartford Hospital → Dr. Belachew Tessema only
+  // Rule: St. Francis → all providers assigned to St. Francis program locations, missing invoice for last month
+  // Rule: Hartford Hospital → Dr. Belachew Tessema only, if assigned and missing invoice
   // Manchester is excluded entirely.
+  // A provider is "missing" if they have no invoice AND no waiver for that group for last month.
+  // OutsideIncome is NOT required — absence of both income and invoice means data hasn't been entered.
 
   const previousMonthDate = subMonths(new Date(), 1);
   const previousMonthStr = format(previousMonthDate, 'MMMM yyyy');
@@ -387,8 +389,15 @@ export default function Dashboard() {
     const results = [];
     const activeProviders = providers.filter(p => p.status === 'active');
 
-    const facilityMatchesSF = (name) => name && (name.includes('St. Francis') || name.includes('Saint Francis'));
-    const facilityMatchesHH = (name) => name && name.includes('Hartford Hospital');
+    // St. Francis program location IDs (On-Call and Directorship)
+    const sfLocationIds = programLocations
+      .filter(pl => pl.program_group === 'St. Francis')
+      .map(pl => pl.id);
+
+    // Hartford Hospital program location IDs
+    const hhLocationIds = programLocations
+      .filter(pl => pl.program_group === 'Hartford Hospital')
+      .map(pl => pl.id);
 
     const hasInvoiceForGroup = (providerId, programGroup) =>
       invoices.some(inv =>
@@ -404,41 +413,35 @@ export default function Dashboard() {
         (!w.program_group || w.program_group === programGroup)
       );
 
-    const hasOutsideIncomeForFacility = (providerId, facilityMatcher) =>
-      outsideIncomes.some(inc =>
-        inc.provider_id === providerId &&
-        facilityMatcher(inc.facility_name) &&
-        inc.invoice_month === previousMonthStr
-      );
+    const isAssignedToLocations = (provider, locationIds) =>
+      Array.isArray(provider.program_locations) &&
+      provider.program_locations.some(locId => locationIds.includes(locId));
 
-    // 1. St. Francis: all active providers who have income but no invoice
+    // 1. St. Francis: all active providers assigned to St. Francis locations, missing an invoice
     activeProviders.forEach(provider => {
       const group = 'St. Francis';
+      if (!isAssignedToLocations(provider, sfLocationIds)) return;
       if (hasWaiverForGroup(provider.id, group)) return;
       if (hasInvoiceForGroup(provider.id, group)) return;
-      if (!hasOutsideIncomeForFacility(provider.id, facilityMatchesSF)) return;
       results.push({ ...provider, missingGroups: [group] });
     });
 
     // 2. Hartford Hospital: Dr. Belachew Tessema only
     const tessema = activeProviders.find(p => p.full_name.toLowerCase().includes('belachew tessema'));
-    if (tessema) {
+    if (tessema && isAssignedToLocations(tessema, hhLocationIds)) {
       const group = 'Hartford Hospital';
-      if (!hasWaiverForGroup(tessema.id, group) &&
-          !hasInvoiceForGroup(tessema.id, group) &&
-          hasOutsideIncomeForFacility(tessema.id, facilityMatchesHH)) {
-        // Only add if not already added (shouldn't be, but safeguard)
-        if (!results.find(r => r.id === tessema.id)) {
-          results.push({ ...tessema, missingGroups: [group] });
-        } else {
-          const existing = results.find(r => r.id === tessema.id);
+      if (!hasWaiverForGroup(tessema.id, group) && !hasInvoiceForGroup(tessema.id, group)) {
+        const existing = results.find(r => r.id === tessema.id);
+        if (existing) {
           existing.missingGroups.push(group);
+        } else {
+          results.push({ ...tessema, missingGroups: [group] });
         }
       }
     }
 
     return results;
-  }, [providers, invoices, outsideIncomes, invoiceWaivers, previousMonthStr]);
+  }, [providers, invoices, outsideIncomes, invoiceWaivers, previousMonthStr, programLocations]);
 
   // Providers with pending approval invoices (Any Date)
   const providersWithPendingInvoices = React.useMemo(() => {
