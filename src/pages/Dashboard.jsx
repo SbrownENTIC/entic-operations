@@ -375,44 +375,104 @@ export default function Dashboard() {
     return items;
   }, [invoices, payments, outsideIncomes]);
 
-  // Missing Invoices: St. Francis only, last month only
+  // Missing Prior Month Invoices Tracking
+  const targetProviderNames = [
+    "belachew tessema",
+    "benjamin wycherly",
+    "erin alday",
+    "hailun wang",
+    "jerlon chi",
+    "kimberly rutherford",
+    "ryan drake",
+    "seth brown",
+    "stephen wolfe"
+  ];
+
   const previousMonthDate = subMonths(new Date(), 1);
   const previousMonthStr = format(previousMonthDate, 'MMMM yyyy');
 
-  const ST_FRANCIS_PROGRAM_GROUP = 'St. Francis';
+  const targetProviders = providers.filter(p => 
+    p.status === 'active' && 
+    targetProviderNames.some(name => p.full_name.toLowerCase().includes(name))
+  );
 
-  // Find all OutsideIncome records for St. Francis last month
-  const stFrancisLastMonthIncomes = outsideIncomes.filter(inc => {
-    const facilityMatch = inc.facility_name && inc.facility_name.toLowerCase().includes('st. francis');
-    const monthMatch = inc.invoice_month === previousMonthStr;
-    return facilityMatch && monthMatch;
-  });
+  const providersMissingPriorInvoice = targetProviders.map(provider => {
+    // Determine expected program groups
+    let expectedGroups = new Set();
+    const isTessema = provider.full_name.toLowerCase().includes('belachew tessema');
+    
+    if (isTessema) {
+      expectedGroups.add('Hartford Hospital');
+    } else if (provider.program_locations && provider.program_locations.length > 0) {
+      // Map locations to groups
+      provider.program_locations.forEach(locName => {
+        // 1. Try exact match from ProgramLocation entity
+        const progLoc = programLocations.find(pl => pl.program_location === locName);
+        if (progLoc && progLoc.program_group) {
+          expectedGroups.add(progLoc.program_group);
+        } else {
+          // 2. Fallback heuristic for when ProgramLocation entity lookup fails
+          const lowerLoc = locName.toLowerCase();
+          if (lowerLoc.includes('hartford hospital')) expectedGroups.add('Hartford Hospital');
+          else if (lowerLoc.includes('st. francis') || lowerLoc.includes('saint francis')) expectedGroups.add('St. Francis');
+          else if (lowerLoc.includes('uconn')) expectedGroups.add('UConn');
+          else if (lowerLoc.includes('manchester') || lowerLoc.includes('echn')) expectedGroups.add('Manchester / ECHN');
+          else if (lowerLoc.includes('ccmc')) expectedGroups.add('CCMC');
+          else if (lowerLoc.includes('bloomfield') || lowerLoc.includes('basc')) expectedGroups.add('Bloomfield');
+        }
+      });
+    }
 
-  // Get unique provider IDs who have St. Francis income last month
-  const stFrancisProviderIds = [...new Set(stFrancisLastMonthIncomes.map(inc => inc.provider_id).filter(Boolean))];
+    // If no groups found/mapped, fallback to 'ANY' (backward compatibility)
+    if (expectedGroups.size === 0) {
+      expectedGroups.add('ANY');
+    }
 
-  // For each such provider, check if they have a St. Francis invoice for last month
-  const providersMissingPriorInvoice = stFrancisProviderIds.map(providerId => {
-    const provider = providers.find(p => p.id === providerId);
-    if (!provider || provider.status !== 'active') return null;
+    const missingGroups = [];
 
-    // Check if waived
-    const isWaived = invoiceWaivers.some(w =>
-      w.provider_id === providerId &&
-      w.month === previousMonthStr &&
-      (!w.program_group || w.program_group === ST_FRANCIS_PROGRAM_GROUP)
-    );
-    if (isWaived) return null;
+    expectedGroups.forEach(group => {
+      // 1. Check if waived (Global or Specific)
+      const isWaived = invoiceWaivers.some(w => 
+        w.provider_id === provider.id && 
+        w.month === previousMonthStr && 
+        (!w.program_group || w.program_group === group || (group === 'ANY'))
+      );
 
-    // Check if a St. Francis invoice exists for this provider and last month
-    const hasInvoice = invoices.some(inv =>
-      inv.staff_member_id === providerId &&
-      inv.month === previousMonthStr &&
-      inv.program_group === ST_FRANCIS_PROGRAM_GROUP
-    );
-    if (hasInvoice) return null;
+      if (isWaived) return; // Skip if waived
 
-    return { ...provider, missingGroups: [ST_FRANCIS_PROGRAM_GROUP] };
+      // 2. Check if invoice exists
+      const hasInvoice = invoices.some(inv => {
+        const matchProvider = inv.staff_member_id === provider.id;
+        const matchMonth = inv.month === previousMonthStr;
+        if (!matchProvider || !matchMonth) return false;
+
+        if (group === 'ANY') return true;
+        return inv.program_group === group;
+      });
+
+      if (hasInvoice) return; // Skip if invoice exists
+
+      // 3. Check linked income
+      const hasLinkedIncome = outsideIncomes.some(inc => {
+        const matchProvider = inc.provider_id === provider.id;
+        const matchMonth = (inc.invoice_month === previousMonthStr || inc.workMonth === previousMonthStr);
+        if (!matchProvider || !matchMonth || !inc.invoice_id) return false;
+
+        if (group === 'ANY') return true;
+        
+        const linkedInvoice = invoices.find(inv => inv.id === inc.invoice_id);
+        return linkedInvoice && linkedInvoice.program_group === group;
+      });
+
+      if (hasLinkedIncome) return;
+
+      missingGroups.push(group);
+    });
+
+    if (missingGroups.length > 0) {
+      return { ...provider, missingGroups };
+    }
+    return null;
   }).filter(Boolean);
 
   // Providers with pending approval invoices (Any Date)
