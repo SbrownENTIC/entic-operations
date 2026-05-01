@@ -31,6 +31,7 @@ The system has two categories of triggers:
 5. If `program_group` includes "Manchester" or "ECHN":
    - Auto-generate PDF via `generateManchesterPDF` function
    - Open generated PDF in new browser tab
+   - **Note:** Manchester invoices are group-level — one invoice covers all required providers (Seth Brown, Benjamin Wycherly, Ryan Drake) for the month. The PDF invoice number is derived from the service month (`MM/YY`), not the invoice creation date.
 
 **Dependencies:** Provider record, ProgramLocation record, OutsideIncome records
 

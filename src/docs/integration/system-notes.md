@@ -60,9 +60,16 @@ The following fields have **no automatic computation** and depend entirely on us
 - The Seth Brown Directorship auto-creation logic uses a **name match** (`provider.full_name.toLowerCase().includes("seth brown")`) — if the name changes or is misspelled, the trigger will not fire
 
 ### Program Group Matching
-- Manchester/ECHN detection uses: `program_group.includes("manchester") || program_group.includes("echn")`
-- UConn detection uses: `program_group.toLowerCase().includes("uconn")`
-- These are **string matches**, not entity references — inconsistent naming in program_group will break routing
+The system uses **exact string matching** for program group comparisons. The canonical stored values are:
+
+| Stored `program_group` Value | Usage |
+|---|---|
+| `"UConn"` | UConn on-call invoices |
+| `"St. Francis"` | St. Francis on-call invoices |
+| `"HH - Manchester / ECHN"` | Manchester/ECHN group invoice (note spaces around `/`) |
+| `"Hartford Hospital"` | Hartford Hospital on-call + directorship invoices |
+
+> ⚠️ Inconsistent naming (e.g., `"HH - Manchester/ECHN"` vs `"HH - Manchester / ECHN"`) will cause routing and matching failures. Always use the exact strings listed above.
 
 ### Dates
 - All dates are stored as `YYYY-MM-DD` strings (no timezone)
@@ -90,8 +97,28 @@ The following fields have **no automatic computation** and depend entirely on us
 ## 4. Multi-Program Invoice Notes
 
 - A single **provider** can have income from multiple **program groups** in the same month
-- Invoices are **per program group per provider per month** — not consolidated across programs
+- Invoices are **per program group per provider per month** for most programs — not consolidated across programs
 - Hartford Hospital generates **two invoices**: one for On-Call RVU work and one for Directorship ($3,250)
+- **HH - Manchester / ECHN is an exception**: one invoice covers all providers for the month (group-level invoice)
+
+---
+
+## 4a. Monthly Billing Matrix (Missing Invoice Detection)
+
+The dashboard Missing Invoices widget uses a **hardcoded billing matrix** to determine which invoices are required each month. It does NOT infer required providers from `program_locations` or `OutsideIncome` records.
+
+| Facility (`program_group`) | Required Monthly Providers |
+|---|---|
+| `UConn` | Seth Brown, Hailun Wang, Belachew Tessema |
+| `St. Francis` | Seth Brown, Belachew Tessema, Kimberly Rutherford, Benjamin Wycherly, Jerlon Chiu, Erin Alday, Hailun Wang, Ryan Drake, Stephen Wolfe |
+| `HH - Manchester / ECHN` | Seth Brown, Benjamin Wycherly, Ryan Drake |
+| `Hartford Hospital` | Belachew Tessema, Benjamin Wycherly, Jerlon Chiu |
+
+**Detection Logic:**
+- `UConn`, `St. Francis`, `Hartford Hospital`: Check `Invoice.staff_member_id` matches provider AND `Invoice.month === previousMonthStr` AND `Invoice.program_group` matches
+- `HH - Manchester / ECHN`: **Group-level check only** — if ANY invoice exists with `program_group = "HH - Manchester / ECHN"` and `month = previousMonthStr`, ALL required Manchester providers are considered covered (no provider-specific matching)
+- A provider is exempt if an `InvoiceWaiver` exists for that `provider_id + month + program_group`
+- `previousMonthStr` is computed dynamically as `format(subMonths(today, 1), "MMMM yyyy")` (e.g., `"April 2026"`)
 
 ---
 
