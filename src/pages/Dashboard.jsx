@@ -375,73 +375,63 @@ export default function Dashboard() {
     return items;
   }, [invoices, payments, outsideIncomes]);
 
-  // Missing Prior Month Invoices Tracking
-  // Rule: St. Francis → all providers assigned to St. Francis program locations, missing invoice for last month
-  // Rule: Hartford Hospital → Dr. Belachew Tessema only, if assigned and missing invoice
-  // Manchester is excluded entirely.
-  // A provider is "missing" if they have no invoice AND no waiver for that group for last month.
-  // OutsideIncome is NOT required — absence of both income and invoice means data hasn't been entered.
+  // Missing Prior Month Invoices — Explicit Billing Matrix
+  // Do NOT infer from program_locations or OutsideIncome.
+  // Only use the hardcoded matrix below.
 
   const previousMonthDate = subMonths(new Date(), 1);
   const previousMonthStr = format(previousMonthDate, 'MMMM yyyy');
 
+  // Hardcoded billing matrix: facility program_group → required provider name fragments (lowercase)
+  const BILLING_MATRIX = {
+    'UConn': ['seth brown', 'hailun wang', 'belachew tessema'],
+    'St. Francis': ['seth brown', 'belachew tessema', 'kimberly rutherford', 'benjamin wycherly', 'jerlon chi', 'erin alday', 'hailun wang', 'ryan drake', 'stephen wolfe'],
+    'HH- Manchester/ECHN': ['seth brown', 'benjamin wycherly', 'ryan drake'],
+    'Hartford Hospital': ['belachew tessema', 'benjamin wycherly', 'jerlon chi'],
+  };
+
   const providersMissingPriorInvoice = React.useMemo(() => {
-    const results = [];
-    const activeProviders = providers.filter(p => p.status === 'active');
+    // Build a map of provider name fragment → provider object
+    const allNameFragments = [...new Set(Object.values(BILLING_MATRIX).flat())];
+    const providerByFragment = {};
+    allNameFragments.forEach(fragment => {
+      const match = providers.find(p => p.full_name.toLowerCase().includes(fragment) && p.status === 'active');
+      if (match) providerByFragment[fragment] = match;
+    });
 
-    // St. Francis program location IDs (On-Call and Directorship)
-    const sfLocationIds = programLocations
-      .filter(pl => pl.program_group === 'St. Francis')
-      .map(pl => pl.id);
-
-    // Hartford Hospital program location IDs
-    const hhLocationIds = programLocations
-      .filter(pl => pl.program_group === 'Hartford Hospital')
-      .map(pl => pl.id);
-
-    const hasInvoiceForGroup = (providerId, programGroup) =>
+    const hasInvoice = (providerId, programGroup) =>
       invoices.some(inv =>
         inv.staff_member_id === providerId &&
         inv.month === previousMonthStr &&
         inv.program_group === programGroup
       );
 
-    const hasWaiverForGroup = (providerId, programGroup) =>
+    const hasWaiver = (providerId, programGroup) =>
       invoiceWaivers.some(w =>
         w.provider_id === providerId &&
         w.month === previousMonthStr &&
         (!w.program_group || w.program_group === programGroup)
       );
 
-    const isAssignedToLocations = (provider, locationIds) =>
-      Array.isArray(provider.program_locations) &&
-      provider.program_locations.some(locId => locationIds.includes(locId));
+    // Aggregate missing groups per provider
+    const missingByProvider = {};
 
-    // 1. St. Francis: all active providers assigned to St. Francis locations, missing an invoice
-    activeProviders.forEach(provider => {
-      const group = 'St. Francis';
-      if (!isAssignedToLocations(provider, sfLocationIds)) return;
-      if (hasWaiverForGroup(provider.id, group)) return;
-      if (hasInvoiceForGroup(provider.id, group)) return;
-      results.push({ ...provider, missingGroups: [group] });
+    Object.entries(BILLING_MATRIX).forEach(([group, nameFragments]) => {
+      nameFragments.forEach(fragment => {
+        const provider = providerByFragment[fragment];
+        if (!provider) return;
+        if (hasWaiver(provider.id, group)) return;
+        if (hasInvoice(provider.id, group)) return;
+
+        if (!missingByProvider[provider.id]) {
+          missingByProvider[provider.id] = { ...provider, missingGroups: [] };
+        }
+        missingByProvider[provider.id].missingGroups.push(group);
+      });
     });
 
-    // 2. Hartford Hospital: Dr. Belachew Tessema only
-    const tessema = activeProviders.find(p => p.full_name.toLowerCase().includes('belachew tessema'));
-    if (tessema && isAssignedToLocations(tessema, hhLocationIds)) {
-      const group = 'Hartford Hospital';
-      if (!hasWaiverForGroup(tessema.id, group) && !hasInvoiceForGroup(tessema.id, group)) {
-        const existing = results.find(r => r.id === tessema.id);
-        if (existing) {
-          existing.missingGroups.push(group);
-        } else {
-          results.push({ ...tessema, missingGroups: [group] });
-        }
-      }
-    }
-
-    return results;
-  }, [providers, invoices, outsideIncomes, invoiceWaivers, previousMonthStr, programLocations]);
+    return Object.values(missingByProvider).sort((a, b) => a.full_name.localeCompare(b.full_name));
+  }, [providers, invoices, invoiceWaivers, previousMonthStr]);
 
   // Providers with pending approval invoices (Any Date)
   const providersWithPendingInvoices = React.useMemo(() => {
