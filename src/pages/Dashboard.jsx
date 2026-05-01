@@ -399,12 +399,22 @@ export default function Dashboard() {
       if (match) providerByFragment[fragment] = match;
     });
 
-    const hasInvoice = (providerId, programGroup) =>
-      invoices.some(inv =>
+    const MANCHESTER_GROUP = 'HH - Manchester / ECHN';
+
+    // Manchester invoices are group-level (one invoice covers all providers)
+    const manchesterInvoiceExists = invoices.some(inv =>
+      inv.program_group === MANCHESTER_GROUP &&
+      inv.month === previousMonthStr
+    );
+
+    const hasInvoice = (providerId, programGroup) => {
+      if (programGroup === MANCHESTER_GROUP) return manchesterInvoiceExists;
+      return invoices.some(inv =>
         inv.staff_member_id === providerId &&
         inv.month === previousMonthStr &&
         inv.program_group === programGroup
       );
+    };
 
     const hasWaiver = (providerId, programGroup) =>
       invoiceWaivers.some(w =>
