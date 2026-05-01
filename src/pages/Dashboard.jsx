@@ -386,7 +386,7 @@ export default function Dashboard() {
   const BILLING_MATRIX = {
     'UConn': ['seth brown', 'hailun wang', 'belachew tessema'],
     'St. Francis': ['seth brown', 'belachew tessema', 'kimberly rutherford', 'benjamin wycherly', 'jerlon chi', 'erin alday', 'hailun wang', 'ryan drake', 'stephen wolfe'],
-    'HH- Manchester/ECHN': ['seth brown', 'benjamin wycherly', 'ryan drake'],
+    'HH - Manchester / ECHN': ['seth brown', 'benjamin wycherly', 'ryan drake'],
     'Hartford Hospital': ['belachew tessema', 'benjamin wycherly', 'jerlon chi'],
   };
 
