@@ -376,104 +376,69 @@ export default function Dashboard() {
   }, [invoices, payments, outsideIncomes]);
 
   // Missing Prior Month Invoices Tracking
-  const targetProviderNames = [
-    "belachew tessema",
-    "benjamin wycherly",
-    "erin alday",
-    "hailun wang",
-    "jerlon chi",
-    "kimberly rutherford",
-    "ryan drake",
-    "seth brown",
-    "stephen wolfe"
-  ];
+  // Rule: St. Francis → all providers with income but no invoice last month
+  // Rule: Hartford Hospital → Dr. Belachew Tessema only
+  // Manchester is excluded entirely.
 
   const previousMonthDate = subMonths(new Date(), 1);
   const previousMonthStr = format(previousMonthDate, 'MMMM yyyy');
 
-  const targetProviders = providers.filter(p => 
-    p.status === 'active' && 
-    targetProviderNames.some(name => p.full_name.toLowerCase().includes(name))
-  );
+  const providersMissingPriorInvoice = React.useMemo(() => {
+    const results = [];
+    const activeProviders = providers.filter(p => p.status === 'active');
 
-  const providersMissingPriorInvoice = targetProviders.map(provider => {
-    // Determine expected program groups
-    let expectedGroups = new Set();
-    const isTessema = provider.full_name.toLowerCase().includes('belachew tessema');
-    
-    if (isTessema) {
-      expectedGroups.add('Hartford Hospital');
-    } else if (provider.program_locations && provider.program_locations.length > 0) {
-      // Map locations to groups
-      provider.program_locations.forEach(locName => {
-        // 1. Try exact match from ProgramLocation entity
-        const progLoc = programLocations.find(pl => pl.program_location === locName);
-        if (progLoc && progLoc.program_group) {
-          expectedGroups.add(progLoc.program_group);
-        } else {
-          // 2. Fallback heuristic for when ProgramLocation entity lookup fails
-          const lowerLoc = locName.toLowerCase();
-          if (lowerLoc.includes('hartford hospital')) expectedGroups.add('Hartford Hospital');
-          else if (lowerLoc.includes('st. francis') || lowerLoc.includes('saint francis')) expectedGroups.add('St. Francis');
-          else if (lowerLoc.includes('uconn')) expectedGroups.add('UConn');
-          else if (lowerLoc.includes('manchester') || lowerLoc.includes('echn')) expectedGroups.add('Manchester / ECHN');
-          else if (lowerLoc.includes('ccmc')) expectedGroups.add('CCMC');
-          else if (lowerLoc.includes('bloomfield') || lowerLoc.includes('basc')) expectedGroups.add('Bloomfield');
-        }
-      });
-    }
+    const facilityMatchesSF = (name) => name && (name.includes('St. Francis') || name.includes('Saint Francis'));
+    const facilityMatchesHH = (name) => name && name.includes('Hartford Hospital');
 
-    // If no groups found/mapped, fallback to 'ANY' (backward compatibility)
-    if (expectedGroups.size === 0) {
-      expectedGroups.add('ANY');
-    }
-
-    const missingGroups = [];
-
-    expectedGroups.forEach(group => {
-      // 1. Check if waived (Global or Specific)
-      const isWaived = invoiceWaivers.some(w => 
-        w.provider_id === provider.id && 
-        w.month === previousMonthStr && 
-        (!w.program_group || w.program_group === group || (group === 'ANY'))
+    const hasInvoiceForGroup = (providerId, programGroup) =>
+      invoices.some(inv =>
+        inv.staff_member_id === providerId &&
+        inv.month === previousMonthStr &&
+        inv.program_group === programGroup
       );
 
-      if (isWaived) return; // Skip if waived
+    const hasWaiverForGroup = (providerId, programGroup) =>
+      invoiceWaivers.some(w =>
+        w.provider_id === providerId &&
+        w.month === previousMonthStr &&
+        (!w.program_group || w.program_group === programGroup)
+      );
 
-      // 2. Check if invoice exists
-      const hasInvoice = invoices.some(inv => {
-        const matchProvider = inv.staff_member_id === provider.id;
-        const matchMonth = inv.month === previousMonthStr;
-        if (!matchProvider || !matchMonth) return false;
+    const hasOutsideIncomeForFacility = (providerId, facilityMatcher) =>
+      outsideIncomes.some(inc =>
+        inc.provider_id === providerId &&
+        facilityMatcher(inc.facility_name) &&
+        inc.invoice_month === previousMonthStr
+      );
 
-        if (group === 'ANY') return true;
-        return inv.program_group === group;
-      });
-
-      if (hasInvoice) return; // Skip if invoice exists
-
-      // 3. Check linked income
-      const hasLinkedIncome = outsideIncomes.some(inc => {
-        const matchProvider = inc.provider_id === provider.id;
-        const matchMonth = (inc.invoice_month === previousMonthStr || inc.workMonth === previousMonthStr);
-        if (!matchProvider || !matchMonth || !inc.invoice_id) return false;
-
-        if (group === 'ANY') return true;
-        
-        const linkedInvoice = invoices.find(inv => inv.id === inc.invoice_id);
-        return linkedInvoice && linkedInvoice.program_group === group;
-      });
-
-      if (hasLinkedIncome) return;
-
-      missingGroups.push(group);
+    // 1. St. Francis: all active providers who have income but no invoice
+    activeProviders.forEach(provider => {
+      const group = 'St. Francis';
+      if (hasWaiverForGroup(provider.id, group)) return;
+      if (hasInvoiceForGroup(provider.id, group)) return;
+      if (!hasOutsideIncomeForFacility(provider.id, facilityMatchesSF)) return;
+      results.push({ ...provider, missingGroups: [group] });
     });
 
-    if (missingGroups.length > 0) {
-      return { ...provider, missingGroups };
+    // 2. Hartford Hospital: Dr. Belachew Tessema only
+    const tessema = activeProviders.find(p => p.full_name.toLowerCase().includes('belachew tessema'));
+    if (tessema) {
+      const group = 'Hartford Hospital';
+      if (!hasWaiverForGroup(tessema.id, group) &&
+          !hasInvoiceForGroup(tessema.id, group) &&
+          hasOutsideIncomeForFacility(tessema.id, facilityMatchesHH)) {
+        // Only add if not already added (shouldn't be, but safeguard)
+        if (!results.find(r => r.id === tessema.id)) {
+          results.push({ ...tessema, missingGroups: [group] });
+        } else {
+          const existing = results.find(r => r.id === tessema.id);
+          existing.missingGroups.push(group);
+        }
+      }
     }
-    return null;
-  }).filter(Boolean);
+
+    return results;
+  }, [providers, invoices, outsideIncomes, invoiceWaivers, previousMonthStr]);
 
   // Providers with pending approval invoices (Any Date)
   const providersWithPendingInvoices = React.useMemo(() => {
