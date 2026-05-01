@@ -76,12 +76,13 @@ Deno.serve(async (req) => {
         const pdfDoc = await PDFDocument.load(templateBuffer);
         const form = pdfDoc.getForm();
 
-        // Invoice Number: template already has "EARNOSETHROATCALL" prefix — only write MM/YY
-        const invoiceDateFormatted = invoice.invoice_date ? parseISO(invoice.invoice_date) : new Date();
-        const invoiceMMYY = format(invoiceDateFormatted, 'MM/yy');
+        // Invoice Number: derived from service month (targetDate), NOT invoice_date
+        // Format: MM/YY based on the month & year of service
+        const invoiceMMYY = format(targetDate, 'MM/yy');
         safeSetField(form, 'invoice_number', invoiceMMYY, 11);
 
-        // Invoice Date: MM/DD/YYYY
+        // Invoice Date: MM/DD/YYYY — still uses invoice_date for the actual invoice date field
+        const invoiceDateFormatted = invoice.invoice_date ? parseISO(invoice.invoice_date) : new Date();
         safeSetField(form, 'invoice_date', format(invoiceDateFormatted, 'MM/dd/yyyy'), 11);
 
         // Month & Year of Service: e.g. "March 2026"
