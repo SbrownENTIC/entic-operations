@@ -216,7 +216,7 @@ export default function OfficeSupplyOrders() {
       return;
     }
 
-    const validStatuses = ['pending_review', 'pending_fulfillment'];
+    const validStatuses = ['open', 'pending_review', 'pending_fulfillment'];
     const invalidStatus = ordersToMerge.some(o => !validStatuses.includes(o.status));
     
     if (invalidStatus) {
@@ -320,6 +320,7 @@ export default function OfficeSupplyOrders() {
   };
 
   const statusColors = {
+    open: "bg-slate-100 text-slate-700",
     pending_review: "bg-yellow-100 text-yellow-800",
     pending_fulfillment: "bg-blue-100 text-blue-800",
     approved: "bg-green-100 text-green-800",
@@ -414,6 +415,7 @@ export default function OfficeSupplyOrders() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="open">Open (Draft)</SelectItem>
                   <SelectItem value="pending">Pending (Review/Fulfillment)</SelectItem>
                   <SelectItem value="pending_review">Pending Review</SelectItem>
                   <SelectItem value="pending_fulfillment">Pending Fulfillment</SelectItem>

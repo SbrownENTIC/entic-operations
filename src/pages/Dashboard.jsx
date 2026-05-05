@@ -149,6 +149,7 @@ export default function Dashboard() {
     queryFn: async () => {
       try {
         const allOrders = await base44.entities.SupplyOrder.list('-order_date');
+        // Exclude 'open' (unsubmitted drafts) — only show formally submitted orders
         return allOrders.filter(order => 
           (order.status === 'pending_review' || order.status === 'pending_fulfillment') &&
           order.category === 'office'
@@ -209,9 +210,9 @@ export default function Dashboard() {
     queryFn: async () => {
       try {
         const orders = await base44.entities.SupplyOrder.filter({ updated_after_submission: true });
-        // Exclude orders that have already been placed or received
-        const processedStatuses = ['order_placed', 'received', 'partially_received', 'rejected'];
-        return orders.filter(order => !processedStatuses.includes(order.status));
+        // Exclude orders that have already been placed/received, and exclude 'open' drafts
+        const excludedStatuses = ['open', 'order_placed', 'received', 'partially_received', 'rejected'];
+        return orders.filter(order => !excludedStatuses.includes(order.status));
         } catch (error) {
         return handleQueryError(error);
       }

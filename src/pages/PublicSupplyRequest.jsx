@@ -126,14 +126,24 @@ export default function PublicSupplyRequest() {
     setSubmitMessage('');
 
     try {
-      // If there's an existing open order for this location, update it instead of creating a new one
+      // If there's an existing open-draft order for this location, update it + transition to pending_review
       const existingOpen = openOrders.find(
-        o => o.location === formData.location &&
-        (o.status === 'pending_review' || o.status === 'pending_fulfillment')
+        o => o.location === formData.location && o.status === 'open'
       );
 
       if (existingOpen) {
-        await updateMutation.mutateAsync({ id: existingOpen.id, data: { ...formData, order_date: existingOpen.order_date, status: existingOpen.status, category: existingOpen.category, vendor: existingOpen.vendor, updated_after_submission: true } });
+        console.log('[PublicSupplyRequest] isEditing=true, orderId=', existingOpen.id, ', triggering updateMutation → pending_review');
+        await updateMutation.mutateAsync({
+          id: existingOpen.id,
+          data: {
+            ...formData,
+            status: 'pending_review',
+            order_date: existingOpen.order_date,
+            category: existingOpen.category,
+            vendor: existingOpen.vendor,
+            updated_after_submission: true
+          }
+        });
         // updateMutation onSuccess handles the message + reset
       } else {
         const response = await base44.functions.invoke('processSupplyRequest', formData);
@@ -174,10 +184,10 @@ export default function PublicSupplyRequest() {
   };
 
   const handleEditOrder = (order) => {
-    // Only block truly closed orders
-    if (['order_placed', 'partially_received', 'received', 'merged', 'rejected'].includes(order.status)) {
+    // Only "open" draft orders are editable
+    if (order.status !== 'open') {
       setSubmitStatus('error');
-      setSubmitMessage('This order has already been placed and cannot be edited.');
+      setSubmitMessage('This order has already been submitted and cannot be edited.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
@@ -190,9 +200,9 @@ export default function PublicSupplyRequest() {
     e.preventDefault();
     if (!editingOrder) return;
 
-    if (['order_placed', 'partially_received', 'received', 'merged', 'rejected'].includes(editingOrder.status)) {
+    if (editingOrder.status !== 'open') {
       setSubmitStatus('error');
-      setSubmitMessage('This order has already been placed and cannot be edited.');
+      setSubmitMessage('This order has already been submitted and cannot be edited.');
       cancelEdit();
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
@@ -201,10 +211,11 @@ export default function PublicSupplyRequest() {
     const itemsChanged = JSON.stringify(editingOrder.items) !== JSON.stringify(formData.items);
     const notesChanged = editingOrder.notes !== formData.notes;
 
+    console.log('[PublicSupplyRequest] handleUpdateOrder: isEditing=true, orderId=', editingOrder.id, ', triggering updateMutation → pending_review');
     const dataToSubmit = {
       ...formData,
+      status: 'pending_review',
       order_date: editingOrder.order_date,
-      status: editingOrder.status,
       category: editingOrder.category,
       vendor: editingOrder.vendor,
       updated_after_submission: itemsChanged || notesChanged ? true : editingOrder.updated_after_submission
@@ -245,8 +256,7 @@ export default function PublicSupplyRequest() {
     if (formData.location === autoLoadedForLocation) return;
 
     const openOrderForLocation = openOrders.find(
-      o => o.location === formData.location &&
-      (o.status === 'pending_review' || o.status === 'pending_fulfillment')
+      o => o.location === formData.location && o.status === 'open'
     );
 
     if (openOrderForLocation) {
@@ -629,8 +639,8 @@ export default function PublicSupplyRequest() {
                             <Badge variant="outline" className="text-xs">
                               {order.items?.length || 0} items
                             </Badge>
-                            <Badge className={order.status === 'pending_fulfillment' ? 'bg-blue-100 text-blue-800 text-xs' : 'bg-yellow-100 text-yellow-800 text-xs'}>
-                              {order.status === 'pending_fulfillment' ? 'Ready to Place' : 'Needs Review'}
+                            <Badge className="bg-slate-100 text-slate-700 text-xs">
+                              Open Draft
                             </Badge>
                             {order.updated_after_submission && (
                               <Badge className="bg-orange-100 text-orange-800 text-xs">Updated</Badge>

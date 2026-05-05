@@ -276,7 +276,7 @@ function LayoutContent({ children, currentPageName }) {
       const orders = await base44.entities.SupplyOrder.filter({ 
         status: { $in: ['pending_review', 'pending_fulfillment'] } 
       });
-      // Filter for office orders
+      // Filter for office orders only; 'open' drafts are excluded (not yet submitted)
       return orders.filter(o => o.category === 'office');
     },
     refetchInterval: 30000

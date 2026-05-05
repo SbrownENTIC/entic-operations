@@ -9,19 +9,17 @@ Deno.serve(async (req) => {
             return Response.json({ error: "Missing id or data" }, { status: 400 });
         }
 
-        // Fetch the order to check date/status
         const order = await base44.asServiceRole.entities.SupplyOrder.get(id);
         
         if (!order) {
             return Response.json({ error: "Order not found" }, { status: 404 });
         }
 
-        // Only block orders that are fully closed
-        if (['order_placed', 'partially_received', 'received', 'merged', 'rejected'].includes(order.status)) {
-            return Response.json({ error: "Order has already been placed and cannot be edited" }, { status: 403 });
+        // Only "open" orders can be updated via the public form
+        if (order.status !== 'open') {
+            return Response.json({ error: "Only open draft orders can be edited" }, { status: 403 });
         }
 
-        // Perform update via service role
         const updated = await base44.asServiceRole.entities.SupplyOrder.update(id, data);
         
         return Response.json(updated);

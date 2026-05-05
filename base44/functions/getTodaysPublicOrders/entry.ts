@@ -1,29 +1,19 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
-// Statuses that mean an order is still open / visible in the public form
-const OPEN_STATUSES = ['pending_review', 'pending_fulfillment'];
-// Statuses that mean an order is fully placed and should disappear from the public form
-const CLOSED_STATUSES = ['order_placed', 'received', 'merged', 'rejected'];
+// Only "open" orders are editable drafts visible on the public form.
+// All other statuses (pending_review and beyond) are read-only past/submitted orders.
+const OPEN_STATUS = 'open';
 
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         
-        // Fetch recent orders via service role (admin access) to show on public page
+        // Fetch recent orders via service role (admin access)
         const allOrders = await base44.asServiceRole.entities.SupplyOrder.list('-created_date', 200);
 
         const visibleOrders = allOrders.filter(order => {
-            // Must be office category
             if (order.category !== 'office') return false;
-
-            // Exclude orders that have been placed/closed
-            if (CLOSED_STATUSES.includes(order.status)) return false;
-
-            // Include all open (pending) orders — submission_source not required
-            // (admins may create pending_fulfillment orders internally)
-            if (OPEN_STATUSES.includes(order.status)) return true;
-
-            return false;
+            return order.status === OPEN_STATUS;
         });
 
         return Response.json(visibleOrders);
