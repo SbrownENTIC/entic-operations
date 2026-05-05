@@ -354,6 +354,7 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="open">Open (Draft)</SelectItem>
                   <SelectItem value="pending_review">Pending Review</SelectItem>
                   <SelectItem value="pending_fulfillment">Pending Fulfillment</SelectItem>
                   <SelectItem value="approved">Approved</SelectItem>
