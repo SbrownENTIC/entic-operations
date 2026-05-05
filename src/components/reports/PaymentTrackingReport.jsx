@@ -134,8 +134,8 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
       if (isDirectPayer) {
         const isNationsHearing = programGroup === 'Nations Hearing';
         const headers = isNationsHearing
-          ? ['Voucher Number', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Allocation/Notes']
-          : ['Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', '', 'Allocation/Notes'];
+          ? ['Voucher Number', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Payment Quarter', 'Allocation/Notes']
+          : ['Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Payment Quarter', 'Voucher Number', '', 'Allocation/Notes'];
           
         const section = {
           title: `${programGroup} - TRACKING`,
@@ -271,7 +271,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
         if (directorshipLocation) {
           const section = {
             title: `${programGroup} - DIRECTORSHIP TRACKING`,
-            headers: ['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', 'Date Paid Provider', 'Allocation/Notes'],
+            headers: ['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Payment Quarter', 'Voucher Number', 'Date Paid Provider', 'Allocation/Notes'],
             rows: []
           };
 
@@ -354,7 +354,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
         if (onCallLocation) {
           const section = {
             title: `${programGroup} - ON-CALL TRACKING`,
-            headers: ['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', 'Date Paid Provider', 'Allocation/Notes'],
+            headers: ['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Payment Quarter', 'Voucher Number', 'Date Paid Provider', 'Allocation/Notes'],
             rows: []
           };
 
@@ -439,7 +439,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
         // Standard tracking for other locations
         const section = {
           title: `${programGroup} - TRACKING`,
-          headers: ['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', 'Date Paid Provider', 'Allocation/Notes'],
+          headers: ['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Payment Quarter', 'Voucher Number', 'Date Paid Provider', 'Allocation/Notes'],
           rows: []
         };
 
