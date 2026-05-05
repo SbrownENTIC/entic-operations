@@ -24,7 +24,7 @@ export default function SupplyOrderForm({ order, category, onSubmit, onCancel, i
     vendor: category === 'clinical' ? 'Henry Schein' : category === 'audiology' ? 'Oaktree Products' : 'Staples Business',
     location: 'Glastonbury',
     order_date: '',
-    status: 'order_placed',
+    status: 'open',
     subtotal: 0,
     tax: 0,
     total_amount: 0,
