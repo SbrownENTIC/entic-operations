@@ -199,6 +199,15 @@ Deno.serve(async (req) => {
             // Headers
             const detHeaderRow = detailSheet.addRow(section.headers);
             detHeaderRow.eachCell(cell => cell.style = headerStyle);
+
+            // Enable AutoFilter on the header row (detail sheets have one section each)
+            const numCols = section.headers.length;
+            const headerRowNum = detHeaderRow.number;
+            const lastCol = String.fromCharCode(64 + numCols); // A=1, B=2 ... up to Z
+            detailSheet.autoFilter = {
+                from: { row: headerRowNum, column: 1 },
+                to: { row: headerRowNum, column: numCols }
+            };
             
             // Data
             section.rows.forEach(row => {
@@ -295,7 +304,13 @@ Deno.serve(async (req) => {
                 
                 const headerRow = sheet.addRow(section.headers);
                 headerRow.eachCell(cell => cell.style = headerStyle);
-                
+
+                // Enable AutoFilter on the header row
+                sheet.autoFilter = {
+                    from: { row: headerRow.number, column: 1 },
+                    to: { row: headerRow.number, column: section.headers.length }
+                };
+
                 const expIdx = section.headers.indexOf('Expected Payment') + 1;
                 const recIdx = section.headers.indexOf('Payment Received') + 1;
                 let sectionExpected = 0;
