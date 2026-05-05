@@ -36,6 +36,7 @@ export default function PublicSupplyRequest() {
   const [showPastOrders, setShowPastOrders] = useState(false);
   const [pastOrdersLocation, setPastOrdersLocation] = useState('');
   const [pastOrdersSearch, setPastOrdersSearch] = useState('');
+  const [autoLoadedForLocation, setAutoLoadedForLocation] = useState('');
 
   useEffect(() => {
     base44.auth.me()
@@ -57,10 +58,9 @@ export default function PublicSupplyRequest() {
     enabled: showPastOrders
   });
 
-  const { data: todaysOrders = [], isLoading: ordersLoading } = useQuery({
-    queryKey: ['todays-public-orders'],
+  const { data: openOrders = [], isLoading: ordersLoading } = useQuery({
+    queryKey: ['open-public-orders'],
     queryFn: async () => {
-      // Use backend function to fetch orders securely for public users
       const response = await base44.functions.invoke('getTodaysPublicOrders');
       return response.data || [];
     },
@@ -69,12 +69,20 @@ export default function PublicSupplyRequest() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }) => {
-      // Use backend function to update orders securely for public users
       await base44.functions.invoke('updatePublicOrder', { id, data });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['todays-public-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['open-public-orders'] });
       setEditingOrder(null);
+      setAutoLoadedForLocation('');
+      setFormData({
+        location: '',
+        requester_name: 'Jalisa Henry',
+        requester_email: 'JHenry@enticmd.com',
+        requested_date: new Date().toISOString().split('T')[0],
+        items: [],
+        notes: ''
+      });
       setSubmitStatus('success');
       setSubmitMessage('Order updated successfully!');
       setTimeout(() => {
@@ -118,19 +126,30 @@ export default function PublicSupplyRequest() {
     setSubmitMessage('');
 
     try {
-      const response = await base44.functions.invoke('processSupplyRequest', formData);
-      setSubmitStatus('success');
-      setSubmitMessage(response.data.message || 'Request submitted successfully!');
-      
-      // Reset form
-      setFormData({
-        location: '',
-        requester_name: '',
-        requester_email: '',
-        requested_date: new Date().toISOString().split('T')[0],
-        items: [],
-        notes: ''
-      });
+      // If there's an existing open order for this location, update it instead of creating a new one
+      const existingOpen = openOrders.find(
+        o => o.location === formData.location &&
+        (o.status === 'pending_review' || o.status === 'pending_fulfillment')
+      );
+
+      if (existingOpen) {
+        await updateMutation.mutateAsync({ id: existingOpen.id, data: { ...formData, order_date: existingOpen.order_date, status: existingOpen.status, category: existingOpen.category, vendor: existingOpen.vendor, updated_after_submission: true } });
+        // updateMutation onSuccess handles the message + reset
+      } else {
+        const response = await base44.functions.invoke('processSupplyRequest', formData);
+        setSubmitStatus('success');
+        setSubmitMessage(response.data.message || 'Request submitted successfully!');
+        queryClient.invalidateQueries({ queryKey: ['open-public-orders'] });
+        setFormData({
+          location: '',
+          requester_name: 'Jalisa Henry',
+          requester_email: 'JHenry@enticmd.com',
+          requested_date: new Date().toISOString().split('T')[0],
+          items: [],
+          notes: ''
+        });
+        setAutoLoadedForLocation('');
+      }
     } catch (error) {
       setSubmitStatus('error');
       setSubmitMessage('Error: ' + (error.response?.data?.error || error.message));
@@ -155,14 +174,14 @@ export default function PublicSupplyRequest() {
   };
 
   const handleEditOrder = (order) => {
-    // Check if order has already been placed
-    if (order.status === 'order_placed' || order.status === 'partially_received' || order.status === 'received') {
+    // Only block truly closed orders
+    if (['order_placed', 'partially_received', 'received', 'merged', 'rejected'].includes(order.status)) {
       setSubmitStatus('error');
-      setSubmitMessage('This order has already been placed and cannot be edited. Please submit a new order instead.');
+      setSubmitMessage('This order has already been placed and cannot be edited.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
-    
+    setAutoLoadedForLocation(order.location);
     setEditingOrder(order);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -171,10 +190,9 @@ export default function PublicSupplyRequest() {
     e.preventDefault();
     if (!editingOrder) return;
 
-    // Check if order has already been placed
-    if (editingOrder.status === 'order_placed' || editingOrder.status === 'partially_received' || editingOrder.status === 'received') {
+    if (['order_placed', 'partially_received', 'received', 'merged', 'rejected'].includes(editingOrder.status)) {
       setSubmitStatus('error');
-      setSubmitMessage('This order has already been placed and cannot be edited. Please submit a new order instead.');
+      setSubmitMessage('This order has already been placed and cannot be edited.');
       cancelEdit();
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
@@ -197,6 +215,7 @@ export default function PublicSupplyRequest() {
 
   const cancelEdit = () => {
     setEditingOrder(null);
+    setAutoLoadedForLocation('');
     setFormData({
       location: '',
       requester_name: 'Jalisa Henry',
@@ -210,16 +229,33 @@ export default function PublicSupplyRequest() {
   // When editing, populate form with order data
   useEffect(() => {
     if (editingOrder) {
-      setFormData({
+      setFormData(prev => ({
+        ...prev,
         location: editingOrder.location,
-        requester_name: 'Jalisa Henry',
-        requester_email: 'JHenry@enticmd.com',
-        requested_date: new Date().toISOString().split('T')[0],
         items: editingOrder.items || [],
         notes: editingOrder.notes || ''
-      });
+      }));
     }
   }, [editingOrder]);
+
+  // Auto-load open order when location is selected
+  useEffect(() => {
+    if (!formData.location || editingOrder) return;
+    // Only auto-load once per location selection (avoid re-triggering on item edits)
+    if (formData.location === autoLoadedForLocation) return;
+
+    const openOrderForLocation = openOrders.find(
+      o => o.location === formData.location &&
+      (o.status === 'pending_review' || o.status === 'pending_fulfillment')
+    );
+
+    if (openOrderForLocation) {
+      setAutoLoadedForLocation(formData.location);
+      setEditingOrder(openOrderForLocation);
+    } else {
+      setAutoLoadedForLocation(formData.location);
+    }
+  }, [formData.location, openOrders]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6 md:p-8">
@@ -254,7 +290,7 @@ export default function PublicSupplyRequest() {
         <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
           <CardHeader className="border-b border-slate-100">
             <CardTitle className="flex items-center justify-between">
-              <span>{editingOrder ? 'Edit Order' : 'Request Details'}</span>
+              <span>{editingOrder ? `Edit Open Order — ${editingOrder.location}` : 'Request Details'}</span>
               {editingOrder && (
                 <Button type="button" variant="ghost" size="sm" onClick={cancelEdit}>
                   <X className="w-4 h-4 mr-2" />
@@ -371,7 +407,7 @@ export default function PublicSupplyRequest() {
 
                 <div className="space-y-2">
                   <Label htmlFor="location">Location *</Label>
-                  <Select value={formData.location} onValueChange={(value) => setFormData({ ...formData, location: value })} required>
+                  <Select value={formData.location} onValueChange={(value) => { setAutoLoadedForLocation(''); setFormData({ ...formData, location: value, items: [], notes: '' }); setEditingOrder(null); }} required>
                     <SelectTrigger>
                       <SelectValue placeholder="Select a location" />
                     </SelectTrigger>
@@ -630,24 +666,15 @@ export default function PublicSupplyRequest() {
           )}
         </Card>
 
-        {/* Orders Window Logic */}
-        {new Date().getUTCHours() >= 22 ? (
-          <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
-            <CardContent className="p-8 text-center text-slate-500">
-              <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p className="font-medium">Today's ordering window has closed</p>
-              <p className="text-sm">Orders could be submitted and edited until 5:00 PM EST.</p>
-            </CardContent>
-          </Card>
-        ) : todaysOrders.length > 0 && (
+        {openOrders.length > 0 && (
           <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
             <CardHeader className="border-b border-slate-100">
               <CardTitle className="flex items-center gap-2">
                 <Clock className="w-5 h-5" />
-                Today's Orders
-                <Badge variant="outline" className="ml-2">{todaysOrders.length}</Badge>
+                Open Orders
+                <Badge variant="outline" className="ml-2">{openOrders.length}</Badge>
               </CardTitle>
-              <p className="text-sm text-slate-600 mt-1">Orders are visible and editable until 5:00 PM EST (22:00 UTC)</p>
+              <p className="text-sm text-slate-600 mt-1">These orders are pending and can still be added to. Select a location above to automatically load the open order for that location.</p>
               <div className="mt-3">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -665,7 +692,7 @@ export default function PublicSupplyRequest() {
                 <div className="p-8 text-center text-slate-500">Loading orders...</div>
               ) : (
                 <div className="divide-y divide-slate-100 max-h-96 overflow-y-auto">
-                  {todaysOrders.filter(order => {
+                  {openOrders.filter(order => {
                     if (!orderSearchTerm) return true;
                     const searchLower = orderSearchTerm.toLowerCase();
                     return (
@@ -681,6 +708,9 @@ export default function PublicSupplyRequest() {
                             <span className="font-semibold text-slate-900">{order.location}</span>
                             <Badge variant="outline" className="text-xs">
                               {order.items?.length || 0} items
+                            </Badge>
+                            <Badge className={order.status === 'pending_fulfillment' ? 'bg-blue-100 text-blue-800 text-xs' : 'bg-yellow-100 text-yellow-800 text-xs'}>
+                              {order.status === 'pending_fulfillment' ? 'Ready to Place' : 'Needs Review'}
                             </Badge>
                             {order.updated_after_submission && (
                               <Badge className="bg-orange-100 text-orange-800 text-xs">Updated</Badge>
