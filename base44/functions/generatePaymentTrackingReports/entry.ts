@@ -59,23 +59,6 @@ Deno.serve(async (req) => {
         const summarySheet = masterWorkbook.addWorksheet('Summary');
 
         // Styles
-        // Fill colors for highlighted columns
-        const PAYMENT_RECEIVED_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9EAD3' } }; // light green
-        const PAYMENT_DATE_FILL    = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDCE6F1' } }; // light blue
-
-        // Apply fill to all data cells (rows after headerRowNumber) in a named column
-        const applyColumnFill = (sheet, headers, headerRowNumber, columnName, fill) => {
-            const colIdx = headers.indexOf(columnName) + 1; // 1-based
-            if (colIdx < 1) return;
-            const lastRow = sheet.lastRow ? sheet.lastRow.number : headerRowNumber;
-            for (let r = headerRowNumber + 1; r <= lastRow; r++) {
-                const cell = sheet.getRow(r).getCell(colIdx);
-                // Preserve existing style properties, only override fill
-                const existing = cell.style || {};
-                cell.style = { ...existing, fill };
-            }
-        };
-
         const titleStyle = {
             fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F81BD' } }, // Medium blue
             font: { bold: true, color: { argb: 'FFFFFFFF' } } // White
@@ -237,11 +220,6 @@ Deno.serve(async (req) => {
                 cell.font = { bold: true };
             }
             
-            // Apply column highlight fills by header name
-            const detHeaderRowNumber = detHeaderRow.number;
-            applyColumnFill(detailSheet, section.headers, detHeaderRowNumber, 'Payment Received', PAYMENT_RECEIVED_FILL);
-            applyColumnFill(detailSheet, section.headers, detHeaderRowNumber, 'Payment Date', PAYMENT_DATE_FILL);
-
             // Auto-size columns (simple approximation)
             detailSheet.columns.forEach(column => {
                 let maxLength = 0;
@@ -347,11 +325,6 @@ Deno.serve(async (req) => {
                     cell.numFmt = '$#,##0.00';
                     cell.font = { bold: true };
                 }
-
-                // Apply column highlight fills by header name
-                const indivHeaderRowNumber = sheet.getRow(3).number; // row 1=export date, row 2=title, row 3=headers
-                applyColumnFill(sheet, section.headers, indivHeaderRowNumber, 'Payment Received', PAYMENT_RECEIVED_FILL);
-                applyColumnFill(sheet, section.headers, indivHeaderRowNumber, 'Payment Date', PAYMENT_DATE_FILL);
 
                 sheet.columns.forEach(column => {
                     let maxLength = 0;
