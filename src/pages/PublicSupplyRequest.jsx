@@ -579,6 +579,106 @@ export default function PublicSupplyRequest() {
           </form>
         </Card>
 
+        {openOrders.length > 0 && (
+          <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
+            <CardHeader className="border-b border-slate-100">
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="w-5 h-5" />
+                Open Orders
+                <Badge variant="outline" className="ml-2">{openOrders.length}</Badge>
+              </CardTitle>
+              <p className="text-sm text-slate-600 mt-1">These orders are pending and can still be added to. Select a location above to automatically load the open order for that location.</p>
+              <div className="mt-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Input
+                    placeholder="Search by location, items, or notes..."
+                    value={orderSearchTerm}
+                    onChange={(e) => setOrderSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {ordersLoading ? (
+                <div className="p-8 text-center text-slate-500">Loading orders...</div>
+              ) : (
+                <div className="divide-y divide-slate-100 max-h-96 overflow-y-auto">
+                  {[...openOrders]
+                    .sort((a, b) => {
+                      const statusOrder = { pending_review: 0, pending_fulfillment: 1 };
+                      const sDiff = (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99);
+                      if (sDiff !== 0) return sDiff;
+                      return new Date(b.created_date) - new Date(a.created_date);
+                    })
+                    .filter(order => {
+                    if (!orderSearchTerm) return true;
+                    const searchLower = orderSearchTerm.toLowerCase();
+                    return (
+                      order.location?.toLowerCase().includes(searchLower) ||
+                      order.notes?.toLowerCase().includes(searchLower) ||
+                      order.items?.some(item => item.supply_name?.toLowerCase().includes(searchLower))
+                    );
+                  }).map((order) => (
+                    <div key={order.id} className="p-4 hover:bg-slate-50 transition-colors">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-slate-900">{order.location}</span>
+                            <Badge variant="outline" className="text-xs">
+                              {order.items?.length || 0} items
+                            </Badge>
+                            <Badge className={order.status === 'pending_fulfillment' ? 'bg-blue-100 text-blue-800 text-xs' : 'bg-yellow-100 text-yellow-800 text-xs'}>
+                              {order.status === 'pending_fulfillment' ? 'Ready to Place' : 'Needs Review'}
+                            </Badge>
+                            {order.updated_after_submission && (
+                              <Badge className="bg-orange-100 text-orange-800 text-xs">Updated</Badge>
+                            )}
+                          </div>
+                          <div className="text-sm text-slate-600">
+                            <span className="font-medium">Submitted:</span> {new Date(order.created_date).toLocaleDateString('en-US', { 
+                              timeZone: 'America/New_York', 
+                              month: 'short', 
+                              day: 'numeric', 
+                              year: 'numeric' 
+                            })}
+                          </div>
+                          {order.notes && (
+                            <div className="text-sm text-slate-600">
+                              <span className="font-medium">Notes:</span> {order.notes}
+                            </div>
+                          )}
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {order.items?.slice(0, 3).map((item, idx) => (
+                              <Badge key={idx} variant="secondary" className="text-xs">
+                                {item.supply_name} (x{item.quantity})
+                              </Badge>
+                            ))}
+                            {order.items?.length > 3 && (
+                              <Badge variant="secondary" className="text-xs">
+                                +{order.items.length - 3} more
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        <Button
+                          onClick={() => handleEditOrder(order)}
+                          size="sm"
+                          variant="default"
+                        >
+                          <Edit className="w-4 h-4 mr-1" />
+                          Edit
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Past Orders */}
         <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
           <CardHeader
@@ -666,98 +766,6 @@ export default function PublicSupplyRequest() {
           )}
         </Card>
 
-        {openOrders.length > 0 && (
-          <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
-            <CardHeader className="border-b border-slate-100">
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="w-5 h-5" />
-                Open Orders
-                <Badge variant="outline" className="ml-2">{openOrders.length}</Badge>
-              </CardTitle>
-              <p className="text-sm text-slate-600 mt-1">These orders are pending and can still be added to. Select a location above to automatically load the open order for that location.</p>
-              <div className="mt-3">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <Input
-                    placeholder="Search by location, items, or notes..."
-                    value={orderSearchTerm}
-                    onChange={(e) => setOrderSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              {ordersLoading ? (
-                <div className="p-8 text-center text-slate-500">Loading orders...</div>
-              ) : (
-                <div className="divide-y divide-slate-100 max-h-96 overflow-y-auto">
-                  {openOrders.filter(order => {
-                    if (!orderSearchTerm) return true;
-                    const searchLower = orderSearchTerm.toLowerCase();
-                    return (
-                      order.location?.toLowerCase().includes(searchLower) ||
-                      order.notes?.toLowerCase().includes(searchLower) ||
-                      order.items?.some(item => item.supply_name?.toLowerCase().includes(searchLower))
-                    );
-                  }).map((order) => (
-                    <div key={order.id} className="p-4 hover:bg-slate-50 transition-colors">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 space-y-2">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-slate-900">{order.location}</span>
-                            <Badge variant="outline" className="text-xs">
-                              {order.items?.length || 0} items
-                            </Badge>
-                            <Badge className={order.status === 'pending_fulfillment' ? 'bg-blue-100 text-blue-800 text-xs' : 'bg-yellow-100 text-yellow-800 text-xs'}>
-                              {order.status === 'pending_fulfillment' ? 'Ready to Place' : 'Needs Review'}
-                            </Badge>
-                            {order.updated_after_submission && (
-                              <Badge className="bg-orange-100 text-orange-800 text-xs">Updated</Badge>
-                            )}
-                          </div>
-                          <div className="text-sm text-slate-600">
-                            <span className="font-medium">Submitted:</span> {new Date(order.created_date).toLocaleDateString('en-US', { 
-                              timeZone: 'America/New_York', 
-                              month: 'short', 
-                              day: 'numeric', 
-                              year: 'numeric' 
-                            })}
-                          </div>
-                          {order.notes && (
-                            <div className="text-sm text-slate-600">
-                              <span className="font-medium">Notes:</span> {order.notes}
-                            </div>
-                          )}
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            {order.items?.slice(0, 3).map((item, idx) => (
-                              <Badge key={idx} variant="secondary" className="text-xs">
-                                {item.supply_name} (x{item.quantity})
-                              </Badge>
-                            ))}
-                            {order.items?.length > 3 && (
-                              <Badge variant="secondary" className="text-xs">
-                                +{order.items.length - 3} more
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        <Button
-                          onClick={() => handleEditOrder(order)}
-                          size="sm"
-                          variant="default"
-                        >
-                          <Edit className="w-4 h-4 mr-1" />
-                          Edit
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   );
