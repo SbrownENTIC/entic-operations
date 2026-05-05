@@ -21,6 +21,38 @@ Deno.serve(async (req) => {
         }
 
         const updated = await base44.asServiceRole.entities.SupplyOrder.update(id, data);
+
+        // If transitioning to pending_review, send notification email
+        if (data.status === 'pending_review') {
+            const items = data.items || order.items || [];
+            const location = data.location || order.location;
+            const notes = data.notes || order.notes || '';
+            const hasFlags = (data.review_flags || order.review_flags || []).length > 0;
+
+            const recipientEmail = Deno.env.get('APPROVAL_EMAIL') || 'hollyjo@enticmd.com';
+            const itemList = items.map(item =>
+                `<li>${item.supply_name}${item.item_number ? ` (Item# ${item.item_number})` : ''} — Qty: ${item.quantity}</li>`
+            ).join('');
+
+            const emailBody = `
+                <h2>New Supply Request Submitted — ${location}</h2>
+                ${hasFlags ? '<p><strong style="color:orange;">⚠ This order has been flagged for review.</strong></p>' : ''}
+                <h3>Items:</h3>
+                <ul>${itemList}</ul>
+                ${notes ? `<p><strong>Notes:</strong> ${notes}</p>` : ''}
+                <p>Please review this request in the ENTIC Operations Center.</p>
+            `;
+
+            try {
+                await base44.asServiceRole.integrations.Core.SendEmail({
+                    to: recipientEmail,
+                    subject: `Supply Request Submitted — ${location}`,
+                    body: emailBody
+                });
+            } catch (emailError) {
+                console.error('Failed to send notification email:', emailError);
+            }
+        }
         
         return Response.json(updated);
     } catch (error) {

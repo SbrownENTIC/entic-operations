@@ -93,15 +93,15 @@ Deno.serve(async (req) => {
     const subtotal = analyzedItems.reduce((sum, item) => sum + item.line_total, 0);
     const total = subtotal;
 
-    // Determine status and notification
+    // Store flags for later review, but always create as 'open' draft.
+    // Status transitions to 'pending_review' when the user clicks Submit on the public form.
     const needsReview = flags.length > 0 || (notes && notes.trim().length > 0);
-    const status = needsReview ? 'pending_review' : 'pending_fulfillment';
 
-    // Create the supply order
+    // Create the supply order as an open draft
     const orderData = {
       location,
       order_date: new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' }),
-      status,
+      status: 'open',
       vendor: analyzedItems[0]?.vendor || 'Staples Business',
       items: analyzedItems,
       subtotal,
@@ -113,77 +113,11 @@ Deno.serve(async (req) => {
 
     const order = await base44.asServiceRole.entities.SupplyOrder.create(orderData);
 
-    // Send appropriate notification
-    const recipientEmail = needsReview 
-      ? Deno.env.get('APPROVAL_EMAIL') || 'hollyjo@example.com' // Holly Jo's email
-      : Deno.env.get('FULFILLMENT_EMAIL') || 'purchasing@example.com'; // Purchasing manager
-
-    let emailSubject, emailBody;
-
-    if (needsReview) {
-      emailSubject = `Supply Request Needs Review - ${location}`;
-      emailBody = `
-        <h2>Supply Request Flagged for Review</h2>
-        <p><strong>Location:</strong> ${location}</p>
-        <p><strong>Requested by:</strong> ${requesterName} (${requesterEmail})</p>
-        <p><strong>Request Date:</strong> ${requested_date}</p>
-        <p><strong>Total Amount:</strong> $${total.toFixed(2)}</p>
-        
-        <h3>Flags:</h3>
-        <ul>
-          ${flags.map(flag => `<li><strong>${flag.item_name}:</strong> ${flag.reason}</li>`).join('')}
-        </ul>
-        
-        <h3>Items:</h3>
-        <ul>
-          ${analyzedItems.map(item => 
-            `<li>${item.supply_name} - Quantity: ${item.quantity} @ $${item.unit_price.toFixed(2)} = $${item.line_total.toFixed(2)}</li>`
-          ).join('')}
-        </ul>
-        
-        ${notes ? `<p><strong>Notes:</strong> ${notes}</p>` : ''}
-        
-        <p>Please review and approve/reject this request in the system.</p>
-      `;
-    } else {
-      emailSubject = `New Supply Order for Fulfillment - ${location}`;
-      emailBody = `
-        <h2>New Supply Order Ready for Fulfillment</h2>
-        <p><strong>Location:</strong> ${location}</p>
-        <p><strong>Requested by:</strong> ${requesterName} (${requesterEmail})</p>
-        <p><strong>Request Date:</strong> ${requested_date}</p>
-        <p><strong>Total Amount:</strong> $${total.toFixed(2)}</p>
-        
-        <h3>Items:</h3>
-        <ul>
-          ${analyzedItems.map(item => 
-            `<li>${item.supply_name} - Quantity: ${item.quantity} @ $${item.unit_price.toFixed(2)} = $${item.line_total.toFixed(2)}</li>`
-          ).join('')}
-        </ul>
-        
-        ${notes ? `<p><strong>Notes:</strong> ${notes}</p>` : ''}
-        
-        <p>This order has been automatically approved and is ready for fulfillment.</p>
-      `;
-    }
-
-    // Send email notification
-    try {
-      await base44.asServiceRole.integrations.Core.SendEmail({
-        to: recipientEmail,
-        subject: emailSubject,
-        body: emailBody
-      });
-    } catch (emailError) {
-      console.error('Failed to send email:', emailError);
-      // Don't fail the whole request if email fails
-    }
+    // No email sent here — email is sent when the user formally submits (open → pending_review) via updatePublicOrder
 
     return Response.json({
       success: true,
-      message: needsReview 
-        ? 'Your request has been submitted and flagged for review. You will be notified once it has been reviewed.'
-        : 'Your request has been submitted and is ready for fulfillment.',
+      message: 'Your draft has been saved. Review your items and click Submit to send the request.',
       order_id: order.id,
       needs_review: needsReview,
       flags
