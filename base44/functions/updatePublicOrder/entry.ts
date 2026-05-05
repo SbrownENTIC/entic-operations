@@ -20,10 +20,32 @@ Deno.serve(async (req) => {
              return Response.json({ error: "Cannot edit system orders" }, { status: 403 });
         }
 
-        // Check if status allows editing (open statuses only)
-        const OPEN_STATUSES = ['pending_review', 'pending_fulfillment'];
-        if (!OPEN_STATUSES.includes(order.status)) {
-            return Response.json({ error: "Order is no longer open for editing" }, { status: 403 });
+        // Check time cutoff: 22:00 UTC
+        const now = new Date();
+        const hourUTC = now.getUTCHours();
+        const todayUTC = now.toISOString().split('T')[0];
+        
+        // Check if order is from today (UTC)
+        let isToday = false;
+        if (order.order_date === todayUTC) {
+            isToday = true;
+        } else if (order.created_date) {
+            const createdUTC = new Date(order.created_date).toISOString().split('T')[0];
+            if (createdUTC === todayUTC) isToday = true;
+        }
+
+        if (!isToday) {
+             return Response.json({ error: "Cannot edit past orders" }, { status: 403 });
+        }
+        
+        // Check 22:00 UTC cutoff
+        if (hourUTC >= 22) {
+            return Response.json({ error: "Edit cutoff time (5:00 PM EST) has passed" }, { status: 403 });
+        }
+        
+        // Also check if status allows editing
+        if (['order_placed', 'partially_received', 'received'].includes(order.status)) {
+            return Response.json({ error: "Order has already been placed/received" }, { status: 403 });
         }
 
         // Perform update via service role
