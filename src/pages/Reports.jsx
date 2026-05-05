@@ -19,6 +19,7 @@ import ProviderLicensesReport from "../components/reports/ProviderLicensesReport
 import { PaymentTrendChart, InvoiceAgingChart, IncomeDistributionChart, SupplySpendingChart } from "../components/reports/ReportCharts";
 import CallLogReporting from "../components/reports/CallLogReporting";
 import OfficeSupplyAnalytics from "../components/reports/OfficeSupplyAnalytics";
+import PaymentQuarterView from "../components/reports/PaymentQuarterView";
 
 export default function Reports() {
   const [dateRange, setDateRange] = useState({
@@ -26,6 +27,7 @@ export default function Reports() {
     end: ''
   });
   const [selectedAgingCategory, setSelectedAgingCategory] = useState(null);
+  const [allocationView, setAllocationView] = useState('standard'); // 'standard' | 'quarter'
   // supplyOrderDetail state moved to SupplyOrderReportView component
 
   const { data: payments = [], isLoading: paymentsLoading } = useQuery({
@@ -805,43 +807,71 @@ export default function Reports() {
                       Detailed view of all payments and their allocations to invoices
                     </p>
                   </div>
-                  <Button onClick={generateAllocationReport} className="gap-2">
-                    <Download className="w-4 h-4" />
-                    Export to CSV
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {allocationView === 'standard' && (
+                      <Button onClick={generateAllocationReport} variant="outline" className="gap-2">
+                        <Download className="w-4 h-4" />
+                        Export to CSV
+                      </Button>
+                    )}
+                    <div className="flex rounded-lg border border-slate-200 overflow-hidden">
+                      <button
+                        onClick={() => setAllocationView('standard')}
+                        className={`px-3 py-1.5 text-sm font-medium transition-colors ${allocationView === 'standard' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+                      >
+                        Standard View
+                      </button>
+                      <button
+                        onClick={() => setAllocationView('quarter')}
+                        className={`px-3 py-1.5 text-sm font-medium transition-colors ${allocationView === 'quarter' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+                      >
+                        Payment Quarter View
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="p-6">
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                      <p className="text-sm text-slate-600">Total Payments</p>
-                      <p className="text-2xl font-bold text-blue-700">
-                        {formatCurrency(filterByDateRange(payments, 'payment_date').reduce((sum, p) => sum + (p.total_amount || 0), 0))}
-                      </p>
+                {allocationView === 'standard' ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="bg-blue-50 p-4 rounded-lg">
+                        <p className="text-sm text-slate-600">Total Payments</p>
+                        <p className="text-2xl font-bold text-blue-700">
+                          {formatCurrency(filterByDateRange(payments, 'payment_date').reduce((sum, p) => sum + (p.total_amount || 0), 0))}
+                        </p>
+                      </div>
+                      <div className="bg-green-50 p-4 rounded-lg">
+                        <p className="text-sm text-slate-600">Total Allocated</p>
+                        <p className="text-2xl font-bold text-green-700">
+                          {formatCurrency(filterByDateRange(payments, 'payment_date').reduce((sum, p) => {
+                            return sum + (p.allocations?.reduce((allocSum, a) => allocSum + (a.amount || 0), 0) || 0);
+                          }, 0))}
+                        </p>
+                      </div>
+                      <div className="bg-orange-50 p-4 rounded-lg">
+                        <p className="text-sm text-slate-600">Total Unallocated</p>
+                        <p className="text-2xl font-bold text-orange-700">
+                          {formatCurrency(filterByDateRange(payments, 'payment_date').reduce((sum, p) => sum + (p.unallocated_amount || 0), 0))}
+                        </p>
+                      </div>
                     </div>
-                    <div className="bg-green-50 p-4 rounded-lg">
-                      <p className="text-sm text-slate-600">Total Allocated</p>
-                      <p className="text-2xl font-bold text-green-700">
-                        {formatCurrency(filterByDateRange(payments, 'payment_date').reduce((sum, p) => {
-                          return sum + (p.allocations?.reduce((allocSum, a) => allocSum + (a.amount || 0), 0) || 0);
-                        }, 0))}
-                      </p>
-                    </div>
-                    <div className="bg-orange-50 p-4 rounded-lg">
-                      <p className="text-sm text-slate-600">Total Unallocated</p>
-                      <p className="text-2xl font-bold text-orange-700">
-                        {formatCurrency(filterByDateRange(payments, 'payment_date').reduce((sum, p) => sum + (p.unallocated_amount || 0), 0))}
-                      </p>
-                    </div>
+                    <p className="text-sm text-slate-600">
+                      This report shows each payment received, how it's been allocated across invoices,
+                      and any unallocated amounts. Perfect for reconciliation and cash flow tracking.
+                    </p>
+                    <PaymentTrendChart payments={filterByDateRange(payments, 'payment_date')} />
                   </div>
-                  <p className="text-sm text-slate-600">
-                  This report shows each payment received, how it's been allocated across invoices, 
-                  and any unallocated amounts. Perfect for reconciliation and cash flow tracking.
-                  </p>
-                  </div>
-                  <PaymentTrendChart payments={filterByDateRange(payments, 'payment_date')} />
-                  </CardContent>
+                ) : (
+                  <PaymentQuarterView
+                    payments={filterByDateRange(payments, 'payment_date')}
+                    invoices={invoices}
+                    providers={providers}
+                    formatCurrency={formatCurrency}
+                    onExport={exportToCSV}
+                  />
+                )}
+              </CardContent>
             </Card>
           </TabsContent>
 
