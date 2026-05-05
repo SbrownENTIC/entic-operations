@@ -62,7 +62,15 @@ export default function PublicSupplyRequest() {
     queryKey: ['open-public-orders'],
     queryFn: async () => {
       const response = await base44.functions.invoke('getTodaysPublicOrders');
-      return response.data || [];
+      const raw = response.data || [];
+      // Sort: pending_review first, then pending_fulfillment, then others — newest first within each group
+      const statusPriority = { pending_review: 0, pending_fulfillment: 1 };
+      return [...raw].sort((a, b) => {
+        const pa = statusPriority[a.status] ?? 2;
+        const pb = statusPriority[b.status] ?? 2;
+        if (pa !== pb) return pa - pb;
+        return new Date(b.created_date) - new Date(a.created_date);
+      });
     },
     refetchInterval: 30000
   });
@@ -238,6 +246,14 @@ export default function PublicSupplyRequest() {
     }
   }, [editingOrder]);
 
+  // Derived: open order for the currently selected location (pending_review or pending_fulfillment)
+  const openOrderForSelectedLocation = formData.location
+    ? openOrders.find(o =>
+        o.location === formData.location &&
+        (o.status === 'pending_review' || o.status === 'pending_fulfillment')
+      ) || null
+    : null;
+
   // Auto-load open order when location is selected
   useEffect(() => {
     if (!formData.location || editingOrder) return;
@@ -283,6 +299,27 @@ export default function PublicSupplyRequest() {
               <p className={`text-sm flex-1 ${submitStatus === 'error' ? 'text-red-900' : 'text-green-900'}`}>
                 {submitMessage}
               </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {openOrderForSelectedLocation && !editingOrder && (
+          <Card className="border-amber-300 bg-amber-50">
+            <CardContent className="p-4 flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-amber-900">An open order already exists for {formData.location}.</p>
+                <p className="text-sm text-amber-800 mt-0.5">Please edit and submit the existing order using the button below, or in the Open Orders section.</p>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="mt-2 bg-amber-600 hover:bg-amber-700 text-white"
+                  onClick={() => handleEditOrder(openOrderForSelectedLocation)}
+                >
+                  <Edit className="w-3.5 h-3.5 mr-1.5" />
+                  Edit Existing Order
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -570,7 +607,7 @@ export default function PublicSupplyRequest() {
             <CardFooter className="border-t border-slate-100 p-6 flex justify-end">
               <Button 
                 type="submit" 
-                disabled={submitting || formData.items.length === 0 || updateMutation.isPending} 
+                disabled={submitting || formData.items.length === 0 || updateMutation.isPending || (!editingOrder && !!openOrderForSelectedLocation)} 
                 className="bg-blue-600 hover:bg-blue-700"
               >
                 {updateMutation.isPending ? 'Updating...' : submitting ? 'Submitting...' : editingOrder ? 'Update Order' : 'Submit Request'}
