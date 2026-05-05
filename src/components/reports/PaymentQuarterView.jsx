@@ -44,6 +44,7 @@ export default function PaymentQuarterView({ payments, invoices, providers, form
       rows.push({
         quarter: getQuarter(payment.payment_date),
         paymentDate: payment.payment_date,
+        referenceNumber: payment.reference_number || '',
         programGroup: group,
         provider: provider?.full_name || '-',
         invoiceNumber: invoice?.invoice_number || '-',
@@ -65,26 +66,27 @@ export default function PaymentQuarterView({ payments, invoices, providers, form
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet('Payment Quarter Allocation Summary');
 
-    const COLS = 6; // A–F
+    const COLS = 7; // A–G
 
     // ── Title block ──────────────────────────────────────────────────────────
     const titleRow = sheet.addRow(['Payment Allocation by Quarter']);
     titleRow.getCell(1).font = { bold: true, size: 14 };
-    sheet.mergeCells(`A1:F1`);
+    sheet.mergeCells(`A1:G1`);
 
     const subtitleRow = sheet.addRow([`Generated: ${format(new Date(), 'MMMM dd, yyyy')}`]);
     subtitleRow.getCell(1).font = { italic: true, size: 10, color: { argb: 'FF666666' } };
-    sheet.mergeCells(`A2:F2`);
+    sheet.mergeCells(`A2:G2`);
 
     sheet.addRow([]); // spacer row 3
 
     // ── Header row (row 4) ───────────────────────────────────────────────────
-    const headers = ['Payment Quarter', 'Program Group', 'Provider', 'Invoice Number', 'Allocation Amount', 'Payment Date'];
+    // Col order: 1=Quarter 2=ProgramGroup 3=Provider 4=PaymentDate 5=Check/Voucher 6=InvoiceNum 7=Amount
+    const headers = ['Payment Quarter', 'Program Group', 'Provider', 'Payment Date', 'Check/Voucher Number', 'Invoice Number', 'Allocation Amount'];
     const headerRow = sheet.addRow(headers);
     headerRow.eachCell(cell => {
       cell.font = { bold: true, size: 11, color: { argb: 'FF1F3864' } };
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD6E4F0' } };
-      cell.alignment = { vertical: 'middle', horizontal: cell.col === 5 ? 'right' : 'left' };
+      cell.alignment = { vertical: 'middle', horizontal: cell.col === 7 ? 'right' : 'left' };
       cell.border = {
         bottom: { style: 'medium', color: { argb: 'FF4472C4' } },
       };
@@ -122,9 +124,10 @@ export default function PaymentQuarterView({ payments, invoices, providers, form
         fmtQuarter(row.quarter),
         row.programGroup,
         row.provider,
+        parseISO(row.paymentDate),
+        String(row.referenceNumber || ''),
         row.invoiceNumber,
         row.amount,
-        parseISO(row.paymentDate), // actual Date object for Excel date formatting
       ]);
 
       const bandColor = idx % 2 === 0 ? lightBand : whiteBand;
@@ -134,15 +137,11 @@ export default function PaymentQuarterView({ payments, invoices, providers, form
         cell.font = { size: 10 };
         cell.alignment = { vertical: 'middle' };
 
-        if (colNumber === 5) {
-          // Allocation Amount — currency, right-aligned
+        if (colNumber === 4) { cell.numFmt = 'mm/dd/yyyy'; }
+        if (colNumber === 5) { cell.numFmt = '@'; } // text format — preserve leading zeros
+        if (colNumber === 7) {
           cell.numFmt = '$#,##0.00';
           cell.alignment = { vertical: 'middle', horizontal: 'right' };
-        }
-        if (colNumber === 6) {
-          // Payment Date — date format
-          cell.numFmt = 'mm/dd/yyyy';
-          cell.alignment = { vertical: 'middle', horizontal: 'left' };
         }
       });
     });
@@ -174,29 +173,31 @@ export default function PaymentQuarterView({ payments, invoices, providers, form
           fmtQuarter(quarter),
           row.programGroup,
           row.provider,
+          parseISO(row.paymentDate),
+          String(row.referenceNumber || ''),
           row.invoiceNumber,
           row.amount,
-          parseISO(row.paymentDate),
         ]);
         const bandColor = rowIdx % 2 === 0 ? lightBand : whiteBand;
         dataRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bandColor } };
           cell.font = { size: 10 };
           cell.alignment = { vertical: 'middle' };
-          if (colNumber === 5) { cell.numFmt = '$#,##0.00'; cell.alignment = { vertical: 'middle', horizontal: 'right' }; }
-          if (colNumber === 6) { cell.numFmt = 'mm/dd/yyyy'; }
+          if (colNumber === 4) { cell.numFmt = 'mm/dd/yyyy'; }
+          if (colNumber === 5) { cell.numFmt = '@'; }
+          if (colNumber === 7) { cell.numFmt = '$#,##0.00'; cell.alignment = { vertical: 'middle', horizontal: 'right' }; }
         });
         rowIdx++;
       });
 
       // Subtotal row for this quarter
       const qTotal = sorted.reduce((s, r) => s + r.amount, 0);
-      const subtotalRow = sheet.addRow([`${fmtQuarter(quarter)} — Total`, '', '', '', qTotal, '']);
+      const subtotalRow = sheet.addRow([`${fmtQuarter(quarter)} — Total`, '', '', '', '', '', qTotal]);
       subtotalRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
         cell.font = { bold: true, size: 10, color: { argb: 'FF1F3864' } };
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDAE3F3' } };
         cell.alignment = { vertical: 'middle' };
-        if (colNumber === 5) { cell.numFmt = '$#,##0.00'; cell.alignment = { vertical: 'middle', horizontal: 'right' }; }
+        if (colNumber === 7) { cell.numFmt = '$#,##0.00'; cell.alignment = { vertical: 'middle', horizontal: 'right' }; }
         cell.border = { top: { style: 'thin', color: { argb: 'FF4472C4' } }, bottom: { style: 'thin', color: { argb: 'FF4472C4' } } };
       });
       rowIdx++;
@@ -207,7 +208,7 @@ export default function PaymentQuarterView({ payments, invoices, providers, form
     });
 
     // ── Column widths ────────────────────────────────────────────────────────
-    const minWidths = [18, 26, 24, 20, 20, 16];
+    const minWidths = [18, 26, 24, 16, 22, 20, 20];
     sheet.columns.forEach((col, i) => {
       let max = minWidths[i] || 14;
       col.eachCell({ includeEmpty: false }, cell => {
@@ -262,9 +263,10 @@ export default function PaymentQuarterView({ payments, invoices, providers, form
                   <tr>
                     <th className="text-left p-3 font-semibold text-slate-700">Program Group</th>
                     <th className="text-left p-3 font-semibold text-slate-700">Provider</th>
+                    <th className="text-left p-3 font-semibold text-slate-700">Payment Date</th>
+                    <th className="text-left p-3 font-semibold text-slate-700">Check/Voucher #</th>
                     <th className="text-left p-3 font-semibold text-slate-700">Invoice Number</th>
                     <th className="text-right p-3 font-semibold text-slate-700">Allocation Amount</th>
-                    <th className="text-left p-3 font-semibold text-slate-700">Payment Date</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -272,15 +274,16 @@ export default function PaymentQuarterView({ payments, invoices, providers, form
                     <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
                       <td className="p-3 text-slate-700">{row.programGroup}</td>
                       <td className="p-3 text-slate-900">{row.provider}</td>
+                      <td className="p-3 text-slate-600">{format(parseISO(row.paymentDate), 'MM/dd/yyyy')}</td>
+                      <td className="p-3 text-slate-600 font-mono">{row.referenceNumber || '-'}</td>
                       <td className="p-3 text-slate-600">{row.invoiceNumber}</td>
                       <td className="p-3 text-right font-medium text-slate-900">{formatCurrency(row.amount)}</td>
-                      <td className="p-3 text-slate-600">{format(parseISO(row.paymentDate), 'MM/dd/yyyy')}</td>
                     </tr>
                   ))}
                   <tr className="bg-slate-50 font-semibold border-t border-slate-200">
-                    <td className="p-3" colSpan={3}>Quarter Total</td>
-                    <td className="p-3 text-right text-slate-900">{formatCurrency(quarterTotal)}</td>
+                    <td className="p-3" colSpan={4}>Quarter Total</td>
                     <td className="p-3" />
+                    <td className="p-3 text-right text-slate-900">{formatCurrency(quarterTotal)}</td>
                   </tr>
                 </tbody>
               </table>
