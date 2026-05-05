@@ -73,6 +73,22 @@ Deno.serve(async (req) => {
             bottom: { style: 'thin' },
             right: { style: 'thin' }
         };
+        const yellowFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
+
+        // Apply special column formatting by header name (not index)
+        // "Payment Received" -> bold; "Payment Date" -> yellow fill
+        const applyColumnFormatting = (addedRow, headers, existingNumFmt) => {
+            const receivedIdx = headers.indexOf('Payment Received') + 1;
+            const dateIdx = headers.indexOf('Payment Date') + 1;
+            if (receivedIdx > 0) {
+                const cell = addedRow.getCell(receivedIdx);
+                cell.font = { ...(cell.font || {}), bold: true };
+            }
+            if (dateIdx > 0) {
+                const cell = addedRow.getCell(dateIdx);
+                cell.fill = yellowFill;
+            }
+        };
 
         // Add export date to Summary
         summarySheet.addRow([`Exported: ${exportDate}`]);
@@ -100,22 +116,12 @@ Deno.serve(async (req) => {
             let sectionExpected = 0;
             let sectionReceived = 0;
 
+            const expectedIdx = section.headers.indexOf('Expected Payment') + 1;
+            const receivedIdx = section.headers.indexOf('Payment Received') + 1;
+
             section.rows.forEach(row => {
                 const addedRow = summarySheet.addRow(row);
                 addedRow.eachCell(cell => cell.border = borderStyle);
-                
-                // Assuming columns for Expected Payment and Payment Received.
-                // We need to identify indices. They vary by section (Nations Hearing vs others).
-                // Nations Hearing: Expected (col 4), Received (col 5) (indices 3, 4 zero-based -> 4, 5 one-based)
-                // Others: Expected (col 3), Received (col 4) (indices 2, 3 zero-based -> 3, 4 one-based)
-                // Wait, headers:
-                // Nations: Voucher, Invoice, Month, Expected, Received ...
-                // Others: Provider, Invoice, Month, Expected, Received ... (Directorship)
-                // Others: Invoice, Month, Expected, Received ... (Normal)
-                
-                // Let's find index by header name
-                const expectedIdx = section.headers.indexOf('Expected Payment') + 1;
-                const receivedIdx = section.headers.indexOf('Payment Received') + 1;
 
                 if (expectedIdx > 0) {
                     const cell = addedRow.getCell(expectedIdx);
@@ -127,24 +133,22 @@ Deno.serve(async (req) => {
                     cell.numFmt = '$#,##0.00';
                     sectionReceived += (typeof row[receivedIdx-1] === 'number' ? row[receivedIdx-1] : 0);
                 }
+                applyColumnFormatting(addedRow, section.headers);
             });
 
             // Section Total Row
             const totalRowData = new Array(section.headers.length).fill('');
             totalRowData[0] = 'TOTAL';
             const totalRow = summarySheet.addRow(totalRowData);
-            
-            const expIdx = section.headers.indexOf('Expected Payment') + 1;
-            const recIdx = section.headers.indexOf('Payment Received') + 1;
-            
-            if (expIdx > 0) {
-                const cell = totalRow.getCell(expIdx);
+
+            if (expectedIdx > 0) {
+                const cell = totalRow.getCell(expectedIdx);
                 cell.value = sectionExpected;
                 cell.numFmt = '$#,##0.00';
                 cell.font = { bold: true };
             }
-            if (recIdx > 0) {
-                const cell = totalRow.getCell(recIdx);
+            if (receivedIdx > 0) {
+                const cell = totalRow.getCell(receivedIdx);
                 cell.value = sectionReceived;
                 cell.numFmt = '$#,##0.00';
                 cell.font = { bold: true };
@@ -200,21 +204,22 @@ Deno.serve(async (req) => {
             section.rows.forEach(row => {
                 const addedRow = detailSheet.addRow(row);
                 addedRow.eachCell(cell => cell.border = borderStyle);
-                
-                if (expIdx > 0) addedRow.getCell(expIdx).numFmt = '$#,##0.00';
-                if (recIdx > 0) addedRow.getCell(recIdx).numFmt = '$#,##0.00';
+
+                if (expectedIdx > 0) addedRow.getCell(expectedIdx).numFmt = '$#,##0.00';
+                if (receivedIdx > 0) addedRow.getCell(receivedIdx).numFmt = '$#,##0.00';
+                applyColumnFormatting(addedRow, section.headers);
             });
-            
+
             // Total
             const detTotalRow = detailSheet.addRow(totalRowData);
-            if (expIdx > 0) {
-                const cell = detTotalRow.getCell(expIdx);
+            if (expectedIdx > 0) {
+                const cell = detTotalRow.getCell(expectedIdx);
                 cell.value = sectionExpected;
                 cell.numFmt = '$#,##0.00';
                 cell.font = { bold: true };
             }
-            if (recIdx > 0) {
-                const cell = detTotalRow.getCell(recIdx);
+            if (receivedIdx > 0) {
+                const cell = detTotalRow.getCell(receivedIdx);
                 cell.value = sectionReceived;
                 cell.numFmt = '$#,##0.00';
                 cell.font = { bold: true };
@@ -299,7 +304,7 @@ Deno.serve(async (req) => {
                 section.rows.forEach(row => {
                     const addedRow = sheet.addRow(row);
                     addedRow.eachCell(cell => cell.border = borderStyle);
-                    
+
                     if (expIdx > 0) {
                         addedRow.getCell(expIdx).numFmt = '$#,##0.00';
                         sectionExpected += (typeof row[expIdx-1] === 'number' ? row[expIdx-1] : 0);
@@ -308,8 +313,9 @@ Deno.serve(async (req) => {
                         addedRow.getCell(recIdx).numFmt = '$#,##0.00';
                         sectionReceived += (typeof row[recIdx-1] === 'number' ? row[recIdx-1] : 0);
                     }
+                    applyColumnFormatting(addedRow, section.headers);
                 });
-                
+
                 const totalRowData = new Array(section.headers.length).fill('');
                 totalRowData[0] = 'TOTAL';
                 const totalRow = sheet.addRow(totalRowData);
