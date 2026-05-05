@@ -10,6 +10,26 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
   const [selectedProgramGroup, setSelectedProgramGroup] = useState('all');
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // Sort rows by Year then Quarter (Q1→Q4) ascending, based on the "Payment Quarter" column value (e.g. "Q2 2025")
+  const sortRowsByQuarter = (rows, headers) => {
+    const qIdx = headers.indexOf('Payment Quarter');
+    if (qIdx < 0) return rows;
+    return [...rows].sort((a, b) => {
+      const aVal = a[qIdx] || '';
+      const bVal = b[qIdx] || '';
+      // Rows with no quarter value go to bottom
+      if (!aVal && !bVal) return 0;
+      if (!aVal) return 1;
+      if (!bVal) return -1;
+      // Parse "Q2 2025" → year=2025, q=2
+      const [aQ, aY] = aVal.split(' ');
+      const [bQ, bY] = bVal.split(' ');
+      const yearDiff = (parseInt(aY) || 0) - (parseInt(bY) || 0);
+      if (yearDiff !== 0) return yearDiff;
+      return (parseInt(aQ?.replace('Q', '')) || 0) - (parseInt(bQ?.replace('Q', '')) || 0);
+    });
+  };
+
   const sortByMonth = (invoices) => {
     const monthOrder = {
       'January': 1, 'February': 2, 'March': 3, 'April': 4, 'May': 5, 'June': 6,
@@ -134,8 +154,8 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
       if (isDirectPayer) {
         const isNationsHearing = programGroup === 'Nations Hearing';
         const headers = isNationsHearing
-          ? ['Voucher Number', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Allocation/Notes']
-          : ['Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', '', 'Allocation/Notes'];
+          ? ['Voucher Number', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Payment Quarter', 'Allocation/Notes']
+          : ['Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Payment Quarter', 'Voucher Number', '', 'Allocation/Notes'];
           
         const section = {
           title: `${programGroup} - TRACKING`,
@@ -256,6 +276,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
           });
         }
         
+        section.rows = sortRowsByQuarter(section.rows, section.headers);
         sections.push(section);
 
       } else if (needsSeparation) {
@@ -271,7 +292,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
         if (directorshipLocation) {
           const section = {
             title: `${programGroup} - DIRECTORSHIP TRACKING`,
-            headers: ['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', 'Date Paid Provider', 'Allocation/Notes'],
+            headers: ['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Payment Quarter', 'Voucher Number', 'Date Paid Provider', 'Allocation/Notes'],
             rows: []
           };
 
@@ -347,6 +368,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
               [shouldHideNotes ? '' : (invoice.notes || ''), paymentNotes].filter(Boolean).join('; ')
             ]);
           });
+          section.rows = sortRowsByQuarter(section.rows, section.headers);
           sections.push(section);
         }
 
@@ -354,7 +376,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
         if (onCallLocation) {
           const section = {
             title: `${programGroup} - ON-CALL TRACKING`,
-            headers: ['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', 'Date Paid Provider', 'Allocation/Notes'],
+            headers: ['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Payment Quarter', 'Voucher Number', 'Date Paid Provider', 'Allocation/Notes'],
             rows: []
           };
 
@@ -432,6 +454,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
               [shouldHideNotes ? '' : (invoice.notes || ''), paymentNotes].filter(Boolean).join('; ')
             ]);
           });
+          section.rows = sortRowsByQuarter(section.rows, section.headers);
           sections.push(section);
         }
 
@@ -439,7 +462,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
         // Standard tracking for other locations
         const section = {
           title: `${programGroup} - TRACKING`,
-          headers: ['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Quarter', 'Voucher Number', 'Date Paid Provider', 'Allocation/Notes'],
+          headers: ['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Payment Quarter', 'Voucher Number', 'Date Paid Provider', 'Allocation/Notes'],
           rows: []
         };
 
@@ -482,6 +505,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
             shouldHideNotes ? '' : (invoice.notes || '')
           ]);
         });
+        section.rows = sortRowsByQuarter(section.rows, section.headers);
         sections.push(section);
       }
     });
