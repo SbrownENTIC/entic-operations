@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
       // Public request - user not authenticated
     }
 
-    const { order_id, location, requested_date, items, notes, requester_name, requester_email } = await req.json();
+    const { location, requested_date, items, notes, requester_name, requester_email } = await req.json();
     
     // For public requests, use provided name/email
     if (!user) {
@@ -97,9 +97,10 @@ Deno.serve(async (req) => {
     const needsReview = flags.length > 0 || (notes && notes.trim().length > 0);
     const status = needsReview ? 'pending_review' : 'pending_fulfillment';
 
-    // Update existing open order or create a new one
+    // Create the supply order
     const orderData = {
       location,
+      order_date: new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' }),
       status,
       vendor: analyzedItems[0]?.vendor || 'Staples Business',
       items: analyzedItems,
@@ -107,17 +108,10 @@ Deno.serve(async (req) => {
       total_amount: total,
       notes,
       review_flags: flags,
-      submission_source: 'public_form',
-      updated_after_submission: !!order_id
+      submission_source: 'public_form'
     };
 
-    let order;
-    if (order_id) {
-      order = await base44.asServiceRole.entities.SupplyOrder.update(order_id, orderData);
-    } else {
-      orderData.order_date = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
-      order = await base44.asServiceRole.entities.SupplyOrder.create(orderData);
-    }
+    const order = await base44.asServiceRole.entities.SupplyOrder.create(orderData);
 
     // Send appropriate notification
     const recipientEmail = needsReview 
