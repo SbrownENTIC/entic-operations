@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,44 +10,52 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Search, Check, CheckCircle, AlertCircle, HeartPulse, X, Image as ImageIcon, Edit, Clock, History, ChevronDown, ChevronUp } from "lucide-react";
-import { format, isToday, parseISO } from "date-fns";
+import {
+  Plus, Trash2, Search, Check, CheckCircle, AlertCircle, X,
+  Image as ImageIcon, History, ChevronDown, ChevronUp, Loader2, RefreshCw
+} from "lucide-react";
+
+const LOCATIONS = ['Glastonbury', 'Manchester', 'Bloomfield', 'Farmington', 'Waterside'];
+
+const OPEN_STATUSES = ['pending_review', 'pending_fulfillment'];
 
 export default function PublicSupplyRequest() {
   const queryClient = useQueryClient();
-  const [formData, setFormData] = useState({
-    location: '', // No default location - user must select
-    requester_name: 'Jalisa Henry',
-    requester_email: 'JHenry@enticmd.com',
-    requested_date: new Date().toISOString().split('T')[0],
-    items: [],
-    notes: ''
-  });
-  const [itemSelectOpen, setItemSelectOpen] = useState({});
-  const [pendingQuantities, setPendingQuantities] = useState({}); // supply.id -> qty while in dropdown
-  const [submitting, setSubmitting] = useState(false);
+
+  // Requester identity
+  const [requesterName, setRequesterName] = useState('Jalisa Henry');
+  const [requesterEmail, setRequesterEmail] = useState('JHenry@enticmd.com');
   const [isNewName, setIsNewName] = useState(false);
   const [isNewEmail, setIsNewEmail] = useState(false);
+
+  // Location & persistent order state
+  const [location, setLocation] = useState('');
+  const [activeOrder, setActiveOrder] = useState(null); // the persistent open order
+  const [loadingOrder, setLoadingOrder] = useState(false);
+
+  // Items on the current order
+  const [items, setItems] = useState([]);
+  const [notes, setNotes] = useState('');
+
+  // UI state
+  const [pendingQuantities, setPendingQuantities] = useState({});
+  const [itemSelectOpen, setItemSelectOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
-  const [submitStatus, setSubmitStatus] = useState(''); // 'success' or 'error'
-  const [editingOrder, setEditingOrder] = useState(null);
-  const [orderSearchTerm, setOrderSearchTerm] = useState('');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState('');
+
+  // Past orders
   const [showPastOrders, setShowPastOrders] = useState(false);
   const [pastOrdersLocation, setPastOrdersLocation] = useState('');
   const [pastOrdersSearch, setPastOrdersSearch] = useState('');
 
-  useEffect(() => {
-    base44.auth.me()
-      .then(() => setIsAuthenticated(true))
-      .catch(() => setIsAuthenticated(false));
-  }, []);
-
+  // Supplies catalog
   const { data: supplies = [] } = useQuery({
     queryKey: ['supplies', 'office'],
     queryFn: () => base44.entities.Supply.filter({ category: 'office' })
   });
 
+  // Past orders
   const { data: pastOrders = [], isLoading: pastOrdersLoading } = useQuery({
     queryKey: ['past-public-orders', pastOrdersLocation],
     queryFn: async () => {
@@ -57,178 +65,141 @@ export default function PublicSupplyRequest() {
     enabled: showPastOrders
   });
 
-  const { data: todaysOrders = [], isLoading: ordersLoading } = useQuery({
-    queryKey: ['todays-public-orders'],
-    queryFn: async () => {
-      // Use backend function to fetch orders securely for public users
-      const response = await base44.functions.invoke('getTodaysPublicOrders');
-      return response.data || [];
-    },
-    refetchInterval: 30000
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, data }) => {
-      // Use backend function to update orders securely for public users
-      await base44.functions.invoke('updatePublicOrder', { id, data });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['todays-public-orders'] });
-      setEditingOrder(null);
-      setSubmitStatus('success');
-      setSubmitMessage('Order updated successfully!');
-      setTimeout(() => {
-        setSubmitMessage('');
-        setSubmitStatus('');
-      }, 3000);
+  // Load or create the persistent open order for the selected location
+  const loadOrderForLocation = useCallback(async (loc) => {
+    if (!loc) return;
+    setLoadingOrder(true);
+    setActiveOrder(null);
+    setItems([]);
+    setNotes('');
+    try {
+      const response = await base44.functions.invoke('getOrCreatePublicOrder', { location: loc });
+      const order = response.data?.order;
+      if (order) {
+        setActiveOrder(order);
+        setItems(order.items || []);
+        setNotes(order.notes || '');
+      }
+    } catch (err) {
+      setSubmitStatus('error');
+      setSubmitMessage('Failed to load order for location: ' + (err.message || 'Unknown error'));
+    } finally {
+      setLoadingOrder(false);
     }
-  });
-
-  // Ensure defaults are set (fixes issues with hot reload or state persistence)
-  useEffect(() => {
-    setFormData(prev => ({
-      ...prev,
-      requester_name: prev.requester_name || 'Jalisa Henry',
-      requester_email: prev.requester_email || 'JHenry@enticmd.com'
-    }));
   }, []);
 
-  const handleSubmit = async (e) => {
+  // When location changes, load the persistent order
+  useEffect(() => {
+    if (location) {
+      loadOrderForLocation(location);
+    } else {
+      setActiveOrder(null);
+      setItems([]);
+      setNotes('');
+    }
+  }, [location]);
+
+  const showMessage = (status, message) => {
+    setSubmitStatus(status);
+    setSubmitMessage(message);
+    setTimeout(() => { setSubmitMessage(''); setSubmitStatus(''); }, 4000);
+  };
+
+  // Save current items to the persistent order
+  const handleSave = async (e) => {
     e.preventDefault();
-    
-    if (formData.items.length === 0) {
-      setSubmitStatus('error');
-      setSubmitMessage('Please add at least one item to your request');
+
+    if (!activeOrder) {
+      showMessage('error', 'No active order loaded. Please select a location.');
+      return;
+    }
+    if (items.length === 0) {
+      showMessage('error', 'Please add at least one item before saving.');
+      return;
+    }
+    if (!requesterName || !requesterEmail) {
+      showMessage('error', 'Please provide your name and email.');
       return;
     }
 
-    if (!formData.requester_name || !formData.requester_email) {
-      setSubmitStatus('error');
-      setSubmitMessage('Please provide your name and email');
-      return;
-    }
-
-    if (!formData.location) {
-      setSubmitStatus('error');
-      setSubmitMessage('Please select a location');
-      return;
-    }
-
-    setSubmitting(true);
-    setSubmitMessage('');
-
+    setSaving(true);
     try {
-      const response = await base44.functions.invoke('processSupplyRequest', formData);
-      setSubmitStatus('success');
-      setSubmitMessage(response.data.message || 'Request submitted successfully!');
-      
-      // Reset form
-      setFormData({
-        location: '',
-        requester_name: '',
-        requester_email: '',
-        requested_date: new Date().toISOString().split('T')[0],
-        items: [],
-        notes: ''
+      // Run the same flag analysis logic via processSupplyRequest-style analysis
+      // We update the persistent order with the latest items
+      const analyzedItems = items.map(item => ({
+        ...item,
+        line_total: (item.quantity || 0) * (item.unit_price || 0)
+      }));
+
+      const subtotal = analyzedItems.reduce((sum, item) => sum + (item.line_total || 0), 0);
+
+      const dataToUpdate = {
+        items: analyzedItems,
+        notes,
+        subtotal,
+        total_amount: subtotal,
+        updated_after_submission: true,
+        status: activeOrder.status // preserve existing status
+      };
+
+      const response = await base44.functions.invoke('updatePublicOrder', {
+        id: activeOrder.id,
+        data: dataToUpdate
       });
-    } catch (error) {
-      setSubmitStatus('error');
-      setSubmitMessage('Error: ' + (error.response?.data?.error || error.message));
+
+      // Refresh the order state
+      const updated = response.data;
+      if (updated) {
+        setActiveOrder(updated);
+        setItems(updated.items || []);
+        setNotes(updated.notes || '');
+      }
+
+      showMessage('success', `Order saved for ${location}! Items have been added to the open order.`);
+      queryClient.invalidateQueries({ queryKey: ['past-public-orders'] });
+    } catch (err) {
+      showMessage('error', 'Failed to save: ' + (err.response?.data?.error || err.message));
     } finally {
-      setSubmitting(false);
+      setSaving(false);
     }
   };
 
-
+  const addItem = (supply) => {
+    if (items.some(i => i.supply_id === supply.id)) return;
+    const qty = pendingQuantities[supply.id] || 1;
+    setItems(prev => [{
+      supply_id: supply.id,
+      supply_name: supply.product_name,
+      item_number: supply.item_number || '',
+      quantity: qty,
+      unit_price: supply.unit_price || 0,
+      line_total: qty * (supply.unit_price || 0)
+    }, ...prev]);
+    setPendingQuantities(prev => { const n = { ...prev }; delete n[supply.id]; return n; });
+  };
 
   const removeItem = (index) => {
-    setFormData({
-      ...formData,
-      items: formData.items.filter((_, i) => i !== index)
+    setItems(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updateItemQty = (index, qty) => {
+    setItems(prev => {
+      const next = [...prev];
+      next[index] = { ...next[index], quantity: qty, line_total: qty * (next[index].unit_price || 0) };
+      return next;
     });
   };
-
-  const updateItem = (index, field, value) => {
-    const newItems = [...formData.items];
-    newItems[index] = { ...newItems[index], [field]: value };
-    setFormData({ ...formData, items: newItems });
-  };
-
-  const handleEditOrder = (order) => {
-    // Check if order has already been placed
-    if (order.status === 'order_placed' || order.status === 'partially_received' || order.status === 'received') {
-      setSubmitStatus('error');
-      setSubmitMessage('This order has already been placed and cannot be edited. Please submit a new order instead.');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-    
-    setEditingOrder(order);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleUpdateOrder = async (e) => {
-    e.preventDefault();
-    if (!editingOrder) return;
-
-    // Check if order has already been placed
-    if (editingOrder.status === 'order_placed' || editingOrder.status === 'partially_received' || editingOrder.status === 'received') {
-      setSubmitStatus('error');
-      setSubmitMessage('This order has already been placed and cannot be edited. Please submit a new order instead.');
-      cancelEdit();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-
-    const itemsChanged = JSON.stringify(editingOrder.items) !== JSON.stringify(formData.items);
-    const notesChanged = editingOrder.notes !== formData.notes;
-
-    const dataToSubmit = {
-      ...formData,
-      order_date: editingOrder.order_date,
-      status: editingOrder.status,
-      category: editingOrder.category,
-      vendor: editingOrder.vendor,
-      updated_after_submission: itemsChanged || notesChanged ? true : editingOrder.updated_after_submission
-    };
-
-    await updateMutation.mutateAsync({ id: editingOrder.id, data: dataToSubmit });
-  };
-
-  const cancelEdit = () => {
-    setEditingOrder(null);
-    setFormData({
-      location: '',
-      requester_name: 'Jalisa Henry',
-      requester_email: 'JHenry@enticmd.com',
-      requested_date: new Date().toISOString().split('T')[0],
-      items: [],
-      notes: ''
-    });
-  };
-
-  // When editing, populate form with order data
-  useEffect(() => {
-    if (editingOrder) {
-      setFormData({
-        location: editingOrder.location,
-        requester_name: 'Jalisa Henry',
-        requester_email: 'JHenry@enticmd.com',
-        requested_date: new Date().toISOString().split('T')[0],
-        items: editingOrder.items || [],
-        notes: editingOrder.notes || ''
-      });
-    }
-  }, [editingOrder]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6 md:p-8">
       <div className="max-w-4xl mx-auto space-y-6">
+
+        {/* Header */}
         <div className="text-center">
           <div className="flex flex-col items-center gap-4 mb-2">
-            <img 
-              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/691521cbabed77e5043c7037/267bf0119_thumbnail_ENTIC_horizontal_BKGD.png" 
-              alt="ENTIC Logo" 
+            <img
+              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/691521cbabed77e5043c7037/267bf0119_thumbnail_ENTIC_horizontal_BKGD.png"
+              alt="ENTIC Logo"
               className="h-16 w-auto"
             />
             <h1 className="text-3xl font-bold text-slate-900">Supply Request Form</h1>
@@ -236,14 +207,13 @@ export default function PublicSupplyRequest() {
           <p className="text-slate-600 mt-2">Request supplies for your location</p>
         </div>
 
+        {/* Status Message */}
         {submitMessage && (
           <Card className={`border ${submitStatus === 'error' ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'}`}>
             <CardContent className="p-4 flex items-start gap-3">
-              {submitStatus === 'success' ? (
-                <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
-              ) : (
-                <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
-              )}
+              {submitStatus === 'success'
+                ? <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                : <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />}
               <p className={`text-sm flex-1 ${submitStatus === 'error' ? 'text-red-900' : 'text-green-900'}`}>
                 {submitMessage}
               </p>
@@ -251,66 +221,45 @@ export default function PublicSupplyRequest() {
           </Card>
         )}
 
+        {/* Main Form */}
         <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
           <CardHeader className="border-b border-slate-100">
             <CardTitle className="flex items-center justify-between">
-              <span>{editingOrder ? 'Edit Order' : 'Request Details'}</span>
-              {editingOrder && (
-                <Button type="button" variant="ghost" size="sm" onClick={cancelEdit}>
-                  <X className="w-4 h-4 mr-2" />
-                  Cancel Edit
-                </Button>
+              <span>Request Details</span>
+              {activeOrder && (
+                <Badge variant="outline" className="text-xs text-blue-700 border-blue-300 bg-blue-50">
+                  Open Order #{activeOrder.id?.slice(-6).toUpperCase()}
+                </Badge>
               )}
             </CardTitle>
           </CardHeader>
-          <form onSubmit={editingOrder ? handleUpdateOrder : handleSubmit}>
+          <form onSubmit={handleSave}>
             <CardContent className="p-6 space-y-6">
+
+              {/* Identity */}
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="requester_name">Your Name *</Label>
+                  <Label>Your Name *</Label>
                   {isNewName ? (
                     <div className="flex gap-2">
                       <Input
-                        id="requester_name"
-                        value={formData.requester_name}
-                        onChange={(e) => setFormData({ ...formData, requester_name: e.target.value })}
+                        value={requesterName}
+                        onChange={e => setRequesterName(e.target.value)}
                         placeholder="Enter your full name"
                         required
                         autoFocus
                       />
-                      <Button 
-                        type="button" 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => { 
-                          setIsNewName(false); 
-                          setFormData(prev => ({ ...prev, requester_name: '' })); 
-                        }}
-                        title="Cancel custom name"
-                      >
+                      <Button type="button" variant="ghost" size="icon" onClick={() => { setIsNewName(false); setRequesterName(''); }}>
                         <X className="w-4 h-4" />
                       </Button>
                     </div>
                   ) : (
-                    <Select 
-                      value={formData.requester_name} 
-                      onValueChange={(value) => {
-                        if (value === 'new') {
-                          setIsNewName(true);
-                          setFormData(prev => ({ ...prev, requester_name: '' }));
-                        } else {
-                          setFormData(prev => ({ ...prev, requester_name: value }));
-                        }
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select your name" />
-                      </SelectTrigger>
+                    <Select value={requesterName} onValueChange={v => { if (v === 'new') { setIsNewName(true); setRequesterName(''); } else setRequesterName(v); }}>
+                      <SelectTrigger><SelectValue placeholder="Select your name" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Jalisa Henry">Jalisa Henry</SelectItem>
                         <SelectItem value="new" className="text-blue-600 font-medium">
-                          <Plus className="w-3 h-3 inline mr-2" />
-                          Add New Name...
+                          <Plus className="w-3 h-3 inline mr-2" />Add New Name...
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -318,96 +267,87 @@ export default function PublicSupplyRequest() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="requester_email">Your Email *</Label>
+                  <Label>Your Email *</Label>
                   {isNewEmail ? (
                     <div className="flex gap-2">
                       <Input
-                        id="requester_email"
                         type="email"
-                        value={formData.requester_email}
-                        onChange={(e) => setFormData({ ...formData, requester_email: e.target.value })}
+                        value={requesterEmail}
+                        onChange={e => setRequesterEmail(e.target.value)}
                         placeholder="your.email@example.com"
                         required
                         autoFocus
                       />
-                      <Button 
-                        type="button" 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => { 
-                          setIsNewEmail(false); 
-                          setFormData(prev => ({ ...prev, requester_email: '' })); 
-                        }}
-                        title="Cancel custom email"
-                      >
+                      <Button type="button" variant="ghost" size="icon" onClick={() => { setIsNewEmail(false); setRequesterEmail(''); }}>
                         <X className="w-4 h-4" />
                       </Button>
                     </div>
                   ) : (
-                    <Select 
-                      value={formData.requester_email} 
-                      onValueChange={(value) => {
-                        if (value === 'new') {
-                          setIsNewEmail(true);
-                          setFormData(prev => ({ ...prev, requester_email: '' }));
-                        } else {
-                          setFormData(prev => ({ ...prev, requester_email: value }));
-                        }
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select your email" />
-                      </SelectTrigger>
+                    <Select value={requesterEmail} onValueChange={v => { if (v === 'new') { setIsNewEmail(true); setRequesterEmail(''); } else setRequesterEmail(v); }}>
+                      <SelectTrigger><SelectValue placeholder="Select your email" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="JHenry@enticmd.com">JHenry@enticmd.com</SelectItem>
                         <SelectItem value="new" className="text-blue-600 font-medium">
-                          <Plus className="w-3 h-3 inline mr-2" />
-                          Add New Email...
+                          <Plus className="w-3 h-3 inline mr-2" />Add New Email...
                         </SelectItem>
                       </SelectContent>
                     </Select>
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="location">Location *</Label>
-                  <Select value={formData.location} onValueChange={(value) => setFormData({ ...formData, location: value })} required>
+                {/* Location — triggers order load */}
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Location *</Label>
+                  <Select value={location} onValueChange={setLocation}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select a location" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Glastonbury">Glastonbury</SelectItem>
-                      <SelectItem value="Manchester">Manchester</SelectItem>
-                      <SelectItem value="Bloomfield">Bloomfield</SelectItem>
-                      <SelectItem value="Farmington">Farmington</SelectItem>
-                      <SelectItem value="Waterside">Waterside</SelectItem>
+                      {LOCATIONS.map(loc => (
+                        <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="requested_date">Request Date</Label>
-                  <Input
-                    id="requested_date"
-                    type="date"
-                    value={formData.requested_date}
-                    onChange={(e) => setFormData({ ...formData, requested_date: e.target.value })}
-                    disabled
-                  />
-                </div>
               </div>
 
-              <div>
+              {/* Loading indicator */}
+              {loadingOrder && (
+                <div className="flex items-center gap-3 text-slate-500 py-4 justify-center">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span className="text-sm">Loading open order for {location}...</span>
+                </div>
+              )}
+
+              {/* Order loaded banner */}
+              {!loadingOrder && activeOrder && (
+                <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800">
+                  <span>
+                    {items.length > 0
+                      ? `Continuing open order — ${items.length} item(s) already added.`
+                      : `New open order created for ${location}. Add items below.`}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-blue-700 hover:bg-blue-100 ml-2"
+                    onClick={() => loadOrderForLocation(location)}
+                  >
+                    <RefreshCw className="w-3 h-3 mr-1" />
+                    Refresh
+                  </Button>
+                </div>
+              )}
+
+              {/* Items — only show when a location/order is loaded */}
+              {!loadingOrder && activeOrder && (
                 <div className="space-y-4">
                   <div>
                     <Label className="mb-2 block">Search and Add Items</Label>
-                    <Popover open={itemSelectOpen['main']} onOpenChange={(open) => setItemSelectOpen({ ...itemSelectOpen, 'main': open })}>
+                    <Popover open={itemSelectOpen} onOpenChange={setItemSelectOpen}>
                       <PopoverTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="w-full justify-between font-normal"
-                        >
+                        <Button type="button" variant="outline" className="w-full justify-between font-normal">
                           <span>Search supplies to add...</span>
                           <Search className="h-4 w-4 opacity-50" />
                         </Button>
@@ -417,68 +357,42 @@ export default function PublicSupplyRequest() {
                           <CommandInput placeholder="Search supplies..." />
                           <CommandEmpty>No supply found.</CommandEmpty>
                           <CommandGroup className="max-h-64 overflow-auto">
-                            {supplies.map((supply) => {
-                              const alreadyAdded = formData.items.some(item => item.supply_id === supply.id);
+                            {supplies.map(supply => {
+                              const alreadyAdded = items.some(i => i.supply_id === supply.id);
                               return (
                                 <CommandItem
-                                 key={supply.id}
-                                 value={`${supply.item_number || ''} ${supply.product_name}`}
-                                 onSelect={() => {
-                                   if (!alreadyAdded) {
-                                     const qty = pendingQuantities[supply.id] || 1;
-                                     setFormData(prev => ({
-                                      ...prev,
-                                      items: [{
-                                        supply_id: supply.id,
-                                        supply_name: supply.product_name,
-                                        quantity: qty,
-                                        unit_price: supply.unit_price || 0,
-                                        item_number: supply.item_number || ''
-                                      }, ...prev.items]
-                                     }));
-                                     setPendingQuantities(prev => { const n = {...prev}; delete n[supply.id]; return n; });
-                                   }
-                                   // Don't close the popover - keep it open for multiple selections
-                                 }}
-                                 className="flex items-start gap-2 py-3"
-                                 disabled={alreadyAdded}
+                                  key={supply.id}
+                                  value={`${supply.item_number || ''} ${supply.product_name}`}
+                                  onSelect={() => { if (!alreadyAdded) addItem(supply); }}
+                                  className="flex items-start gap-2 py-3"
+                                  disabled={alreadyAdded}
                                 >
-                                 <Check
-                                   className={`h-4 w-4 flex-shrink-0 mt-1 ${
-                                     alreadyAdded ? "opacity-100" : "opacity-0"
-                                   }`}
-                                 />
-                                 <div className="h-10 w-10 rounded-md bg-white border border-slate-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
-                                   {supply.image_url ? (
-                                     <img 
-                                       src={supply.image_url} 
-                                       alt="" 
-                                       className="h-full w-full object-contain p-0.5"
-                                     />
-                                   ) : (
-                                     <ImageIcon className="h-5 w-5 text-slate-300" />
-                                   )}
-                                 </div>
-                                 <div className="flex flex-col flex-1 min-w-0">
-                                   <span className="break-words font-medium text-sm leading-snug">{supply.product_name}</span>
-                                   <span className="text-xs text-slate-500">
-                                     {supply.item_number && `Item# ${supply.item_number}`}
-                                     {supply.units && ` • Units: ${supply.units}`}
-                                   </span>
-                                 </div>
-                                 {!alreadyAdded && (
-                                   <div className="flex-shrink-0 flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                                     <span className="text-xs text-slate-500">Qty:</span>
-                                     <input
-                                       type="number"
-                                       min="1"
-                                       value={pendingQuantities[supply.id] || 1}
-                                       onChange={e => setPendingQuantities(prev => ({ ...prev, [supply.id]: Math.max(1, parseInt(e.target.value) || 1) }))}
-                                       className="w-14 border border-slate-300 rounded px-1 py-0.5 text-sm text-center"
-                                       onClick={e => e.stopPropagation()}
-                                     />
-                                   </div>
-                                 )}
+                                  <Check className={`h-4 w-4 flex-shrink-0 mt-1 ${alreadyAdded ? 'opacity-100' : 'opacity-0'}`} />
+                                  <div className="h-10 w-10 rounded-md bg-white border border-slate-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                                    {supply.image_url
+                                      ? <img src={supply.image_url} alt="" className="h-full w-full object-contain p-0.5" />
+                                      : <ImageIcon className="h-5 w-5 text-slate-300" />}
+                                  </div>
+                                  <div className="flex flex-col flex-1 min-w-0">
+                                    <span className="break-words font-medium text-sm leading-snug">{supply.product_name}</span>
+                                    <span className="text-xs text-slate-500">
+                                      {supply.item_number && `Item# ${supply.item_number}`}
+                                      {supply.units && ` • Units: ${supply.units}`}
+                                    </span>
+                                  </div>
+                                  {!alreadyAdded && (
+                                    <div className="flex-shrink-0 flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                                      <span className="text-xs text-slate-500">Qty:</span>
+                                      <input
+                                        type="number"
+                                        min="1"
+                                        value={pendingQuantities[supply.id] || 1}
+                                        onChange={e => setPendingQuantities(prev => ({ ...prev, [supply.id]: Math.max(1, parseInt(e.target.value) || 1) }))}
+                                        className="w-14 border border-slate-300 rounded px-1 py-0.5 text-sm text-center"
+                                        onClick={e => e.stopPropagation()}
+                                      />
+                                    </div>
+                                  )}
                                 </CommandItem>
                               );
                             })}
@@ -488,58 +402,68 @@ export default function PublicSupplyRequest() {
                     </Popover>
                   </div>
 
-                  {formData.items.length > 0 && (
+                  {items.length > 0 && (
                     <div>
-                      <Label className="mb-2 block">Selected Items ({formData.items.length})</Label>
+                      <Label className="mb-2 block">Items in this Order ({items.length})</Label>
                       <div className="space-y-2">
-                  {formData.items.map((item, index) => (
-                    <div key={index} className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-lg">
-                      <div className="flex-1">
-                        <p className="font-medium text-slate-900">{item.supply_name}</p>
-                        {item.item_number && <p className="text-sm text-slate-500">Item# {item.item_number}</p>}
-                      </div>
-                      <div className="w-24">
-                        <Label className="text-xs text-slate-600">Quantity</Label>
-                        <Input
-                          type="number"
-                          value={item.quantity}
-                          onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value))}
-                          min="1"
-                          required
-                          className="mt-1"
-                        />
-                      </div>
-                      <Button type="button" variant="ghost" size="icon" onClick={() => removeItem(index)}>
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      </Button>
-                    </div>
-                  ))}
+                        {items.map((item, index) => (
+                          <div key={index} className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-lg">
+                            <div className="flex-1">
+                              <p className="font-medium text-slate-900">{item.supply_name}</p>
+                              {item.item_number && <p className="text-sm text-slate-500">Item# {item.item_number}</p>}
+                            </div>
+                            <div className="w-24">
+                              <Label className="text-xs text-slate-600">Quantity</Label>
+                              <Input
+                                type="number"
+                                value={item.quantity}
+                                onChange={e => updateItemQty(index, parseFloat(e.target.value) || 1)}
+                                min="1"
+                                required
+                                className="mt-1"
+                              />
+                            </div>
+                            <Button type="button" variant="ghost" size="icon" onClick={() => removeItem(index)}>
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            </Button>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}
-                </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="notes">Notes / Special Instructions</Label>
-                <Textarea
-                  id="notes"
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  rows={3}
-                  placeholder="Any special instructions or notes about your request..."
-                />
-              </div>
+                  <div className="space-y-2">
+                    <Label>Notes / Special Instructions</Label>
+                    <Textarea
+                      value={notes}
+                      onChange={e => setNotes(e.target.value)}
+                      rows={3}
+                      placeholder="Any special instructions or notes about your request..."
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Placeholder when no location selected */}
+              {!location && (
+                <div className="text-center py-8 text-slate-400">
+                  <p className="text-sm">Select a location above to load or start an order.</p>
+                </div>
+              )}
+
             </CardContent>
-            <CardFooter className="border-t border-slate-100 p-6 flex justify-end">
-              <Button 
-                type="submit" 
-                disabled={submitting || formData.items.length === 0 || updateMutation.isPending} 
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                {updateMutation.isPending ? 'Updating...' : submitting ? 'Submitting...' : editingOrder ? 'Update Order' : 'Submit Request'}
-              </Button>
-            </CardFooter>
+
+            {activeOrder && (
+              <CardFooter className="border-t border-slate-100 p-6 flex justify-end">
+                <Button
+                  type="submit"
+                  disabled={saving || items.length === 0 || loadingOrder}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</> : 'Save Items to Order'}
+                </Button>
+              </CardFooter>
+            )}
           </form>
         </Card>
 
@@ -569,11 +493,7 @@ export default function PublicSupplyRequest() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={null}>All Locations</SelectItem>
-                    <SelectItem value="Glastonbury">Glastonbury</SelectItem>
-                    <SelectItem value="Manchester">Manchester</SelectItem>
-                    <SelectItem value="Bloomfield">Bloomfield</SelectItem>
-                    <SelectItem value="Farmington">Farmington</SelectItem>
-                    <SelectItem value="Waterside">Waterside</SelectItem>
+                    {LOCATIONS.map(loc => <SelectItem key={loc} value={loc}>{loc}</SelectItem>)}
                   </SelectContent>
                 </Select>
                 <div className="relative flex-1">
@@ -630,104 +550,6 @@ export default function PublicSupplyRequest() {
           )}
         </Card>
 
-        {/* Orders Window Logic */}
-        {new Date().getUTCHours() >= 22 ? (
-          <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
-            <CardContent className="p-8 text-center text-slate-500">
-              <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p className="font-medium">Today's ordering window has closed</p>
-              <p className="text-sm">Orders could be submitted and edited until 5:00 PM EST.</p>
-            </CardContent>
-          </Card>
-        ) : todaysOrders.length > 0 && (
-          <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
-            <CardHeader className="border-b border-slate-100">
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="w-5 h-5" />
-                Today's Orders
-                <Badge variant="outline" className="ml-2">{todaysOrders.length}</Badge>
-              </CardTitle>
-              <p className="text-sm text-slate-600 mt-1">Orders are visible and editable until 5:00 PM EST (22:00 UTC)</p>
-              <div className="mt-3">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <Input
-                    placeholder="Search by location, items, or notes..."
-                    value={orderSearchTerm}
-                    onChange={(e) => setOrderSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              {ordersLoading ? (
-                <div className="p-8 text-center text-slate-500">Loading orders...</div>
-              ) : (
-                <div className="divide-y divide-slate-100 max-h-96 overflow-y-auto">
-                  {todaysOrders.filter(order => {
-                    if (!orderSearchTerm) return true;
-                    const searchLower = orderSearchTerm.toLowerCase();
-                    return (
-                      order.location?.toLowerCase().includes(searchLower) ||
-                      order.notes?.toLowerCase().includes(searchLower) ||
-                      order.items?.some(item => item.supply_name?.toLowerCase().includes(searchLower))
-                    );
-                  }).map((order) => (
-                    <div key={order.id} className="p-4 hover:bg-slate-50 transition-colors">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 space-y-2">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-slate-900">{order.location}</span>
-                            <Badge variant="outline" className="text-xs">
-                              {order.items?.length || 0} items
-                            </Badge>
-                            {order.updated_after_submission && (
-                              <Badge className="bg-orange-100 text-orange-800 text-xs">Updated</Badge>
-                            )}
-                          </div>
-                          <div className="text-sm text-slate-600">
-                            <span className="font-medium">Submitted:</span> {new Date(order.created_date).toLocaleDateString('en-US', { 
-                              timeZone: 'America/New_York', 
-                              month: 'short', 
-                              day: 'numeric', 
-                              year: 'numeric' 
-                            })}
-                          </div>
-                          {order.notes && (
-                            <div className="text-sm text-slate-600">
-                              <span className="font-medium">Notes:</span> {order.notes}
-                            </div>
-                          )}
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            {order.items?.slice(0, 3).map((item, idx) => (
-                              <Badge key={idx} variant="secondary" className="text-xs">
-                                {item.supply_name} (x{item.quantity})
-                              </Badge>
-                            ))}
-                            {order.items?.length > 3 && (
-                              <Badge variant="secondary" className="text-xs">
-                                +{order.items.length - 3} more
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        <Button
-                          onClick={() => handleEditOrder(order)}
-                          size="sm"
-                          variant="default"
-                        >
-                          <Edit className="w-4 h-4 mr-1" />
-                          Edit
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   );
