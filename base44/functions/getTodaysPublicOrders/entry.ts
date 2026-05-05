@@ -13,16 +13,14 @@ Deno.serve(async (req) => {
         const allOrders = await base44.asServiceRole.entities.SupplyOrder.list('-created_date', 200);
 
         const visibleOrders = allOrders.filter(order => {
-            // Must be public form submission
-            if (order.submission_source !== 'public_form') return false;
-
             // Must be office category
             if (order.category !== 'office') return false;
 
             // Exclude orders that have been placed/closed
             if (CLOSED_STATUSES.includes(order.status)) return false;
 
-            // Include open (pending) orders regardless of date
+            // Include all open (pending) orders — submission_source not required
+            // (admins may create pending_fulfillment orders internally)
             if (OPEN_STATUSES.includes(order.status)) return true;
 
             return false;
