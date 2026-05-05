@@ -205,6 +205,19 @@ export default function Dashboard() {
     staleTime: 30000
   });
 
+  const { data: openOrders = [] } = useQuery({
+    queryKey: ['open-supply-orders'],
+    queryFn: async () => {
+      try {
+        return await base44.entities.SupplyOrder.filter({ status: 'open', category: 'office' });
+      } catch (error) {
+        return handleQueryError(error);
+      }
+    },
+    retry: false,
+    staleTime: 30000
+  });
+
   const { data: updatedOrders = [] } = useQuery({
     queryKey: ['updated-supply-orders'],
     queryFn: async () => {
@@ -922,6 +935,7 @@ export default function Dashboard() {
             privilegesExpiring30Days={privilegesExpiring30Days}
             partiallyReceivedCount={partiallyReceivedOrders.length}
             updatedOrdersCount={updatedOrders.length}
+            openOrdersCount={openOrders.length}
           />
         );
       case 'summary_cards':

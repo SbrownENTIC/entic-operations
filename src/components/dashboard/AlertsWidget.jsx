@@ -17,7 +17,8 @@ export default function AlertsWidget({
   pendingProviderTimeCount,
   privilegesExpiring30Days,
   partiallyReceivedCount,
-  updatedOrdersCount
+  updatedOrdersCount,
+  openOrdersCount
 }) {
   const hasAlerts = approvedInvoicesCount > 0 ||
                     uconnPendingVendorInvoices > 0 || 
@@ -29,7 +30,8 @@ export default function AlertsWidget({
                     pendingProviderTimeCount > 0 || 
                     privilegesExpiring30Days.length > 0 ||
                     partiallyReceivedCount > 0 ||
-                    updatedOrdersCount > 0;
+                    updatedOrdersCount > 0 ||
+                    openOrdersCount > 0;
 
   if (!hasAlerts) return null;
 
@@ -184,6 +186,21 @@ export default function AlertsWidget({
               <div className="text-4xl font-bold text-orange-700 mb-1">{partiallyReceivedCount}</div>
               <Link to={`${createPageUrl("OfficeSupplyOrders")}?status=partially_received`} className="text-xs text-orange-700 hover:text-orange-900 font-semibold hover:underline">
                 View orders →
+              </Link>
+            </CardContent>
+          </Card>
+        )}
+
+        {openOrdersCount > 0 && (
+          <Card className="border-[5px] border-slate-500 bg-gradient-to-br from-slate-100 to-slate-50 shadow-xl hover:scale-105 transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-white/80 backdrop-blur-sm border-b-2 border-slate-300">
+              <CardTitle className="text-sm font-bold text-slate-900">Open Draft Orders</CardTitle>
+              <PackageOpen className="w-5 h-5 text-slate-600 animate-slow-pulse" />
+            </CardHeader>
+            <CardContent className="pt-3">
+              <div className="text-4xl font-bold text-slate-700 mb-1">{openOrdersCount}</div>
+              <Link to={`${createPageUrl("OfficeSupplyOrders")}?status=open`} className="text-xs text-slate-600 hover:text-slate-900 font-semibold hover:underline">
+                View open orders →
               </Link>
             </CardContent>
           </Card>
