@@ -21,12 +21,12 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
       if (!aVal && !bVal) return 0;
       if (!aVal) return 1;
       if (!bVal) return -1;
-      // Parse "Q2 2025" → year=2025, q=2
+      // Parse "Q2 2025" → year=2025, q=2; sort descending (newest first)
       const [aQ, aY] = aVal.split(' ');
       const [bQ, bY] = bVal.split(' ');
-      const yearDiff = (parseInt(aY) || 0) - (parseInt(bY) || 0);
+      const yearDiff = (parseInt(bY) || 0) - (parseInt(aY) || 0);
       if (yearDiff !== 0) return yearDiff;
-      return (parseInt(aQ?.replace('Q', '')) || 0) - (parseInt(bQ?.replace('Q', '')) || 0);
+      return (parseInt(bQ?.replace('Q', '')) || 0) - (parseInt(aQ?.replace('Q', '')) || 0);
     });
   };
 
