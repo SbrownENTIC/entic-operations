@@ -57,6 +57,10 @@ Deno.serve(async (req) => {
         // 1. Generate Master Workbook
         const masterWorkbook = new ExcelJS.Workbook();
         const summarySheet = masterWorkbook.addWorksheet('Summary');
+        // Provider Revenue Summary sheet — slot 2, immediately after Summary
+        const providerRevSheet = masterWorkbook.addWorksheet('Provider Revenue Summary', {
+            properties: { tabColor: { argb: 'FF4F81BD' } }
+        });
 
         // Payment Quarter View is intentionally NOT added to the Master workbook.
         // It remains available as an in-app view only.
@@ -178,40 +182,38 @@ Deno.serve(async (req) => {
             return row;
         });
 
-        // ── WRITE SECTION 1 — PROVIDER MONTHLY REVENUE SUMMARY ──────────────
-        summarySheet.addRow([]); // spacer
-        const ms1Title = summarySheet.addRow(['PROVIDER MONTHLY REVENUE SUMMARY']);
+        // ── WRITE PROVIDER REVENUE SUMMARY SHEET ────────────────────────────
+        // Section A — Provider Monthly Revenue Summary
+        providerRevSheet.addRow([`Exported: ${exportDate}`]).getCell(1).font = { italic: true, size: 10, color: { argb: 'FF666666' } };
+        providerRevSheet.addRow([]); // spacer
+
+        const ms1Title = providerRevSheet.addRow(['SECTION A — PROVIDER MONTHLY REVENUE SUMMARY']);
         ms1Title.getCell(1).style = {
             font: { bold: true, size: 12, color: { argb: 'FFFFFFFF' } },
             fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F497D' } },
         };
-        summarySheet.mergeCells(`A${ms1Title.number}:G${ms1Title.number}`);
+        providerRevSheet.mergeCells(`A${ms1Title.number}:G${ms1Title.number}`);
 
         const monthlyHeaders = ['Provider', 'Month', 'Hartford Hospital', 'St. Francis', 'UConn', 'HH - Manchester / ECHN', 'Total'];
-        const monthlyHeaderRow = summarySheet.addRow(monthlyHeaders);
-        monthlyHeaderRow.eachCell(cell => {
-            cell.style = headerStyle;
-            cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-        });
-        summarySheet.autoFilter = { from: { row: monthlyHeaderRow.number, column: 1 }, to: { row: monthlyHeaderRow.number, column: 7 } };
-        summarySheet.views = [{ state: 'frozen', ySplit: monthlyHeaderRow.number }];
+        const monthlyHeaderRow = providerRevSheet.addRow(monthlyHeaders);
+        monthlyHeaderRow.eachCell(cell => { cell.style = headerStyle; });
+        providerRevSheet.autoFilter = { from: { row: monthlyHeaderRow.number, column: 1 }, to: { row: monthlyHeaderRow.number, column: 7 } };
+        providerRevSheet.views = [{ state: 'frozen', ySplit: monthlyHeaderRow.number }];
 
-        const mCurrCols = [3, 4, 5, 6, 7]; // Hartford, StFrancis, UConn, Manchester, Total
+        const mCurrCols = [3, 4, 5, 6, 7];
         const mLightBand = 'FFF2F7FB';
         const mWhiteBand = 'FFFFFFFF';
         monthlyRows.forEach((row, idx) => {
-            const addedRow = summarySheet.addRow(row);
+            const addedRow = providerRevSheet.addRow(row);
             const bandColor = idx % 2 === 0 ? mLightBand : mWhiteBand;
             addedRow.eachCell({ includeEmpty: true }, (cell, colNum) => {
                 cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bandColor } };
                 cell.border = borderStyle;
                 if (mCurrCols.includes(colNum)) cell.numFmt = '$#,##0.00';
             });
-            // Bold the Total column
             addedRow.getCell(7).font = { bold: true };
         });
 
-        // Monthly totals row
         const mTotals = [
             'TOTAL', '',
             monthlyRows.reduce((s, r) => s + r[2], 0),
@@ -220,7 +222,7 @@ Deno.serve(async (req) => {
             monthlyRows.reduce((s, r) => s + r[5], 0),
             monthlyRows.reduce((s, r) => s + r[6], 0),
         ];
-        const mTotalRow = summarySheet.addRow(mTotals);
+        const mTotalRow = providerRevSheet.addRow(mTotals);
         mTotalRow.eachCell((cell, colNum) => {
             cell.font = { bold: true };
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDAE3F3' } };
@@ -228,47 +230,40 @@ Deno.serve(async (req) => {
             if (mCurrCols.includes(colNum)) cell.numFmt = '$#,##0.00';
         });
 
-        // ── WRITE SECTION 2 — PROVIDER QUARTERLY REVENUE SUMMARY ────────────
-        summarySheet.addRow([]); // spacer
-        const qs2Title = summarySheet.addRow(['PROVIDER QUARTERLY REVENUE SUMMARY']);
+        // Section B — Provider Quarterly Revenue Summary
+        providerRevSheet.addRow([]); // spacer between sections
+        const qs2Title = providerRevSheet.addRow(['SECTION B — PROVIDER QUARTERLY REVENUE SUMMARY']);
         qs2Title.getCell(1).style = {
             font: { bold: true, size: 12, color: { argb: 'FFFFFFFF' } },
             fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F497D' } },
         };
-        const qTotalCols = allQuarters.length + 2; // Provider + each quarter + YTD
-        summarySheet.mergeCells(`A${qs2Title.number}:${String.fromCharCode(64 + Math.min(qTotalCols, 26))}${qs2Title.number}`);
+        const qTotalCols = allQuarters.length + 2;
+        providerRevSheet.mergeCells(`A${qs2Title.number}:${String.fromCharCode(64 + Math.min(qTotalCols, 26))}${qs2Title.number}`);
 
-        const quarterlyHeaders = ['Provider', ...allQuarters.map(q => {
-            // "Q2 2026" → "Q2 2026" (keep as-is for column headers)
-            return q;
-        }), 'YTD Total'];
-        const quarterlyHeaderRow = summarySheet.addRow(quarterlyHeaders);
-        quarterlyHeaderRow.eachCell(cell => {
-            cell.style = headerStyle;
-            cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-        });
+        const quarterlyHeaders = ['Provider', ...allQuarters, 'YTD Total'];
+        const quarterlyHeaderRow = providerRevSheet.addRow(quarterlyHeaders);
+        quarterlyHeaderRow.eachCell(cell => { cell.style = headerStyle; });
+        providerRevSheet.autoFilter = { from: { row: quarterlyHeaderRow.number, column: 1 }, to: { row: quarterlyHeaderRow.number, column: quarterlyHeaders.length } };
 
-        const qCurrCols = quarterlyHeaders.map((_, i) => i + 1).filter(i => i > 1); // all except Provider
+        const qCurrCols = quarterlyHeaders.map((_, i) => i + 1).filter(i => i > 1);
         const qLightBand = 'FFF7FBFF';
         quarterlyRows.forEach((row, idx) => {
-            const addedRow = summarySheet.addRow(row);
+            const addedRow = providerRevSheet.addRow(row);
             const bandColor = idx % 2 === 0 ? qLightBand : mWhiteBand;
             addedRow.eachCell({ includeEmpty: true }, (cell, colNum) => {
                 cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bandColor } };
                 cell.border = borderStyle;
                 if (qCurrCols.includes(colNum)) cell.numFmt = '$#,##0.00';
             });
-            // Bold the YTD column
             addedRow.getCell(quarterlyHeaders.length).font = { bold: true };
         });
 
-        // Quarterly totals row
         const qTotals = ['TOTAL'];
         allQuarters.forEach((q, i) => {
             qTotals.push(quarterlyRows.reduce((s, r) => s + (r[i + 1] || 0), 0));
         });
         qTotals.push(quarterlyRows.reduce((s, r) => s + (r[r.length - 1] || 0), 0));
-        const qTotalRow = summarySheet.addRow(qTotals);
+        const qTotalRow = providerRevSheet.addRow(qTotals);
         qTotalRow.eachCell((cell, colNum) => {
             cell.font = { bold: true };
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDAE3F3' } };
@@ -276,7 +271,17 @@ Deno.serve(async (req) => {
             if (qCurrCols.includes(colNum)) cell.numFmt = '$#,##0.00';
         });
 
-        summarySheet.addRow([]); // spacer before detail sections
+        // Auto-size Provider Revenue Summary columns
+        const prsMinWidths = [24, 14, 18, 16, 14, 24, 16];
+        providerRevSheet.columns.forEach((col, i) => {
+            let max = prsMinWidths[i] || 14;
+            col.eachCell({ includeEmpty: false }, cell => {
+                const len = cell.value ? String(cell.value).length + 2 : 0;
+                if (len > max) max = len;
+            });
+            col.width = Math.min(max, 40);
+        });
+        // ── END PROVIDER REVENUE SUMMARY SHEET ──────────────────────────────
 
         let allSectionsTotalExpected = 0;
         let allSectionsTotalReceived = 0;
