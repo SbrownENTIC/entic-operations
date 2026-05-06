@@ -100,6 +100,188 @@ Deno.serve(async (req) => {
         // Add export date to Summary
         summarySheet.addRow([`Exported: ${exportDate}`]);
 
+        // ── Helper: parse "MMM YYYY" sort key ───────────────────────────────
+        const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        const parseMonthStr = (str) => {
+            // paymentDate is "YYYY-MM-DD"
+            if (!str) return { year: 0, month: 0 };
+            const d = new Date(str);
+            return { year: d.getFullYear(), month: d.getMonth() + 1 };
+        };
+        const fmtMonthLabel = (dateStr) => {
+            const d = new Date(dateStr);
+            const mon = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
+            return `${mon} ${d.getFullYear()}`;
+        };
+        const monthSortKey = (label) => {
+            // "Jan 2026" → sortable number 202601
+            const parts = label.split(' ');
+            const monIdx = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(parts[0]) + 1;
+            return parseInt(parts[1]) * 100 + monIdx;
+        };
+
+        // Facilities tracked in the summary columns (in display order)
+        const SUMMARY_FACILITIES = ['Hartford Hospital', 'St. Francis', 'UConn', 'HH - Manchester / ECHN'];
+
+        // ── BUILD PROVIDER MONTHLY SUMMARY from paymentQuarterRows ──────────
+        // Map: provider → month-label → facility → total
+        const monthlyMap = {};
+        (paymentQuarterRows || []).forEach(row => {
+            if (!row.paymentDate || !row.provider) return;
+            const label = fmtMonthLabel(row.paymentDate);
+            if (!monthlyMap[row.provider]) monthlyMap[row.provider] = {};
+            if (!monthlyMap[row.provider][label]) monthlyMap[row.provider][label] = {};
+            const fac = row.programGroup || 'Other';
+            monthlyMap[row.provider][label][fac] = (monthlyMap[row.provider][label][fac] || 0) + (row.amount || 0);
+        });
+
+        // Flatten into sorted rows: provider A-Z, then month newest-first
+        const monthlyRows = [];
+        Object.keys(monthlyMap).sort().forEach(provider => {
+            const months = Object.keys(monthlyMap[provider]).sort((a, b) => monthSortKey(b) - monthSortKey(a));
+            months.forEach(month => {
+                const byFac = monthlyMap[provider][month];
+                const hh = byFac['Hartford Hospital'] || 0;
+                const sf = byFac['St. Francis'] || 0;
+                const uc = byFac['UConn'] || 0;
+                const manc = byFac['HH - Manchester / ECHN'] || 0;
+                const total = Object.values(byFac).reduce((s, v) => s + v, 0);
+                monthlyRows.push([provider, month, hh, sf, uc, manc, total]);
+            });
+        });
+
+        // ── BUILD PROVIDER QUARTERLY SUMMARY ────────────────────────────────
+        // Determine which year to show (current year from exportDate)
+        const reportYear = new Date(exportDate).getFullYear() || new Date().getFullYear();
+        // Map: provider → quarter-label → total
+        const quarterlyMap = {};
+        (paymentQuarterRows || []).forEach(row => {
+            if (!row.quarter || !row.provider) return;
+            if (!quarterlyMap[row.provider]) quarterlyMap[row.provider] = {};
+            quarterlyMap[row.provider][row.quarter] = (quarterlyMap[row.provider][row.quarter] || 0) + (row.amount || 0);
+        });
+
+        // Determine all unique quarters across all providers, sorted desc for display
+        const allQuarterSet = new Set();
+        (paymentQuarterRows || []).forEach(row => { if (row.quarter) allQuarterSet.add(row.quarter); });
+        // Sort quarters newest first
+        const allQuarters = Array.from(allQuarterSet).sort((a, b) => {
+            const [qa, ya] = [parseInt(a.slice(1,2)), parseInt(a.slice(3))];
+            const [qb, yb] = [parseInt(b.slice(1,2)), parseInt(b.slice(3))];
+            if (yb !== ya) return yb - ya;
+            return qb - qa;
+        });
+
+        // Quarterly rows: provider A-Z
+        const quarterlyRows = Object.keys(quarterlyMap).sort().map(provider => {
+            const qData = quarterlyMap[provider];
+            const row = [provider];
+            allQuarters.forEach(q => row.push(qData[q] || 0));
+            const ytd = Object.values(qData).reduce((s, v) => s + v, 0);
+            row.push(ytd);
+            return row;
+        });
+
+        // ── WRITE SECTION 1 — PROVIDER MONTHLY REVENUE SUMMARY ──────────────
+        summarySheet.addRow([]); // spacer
+        const ms1Title = summarySheet.addRow(['PROVIDER MONTHLY REVENUE SUMMARY']);
+        ms1Title.getCell(1).style = {
+            font: { bold: true, size: 12, color: { argb: 'FFFFFFFF' } },
+            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F497D' } },
+        };
+        summarySheet.mergeCells(`A${ms1Title.number}:G${ms1Title.number}`);
+
+        const monthlyHeaders = ['Provider', 'Month', 'Hartford Hospital', 'St. Francis', 'UConn', 'HH - Manchester / ECHN', 'Total'];
+        const monthlyHeaderRow = summarySheet.addRow(monthlyHeaders);
+        monthlyHeaderRow.eachCell(cell => {
+            cell.style = headerStyle;
+            cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        });
+        summarySheet.autoFilter = { from: { row: monthlyHeaderRow.number, column: 1 }, to: { row: monthlyHeaderRow.number, column: 7 } };
+        summarySheet.views = [{ state: 'frozen', ySplit: monthlyHeaderRow.number }];
+
+        const mCurrCols = [3, 4, 5, 6, 7]; // Hartford, StFrancis, UConn, Manchester, Total
+        const mLightBand = 'FFF2F7FB';
+        const mWhiteBand = 'FFFFFFFF';
+        monthlyRows.forEach((row, idx) => {
+            const addedRow = summarySheet.addRow(row);
+            const bandColor = idx % 2 === 0 ? mLightBand : mWhiteBand;
+            addedRow.eachCell({ includeEmpty: true }, (cell, colNum) => {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bandColor } };
+                cell.border = borderStyle;
+                if (mCurrCols.includes(colNum)) cell.numFmt = '$#,##0.00';
+            });
+            // Bold the Total column
+            addedRow.getCell(7).font = { bold: true };
+        });
+
+        // Monthly totals row
+        const mTotals = [
+            'TOTAL', '',
+            monthlyRows.reduce((s, r) => s + r[2], 0),
+            monthlyRows.reduce((s, r) => s + r[3], 0),
+            monthlyRows.reduce((s, r) => s + r[4], 0),
+            monthlyRows.reduce((s, r) => s + r[5], 0),
+            monthlyRows.reduce((s, r) => s + r[6], 0),
+        ];
+        const mTotalRow = summarySheet.addRow(mTotals);
+        mTotalRow.eachCell((cell, colNum) => {
+            cell.font = { bold: true };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDAE3F3' } };
+            cell.border = borderStyle;
+            if (mCurrCols.includes(colNum)) cell.numFmt = '$#,##0.00';
+        });
+
+        // ── WRITE SECTION 2 — PROVIDER QUARTERLY REVENUE SUMMARY ────────────
+        summarySheet.addRow([]); // spacer
+        const qs2Title = summarySheet.addRow(['PROVIDER QUARTERLY REVENUE SUMMARY']);
+        qs2Title.getCell(1).style = {
+            font: { bold: true, size: 12, color: { argb: 'FFFFFFFF' } },
+            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F497D' } },
+        };
+        const qTotalCols = allQuarters.length + 2; // Provider + each quarter + YTD
+        summarySheet.mergeCells(`A${qs2Title.number}:${String.fromCharCode(64 + Math.min(qTotalCols, 26))}${qs2Title.number}`);
+
+        const quarterlyHeaders = ['Provider', ...allQuarters.map(q => {
+            // "Q2 2026" → "Q2 2026" (keep as-is for column headers)
+            return q;
+        }), 'YTD Total'];
+        const quarterlyHeaderRow = summarySheet.addRow(quarterlyHeaders);
+        quarterlyHeaderRow.eachCell(cell => {
+            cell.style = headerStyle;
+            cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        });
+
+        const qCurrCols = quarterlyHeaders.map((_, i) => i + 1).filter(i => i > 1); // all except Provider
+        const qLightBand = 'FFF7FBFF';
+        quarterlyRows.forEach((row, idx) => {
+            const addedRow = summarySheet.addRow(row);
+            const bandColor = idx % 2 === 0 ? qLightBand : mWhiteBand;
+            addedRow.eachCell({ includeEmpty: true }, (cell, colNum) => {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bandColor } };
+                cell.border = borderStyle;
+                if (qCurrCols.includes(colNum)) cell.numFmt = '$#,##0.00';
+            });
+            // Bold the YTD column
+            addedRow.getCell(quarterlyHeaders.length).font = { bold: true };
+        });
+
+        // Quarterly totals row
+        const qTotals = ['TOTAL'];
+        allQuarters.forEach((q, i) => {
+            qTotals.push(quarterlyRows.reduce((s, r) => s + (r[i + 1] || 0), 0));
+        });
+        qTotals.push(quarterlyRows.reduce((s, r) => s + (r[r.length - 1] || 0), 0));
+        const qTotalRow = summarySheet.addRow(qTotals);
+        qTotalRow.eachCell((cell, colNum) => {
+            cell.font = { bold: true };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDAE3F3' } };
+            cell.border = borderStyle;
+            if (qCurrCols.includes(colNum)) cell.numFmt = '$#,##0.00';
+        });
+
+        summarySheet.addRow([]); // spacer before detail sections
+
         let allSectionsTotalExpected = 0;
         let allSectionsTotalReceived = 0;
 
@@ -269,9 +451,10 @@ Deno.serve(async (req) => {
         grandTotalRow2.getCell(4).numFmt = '$#,##0.00';
         grandTotalRow2.eachCell(cell => cell.font = { bold: true });
 
-        // Auto-size Summary columns
-        summarySheet.columns.forEach(column => {
-             let maxLength = 0;
+        // Auto-size Summary columns — minimum widths for summary columns
+        const summaryMinWidths = [24, 14, 18, 16, 14, 24, 16];
+        summarySheet.columns.forEach((column, i) => {
+             let maxLength = summaryMinWidths[i] || 12;
              column.eachCell({ includeEmpty: true }, cell => {
                  const columnLength = cell.value ? cell.value.toString().length : 10;
                  if (columnLength > maxLength) maxLength = columnLength;
