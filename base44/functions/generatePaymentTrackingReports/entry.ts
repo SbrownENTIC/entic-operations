@@ -58,12 +58,8 @@ Deno.serve(async (req) => {
         const masterWorkbook = new ExcelJS.Workbook();
         const summarySheet = masterWorkbook.addWorksheet('Summary');
 
-        // ── Payment Quarter View sheet — added immediately after Summary ──────
-        // (Must be created here so its tab position is slot 2, before all detail sheets)
-        const pqSheet = masterWorkbook.addWorksheet('Payment Quarter View', {
-            properties: { tabColor: { argb: 'FFB8CCE4' } }
-        });
-        // (content is populated below, after styles are defined)
+        // Payment Quarter View is intentionally NOT added to the Master workbook.
+        // It remains available as an in-app view only.
 
         // Styles
         const titleStyle = {
@@ -461,114 +457,6 @@ Deno.serve(async (req) => {
              });
              column.width = maxLength < 10 ? 10 : (maxLength > 50 ? 50 : maxLength + 2);
          });
-
-        // ── Payment Quarter View sheet content ────────────────────────────────
-        const PQ_COLS = 7;
-
-        // Title row
-        const pqTitle = pqSheet.addRow(['Payment Allocation by Quarter']);
-        pqTitle.getCell(1).font = { bold: true, size: 14 };
-        pqSheet.mergeCells('A1:G1');
-
-        // Generated date row
-        const pqSubtitle = pqSheet.addRow([`Generated on: ${exportDate}`]);
-        pqSubtitle.getCell(1).font = { italic: true, size: 10, color: { argb: 'FF666666' } };
-        pqSheet.mergeCells('A2:G2');
-
-        // Blank spacer row
-        pqSheet.addRow([]);
-
-        // Header row (row 4)
-        const pqHeaders = ['Payment Quarter', 'Program Group', 'Provider', 'Payment Date', 'Check/Voucher Number', 'Invoice Number', 'Allocation Amount'];
-        const pqHeaderRow = pqSheet.addRow(pqHeaders);
-        pqHeaderRow.eachCell((cell, colNumber) => {
-            cell.font = { bold: true, size: 11, color: { argb: 'FF1F3864' } };
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD6E4F0' } };
-            cell.alignment = { vertical: 'middle', horizontal: colNumber === 7 ? 'right' : 'left' };
-            cell.border = { bottom: { style: 'medium', color: { argb: 'FF4472C4' } } };
-        });
-
-        // Freeze header row
-        pqSheet.views = [{ state: 'frozen', ySplit: 4 }];
-
-        // AutoFilter
-        pqSheet.autoFilter = { from: { row: 4, column: 1 }, to: { row: 4, column: PQ_COLS } };
-
-        // Helper: convert "Q2 2026" → "2026 Q2"
-        const fmtQ = (q) => {
-            const m = q.match(/^Q(\d)\s+(\d{4})$/);
-            return m ? `${m[2]} Q${m[1]}` : q;
-        };
-
-        const pqLightBand = 'FFF2F7FB';
-        const pqWhiteBand = 'FFFFFFFF';
-
-        // Group rows by quarter for subtotals
-        const pqByQuarter = {};
-        (paymentQuarterRows || []).forEach(row => {
-            if (!pqByQuarter[row.quarter]) pqByQuarter[row.quarter] = [];
-            pqByQuarter[row.quarter].push(row);
-        });
-
-        // Quarters are already sorted desc by the frontend
-        const pqQuarters = Object.keys(pqByQuarter);
-
-        let pqRowIdx = 0;
-        pqQuarters.forEach(quarter => {
-            const qRows = pqByQuarter[quarter];
-
-            qRows.forEach(row => {
-                const displayInvoiceNum = row.isDirectorship && row.invoiceNumber && !row.invoiceNumber.includes('(Directorship)')
-                    ? `${row.invoiceNumber} (Directorship)`
-                    : (row.invoiceNumber || '-');
-                const pqDataRow = pqSheet.addRow([
-                    fmtQ(row.quarter),
-                    row.programGroup,
-                    row.provider,
-                    row.paymentDate, // string date — formatted below
-                    String(row.referenceNumber || ''),
-                    displayInvoiceNum,
-                    row.amount,
-                ]);
-                const bandColor = pqRowIdx % 2 === 0 ? pqLightBand : pqWhiteBand;
-                pqDataRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bandColor } };
-                    cell.font = { size: 10 };
-                    cell.alignment = { vertical: 'middle' };
-                    if (colNumber === 4) { cell.numFmt = 'mm/dd/yyyy'; }
-                    if (colNumber === 5) { cell.numFmt = '@'; } // text — preserve leading zeros
-                    if (colNumber === 7) { cell.numFmt = '$#,##0.00'; cell.alignment = { vertical: 'middle', horizontal: 'right' }; }
-                });
-                pqRowIdx++;
-            });
-
-            // Quarter subtotal
-            const qTotal = qRows.reduce((s, r) => s + (r.amount || 0), 0);
-            const pqSubtotalRow = pqSheet.addRow([`${fmtQ(quarter)} — Total`, '', '', '', '', '', qTotal]);
-            pqSubtotalRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-                cell.font = { bold: true, size: 10, color: { argb: 'FF1F3864' } };
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDAE3F3' } };
-                cell.alignment = { vertical: 'middle' };
-                if (colNumber === 7) { cell.numFmt = '$#,##0.00'; cell.alignment = { vertical: 'middle', horizontal: 'right' }; }
-                cell.border = { top: { style: 'thin', color: { argb: 'FF4472C4' } }, bottom: { style: 'thin', color: { argb: 'FF4472C4' } } };
-            });
-            pqRowIdx++;
-
-            // Spacer
-            pqSheet.addRow([]);
-            pqRowIdx++;
-        });
-
-        // Auto-size columns
-        const pqMinWidths = [18, 26, 24, 16, 22, 20, 20];
-        pqSheet.columns.forEach((col, i) => {
-            let max = pqMinWidths[i] || 14;
-            col.eachCell({ includeEmpty: false }, cell => {
-                const len = cell.value ? String(cell.value).length + 2 : 0;
-                if (len > max) max = len;
-            });
-            col.width = Math.min(max, 40);
-        });
 
         const masterBuffer = await masterWorkbook.xlsx.writeBuffer();
         zip.file("Outside_Income_Payment_Tracking_Master.xlsx", masterBuffer);
