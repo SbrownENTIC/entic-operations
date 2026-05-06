@@ -867,6 +867,8 @@ export default function Reports() {
                     payments={filterByDateRange(payments, 'payment_date')}
                     invoices={invoices}
                     providers={providers}
+                    outsideIncome={incomes}
+                    programLocations={programLocations}
                     formatCurrency={formatCurrency}
                     onExport={exportToCSV}
                   />

@@ -29,7 +29,25 @@ const sortQuartersDesc = (a, b) => {
   return qb - qa;
 };
 
-const buildPaymentQuarterRows = (payments, invoices, providers) => {
+const isDirectorshipInvoice = (invoice, outsideIncome = [], programLocations = []) => {
+  if (!invoice) return false;
+  // Signal 1: invoice number contains "(Directorship)"
+  if (invoice.invoice_number?.includes('(Directorship)')) return true;
+  // Signal 2: any linked outside income record points to a Directorship program location
+  const linkedIncomes = (invoice.outside_income_ids || []).map(id =>
+    outsideIncome.find(inc => inc.id === id)
+  ).filter(Boolean);
+  return linkedIncomes.some(inc => {
+    if (inc.facility_name?.toLowerCase().includes('directorship')) return true;
+    if (inc.program_location_id) {
+      const loc = programLocations.find(pl => pl.id === inc.program_location_id);
+      if (loc?.program_type === 'Directorship') return true;
+    }
+    return false;
+  });
+};
+
+const buildPaymentQuarterRows = (payments, invoices, providers, outsideIncome = [], programLocations = []) => {
   const rows = [];
   payments.forEach(payment => {
     if (!payment.payment_date) return;
@@ -38,13 +56,16 @@ const buildPaymentQuarterRows = (payments, invoices, providers) => {
       const group = normalizeQGroup(invoice?.program_group || '');
       if (!QUARTER_ALLOWED_GROUPS.includes(group)) return;
       const provider = providers.find(p => p.id === allocation.provider_id);
+      const isDirectorship = isDirectorshipInvoice(invoice, outsideIncome, programLocations);
+      const invoiceNum = invoice?.invoice_number || '-';
       rows.push({
         quarter: getQuarter(payment.payment_date),
         paymentDate: payment.payment_date,
         referenceNumber: payment.reference_number || '',
         programGroup: group,
         provider: provider?.full_name || '-',
-        invoiceNumber: invoice?.invoice_number || '-',
+        invoiceNumber: invoiceNum,
+        isDirectorship,
         amount: allocation.amount || 0,
       });
     });
@@ -95,7 +116,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
     try {
       setIsGenerating(true);
       const exportDate = format(new Date(), 'MMMM dd, yyyy');
-      const paymentQuarterRows = buildPaymentQuarterRows(payments, invoices, providers);
+      const paymentQuarterRows = buildPaymentQuarterRows(payments, invoices, providers, outsideIncome, programLocations);
       
       const response = await base44.functions.invoke('generatePaymentTrackingReports', {
         sections,

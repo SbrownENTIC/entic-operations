@@ -28,7 +28,30 @@ const sortQuartersDesc = (a, b) => {
   return qb - qa;
 };
 
-export default function PaymentQuarterView({ payments, invoices, providers, formatCurrency, onExport }) {
+const isDirectorshipInvoice = (invoice, outsideIncome = [], programLocations = []) => {
+  if (!invoice) return false;
+  if (invoice.invoice_number?.includes('(Directorship)')) return true;
+  const linkedIncomes = (invoice.outside_income_ids || []).map(id =>
+    outsideIncome.find(inc => inc.id === id)
+  ).filter(Boolean);
+  return linkedIncomes.some(inc => {
+    if (inc.facility_name?.toLowerCase().includes('directorship')) return true;
+    if (inc.program_location_id) {
+      const loc = programLocations.find(pl => pl.id === inc.program_location_id);
+      if (loc?.program_type === 'Directorship') return true;
+    }
+    return false;
+  });
+};
+
+const getDisplayInvoiceNumber = (invoice, outsideIncome = [], programLocations = []) => {
+  const num = invoice?.invoice_number || '-';
+  const isDir = isDirectorshipInvoice(invoice, outsideIncome, programLocations);
+  if (isDir && !num.includes('(Directorship)')) return `${num} (Directorship)`;
+  return num;
+};
+
+export default function PaymentQuarterView({ payments, invoices, providers, outsideIncome = [], programLocations = [], formatCurrency, onExport }) {
   // Build flat rows: only allocations where the linked invoice belongs to an allowed group
   const rows = [];
 
@@ -47,7 +70,7 @@ export default function PaymentQuarterView({ payments, invoices, providers, form
         referenceNumber: payment.reference_number || '',
         programGroup: group,
         provider: provider?.full_name || '-',
-        invoiceNumber: invoice?.invoice_number || '-',
+        invoiceNumber: getDisplayInvoiceNumber(invoice, outsideIncome, programLocations),
         amount: allocation.amount || 0,
       });
     });

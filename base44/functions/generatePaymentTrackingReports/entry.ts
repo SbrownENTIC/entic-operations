@@ -335,13 +335,16 @@ Deno.serve(async (req) => {
             const qRows = pqByQuarter[quarter];
 
             qRows.forEach(row => {
+                const displayInvoiceNum = row.isDirectorship && row.invoiceNumber && !row.invoiceNumber.includes('(Directorship)')
+                    ? `${row.invoiceNumber} (Directorship)`
+                    : (row.invoiceNumber || '-');
                 const pqDataRow = pqSheet.addRow([
                     fmtQ(row.quarter),
                     row.programGroup,
                     row.provider,
                     row.paymentDate, // string date — formatted below
                     String(row.referenceNumber || ''),
-                    row.invoiceNumber,
+                    displayInvoiceNum,
                     row.amount,
                 ]);
                 const bandColor = pqRowIdx % 2 === 0 ? pqLightBand : pqWhiteBand;
