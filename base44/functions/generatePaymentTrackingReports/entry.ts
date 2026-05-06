@@ -58,6 +58,13 @@ Deno.serve(async (req) => {
         const masterWorkbook = new ExcelJS.Workbook();
         const summarySheet = masterWorkbook.addWorksheet('Summary');
 
+        // ── Payment Quarter View sheet — added immediately after Summary ──────
+        // (Must be created here so its tab position is slot 2, before all detail sheets)
+        const pqSheet = masterWorkbook.addWorksheet('Payment Quarter View', {
+            properties: { tabColor: { argb: 'FFB8CCE4' } }
+        });
+        // (content is populated below, after styles are defined)
+
         // Styles
         const titleStyle = {
             fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F81BD' } }, // Medium blue
@@ -272,11 +279,7 @@ Deno.serve(async (req) => {
              column.width = maxLength < 10 ? 10 : (maxLength > 50 ? 50 : maxLength + 2);
          });
 
-        // ── Payment Quarter View sheet (inserted right after Summary) ────────────
-        const pqSheet = masterWorkbook.addWorksheet('Payment Quarter View', {
-            properties: { tabColor: { argb: 'FFB8CCE4' } } // light blue tab
-        });
-
+        // ── Payment Quarter View sheet content ────────────────────────────────
         const PQ_COLS = 7;
 
         // Title row
@@ -380,22 +383,6 @@ Deno.serve(async (req) => {
             });
             col.width = Math.min(max, 40);
         });
-
-        // Move the Payment Quarter View sheet to position 2 (right after Summary)
-        // ExcelJS doesn't have a direct reorder API, but we can use the internal _worksheets array
-        const wb = masterWorkbook;
-        const sheets = wb._worksheets.filter(Boolean);
-        const summaryIdx = sheets.findIndex(s => s.name === 'Summary');
-        const pqIdx = sheets.findIndex(s => s.name === 'Payment Quarter View');
-        if (summaryIdx !== -1 && pqIdx !== -1 && pqIdx !== summaryIdx + 1) {
-            // Remove from current position and insert after summary
-            const [pqSheetRef] = sheets.splice(pqIdx, 1);
-            sheets.splice(summaryIdx + 1, 0, pqSheetRef);
-            // Rebuild _worksheets (ExcelJS uses 1-indexed sparse array internally)
-            wb._worksheets = [undefined, ...sheets];
-            sheets.forEach((s, i) => { s._id = i + 1; });
-        }
-        // ─────────────────────────────────────────────────────────────────────
 
         const masterBuffer = await masterWorkbook.xlsx.writeBuffer();
         zip.file("Outside_Income_Payment_Tracking_Master.xlsx", masterBuffer);
