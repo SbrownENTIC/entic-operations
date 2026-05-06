@@ -6,6 +6,69 @@ import { base44 } from "@/api/base44Client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, parseISO } from "date-fns";
 
+// ── Payment Quarter View helpers (mirrors PaymentQuarterView.jsx logic) ──────
+const QUARTER_ALLOWED_GROUPS = ['Hartford Hospital', 'UConn', 'HH - Manchester / ECHN', 'St. Francis'];
+
+const normalizeQGroup = (name) => {
+  if (!name) return '';
+  const lower = name.toLowerCase();
+  if (lower.includes('manchester') || lower.includes('echn')) return 'HH - Manchester / ECHN';
+  return name;
+};
+
+const getQuarter = (dateStr) => {
+  const d = parseISO(dateStr);
+  const q = Math.floor(d.getMonth() / 3) + 1;
+  return `Q${q} ${d.getFullYear()}`;
+};
+
+const sortQuartersDesc = (a, b) => {
+  const [qa, ya] = [parseInt(a.slice(1, 2)), parseInt(a.slice(3))];
+  const [qb, yb] = [parseInt(b.slice(1, 2)), parseInt(b.slice(3))];
+  if (yb !== ya) return yb - ya;
+  return qb - qa;
+};
+
+const buildPaymentQuarterRows = (payments, invoices, providers) => {
+  const rows = [];
+  payments.forEach(payment => {
+    if (!payment.payment_date) return;
+    (payment.allocations || []).forEach(allocation => {
+      const invoice = invoices.find(inv => inv.id === allocation.invoice_id);
+      const group = normalizeQGroup(invoice?.program_group || '');
+      if (!QUARTER_ALLOWED_GROUPS.includes(group)) return;
+      const provider = providers.find(p => p.id === allocation.provider_id);
+      rows.push({
+        quarter: getQuarter(payment.payment_date),
+        paymentDate: payment.payment_date,
+        referenceNumber: payment.reference_number || '',
+        programGroup: group,
+        provider: provider?.full_name || '-',
+        invoiceNumber: invoice?.invoice_number || '-',
+        amount: allocation.amount || 0,
+      });
+    });
+  });
+
+  // Sort: quarter desc → program group asc → provider asc
+  const byQuarter = {};
+  rows.forEach(row => {
+    if (!byQuarter[row.quarter]) byQuarter[row.quarter] = [];
+    byQuarter[row.quarter].push(row);
+  });
+  const sortedQuarters = Object.keys(byQuarter).sort(sortQuartersDesc);
+  const sorted = [];
+  sortedQuarters.forEach(quarter => {
+    const qRows = [...byQuarter[quarter]].sort((a, b) => {
+      const g = a.programGroup.localeCompare(b.programGroup);
+      return g !== 0 ? g : a.provider.localeCompare(b.provider);
+    });
+    qRows.forEach(r => sorted.push(r));
+  });
+  return sorted;
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function PaymentTrackingReport({ invoices, payments, providers, programLocations, outsideIncome, dateRange, formatCurrency, exportToCSV }) {
   const [selectedProgramGroup, setSelectedProgramGroup] = useState('all');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -32,10 +95,12 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
     try {
       setIsGenerating(true);
       const exportDate = format(new Date(), 'MMMM dd, yyyy');
+      const paymentQuarterRows = buildPaymentQuarterRows(payments, invoices, providers);
       
       const response = await base44.functions.invoke('generatePaymentTrackingReports', {
         sections,
-        exportDate
+        exportDate,
+        paymentQuarterRows,
       });
 
       if (response.data.error) throw new Error(response.data.error);
