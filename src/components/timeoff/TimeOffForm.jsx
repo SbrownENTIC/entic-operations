@@ -35,6 +35,7 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
     start_date: '',
     end_date: '',
     type: 'time_off',
+    cme_hours: '',
     partial_day_end_time: '',
     reason: '',
     status: 'approved',
@@ -60,7 +61,14 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
   }, [formData.start_date, formData.end_date, timeOff]);
 
   const handleChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const updated = { ...prev, [field]: value };
+      // Clear cme_hours when switching away from CME
+      if (field === 'type' && value !== 'cme') {
+        updated.cme_hours = '';
+      }
+      return updated;
+    });
     setIsDirty(true);
   };
 
@@ -70,6 +78,14 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
     if (!formData.provider_id) {
       alert("Please select a provider.");
       return;
+    }
+
+    if (formData.type === 'cme') {
+      const hours = parseFloat(formData.cme_hours);
+      if (!formData.cme_hours || isNaN(hours) || hours < 0.25 || hours > 24) {
+        alert("CME Hours is required and must be between 0.25 and 24.");
+        return;
+      }
     }
 
     if (!timeOff) {
@@ -127,10 +143,12 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
       }
       
       // Create an entry for each range
+      const cmeHoursValue = formData.type === 'cme' && formData.cme_hours ? parseFloat(formData.cme_hours) : null;
       const entries = ranges.map(range => ({
         ...formData,
         start_date: range.start,
         end_date: range.end,
+        cme_hours: cmeHoursValue,
       }));
       
       onSubmit(entries);
@@ -300,6 +318,24 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
                     </Button>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {formData.type === 'cme' && (
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="cme_hours">CME Hours *</Label>
+                <Input
+                  id="cme_hours"
+                  type="number"
+                  min="0.25"
+                  max="24"
+                  step="0.25"
+                  value={formData.cme_hours}
+                  onChange={(e) => handleChange('cme_hours', e.target.value)}
+                  placeholder="e.g., 4 or 1.5"
+                  required
+                />
+                <p className="text-xs text-slate-500">Enter hours in 0.25 increments (min 0.25, max 24)</p>
               </div>
             )}
 

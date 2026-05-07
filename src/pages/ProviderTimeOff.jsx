@@ -431,7 +431,7 @@ export default function ProviderTimeOff() {
     const rows = [
       [`Date Exported: ${exportDate}`],
       [],
-      ['Provider', 'Type', 'Start Date', 'End Date', 'Days', 'End Time', 'Reason', 'Status', 'Notes']
+      ['Provider', 'Type', 'Start Date', 'End Date', 'Days', 'CME Hours', 'End Time', 'Reason', 'Status', 'Notes']
     ];
     
     // If in calendar view, only export entries from the current month
@@ -455,12 +455,33 @@ export default function ProviderTimeOff() {
         format(parseISO(entry.start_date), 'yyyy-MM-dd'),
         format(parseISO(entry.end_date), 'yyyy-MM-dd'),
         days,
+        entry.type === 'cme' ? (entry.cme_hours || '') : '',
         entry.partial_day_end_time || '',
         entry.reason || '',
         entry.status || '',
         entry.notes || ''
       ]);
     });
+
+    // CME hours summary per provider per month (appended after main data)
+    const cmeEntries = entriesToExport.filter(e => e.type === 'cme' && e.cme_hours);
+    if (cmeEntries.length > 0) {
+      rows.push([]);
+      rows.push(['CME HOURS SUMMARY BY PROVIDER / MONTH']);
+      rows.push(['Provider', 'Month', 'Total CME Hours']);
+      const cmeSummary = {};
+      cmeEntries.forEach(entry => {
+        const provider = providers.find(p => p.id === entry.provider_id);
+        const name = provider?.full_name || 'Unknown';
+        const month = format(parseISO(entry.start_date), 'MMM yyyy');
+        const key = `${name}__${month}`;
+        if (!cmeSummary[key]) cmeSummary[key] = { name, month, hours: 0 };
+        cmeSummary[key].hours += entry.cme_hours || 0;
+      });
+      Object.values(cmeSummary).sort((a, b) => a.name.localeCompare(b.name) || a.month.localeCompare(b.month)).forEach(s => {
+        rows.push([s.name, s.month, s.hours]);
+      });
+    }
     
     const csvContent = rows.map(row => 
       row.map(cell => {
@@ -845,12 +866,17 @@ export default function ProviderTimeOff() {
                           {format(parseISO(entry.end_date), 'MMM d, yyyy')}
                         </td>
                         <td className="p-4 text-slate-600">
-                          {entry.days} {entry.days === 1 ? 'day' : 'days'}
-                          {entry.partial_day_end_time && (
-                            <span className="block text-xs text-orange-600">
-                              Ends at {entry.partial_day_end_time}
-                            </span>
-                          )}
+                         {entry.days} {entry.days === 1 ? 'day' : 'days'}
+                         {entry.type === 'cme' && entry.cme_hours && (
+                           <span className="block text-xs text-purple-600 font-medium">
+                             {entry.cme_hours} hrs CME
+                           </span>
+                         )}
+                         {entry.partial_day_end_time && (
+                           <span className="block text-xs text-orange-600">
+                             Ends at {entry.partial_day_end_time}
+                           </span>
+                         )}
                         </td>
                         <td className="p-4 text-slate-600">{entry.reason || '-'}</td>
                         <td className="p-4">
@@ -966,7 +992,9 @@ export default function ProviderTimeOff() {
                             title={`${entry.provider?.full_name} - ${entry.reason || formatType(entry.type)}`}
                           >
                             <div className="font-medium truncate">{entry.provider?.full_name}</div>
-                            <div className="text-xs opacity-75">{formatType(entry.type)}</div>
+                            <div className="text-xs opacity-75">
+                              {entry.type === 'cme' && entry.cme_hours ? `CME (${entry.cme_hours} hrs)` : formatType(entry.type)}
+                            </div>
                           </div>
                         ))}
                         {dayEntries.length > 3 && (
@@ -1035,6 +1063,11 @@ export default function ProviderTimeOff() {
                       {entry.reason && (
                         <div>
                           <span className="font-medium">Reason:</span> {entry.reason}
+                        </div>
+                      )}
+                      {entry.type === 'cme' && entry.cme_hours && (
+                        <div className="text-purple-700">
+                          <span className="font-medium">CME Hours:</span> {entry.cme_hours}
                         </div>
                       )}
                       {entry.partial_day_end_time && (
