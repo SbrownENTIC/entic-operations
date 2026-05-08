@@ -315,7 +315,8 @@ export default function Providers() {
   const filteredProviders = providers.filter(provider =>
     provider.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     provider.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    provider.role?.toLowerCase().includes(searchTerm.toLowerCase())
+    provider.role?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    provider.phone_number?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const sortedProviders = [...filteredProviders].sort((a, b) => {
@@ -550,10 +551,16 @@ export default function Providers() {
                       Email <SortIcon field="email" />
                     </th>
                     <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
-                      onClick={() => handleSort('status')}
+                     className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                     onClick={() => handleSort('phone_number')}
                     >
-                      Status <SortIcon field="status" />
+                     Phone Number <SortIcon field="phone_number" />
+                    </th>
+                    <th 
+                     className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                     onClick={() => handleSort('status')}
+                    >
+                     Status <SortIcon field="status" />
                     </th>
                     <th 
                       className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
@@ -598,6 +605,7 @@ export default function Providers() {
                                 </td>
                         <td className="p-4 text-slate-600">{provider.role || '-'}</td>
                         <td className="p-4 text-slate-600">{provider.email}</td>
+                        <td className="p-4 text-slate-600">{provider.phone_number || '—'}</td>
                         <td className="p-4">
                           <Badge variant={provider.status === 'active' ? 'default' : 'secondary'}>
                             {capitalizedStatus}

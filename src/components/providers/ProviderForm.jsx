@@ -310,6 +310,17 @@ export default function ProviderForm({ provider, onSubmit, onCancel, isLoading }
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="phone_number">Phone Number</Label>
+              <Input
+                id="phone_number"
+                type="tel"
+                value={formData.phone_number || ''}
+                onChange={(e) => handleChange('phone_number', e.target.value)}
+                placeholder="e.g. 860-555-1234"
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="status">Status *</Label>
               <Select value={formData.status} onValueChange={(value) => handleChange('status', value)}>
                 <SelectTrigger>

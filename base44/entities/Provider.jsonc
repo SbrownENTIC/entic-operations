@@ -1,0 +1,72 @@
+{
+  "name": "Provider",
+  "type": "object",
+  "properties": {
+    "full_name": {
+      "type": "string",
+      "description": "Provider's full name"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "Provider's email address"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Contact phone number"
+    },
+    "phone_number": {
+      "type": "string",
+      "description": "Provider's direct phone number (formatted, e.g. 860-555-1234)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive",
+        "pending"
+      ],
+      "default": "active",
+      "description": "Employment status"
+    },
+    "role": {
+      "type": "string",
+      "description": "Provider role/title"
+    },
+    "program_locations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Programs/Locations where provider works"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of employment start"
+    },
+    "termination_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Last day of work / termination date"
+    },
+    "flu_vaccine_year": {
+      "type": "string",
+      "description": "Year range of flu vaccine (e.g., 2025-2026)"
+    },
+    "flu_vaccine_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of flu vaccine"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes about the provider"
+    }
+  },
+  "required": [
+    "full_name",
+    "email",
+    "status"
+  ]
+}
