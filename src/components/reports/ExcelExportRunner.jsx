@@ -175,6 +175,13 @@ export async function exportPeriodExcel({
   const generatedOn = now.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" }) +
     " " + now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
 
+  // ── Load user configs FIRST — needed for extension resolution in userWeekRows ─
+  const exportUserConfigs = await base44.entities.CallLogUserConfig.list();
+  const exportUserConfigMap = {};
+  for (const cfg of exportUserConfigs) {
+    if (cfg.user_name) exportUserConfigMap[cfg.user_name] = cfg;
+  }
+
   // ── Build sorted week rows ──────────────────────────────────────────────────
   const sortedWeeks = uploadedWeeks
     .slice()
@@ -214,6 +221,7 @@ export async function exportPeriodExcel({
   });
 
   // ── Build per-user-per-week rows ────────────────────────────────────────────
+  // NOTE: user_snapshot does not store extension — resolve it from CallLogUserConfig
   const userWeekRows = [];
   sortedWeeks.forEach(week => {
     const snapshot = Array.isArray(week.user_snapshot) ? week.user_snapshot : [];
@@ -230,14 +238,21 @@ export async function exportPeriodExcel({
       const uMissed    = u.missed  || 0;
       const uInboundAnswered = calcInboundAnswered(uInbound, uMissed);
       const uAnswerRate      = calcInboundAnswerRate(uInbound, uInboundAnswered);
-      const phoneRole        = getPhoneRole(u.extension ?? null);
+
+      // Resolve extension from user config (snapshot doesn't store it)
+      const cfg = exportUserConfigMap[u.user] || null;
+      const cfgExts = Array.isArray(cfg?.extensions) ? cfg.extensions : [];
+      // Use first extension from config; fall back to any extension field on snapshot
+      const resolvedExtension = cfgExts.length > 0 ? cfgExts[0] : (u.extension ?? null);
+
+      const phoneRole        = getPhoneRole(resolvedExtension);
       const expectedRate     = getExpectedAnswerRate(phoneRole);
       const answerRateStatus = uInbound > 0 ? getAnswerRateStatus(uAnswerRate, expectedRate) : "";
       userWeekRows.push({
         week_start:                week.week_start,
         week_end:                  week.week_end,
         user:                      u.user || "",
-        extension:                 u.extension ?? null,
+        extension:                 resolvedExtension,
         total_calls:               tc,
         inbound:                   uInbound,
         outbound:                  u.outbound || 0,
@@ -262,13 +277,7 @@ export async function exportPeriodExcel({
     return (a.week_start || "").localeCompare(b.week_start || "");
   });
 
-  // ── Load user configs and CDR data ─────────────────────────────────────────
-  const exportUserConfigs = await base44.entities.CallLogUserConfig.list();
-  const exportUserConfigMap = {};
-  for (const cfg of exportUserConfigs) {
-    if (cfg.user_name) exportUserConfigMap[cfg.user_name] = cfg;
-  }
-
+  // ── Load CDR data ─────────────────────────────────────────────────────────
   let cdrUploadData = null;
   try {
     const cdrUploads = await base44.entities.CallLogCdrUploads.filter({ reporting_period_key: selectedPeriod?.monthly_key || "" });
