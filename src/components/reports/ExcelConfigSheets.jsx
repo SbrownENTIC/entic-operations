@@ -103,13 +103,14 @@ export function buildConfigExtensionsSheet(wb, { mkFill, mkFont, thinBorder, DAR
   const ws = wb.addWorksheet("Config_Extensions", { views: [{ showGridLines: true }] });
 
   ws.columns = [
-    { header: "Extension",   key: "extension",   width: 14 },
-    { header: "User Name",   key: "user_name",   width: 32 },
-    { header: "Phone Role",  key: "phone_role",  width: 18 },
-    { header: "Location",    key: "location",    width: 18 },
-    { header: "Benchmark Group", key: "benchmark_group", width: 20 },
-    { header: "Include In Benchmark", key: "in_benchmark", width: 22 },
-    { header: "Active",      key: "active",      width: 10 },
+    { header: "User Name",            key: "user_name",        width: 32 },
+    { header: "Extension",            key: "extension",        width: 14 },
+    { header: "Phone Role",           key: "phone_role",       width: 18 },
+    { header: "Location",             key: "location",         width: 18 },
+    { header: "Department / Desk",    key: "department",       width: 24 },
+    { header: "Benchmark Group",      key: "benchmark_group",  width: 20 },
+    { header: "Include In Benchmark", key: "in_benchmark",     width: 22 },
+    { header: "Active",               key: "active",           width: 10 },
   ];
 
   const headerRow = ws.getRow(1);
@@ -117,62 +118,84 @@ export function buildConfigExtensionsSheet(wb, { mkFill, mkFont, thinBorder, DAR
   headerRow.eachCell({ includeEmpty: true }, (cell) => {
     cell.font = mkFont({ bold: true, color: { argb: "FFFFFFFF" } });
     cell.fill = mkFill(DARK_NAVY);
-    cell.alignment = { horizontal: "center", vertical: "middle" };
+    cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
     cell.border = { bottom: { style: "medium", color: { argb: "FFFFFFFF" } }, right: thinBorder };
   });
 
-  const extensionRows = (exportUserConfigs || []).map(cfg => {
-    const ext = cfg.extension ? Number(cfg.extension) : "";
-    const role = CALL_CENTER_EXTENSIONS && ext !== "" && CALL_CENTER_EXTENSIONS.has(ext)
-      ? "Call Center"
-      : "Client Facing";
-    return [
-      ext !== "" ? ext : "",
-      cfg.user_name || "",
-      role,
-      cfg.location || "",
-      cfg.benchmark_group || "",
-      cfg.include_in_benchmark ? "Yes" : "No",
-      cfg.active === false ? "No" : "Yes",
-    ];
-  });
+  // Build rows from user configs — extension comes directly from cfg.extension
+  const extensionRows = (exportUserConfigs || [])
+    .filter(cfg => cfg.user_name)
+    .sort((a, b) => (a.user_name || "").localeCompare(b.user_name || ""))
+    .map(cfg => {
+      // extension may be stored as a number, string, or array of numbers/strings
+      let extDisplay = "";
+      if (Array.isArray(cfg.extension)) {
+        extDisplay = cfg.extension.join(", ");
+      } else if (cfg.extension !== null && cfg.extension !== undefined && cfg.extension !== "") {
+        extDisplay = String(cfg.extension);
+      }
 
-  // Also add the known Call Center extensions as a reference block at the bottom
-  const ccExtList = CALL_CENTER_EXTENSIONS
-    ? [...CALL_CENTER_EXTENSIONS].sort((a, b) => a - b).map(ext => [ext, "(Call Center Extension)", "Call Center", "", "", "", ""])
-    : [];
+      // Determine phone role: check if any extension in the list is a Call Center ext
+      let role = "Client Facing";
+      if (CALL_CENTER_EXTENSIONS) {
+        const extNums = Array.isArray(cfg.extension)
+          ? cfg.extension.map(Number)
+          : cfg.extension !== "" && cfg.extension != null ? [Number(cfg.extension)] : [];
+        if (extNums.some(e => !isNaN(e) && CALL_CENTER_EXTENSIONS.has(e))) {
+          role = "Call Center";
+        }
+      }
 
-  const allRows = [...extensionRows, ...ccExtList];
+      const coerceBool = (val) => {
+        if (typeof val === "boolean") return val;
+        if (val === null || val === undefined) return false;
+        return ["true", "yes", "1", "x", "✓", "checked"].includes(String(val).toLowerCase().trim());
+      };
 
-  allRows.forEach((rowData, idx) => {
+      return [
+        cfg.user_name || "",
+        extDisplay,
+        role,
+        cfg.location && cfg.location !== "N/A" ? cfg.location : "",
+        cfg.department || cfg.desk || cfg.desk_name || "",
+        cfg.benchmark_group || "",
+        coerceBool(cfg.include_in_benchmark) ? "Yes" : "No",
+        cfg.active === false || (typeof cfg.active === "string" && cfg.active.toLowerCase() === "false") ? "No" : "Yes",
+      ];
+    });
+
+  extensionRows.forEach((rowData, idx) => {
     const row = ws.addRow(rowData);
     row.height = 18;
     const bgArgb = idx % 2 === 0 ? WHITE : ALT_ROW;
-    row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+    row.eachCell({ includeEmpty: true }, (cell) => {
       cell.fill = mkFill(bgArgb);
       cell.font = mkFont({});
       cell.border = { bottom: thinBorder, right: thinBorder };
-      cell.alignment = { horizontal: colNum <= 2 ? "left" : "center", vertical: "middle" };
+      cell.alignment = { horizontal: "center", vertical: "middle" };
     });
+    // Left-align name column
+    row.getCell(1).alignment = { horizontal: "left", vertical: "middle" };
   });
 
-  if (allRows.length > 0) {
+  if (extensionRows.length > 0) {
     ws.addTable({
       name: "ExtensionConfig",
-      ref: `A1:G${1 + allRows.length}`,
+      ref: `A1:H${1 + extensionRows.length}`,
       headerRow: true,
       totalsRow: false,
       style: { theme: "TableStyleLight9", showRowStripes: true },
       columns: [
-        { name: "Extension",           filterButton: true },
-        { name: "User Name",           filterButton: true },
-        { name: "Phone Role",          filterButton: true },
-        { name: "Location",            filterButton: true },
-        { name: "Benchmark Group",     filterButton: true },
-        { name: "Include In Benchmark",filterButton: true },
-        { name: "Active",              filterButton: true },
+        { name: "User Name",            filterButton: true },
+        { name: "Extension",            filterButton: true },
+        { name: "Phone Role",           filterButton: true },
+        { name: "Location",             filterButton: true },
+        { name: "Department / Desk",    filterButton: true },
+        { name: "Benchmark Group",      filterButton: true },
+        { name: "Include In Benchmark", filterButton: true },
+        { name: "Active",               filterButton: true },
       ],
-      rows: allRows,
+      rows: extensionRows,
     });
   }
 

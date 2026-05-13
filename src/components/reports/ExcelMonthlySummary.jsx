@@ -70,8 +70,8 @@ export function buildMonthlySummarySheet(wb, {
     row.height = 19;
     const lc = row.getCell(1);
     const vc = row.getCell(2);
-    lc.font = mkFont({ bold: true }); lc.fill = mkFill(bgArgb); lc.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
-    vc.font = mkFont({ bold: true, size: 12 }); vc.fill = mkFill(bgArgb); vc.alignment = { horizontal: "right", vertical: "middle", indent: 1 };
+    lc.font = mkFont({ bold: true }); lc.fill = mkFill(bgArgb); lc.alignment = { horizontal: "center", vertical: "middle" };
+    vc.font = mkFont({ bold: true, size: 12 }); vc.fill = mkFill(bgArgb); vc.alignment = { horizontal: "center", vertical: "middle" };
     if (type === "number")  vc.numFmt = "#,##0";
     if (type === "percent") {
       vc.numFmt = "0.00%";
@@ -95,7 +95,7 @@ export function buildMonthlySummarySheet(wb, {
     "Week Start", "Week End", "Total Calls", "Inbound", "Outbound",
     "Answered", "Missed", "Answer Rate", "Total Duration",
   ]);
-  styleTableHeader(weekHRow, 9, 2);
+  styleTableHeader(weekHRow, 9);
 
   const weekTableStartRow = ws.rowCount + 1;
   const weekTableDataRows = [];
@@ -121,7 +121,7 @@ export function buildMonthlySummarySheet(wb, {
       row.height = 18;
       row.eachCell({ includeEmpty: true }, (cell, colNum) => {
         cell.fill = mkFill(bgArgb); cell.font = mkFont({}); cell.border = { bottom: thinBorder, right: thinBorder };
-        cell.alignment = { horizontal: colNum <= 2 ? "left" : "center", vertical: "middle" };
+        cell.alignment = { horizontal: "center", vertical: "middle" };
         if ([3, 4, 5, 6, 7].includes(colNum)) cell.numFmt = "#,##0";
         if (colNum === 8 && ar !== null) {
           cell.numFmt = "0.00%";

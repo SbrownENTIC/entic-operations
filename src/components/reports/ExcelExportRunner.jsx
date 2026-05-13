@@ -62,14 +62,14 @@ function addSectionHeader(ws, text, numCols, startCol = "A") {
   return row;
 }
 
-// ── Helper: style a table header row ─────────────────────────────────────────
-function styleTableHeader(row, numCols, leftAlignUpTo = 1) {
+// ── Helper: style a table header row (all cols centered) ──────────────────────
+function styleTableHeader(row, numCols) {
   row.height = 30;
   for (let c = 1; c <= numCols; c++) {
     const cell = row.getCell(c);
     cell.font      = mkFont({ bold: true, color: { argb: WHITE } });
     cell.fill      = mkFill(HEADER_BG);
-    cell.alignment = { horizontal: c <= leftAlignUpTo ? "left" : "center", vertical: "middle", wrapText: true };
+    cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
     cell.border    = { bottom: { style: "medium", color: { argb: WHITE } }, right: thinBorder };
   }
 }
@@ -357,7 +357,8 @@ export async function exportPeriodExcel({
       row.height = 18;
       row.eachCell({ includeEmpty: true }, (cell, colNum) => {
         cell.fill = mkFill(bgArgb); cell.font = mkFont({}); cell.border = { bottom: thinBorder, right: thinBorder };
-        cell.alignment = { horizontal: colNum <= 3 ? "left" : "center", vertical: "middle" };
+        cell.alignment = { horizontal: "center", vertical: "middle" };
+        if (colNum <= 3) cell.alignment = { horizontal: "left", vertical: "middle" };
         if ([4, 5, 6, 7, 8].includes(colNum)) cell.numFmt = "#,##0";
         if (colNum === 10 && ar !== null) { cell.numFmt = "0.00%"; cell.fill = mkFill(bg); cell.font = mkFont({ color: { argb: fg } }); }
       });
@@ -462,7 +463,8 @@ export async function exportPeriodExcel({
     const row = wsDesk.addRow(rowValues); row.height = 18;
     row.eachCell({ includeEmpty: true }, (cell, colNum) => {
       cell.fill = mkFill(bgArgb); cell.font = mkFont({}); cell.border = { bottom: thinBorder, right: thinBorder };
-      cell.alignment = { horizontal: colNum <= 3 ? "left" : "center", vertical: "middle" };
+      cell.alignment = { horizontal: "center", vertical: "middle" };
+      if (colNum <= 2) cell.alignment = { horizontal: "left", vertical: "middle" };
       if ([4, 5].includes(colNum)) cell.numFmt = "#,##0";
       if (colNum === 6) { cell.numFmt = "0.00%"; if (d.weeklyGoal > 0) { cell.fill = mkFill(bg); cell.font = mkFont({ color: { argb: fg } }); } }
     });
@@ -488,9 +490,9 @@ export async function exportPeriodExcel({
   }
   autoFitColumns(wsDesk);
 
-  // ── SHEET 3: Individual Performance ───────────────────────────────────────
+  // ── SHEET 3: Individual Performance (no Desk column) ─────────────────────
   const wsIndiv = wb.addWorksheet("Individual Performance", { views: [{ showGridLines: false }] });
-  wsIndiv.columns = [{ width: 18 }, { width: 30 }, { width: 34 }, { width: 16 }, { width: 14 }, { width: 14 }, { width: 18 }];
+  wsIndiv.columns = [{ width: 18 }, { width: 34 }, { width: 18 }, { width: 14 }, { width: 14 }, { width: 18 }];
 
   const indivRows = [];
   sortedWeeks.forEach(week => {
@@ -501,9 +503,9 @@ export async function exportPeriodExcel({
       const eligible  = isFrontDeskBenchmark(userName);
       const weeklyGoal = eligible ? getDeskGoal(userName) : 0;
       if (eligible && weeklyGoal > 0) {
-        indivRows.push({ week_start: week.week_start, user: userName, desk: userName, location: getUserLocation(userName), answered, weeklyGoal, percentOfGoal: answered / weeklyGoal, isDeskUser: true });
+        indivRows.push({ week_start: week.week_start, user: userName, location: getUserLocation(userName), answered, weeklyGoal, percentOfGoal: answered / weeklyGoal, isDeskUser: true });
       } else {
-        indivRows.push({ week_start: week.week_start, user: userName, desk: "", location: getUserLocation(userName), answered, weeklyGoal: null, percentOfGoal: null, isDeskUser: false });
+        indivRows.push({ week_start: week.week_start, user: userName, location: getUserLocation(userName), answered, weeklyGoal: null, percentOfGoal: null, isDeskUser: false });
       }
     });
   });
@@ -515,7 +517,7 @@ export async function exportPeriodExcel({
     return a.week_start.localeCompare(b.week_start);
   });
 
-  wsIndiv.addRow([`${periodLabel} – Individual Performance`, "", "", "", "", "", ""]); wsIndiv.mergeCells("A1:G1");
+  wsIndiv.addRow([`${periodLabel} – Individual Performance`, "", "", "", "", ""]); wsIndiv.mergeCells("A1:F1");
   const indivTitle = wsIndiv.getCell("A1");
   indivTitle.font = mkFont({ bold: true, size: 16, color: { argb: WHITE } }); indivTitle.fill = mkFill(DARK_NAVY);
   indivTitle.alignment = { horizontal: "center", vertical: "middle" }; wsIndiv.getRow(1).height = 40;
@@ -545,28 +547,31 @@ export async function exportPeriodExcel({
   });
 
   wsIndiv.addRow([]); wsIndiv.getRow(wsIndiv.rowCount).height = 8;
-  addSectionHeader(wsIndiv, "Detailed Individual Performance by Week", 7);
+  addSectionHeader(wsIndiv, "Detailed Individual Performance by Week", 6);
 
   const indivTableStartRow = wsIndiv.rowCount + 1;
-  const indivHRow = wsIndiv.addRow(["Week Start", "User", "Desk", "Location", "Answered", "Weekly Goal", "% of Weekly Goal"]);
-  styleTableHeader(indivHRow, 7, 4);
+  // 6 columns: Week Start | User | Location | Answered | Weekly Goal | % of Weekly Goal
+  const indivHRow = wsIndiv.addRow(["Week Start", "User", "Location", "Answered", "Weekly Goal", "% of Weekly Goal"]);
+  styleTableHeader(indivHRow, 6);
   wsIndiv.views = [{ showGridLines: false, state: "frozen", ySplit: indivTableStartRow, xSplit: 0 }];
 
   const indivTableRows = [];
   indivRows.forEach((r, idx) => {
     const bgArgb = idx % 2 === 0 ? WHITE : ALT_ROW;
     const rowValues = [
-      formatDate(r.week_start), r.user, r.desk || "", r.location || "", r.answered,
+      formatDate(r.week_start), r.user, r.location || "", r.answered,
       r.weeklyGoal !== null && r.weeklyGoal !== undefined ? r.weeklyGoal : "",
       r.percentOfGoal !== null && r.percentOfGoal !== undefined ? r.percentOfGoal : "",
     ];
     const row = wsIndiv.addRow(rowValues); row.height = 18;
     row.eachCell({ includeEmpty: true }, (cell, colNum) => {
       cell.fill = mkFill(bgArgb); cell.font = mkFont({}); cell.border = { bottom: thinBorder, right: thinBorder };
-      cell.alignment = { horizontal: colNum <= 4 ? "left" : "center", vertical: "middle" };
-      if (colNum === 5) cell.numFmt = "#,##0";
-      if (colNum === 6 && r.weeklyGoal !== null && r.weeklyGoal !== undefined) cell.numFmt = "#,##0";
-      if (colNum === 7) {
+      cell.alignment = { horizontal: "center", vertical: "middle" };
+      // Left-align text-heavy columns
+      if (colNum <= 2) cell.alignment = { horizontal: "left", vertical: "middle" };
+      if (colNum === 4) cell.numFmt = "#,##0";
+      if (colNum === 5 && r.weeklyGoal !== null && r.weeklyGoal !== undefined) cell.numFmt = "#,##0";
+      if (colNum === 6) {
         cell.numFmt = "0.00%";
         if (r.percentOfGoal !== null && r.percentOfGoal !== undefined) {
           const { bg, fg } = perfColor(r.percentOfGoal); cell.fill = mkFill(bg); cell.font = mkFont({ color: { argb: fg } });
@@ -579,16 +584,15 @@ export async function exportPeriodExcel({
   if (indivRows.length > 0) {
     wsIndiv.addTable({
       name: "IndividualPerformance",
-      ref: `A${indivTableStartRow}:G${wsIndiv.rowCount}`,
+      ref: `A${indivTableStartRow}:F${wsIndiv.rowCount}`,
       headerRow: true, totalsRow: true,
       style: { theme: "TableStyleMedium2", showRowStripes: true },
       columns: [
-        { name: "Week Start", filterButton: true, totalsRowLabel: "TOTAL" },
-        { name: "User", filterButton: true, totalsRowLabel: "" },
-        { name: "Desk", filterButton: true, totalsRowLabel: "" },
-        { name: "Location", filterButton: true, totalsRowLabel: "" },
-        { name: "Answered", filterButton: true, totalsRowFunction: "sum" },
-        { name: "Weekly Goal", filterButton: true, totalsRowFunction: "sum" },
+        { name: "Week Start",       filterButton: true, totalsRowLabel: "TOTAL" },
+        { name: "User",             filterButton: true, totalsRowLabel: "" },
+        { name: "Location",         filterButton: true, totalsRowLabel: "" },
+        { name: "Answered",         filterButton: true, totalsRowFunction: "sum" },
+        { name: "Weekly Goal",      filterButton: true, totalsRowFunction: "sum" },
         { name: "% of Weekly Goal", filterButton: true, totalsRowFunction: "average" },
       ],
       rows: indivTableRows,

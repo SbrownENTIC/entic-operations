@@ -90,7 +90,7 @@ export async function buildCdrSheet(wb, { periodLabel, generatedOn, cdrUploadDat
 
   const cdrTableHeaderRowNum = wsCdr.rowCount + 1;
   const cdrHRow = wsCdr.addRow(["User", "Inbound Calls", "Inbound Answered", "Inbound Not Answered", "Inbound Answer Rate"]);
-  styleTableHeader(cdrHRow, 5, 1);
+  styleTableHeader(cdrHRow, 5);
 
   let cdrStats = [];
   try {
@@ -150,7 +150,7 @@ export async function buildCdrSheet(wb, { periodLabel, generatedOn, cdrUploadDat
       const row      = wsCdr.getRow(cdrTableHeaderRowNum + 1 + idx);
       row.height = 18;
       row.eachCell({ includeEmpty: true }, (cell, colNum) => {
-        cell.alignment = { horizontal: colNum === 1 ? "left" : "center", vertical: "middle" };
+        cell.alignment = { horizontal: "center", vertical: "middle" };
         if ([2, 3, 4].includes(colNum)) cell.numFmt = "#,##0";
         if (colNum === 5 && ar !== null) {
           cell.numFmt = "0.00%";
