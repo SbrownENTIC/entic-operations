@@ -2,7 +2,7 @@
 import { base44 } from "@/api/base44Client";
 import { autoFitColumns } from "./ExcelExportHelpers";
 
-export async function buildCdrSheet(wb, { periodLabel, generatedOn, cdrUploadData, mkFill, mkFont, thinBorder, addSectionHeader, styleTableHeader, arColor, DARK_NAVY, ALT_ROW, WHITE, LIGHT_GRAY }) {
+export async function buildCdrSheet(wb, { periodLabel, generatedOn, cdrUploadData, mkFill, mkFont, thinBorder, addSectionHeader, styleTableHeader, arColor, DARK_NAVY, ALT_ROW, WHITE }) {
   if (!cdrUploadData) {
     const wsCdrEmpty = wb.addWorksheet("Inbound CDR", { views: [{ showGridLines: false }] });
     wsCdrEmpty.columns = [{ width: 60 }];
@@ -142,15 +142,25 @@ export async function buildCdrSheet(wb, { periodLabel, generatedOn, cdrUploadDat
       rows: cdrTableRows,
     });
 
-    // Apply number/percent formatting and colors to data rows
+    // Apply number/percent formatting, alignment, and full borders to data rows
+    const fullBorder = {
+      top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder,
+    };
     cdrStats.forEach((stat, idx) => {
       const inbound  = Number(stat.inbound_calls || 0);
       const answered = Math.min(Number(stat.inbound_answered || 0), inbound);
       const ar       = inbound > 0 ? answered / inbound : null;
+      const bgArgb   = idx % 2 === 0 ? WHITE : ALT_ROW;
       const row      = wsCdr.getRow(cdrTableHeaderRowNum + 1 + idx);
       row.height = 18;
       row.eachCell({ includeEmpty: true }, (cell, colNum) => {
-        cell.alignment = { horizontal: "center", vertical: "middle" };
+        cell.border = fullBorder;
+        cell.fill   = mkFill(bgArgb);
+        cell.font   = mkFont({});
+        // Col 1 (User) — left aligned; numeric cols — center aligned
+        cell.alignment = colNum === 1
+          ? { horizontal: "left", vertical: "middle" }
+          : { horizontal: "center", vertical: "middle" };
         if ([2, 3, 4].includes(colNum)) cell.numFmt = "#,##0";
         if (colNum === 5 && ar !== null) {
           cell.numFmt = "0.00%";

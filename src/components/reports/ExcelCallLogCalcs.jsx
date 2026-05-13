@@ -4,7 +4,11 @@
  */
 
 // Extension numbers classified as "Call Center" role
-const CALL_CENTER_EXTENSIONS = new Set([101, 123, 128, 105, 116, 106, 113, 127, 126, 120, 403, 114, 124, 115]);
+// Source: operational reference workbook (May 2026 worksheet)
+const CALL_CENTER_EXTENSIONS = new Set([
+  353, 7, 163, 101, 82, 86, 55, 38, 4, 104, 112, 120, 128,
+  127, 114, 124, 126, 116, 106, 113, 115, 123, 105, 403,
+]);
 
 /**
  * Convert a duration value stored in minutes to total minutes (numeric).
