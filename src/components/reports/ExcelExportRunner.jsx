@@ -615,6 +615,7 @@ export async function exportPeriodExcel({
     mkFill, mkFont, thinBorder, DARK_NAVY, ALT_ROW, WHITE,
     exportUserConfigs,
     CALL_CENTER_EXTENSIONS,
+    userWeekRows, // provides raw "Ext(s)" values from imported call log data
   });
 
   // ── HIDDEN SHEET 7: Formula_Reference ────────────────────────────────────

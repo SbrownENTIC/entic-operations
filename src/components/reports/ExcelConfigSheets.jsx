@@ -99,15 +99,14 @@ export function buildConfigBenchmarksSheet(wb, { mkFill, mkFont, thinBorder, DAR
   return ws;
 }
 
-export function buildConfigExtensionsSheet(wb, { mkFill, mkFont, thinBorder, DARK_NAVY, ALT_ROW, WHITE, exportUserConfigs, CALL_CENTER_EXTENSIONS }) {
+export function buildConfigExtensionsSheet(wb, { mkFill, mkFont, thinBorder, DARK_NAVY, ALT_ROW, WHITE, exportUserConfigs, CALL_CENTER_EXTENSIONS, userWeekRows }) {
   const ws = wb.addWorksheet("Config_Extensions", { views: [{ showGridLines: true }] });
 
   ws.columns = [
     { header: "User Name",            key: "user_name",        width: 32 },
-    { header: "Extension",            key: "extension",        width: 14 },
+    { header: "Extension(s)",         key: "extensions",       width: 18 },
     { header: "Phone Role",           key: "phone_role",       width: 18 },
     { header: "Location",             key: "location",         width: 18 },
-    { header: "Department / Desk",    key: "department",       width: 24 },
     { header: "Benchmark Group",      key: "benchmark_group",  width: 20 },
     { header: "Include In Benchmark", key: "in_benchmark",     width: 22 },
     { header: "Active",               key: "active",           width: 10 },
@@ -122,45 +121,56 @@ export function buildConfigExtensionsSheet(wb, { mkFill, mkFont, thinBorder, DAR
     cell.border = { bottom: { style: "medium", color: { argb: "FFFFFFFF" } }, right: thinBorder };
   });
 
-  // Build rows from user configs — extension comes directly from cfg.extension
+  const coerceBool = (val) => {
+    if (typeof val === "boolean") return val;
+    if (val === null || val === undefined) return false;
+    return ["true", "yes", "1", "x", "✓", "checked"].includes(String(val).toLowerCase().trim());
+  };
+
+  // Build rows from user configs.
+  // Extensions are stored in cfg.extensions (array of strings) per the CallLogUserConfig schema.
+  // Additionally, cross-reference userWeekRows (raw imported call log data) to fill gaps where
+  // the config record has no extensions but the imported data has a "Ext(s)" / extension value.
+  const rawExtByUser = {};
+  (userWeekRows || []).forEach(u => {
+    if (!u.user || u._warning) return;
+    const name = u.user.trim();
+    if (!rawExtByUser[name]) rawExtByUser[name] = new Set();
+    // u.extension comes from the "Ext(s)" column parsed during import
+    if (u.extension !== null && u.extension !== undefined && u.extension !== "") {
+      rawExtByUser[name].add(String(u.extension).trim());
+    }
+  });
+
   const extensionRows = (exportUserConfigs || [])
     .filter(cfg => cfg.user_name)
     .sort((a, b) => (a.user_name || "").localeCompare(b.user_name || ""))
     .map(cfg => {
-      // extension may be stored as a number, string, or array of numbers/strings
-      let extDisplay = "";
-      if (Array.isArray(cfg.extension)) {
-        extDisplay = cfg.extension.join(", ");
-      } else if (cfg.extension !== null && cfg.extension !== undefined && cfg.extension !== "") {
-        extDisplay = String(cfg.extension);
-      }
+      // cfg.extensions is the canonical array field (plural) from CallLogUserConfig
+      const cfgExts = Array.isArray(cfg.extensions) ? cfg.extensions.map(e => String(e).trim()).filter(Boolean) : [];
 
-      // Determine phone role: check if any extension in the list is a Call Center ext
+      // Supplement with any extensions seen in raw imported data for this user
+      const rawExts = rawExtByUser[cfg.user_name] ? [...rawExtByUser[cfg.user_name]] : [];
+      const allExts = [...new Set([...cfgExts, ...rawExts])];
+      const extDisplay = allExts.length > 0 ? allExts.join(", ") : "";
+
+      // Determine phone role: Call Center if any extension is in the known set
       let role = "Client Facing";
-      if (CALL_CENTER_EXTENSIONS) {
-        const extNums = Array.isArray(cfg.extension)
-          ? cfg.extension.map(Number)
-          : cfg.extension !== "" && cfg.extension != null ? [Number(cfg.extension)] : [];
+      if (CALL_CENTER_EXTENSIONS && allExts.length > 0) {
+        const extNums = allExts.map(Number);
         if (extNums.some(e => !isNaN(e) && CALL_CENTER_EXTENSIONS.has(e))) {
           role = "Call Center";
         }
       }
-
-      const coerceBool = (val) => {
-        if (typeof val === "boolean") return val;
-        if (val === null || val === undefined) return false;
-        return ["true", "yes", "1", "x", "✓", "checked"].includes(String(val).toLowerCase().trim());
-      };
 
       return [
         cfg.user_name || "",
         extDisplay,
         role,
         cfg.location && cfg.location !== "N/A" ? cfg.location : "",
-        cfg.department || cfg.desk || cfg.desk_name || "",
         cfg.benchmark_group || "",
         coerceBool(cfg.include_in_benchmark) ? "Yes" : "No",
-        cfg.active === false || (typeof cfg.active === "string" && cfg.active.toLowerCase() === "false") ? "No" : "Yes",
+        cfg.active === false ? "No" : "Yes",
       ];
     });
 
@@ -181,16 +191,15 @@ export function buildConfigExtensionsSheet(wb, { mkFill, mkFont, thinBorder, DAR
   if (extensionRows.length > 0) {
     ws.addTable({
       name: "ExtensionConfig",
-      ref: `A1:H${1 + extensionRows.length}`,
+      ref: `A1:G${1 + extensionRows.length}`,
       headerRow: true,
       totalsRow: false,
       style: { theme: "TableStyleLight9", showRowStripes: true },
       columns: [
         { name: "User Name",            filterButton: true },
-        { name: "Extension",            filterButton: true },
+        { name: "Extension(s)",         filterButton: true },
         { name: "Phone Role",           filterButton: true },
         { name: "Location",             filterButton: true },
-        { name: "Department / Desk",    filterButton: true },
         { name: "Benchmark Group",      filterButton: true },
         { name: "Include In Benchmark", filterButton: true },
         { name: "Active",               filterButton: true },
