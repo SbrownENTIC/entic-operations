@@ -146,6 +146,12 @@ export async function buildCdrSheet(wb, { periodLabel, generatedOn, cdrUploadDat
     const fullBorder = {
       top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder,
     };
+
+    // Also apply full borders to the header row
+    cdrHRow.eachCell({ includeEmpty: true }, (cell) => {
+      cell.border = fullBorder;
+    });
+
     cdrStats.forEach((stat, idx) => {
       const inbound  = Number(stat.inbound_calls || 0);
       const answered = Math.min(Number(stat.inbound_answered || 0), inbound);

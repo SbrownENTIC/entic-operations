@@ -88,7 +88,7 @@ export function buildConfigBenchmarksSheet(wb, { mkFill, mkFont, thinBorder, DAR
   });
 
   // Sheet-level protection: allow only reading/sorting, no edits without password
-  ws.protect("entic-config-2024", {
+  ws.protect("ENTIC_2023!", {
     selectLockedCells:   true,
     selectUnlockedCells: true,
     sort:  true,
@@ -208,7 +208,7 @@ export function buildConfigExtensionsSheet(wb, { mkFill, mkFont, thinBorder, DAR
     });
   }
 
-  ws.protect("entic-config-2024", {
+  ws.protect("ENTIC_2023!", {
     selectLockedCells:   true,
     selectUnlockedCells: true,
     sort: true,
@@ -282,7 +282,7 @@ export function buildFormulaReferenceSheet(wb, { mkFill, mkFont, thinBorder, DAR
     rows: formulas,
   });
 
-  ws.protect("entic-config-2024", {
+  ws.protect("ENTIC_2023!", {
     selectLockedCells:   true,
     selectUnlockedCells: true,
     sort: true,
