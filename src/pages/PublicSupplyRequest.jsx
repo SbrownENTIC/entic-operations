@@ -73,18 +73,9 @@ export default function PublicSupplyRequest() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['open-public-orders'] });
-      setEditingOrder(null);
-      setAutoLoadedForLocation('');
-      setFormData({
-        location: '',
-        requester_name: 'Jalisa Henry',
-        requester_email: 'JHenry@enticmd.com',
-        requested_date: new Date().toISOString().split('T')[0],
-        items: [],
-        notes: ''
-      });
+      resetForm();
       setSubmitStatus('success');
-      setSubmitMessage('Order updated successfully!');
+      setSubmitMessage('Your request has been submitted successfully!');
       setTimeout(() => {
         setSubmitMessage('');
         setSubmitStatus('');
@@ -101,12 +92,25 @@ export default function PublicSupplyRequest() {
     }));
   }, []);
 
+  const resetForm = () => {
+    setFormData({
+      location: '',
+      requester_name: 'Jalisa Henry',
+      requester_email: 'JHenry@enticmd.com',
+      requested_date: new Date().toISOString().split('T')[0],
+      items: [],
+      notes: ''
+    });
+    setEditingOrder(null);
+    setAutoLoadedForLocation('');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (formData.items.length === 0) {
+
+    if (!formData.location) {
       setSubmitStatus('error');
-      setSubmitMessage('Please add at least one item to your request');
+      setSubmitMessage('Please select a location');
       return;
     }
 
@@ -116,9 +120,9 @@ export default function PublicSupplyRequest() {
       return;
     }
 
-    if (!formData.location) {
+    if (formData.items.length === 0) {
       setSubmitStatus('error');
-      setSubmitMessage('Please select a location');
+      setSubmitMessage('Please add at least one item to your request');
       return;
     }
 
@@ -126,39 +130,34 @@ export default function PublicSupplyRequest() {
     setSubmitMessage('');
 
     try {
-      // If there's an existing open-draft order for this location, update it + transition to pending_review
-      const existingOpen = openOrders.find(
+      // Determine the order to update: either manually selected editingOrder, or auto-detected open order for location
+      const targetOpenOrder = editingOrder || openOrders.find(
         o => o.location === formData.location && o.status === 'open'
       );
 
-      if (existingOpen) {
-        console.log('[PublicSupplyRequest] isEditing=true, orderId=', existingOpen.id, ', triggering updateMutation → pending_review');
+      if (targetOpenOrder) {
+        // UPDATE existing open order → transition to pending_review
         await updateMutation.mutateAsync({
-          id: existingOpen.id,
+          id: targetOpenOrder.id,
           data: {
-            ...formData,
+            items: formData.items,
+            notes: formData.notes,
+            location: formData.location,
             status: 'pending_review',
-            order_date: existingOpen.order_date,
-            category: existingOpen.category,
-            vendor: existingOpen.vendor,
+            order_date: targetOpenOrder.order_date,
+            category: targetOpenOrder.category,
+            vendor: targetOpenOrder.vendor,
             updated_after_submission: true
           }
         });
-        // updateMutation onSuccess handles the message + reset
+        // updateMutation onSuccess handles reset + success message
       } else {
+        // CREATE new order directly as pending_review
         const response = await base44.functions.invoke('processSupplyRequest', formData);
         setSubmitStatus('success');
         setSubmitMessage(response.data.message || 'Request submitted successfully!');
         queryClient.invalidateQueries({ queryKey: ['open-public-orders'] });
-        setFormData({
-          location: '',
-          requester_name: 'Jalisa Henry',
-          requester_email: 'JHenry@enticmd.com',
-          requested_date: new Date().toISOString().split('T')[0],
-          items: [],
-          notes: ''
-        });
-        setAutoLoadedForLocation('');
+        resetForm();
       }
     } catch (error) {
       setSubmitStatus('error');
@@ -196,46 +195,7 @@ export default function PublicSupplyRequest() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleUpdateOrder = async (e) => {
-    e.preventDefault();
-    if (!editingOrder) return;
-
-    if (editingOrder.status !== 'open') {
-      setSubmitStatus('error');
-      setSubmitMessage('This order has already been submitted and cannot be edited.');
-      cancelEdit();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-
-    const itemsChanged = JSON.stringify(editingOrder.items) !== JSON.stringify(formData.items);
-    const notesChanged = editingOrder.notes !== formData.notes;
-
-    console.log('[PublicSupplyRequest] handleUpdateOrder: isEditing=true, orderId=', editingOrder.id, ', triggering updateMutation → pending_review');
-    const dataToSubmit = {
-      ...formData,
-      status: 'pending_review',
-      order_date: editingOrder.order_date,
-      category: editingOrder.category,
-      vendor: editingOrder.vendor,
-      updated_after_submission: itemsChanged || notesChanged ? true : editingOrder.updated_after_submission
-    };
-
-    await updateMutation.mutateAsync({ id: editingOrder.id, data: dataToSubmit });
-  };
-
-  const cancelEdit = () => {
-    setEditingOrder(null);
-    setAutoLoadedForLocation('');
-    setFormData({
-      location: '',
-      requester_name: 'Jalisa Henry',
-      requester_email: 'JHenry@enticmd.com',
-      requested_date: new Date().toISOString().split('T')[0],
-      items: [],
-      notes: ''
-    });
-  };
+  const cancelEdit = () => resetForm();
 
   // When editing, populate form with order data
   useEffect(() => {
@@ -309,7 +269,7 @@ export default function PublicSupplyRequest() {
               )}
             </CardTitle>
           </CardHeader>
-          <form onSubmit={editingOrder ? handleUpdateOrder : handleSubmit}>
+          <form onSubmit={handleSubmit}>
             <CardContent className="p-6 space-y-6">
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -417,7 +377,7 @@ export default function PublicSupplyRequest() {
 
                 <div className="space-y-2">
                   <Label htmlFor="location">Location *</Label>
-                  <Select value={formData.location} onValueChange={(value) => { setAutoLoadedForLocation(''); setFormData({ ...formData, location: value, items: [], notes: '' }); setEditingOrder(null); }} required>
+                  <Select value={formData.location} onValueChange={(value) => { setAutoLoadedForLocation(''); setEditingOrder(null); setFormData(prev => ({ ...prev, location: value, items: [], notes: '' })); }} required>
                     <SelectTrigger>
                       <SelectValue placeholder="Select a location" />
                     </SelectTrigger>

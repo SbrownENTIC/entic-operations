@@ -93,15 +93,13 @@ Deno.serve(async (req) => {
     const subtotal = analyzedItems.reduce((sum, item) => sum + item.line_total, 0);
     const total = subtotal;
 
-    // Store flags for later review, but always create as 'open' draft.
-    // Status transitions to 'pending_review' when the user clicks Submit on the public form.
     const needsReview = flags.length > 0 || (notes && notes.trim().length > 0);
 
-    // Create the supply order as an open draft
+    // Create directly as pending_review — public submissions never stay as "open"
     const orderData = {
       location,
       order_date: new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' }),
-      status: 'open',
+      status: 'pending_review',
       vendor: analyzedItems[0]?.vendor || 'Staples Business',
       items: analyzedItems,
       subtotal,
@@ -113,11 +111,32 @@ Deno.serve(async (req) => {
 
     const order = await base44.asServiceRole.entities.SupplyOrder.create(orderData);
 
-    // No email sent here — email is sent when the user formally submits (open → pending_review) via updatePublicOrder
+    // Send notification email immediately on submission
+    const recipientEmail = Deno.env.get('APPROVAL_EMAIL') || 'hollyjo@enticmd.com';
+    const itemList = analyzedItems.map(item =>
+      `<li>${item.supply_name}${item.item_number ? ` (Item# ${item.item_number})` : ''} — Qty: ${item.quantity}</li>`
+    ).join('');
+    const emailBody = `
+      <h2>New Supply Request Submitted — ${location}</h2>
+      ${needsReview ? '<p><strong style="color:orange;">⚠ This order has been flagged for review.</strong></p>' : ''}
+      <h3>Items:</h3>
+      <ul>${itemList}</ul>
+      ${notes ? `<p><strong>Notes:</strong> ${notes}</p>` : ''}
+      <p>Please review this request in the ENTIC Operations Center.</p>
+    `;
+    try {
+      await base44.asServiceRole.integrations.Core.SendEmail({
+        to: recipientEmail,
+        subject: `Supply Request Submitted — ${location}`,
+        body: emailBody
+      });
+    } catch (emailError) {
+      console.error('Failed to send notification email:', emailError);
+    }
 
     return Response.json({
       success: true,
-      message: 'Your draft has been saved. Review your items and click Submit to send the request.',
+      message: 'Your request has been submitted successfully!',
       order_id: order.id,
       needs_review: needsReview,
       flags
