@@ -121,7 +121,13 @@ export default function CallLogUserConfigAdmin() {
     }
     setSaving(true);
     const { extensions_str, ...rest } = editValues;
-    const saveData = { ...rest, extensions: extsArr.length > 0 ? extsArr : null };
+    const saveData = {
+      ...rest,
+      extensions: extsArr.length > 0 ? extsArr : null,
+      daily_goal: rest.daily_goal !== "" && rest.daily_goal !== null && rest.daily_goal !== undefined
+        ? Number(rest.daily_goal)
+        : null,
+    };
     await base44.entities.CallLogUserConfig.update(id, saveData);
     queryClient.invalidateQueries({ queryKey: ["call-log-user-configs"] });
     setEditingId(null);
