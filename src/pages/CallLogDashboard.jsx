@@ -67,13 +67,26 @@ export default function CallLogDashboard() {
 
   const isLoading = inboundLoading || outboundLoading || usersLoading;
 
+  // Helper to normalize extension
+  const normalizeExtension = (ext) => {
+    if (!ext || typeof ext !== 'string') return '';
+    return String(ext).trim().replace(/[\s\-\(\)]/g, '').replace(/\D/g, '');
+  };
+
   // Build extension to user map from UserDirectory.extensions
+  // Store both normalized and original formats for flexible lookups
   const extToUser = useMemo(() => {
     const map = {};
     users.forEach(user => {
       if (user.extensions && Array.isArray(user.extensions)) {
         user.extensions.forEach(ext => {
+          // Store original
           map[ext] = user;
+          // Also store normalized version for formatted extensions
+          const normalized = normalizeExtension(ext);
+          if (normalized && normalized !== ext) {
+            map[normalized] = user;
+          }
         });
       }
     });

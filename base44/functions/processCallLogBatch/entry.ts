@@ -63,15 +63,35 @@ function parseDateTime(dateTimeStr) {
 }
 
 /**
- * Extract extension from phone number or field
+ * Normalize extension: remove spaces, dashes, parentheses, and extract just digits
  */
-function extractExtension(toField, fromField, destinationDeviceField) {
+function normalizeExtension(ext) {
+  if (!ext || typeof ext !== 'string') return '';
+  // Remove spaces, dashes, parentheses
+  let normalized = String(ext).trim().replace(/[\s\-\(\)]/g, '');
+  // Keep only digits
+  normalized = normalized.replace(/\D/g, '');
+  return normalized;
+}
+
+/**
+ * Extract extension from phone number or field (for inbound - using To field)
+ */
+function extractExtensionInbound(toField, fromField, destinationDeviceField) {
   if (destinationDeviceField && /^\d{3,4}$/.test(String(destinationDeviceField).trim())) {
     return String(destinationDeviceField).trim();
   }
   const toStr = String(toField || '').trim();
   if (/^\d{3,4}$/.test(toStr)) return toStr;
   return toStr;
+}
+
+/**
+ * Extract extension from outbound (From field)
+ */
+function extractExtensionOutbound(fromField) {
+  const ext = normalizeExtension(fromField);
+  return ext;
 }
 
 Deno.serve(async (req) => {
@@ -131,7 +151,7 @@ Deno.serve(async (req) => {
       if (job.type === 'inbound') {
         batchRows.forEach(row => {
           const { date, time } = parseDateTime(row['Date/Time'] || '');
-          const ext = extractExtension(row['To'], row['From'], row['Destination Device']);
+          const ext = extractExtensionInbound(row['To'], row['From'], row['Destination Device']);
           const duration = parseDuration(row['Duration']);
           const disposition = row['Result'] || '';
           const answered = disposition.toLowerCase().includes('answered');
@@ -158,11 +178,21 @@ Deno.serve(async (req) => {
           }
         }
       } else if (job.type === 'outbound') {
+        let mappedOutbound = 0;
+        let unmappedOutbound = 0;
+        
         batchRows.forEach(row => {
           const { date, time } = parseDateTime(row['Date/Time'] || '');
-          const ext = extractExtension(row['To'], row['From'], row['Destination Device']);
+          const ext = extractExtensionOutbound(row['From']);
           const duration = parseDuration(row['Duration']);
           const result = (row['Result'] || '').toLowerCase();
+
+          // Track mapping stats
+          if (ext && extMap[ext]) {
+            mappedOutbound++;
+          } else if (ext) {
+            unmappedOutbound++;
+          }
 
           recordsToInsert.push({
             call_date: date,

@@ -1,6 +1,14 @@
 import { startOfWeek, startOfMonth, format, parseISO } from 'date-fns';
 
 /**
+ * Normalize extension: remove spaces, dashes, parentheses
+ */
+function normalizeExtension(ext) {
+  if (!ext || typeof ext !== 'string') return '';
+  return String(ext).trim().replace(/[\s\-\(\)]/g, '').replace(/\D/g, '');
+}
+
+/**
  * Get Monday-based week start for a date
  */
 function getWeekStart(dateStr) {
@@ -140,7 +148,9 @@ export function aggregateOutboundByUser(outboundCalls, extToUser, users) {
   const userMap = {};
 
   outboundCalls.forEach(call => {
-    const user = extToUser[call.extension];
+    // Normalize extension before lookup
+    const normalizedExt = normalizeExtension(call.extension);
+    const user = extToUser[normalizedExt] || extToUser[call.extension];
     if (!user) return;
 
     const userId = user.id;
@@ -174,7 +184,8 @@ export function aggregateOutboundByWeek(outboundCalls, extToUser, benchmarkUserI
 
   outboundCalls.forEach(call => {
     const weekKey = getWeekStart(call.call_date);
-    const user = extToUser[call.extension];
+    const normalizedExt = normalizeExtension(call.extension);
+    const user = extToUser[normalizedExt] || extToUser[call.extension];
     const isBenchmark = user && benchmarkUserIds.has(user.id);
 
     if (!weekMap[weekKey]) {
@@ -212,7 +223,8 @@ export function aggregateOutboundByMonth(outboundCalls, extToUser, benchmarkUser
 
   outboundCalls.forEach(call => {
     const monthKey = getMonthStart(call.call_date);
-    const user = extToUser[call.extension];
+    const normalizedExt = normalizeExtension(call.extension);
+    const user = extToUser[normalizedExt] || extToUser[call.extension];
     const isBenchmark = user && benchmarkUserIds.has(user.id);
 
     if (!monthMap[monthKey]) {
