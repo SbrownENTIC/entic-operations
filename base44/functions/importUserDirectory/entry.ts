@@ -31,13 +31,23 @@ function parseCSV(content) {
 
 async function processRows(rows, headerMap, base44) {
   const existingUsers = await base44.asServiceRole.entities.UserDirectory.list('', 1000);
+  const existingExtensions = await base44.asServiceRole.entities.UserExtensions.list('', 1000);
+  
   const userMap = {};
   existingUsers.forEach(u => {
     userMap[u.name.toLowerCase()] = u;
   });
 
-  let created = 0;
-  let updated = 0;
+  // Create map of extensions by extension value
+  const extensionMap = {};
+  existingExtensions.forEach(ext => {
+    extensionMap[ext.extension] = ext;
+  });
+
+  let users_created = 0;
+  let users_updated = 0;
+  let extensions_created = 0;
+  let extensions_updated = 0;
   let skipped = 0;
   const errors = [];
 
@@ -63,6 +73,7 @@ async function processRows(rows, headerMap, base44) {
       const includeInBenchmarkIdx = headerMap['include_in_benchmark'];
       const answerRateIdx = headerMap['expected_answer_rate'];
       const activeIdx = headerMap['active'];
+      const extensionIdx = headerMap['extension'];
 
       const role = row[roleIdx] ? String(row[roleIdx]).trim() : '';
       const benchmarkGroup = row[benchmarkGroupIdx] ? String(row[benchmarkGroupIdx]).trim() : 'Other';
@@ -97,21 +108,58 @@ async function processRows(rows, headerMap, base44) {
         active,
       };
 
+      // Get user ID (for extension mapping)
+      let userId;
       const existingUser = userMap[name.toLowerCase()];
       if (existingUser) {
         await base44.asServiceRole.entities.UserDirectory.update(existingUser.id, userData);
-        updated++;
+        users_updated++;
+        userId = existingUser.id;
       } else {
-        await base44.asServiceRole.entities.UserDirectory.create(userData);
-        created++;
-        userMap[name.toLowerCase()] = userData;
+        const newUser = await base44.asServiceRole.entities.UserDirectory.create(userData);
+        users_created++;
+        userId = newUser.id;
+        userMap[name.toLowerCase()] = newUser;
+      }
+
+      // Handle extension mapping if extension column exists
+      if (extensionIdx !== undefined) {
+        const extension = extensionIdx !== undefined && row[extensionIdx] 
+          ? String(row[extensionIdx]).trim() 
+          : '';
+        
+        if (extension && extension.length > 0) {
+          const existingExt = extensionMap[extension];
+          
+          if (existingExt) {
+            // Extension exists, check if it's mapped to the correct user
+            if (existingExt.user_id !== userId) {
+              // Update to correct user
+              await base44.asServiceRole.entities.UserExtensions.update(existingExt.id, {
+                extension: extension,
+                user_id: userId
+              });
+              extensions_updated++;
+              extensionMap[extension] = { id: existingExt.id, extension, user_id: userId };
+            }
+            // If already mapped correctly, do nothing
+          } else {
+            // Extension does not exist, create it
+            const newExt = await base44.asServiceRole.entities.UserExtensions.create({
+              extension: extension,
+              user_id: userId
+            });
+            extensions_created++;
+            extensionMap[extension] = newExt;
+          }
+        }
       }
     } catch (error) {
       errors.push(`Row ${rowNum}: ${error.message}`);
     }
   }
 
-  return { created, updated, skipped, errors };
+  return { users_created, users_updated, extensions_created, extensions_updated, skipped, errors };
 }
 
 Deno.serve(async (req) => {
@@ -200,7 +248,6 @@ Deno.serve(async (req) => {
     });
 
     // Map flexible column names to standard names (including common misspellings)
-    // Extra columns like Extensions, Location, Daily_Goal, Notes will be ignored
     const requiredFields = {
       'name': ['name', 'Name'],
       'role': ['role', 'Role'],
@@ -210,8 +257,23 @@ Deno.serve(async (req) => {
       'active': ['active', 'Active']
     };
 
+    // Optional fields
+    const optionalFields = {
+      'extension': ['extension', 'Extension', 'ext', 'Ext', 'phone_extension', 'Phone_Extension']
+    };
+
     const headers = {};
     for (const [field, aliases] of Object.entries(requiredFields)) {
+      for (const alias of aliases) {
+        if (columnMap[alias] !== undefined) {
+          headers[field] = columnMap[alias];
+          break;
+        }
+      }
+    }
+
+    // Map optional fields
+    for (const [field, aliases] of Object.entries(optionalFields)) {
       for (const alias of aliases) {
         if (columnMap[alias] !== undefined) {
           headers[field] = columnMap[alias];
@@ -232,10 +294,12 @@ Deno.serve(async (req) => {
 
     return Response.json({
       success: true,
-      created: result.created,
-      updated: result.updated,
+      users_created: result.users_created,
+      users_updated: result.users_updated,
+      extensions_created: result.extensions_created,
+      extensions_updated: result.extensions_updated,
       skipped: result.skipped,
-      total: result.created + result.updated + result.skipped,
+      total: result.users_created + result.users_updated + result.skipped,
       errors: result.errors.length > 0 ? result.errors : null,
     });
   } catch (error) {
