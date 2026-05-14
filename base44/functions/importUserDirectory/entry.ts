@@ -29,7 +29,7 @@ function parseCSV(content) {
   return rows;
 }
 
-async function processRows(rows, headerMap, requiredColumns, base44) {
+async function processRows(rows, headerMap, base44) {
   const existingUsers = await base44.asServiceRole.entities.UserDirectory.list('', 1000);
   const userMap = {};
   existingUsers.forEach(u => {
@@ -44,7 +44,8 @@ async function processRows(rows, headerMap, requiredColumns, base44) {
   // Process each row starting from row 2 (skip header)
   for (let rowNum = 2; rowNum <= rows.length; rowNum++) {
     const row = rows[rowNum - 1];
-    const name = row[headerMap['Name']] ? String(row[headerMap['Name']]).trim() : '';
+    const nameIdx = headerMap['name'];
+    const name = row[nameIdx] ? String(row[nameIdx]).trim() : '';
 
     if (!name) {
       skipped++;
@@ -52,17 +53,23 @@ async function processRows(rows, headerMap, requiredColumns, base44) {
     }
 
     try {
-      const role = row[headerMap['Role']] ? String(row[headerMap['Role']]).trim() : '';
-      const benchmarkGroup = row[headerMap['Benchmark Group']] ? String(row[headerMap['Benchmark Group']]).trim() : 'Other';
+      const roleIdx = headerMap['role'];
+      const benchmarkGroupIdx = headerMap['benchmark_group'];
+      const includeInBenchmarkIdx = headerMap['include_in_benchmark'];
+      const answerRateIdx = headerMap['expected_answer_rate'];
+      const activeIdx = headerMap['active'];
+
+      const role = row[roleIdx] ? String(row[roleIdx]).trim() : '';
+      const benchmarkGroup = row[benchmarkGroupIdx] ? String(row[benchmarkGroupIdx]).trim() : 'Other';
       
       let includeInBenchmark = false;
-      const benchmarkValue = String(row[headerMap['Include In Benchmark']] || '').toLowerCase().trim();
+      const benchmarkValue = String(row[includeInBenchmarkIdx] || '').toLowerCase().trim();
       if (['yes', 'true', '1'].includes(benchmarkValue)) {
         includeInBenchmark = true;
       }
 
       let answerRate = 0.8;
-      const rateValue = row[headerMap['Expected Answer Rate']];
+      const rateValue = row[answerRateIdx];
       if (rateValue !== null && rateValue !== undefined && rateValue !== '') {
         const parsedRate = parseFloat(rateValue);
         if (!isNaN(parsedRate)) {
@@ -71,7 +78,7 @@ async function processRows(rows, headerMap, requiredColumns, base44) {
       }
 
       let active = true;
-      const activeValue = String(row[headerMap['Active']] || '').toLowerCase().trim();
+      const activeValue = String(row[activeIdx] || '').toLowerCase().trim();
       if (['no', 'false', '0'].includes(activeValue)) {
         active = false;
       }
@@ -117,9 +124,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    const requiredColumns = ['Name', 'Role', 'Benchmark Group', 'Include In Benchmark', 'Expected Answer Rate', 'Active'];
     let rows = [];
-    let headers = {};
 
     if (fileType === 'csv') {
       // Parse CSV
@@ -148,23 +153,48 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'File is empty or has no data rows' }, { status: 400 });
     }
 
-    // Map header row
+    // Map header row - normalize column names
     const headerRow = rows[0];
+    const columnMap = {};
     headerRow.forEach((col, index) => {
       if (col) {
-        headers[String(col).trim()] = index;
+        // Keep original and normalized versions
+        const original = String(col).trim();
+        const normalized = original.toLowerCase().replace(/[\s_-]/g, '_');
+        columnMap[original] = index;
+        columnMap[normalized] = index;
       }
     });
 
-    // Validate required columns
-    const missingColumns = requiredColumns.filter(col => headers[col] === undefined);
-    if (missingColumns.length > 0) {
+    // Map flexible column names to standard names (including common misspellings)
+    const requiredFields = {
+      'name': ['name', 'Name'],
+      'role': ['role', 'Role'],
+      'benchmark_group': ['benchmark_group', 'Benchmark_Group', 'benchark_group', 'Benchark_Group', 'benchmark group', 'Benchmark Group', 'benchark group'],
+      'include_in_benchmark': ['include_in_benchmark', 'Include_In_Benchmark', 'include in benchmark', 'Include In Benchmark', 'includeinbenchmark'],
+      'expected_answer_rate': ['expected_answer_rate', 'Expected_Answer_Rate', 'expected answer rate', 'Expected Answer Rate', 'expectedanswerrate'],
+      'active': ['active', 'Active']
+    };
+
+    const headers = {};
+    for (const [field, aliases] of Object.entries(requiredFields)) {
+      for (const alias of aliases) {
+        if (columnMap[alias] !== undefined) {
+          headers[field] = columnMap[alias];
+          break;
+        }
+      }
+    }
+
+    // Validate required fields
+    const missingFields = Object.keys(requiredFields).filter(field => headers[field] === undefined);
+    if (missingFields.length > 0) {
       return Response.json({
-        error: `Missing required columns: ${missingColumns.join(', ')}`
+        error: `Missing required columns: ${missingFields.join(', ')}. Expected: Name, Role, Benchmark_Group, Include_In_Benchmark, Expected Answer Rate, Active`
       }, { status: 400 });
     }
 
-    const result = await processRows(rows, headers, requiredColumns, base44);
+    const result = await processRows(rows, headers, base44);
 
     return Response.json({
       success: true,
@@ -175,6 +205,7 @@ Deno.serve(async (req) => {
       errors: result.errors.length > 0 ? result.errors : null,
     });
   } catch (error) {
+    console.error('Import error:', error);
     return Response.json({
       error: error.message || 'Import failed'
     }, { status: 500 });
