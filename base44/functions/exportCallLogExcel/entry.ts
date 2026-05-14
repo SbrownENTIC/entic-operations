@@ -10,78 +10,71 @@ const tabColors = {
   rawData: 'FF5B9BD5'
 };
 
-function addTitleRow(sheet, title) {
-  const row = sheet.addRow([title]);
-  row.font = { bold: true, size: 14 };
-  row.alignment = { horizontal: 'left', vertical: 'center' };
-  sheet.mergeCells(`A${sheet.lastRow.number}:K${sheet.lastRow.number}`);
-  return sheet.lastRow.number + 1;
-}
-
-function addSubtitleRow(sheet, subtitle) {
-  const row = sheet.addRow([subtitle]);
-  row.font = { size: 11 };
-  sheet.mergeCells(`A${sheet.lastRow.number}:K${sheet.lastRow.number}`);
-  return sheet.lastRow.number + 1;
-}
-
-function formatAsPercent(sheet, rowNum, colLetter, value) {
-  const cell = sheet.getCell(`${colLetter}${rowNum}`);
-  cell.value = value;
-  cell.numFmt = '0.00%';
-}
-
 function applyHeaderFormatting(sheet, headerRowNum, columnCount) {
-  const headerRow = sheet.getRow(headerRowNum);
-  headerRow.font = { bold: true, size: 11 };
-  headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9D9D9' } };
-  headerRow.alignment = { horizontal: 'center', vertical: 'center', wrapText: true };
-  for (let i = 1; i <= columnCount; i++) {
-    headerRow.getCell(i).border = {
-      top: { style: 'thin' },
-      left: { style: 'thin' },
-      bottom: { style: 'thin' },
-      right: { style: 'thin' }
-    };
+  try {
+    const headerRow = sheet.getRow(headerRowNum);
+    if (!headerRow) return;
+    
+    headerRow.font = { bold: true, size: 11 };
+    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9D9D9' } };
+    headerRow.alignment = { horizontal: 'center', vertical: 'center', wrapText: true };
+    
+    for (let i = 1; i <= columnCount; i++) {
+      const cell = headerRow.getCell(i);
+      if (cell) {
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+      }
+    }
+  } catch (e) {
+    console.error(`Header formatting error on row ${headerRowNum}:`, e.message);
   }
 }
 
 function applyTotalsFormatting(sheet, rowNum, columnCount) {
-  const totalsRow = sheet.getRow(rowNum);
-  totalsRow.font = { bold: true };
-  totalsRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFBFBFBF' } };
-  for (let i = 1; i <= columnCount; i++) {
-    totalsRow.getCell(i).border = {
-      top: { style: 'medium' },
-      bottom: { style: 'medium' }
-    };
+  try {
+    const totalsRow = sheet.getRow(rowNum);
+    if (!totalsRow) return;
+    
+    totalsRow.font = { bold: true };
+    totalsRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFBFBFBF' } };
+    
+    for (let i = 1; i <= columnCount; i++) {
+      const cell = totalsRow.getCell(i);
+      if (cell) {
+        cell.border = {
+          top: { style: 'medium' },
+          bottom: { style: 'medium' }
+        };
+      }
+    }
+  } catch (e) {
+    console.error(`Totals formatting error on row ${rowNum}:`, e.message);
   }
 }
 
-function applyConditionalFormatting(sheet, dataRange) {
-  sheet.conditionalFormattings.add({
-    ref: dataRange,
-    rules: [
-      {
-        type: 'expression',
-        formulae: ['$G2>=0.7'],
-        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } },
-        font: { color: { argb: 'FF006100' } }
-      },
-      {
-        type: 'expression',
-        formulae: ['AND($G2>=0.5,$G2<0.7)'],
-        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFEB9C' } },
-        font: { color: { argb: 'FF9C6500' } }
-      },
-      {
-        type: 'expression',
-        formulae: ['$G2<0.5'],
-        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } },
-        font: { color: { argb: 'FF9C0006' } }
+function formatAsPercent(sheet, rowNum, colLetter, value) {
+  try {
+    const cell = sheet.getCell(`${colLetter}${rowNum}`);
+    if (!cell) {
+      const row = sheet.getRow(rowNum);
+      if (row) {
+        const colNum = colLetter.charCodeAt(0) - 64;
+        const newCell = row.getCell(colNum);
+        newCell.value = value;
+        newCell.numFmt = '0.00%';
       }
-    ]
-  });
+      return;
+    }
+    cell.value = value;
+    cell.numFmt = '0.00%';
+  } catch (e) {
+    console.error(`Percent format error at ${colLetter}${rowNum}:`, e.message);
+  }
 }
 
 Deno.serve(async (req) => {
@@ -93,7 +86,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { monthlyData, weeklyData, monthlyOutboundData, weeklyOutboundData, frontendData, individualData, userDirectory, rawInbound, rawOutbound } = body;
+    const { monthlyData = [], weeklyData = [], monthlyOutboundData = [], weeklyOutboundData = [], frontendData = [], individualData = [], userDirectory = [], rawInbound = [], rawOutbound = [] } = body;
 
     const workbook = new ExcelJS.Workbook();
     const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
@@ -103,64 +96,78 @@ Deno.serve(async (req) => {
     monthlySheet.tabColor = tabColors.monthly;
     monthlySheet.pageSetup = { paperSize: 1, orientation: 'landscape' };
 
-    let rowNum = addTitleRow(monthlySheet, 'Call Log Performance Report – May 2026');
-    addSubtitleRow(monthlySheet, `Generated on: ${today}`);
+    // Add title and subtitle
+    let titleRow = monthlySheet.addRow(['Call Log Performance Report – May 2026']);
+    titleRow.font = { bold: true, size: 14 };
+    monthlySheet.mergeCells('A1:K1');
+    
+    let subtitleRow = monthlySheet.addRow([`Generated on: ${today}`]);
+    subtitleRow.font = { size: 11 };
+    monthlySheet.mergeCells('A2:K2');
+    
     monthlySheet.addRow([]); // Spacer
 
     // KPI Summary Section
-    addTitleRow(monthlySheet, 'Monthly KPI Summary');
-    
+    let kpiTitleRow = monthlySheet.addRow(['Monthly KPI Summary']);
+    kpiTitleRow.font = { bold: true, size: 12 };
+    monthlySheet.mergeCells('A4:K4');
+
     const kpiLabels = ['Total Calls', 'Inbound', 'Outbound', 'Answered', 'Missed', 'Inbound Answer Rate', 'Outbound Contact Rate', 'Overall Contact Rate'];
-    const kpiCells = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+    const kpiStartRow = monthlySheet.lastRow.number + 1;
     
     kpiLabels.forEach((label, idx) => {
-      const r = monthlySheet.addRow([label, '']);
-      r.getCell(1).font = { bold: true };
-      monthlySheet.getCell(`${kpiCells[idx]}${r.number}`).alignment = { horizontal: 'right' };
+      const r = monthlySheet.addRow([label, null]);
+      const labelCell = r.getCell(1);
+      labelCell.font = { bold: true };
+      const valueCell = r.getCell(2);
+      if (valueCell) valueCell.alignment = { horizontal: 'right' };
     });
 
     // Populate KPI values from monthlyData
     if (monthlyData && monthlyData.length > 0) {
       const latestMonth = monthlyData[monthlyData.length - 1];
-      const kpiRow = monthlySheet.getRow(monthlySheet.lastRow.number - 7);
-      kpiRow.getCell(2).value = latestMonth.total_inbound + latestMonth.total_outbound;
-      monthlySheet.getRow(monthlySheet.lastRow.number - 6).getCell(2).value = latestMonth.total_inbound;
-      monthlySheet.getRow(monthlySheet.lastRow.number - 5).getCell(2).value = latestMonth.total_outbound;
-      monthlySheet.getRow(monthlySheet.lastRow.number - 4).getCell(2).value = latestMonth.total_answered;
-      monthlySheet.getRow(monthlySheet.lastRow.number - 3).getCell(2).value = latestMonth.total_missed;
-      formatAsPercent(monthlySheet, monthlySheet.lastRow.number - 2, 'B', latestMonth.answer_rate);
+      const latestOutbound = monthlyOutboundData?.find(o => o.month === latestMonth.month);
       
-      const connectedOutbound = monthlyOutboundData?.find(o => o.month === latestMonth.month)?.connected_outbound || 0;
+      let kpiRow = kpiStartRow;
+      monthlySheet.getCell(`B${kpiRow}`).value = (latestMonth.total_inbound || 0) + (latestMonth.total_outbound || 0);
+      
+      kpiRow++;
+      monthlySheet.getCell(`B${kpiRow}`).value = latestMonth.total_inbound || 0;
+      
+      kpiRow++;
+      monthlySheet.getCell(`B${kpiRow}`).value = latestMonth.total_outbound || 0;
+      
+      kpiRow++;
+      monthlySheet.getCell(`B${kpiRow}`).value = latestMonth.total_answered || 0;
+      
+      kpiRow++;
+      monthlySheet.getCell(`B${kpiRow}`).value = latestMonth.total_missed || 0;
+      
+      kpiRow++;
+      formatAsPercent(monthlySheet, kpiRow, 'B', latestMonth.answer_rate || 0);
+      
+      kpiRow++;
+      const connectedOutbound = latestOutbound?.connected_outbound || 0;
       const outboundRate = (latestMonth.total_outbound === 0 ? 0 : Math.min(connectedOutbound / latestMonth.total_outbound, 1.0));
-      formatAsPercent(monthlySheet, monthlySheet.lastRow.number - 1, 'B', outboundRate);
+      formatAsPercent(monthlySheet, kpiRow, 'B', outboundRate);
       
-      const totalAnswered = latestMonth.total_answered + connectedOutbound;
-      const totalCalls = latestMonth.total_inbound + latestMonth.total_outbound;
+      kpiRow++;
+      const totalAnswered = (latestMonth.total_answered || 0) + connectedOutbound;
+      const totalCalls = (latestMonth.total_inbound || 0) + (latestMonth.total_outbound || 0);
       const overallRate = (totalCalls === 0 ? 0 : Math.min(totalAnswered / totalCalls, 1.0));
-      formatAsPercent(monthlySheet, monthlySheet.lastRow.number, 'B', overallRate);
+      formatAsPercent(monthlySheet, kpiRow, 'B', overallRate);
     }
 
     monthlySheet.addRow([]); // Spacer
     monthlySheet.addRow([]); // Spacer
 
     // Weekly Roll-Up Table
-    rowNum = monthlySheet.lastRow.number + 1;
-    addTitleRow(monthlySheet, 'Weekly Roll-Up');
+    const weeklyTableTitleRow = monthlySheet.addRow(['Weekly Roll-Up']);
+    weeklyTableTitleRow.font = { bold: true, size: 12 };
+    monthlySheet.mergeCells(`A${weeklyTableTitleRow.number}:I${weeklyTableTitleRow.number}`);
 
-    const headerRowNum = monthlySheet.lastRow.number + 1;
-    monthlySheet.columns = [
-      { key: 'week', width: 15 },
-      { key: 'inbound', width: 12 },
-      { key: 'answered', width: 12 },
-      { key: 'missed', width: 12 },
-      { key: 'outbound', width: 12 },
-      { key: 'outbound_connected', width: 18 },
-      { key: 'inbound_rate', width: 15 },
-      { key: 'outbound_rate', width: 15 },
-      { key: 'overall_rate', width: 15 }
-    ];
-
-    const headerRow = monthlySheet.addRow([
+    const weeklyHeaderRowNum = monthlySheet.lastRow.number + 1;
+    const weeklyHeaderRow = monthlySheet.addRow([
       'Week',
       'Inbound',
       'Answered',
@@ -172,21 +179,24 @@ Deno.serve(async (req) => {
       'Overall Contact Rate'
     ]);
 
-    applyHeaderFormatting(monthlySheet, headerRow.number, 9);
-    monthlySheet.freezePane = `A${headerRow.number + 1}`;
+    applyHeaderFormatting(monthlySheet, weeklyHeaderRowNum, 9);
+    monthlySheet.freezePane = `A${weeklyHeaderRowNum + 1}`;
 
-    if (weeklyData && Array.isArray(weeklyData)) {
-      weeklyData.forEach((row, idx) => {
-        const r = monthlySheet.addRow([
+    if (weeklyData && weeklyData.length > 0) {
+      weeklyData.forEach((row) => {
+        const dataRow = monthlySheet.addRow([
           row.week_start || '',
           row.total_inbound || 0,
           row.total_answered || 0,
           row.total_missed || 0,
           row.total_outbound || 0,
-          row.connected_outbound || 0
+          row.connected_outbound || 0,
+          0,
+          0,
+          0
         ]);
-        
-        const rowIdx = r.number;
+
+        const rowIdx = dataRow.number;
         formatAsPercent(monthlySheet, rowIdx, 'G', row.answer_rate || 0);
         
         const outboundOutbound = weeklyOutboundData?.find(o => o.week_start === row.week_start);
@@ -194,23 +204,29 @@ Deno.serve(async (req) => {
         const outboundRate = (row.total_outbound === 0 ? 0 : Math.min(outboundConnected / row.total_outbound, 1.0));
         formatAsPercent(monthlySheet, rowIdx, 'H', outboundRate);
         
-        const totalAnswered = row.total_answered + outboundConnected;
-        const totalCalls = row.total_inbound + row.total_outbound;
+        const totalAnswered = (row.total_answered || 0) + outboundConnected;
+        const totalCalls = (row.total_inbound || 0) + (row.total_outbound || 0);
         const overallRate = (totalCalls === 0 ? 0 : Math.min(totalAnswered / totalCalls, 1.0));
         formatAsPercent(monthlySheet, rowIdx, 'I', overallRate);
       });
     }
 
-    // SHEET 2: Weekly Summary (simple table)
+    // SHEET 2: Weekly Summary
     const weeklySheet = workbook.addWorksheet('Weekly Summary');
     weeklySheet.tabColor = tabColors.weekly;
     weeklySheet.pageSetup = { paperSize: 1, orientation: 'landscape' };
 
-    addTitleRow(weeklySheet, 'Weekly Summary – May 2026');
-    addSubtitleRow(weeklySheet, `Generated on: ${today}`);
+    let wtitleRow = weeklySheet.addRow(['Weekly Summary – May 2026']);
+    wtitleRow.font = { bold: true, size: 14 };
+    weeklySheet.mergeCells('A1:I1');
+    
+    let wsubtitleRow = weeklySheet.addRow([`Generated on: ${today}`]);
+    wsubtitleRow.font = { size: 11 };
+    weeklySheet.mergeCells('A2:I2');
     weeklySheet.addRow([]);
 
-    const weeklyHeaderRow = weeklySheet.addRow([
+    const weeklyDataHeaderRowNum = weeklySheet.lastRow.number + 1;
+    const weeklyDataHeaderRow = weeklySheet.addRow([
       'Week',
       'Inbound',
       'Answered',
@@ -222,10 +238,10 @@ Deno.serve(async (req) => {
       'Overall Contact Rate'
     ]);
 
-    applyHeaderFormatting(weeklySheet, weeklyHeaderRow.number, 9);
-    weeklySheet.freezePane = `A${weeklyHeaderRow.number + 1}`;
+    applyHeaderFormatting(weeklySheet, weeklyDataHeaderRowNum, 9);
+    weeklySheet.freezePane = `A${weeklyDataHeaderRowNum + 1}`;
 
-    if (weeklyData && Array.isArray(weeklyData)) {
+    if (weeklyData && weeklyData.length > 0) {
       weeklyData.forEach((row) => {
         const r = weeklySheet.addRow([
           row.week_start || '',
@@ -247,8 +263,8 @@ Deno.serve(async (req) => {
         const outboundRate = (row.total_outbound === 0 ? 0 : Math.min(outboundConnected / row.total_outbound, 1.0));
         formatAsPercent(weeklySheet, rowIdx, 'H', outboundRate);
         
-        const totalAnswered = row.total_answered + outboundConnected;
-        const totalCalls = row.total_inbound + row.total_outbound;
+        const totalAnswered = (row.total_answered || 0) + outboundConnected;
+        const totalCalls = (row.total_inbound || 0) + (row.total_outbound || 0);
         const overallRate = (totalCalls === 0 ? 0 : Math.min(totalAnswered / totalCalls, 1.0));
         formatAsPercent(weeklySheet, rowIdx, 'I', overallRate);
       });
@@ -259,10 +275,16 @@ Deno.serve(async (req) => {
     individualSheet.tabColor = tabColors.individual;
     individualSheet.pageSetup = { paperSize: 1, orientation: 'landscape' };
 
-    addTitleRow(individualSheet, 'Individual Performance – May 2026');
-    addSubtitleRow(individualSheet, `Generated on: ${today}`);
+    let ititleRow = individualSheet.addRow(['Individual Performance – May 2026']);
+    ititleRow.font = { bold: true, size: 14 };
+    individualSheet.mergeCells('A1:J1');
+    
+    let isubtitleRow = individualSheet.addRow([`Generated on: ${today}`]);
+    isubtitleRow.font = { size: 11 };
+    individualSheet.mergeCells('A2:J2');
     individualSheet.addRow([]);
 
+    const indivHeaderRowNum = individualSheet.lastRow.number + 1;
     const indivHeaderRow = individualSheet.addRow([
       'User',
       'Inbound',
@@ -276,12 +298,10 @@ Deno.serve(async (req) => {
       'Avg Duration (Minutes)'
     ]);
 
-    applyHeaderFormatting(individualSheet, indivHeaderRow.number, 10);
-    individualSheet.freezePane = `A${indivHeaderRow.number + 1}`;
-    individualSheet.autoFilter.from = `A${indivHeaderRow.number}`;
-    individualSheet.autoFilter.to = `J${indivHeaderRow.number}`;
+    applyHeaderFormatting(individualSheet, indivHeaderRowNum, 10);
+    individualSheet.freezePane = `A${indivHeaderRowNum + 1}`;
 
-    if (individualData && Array.isArray(individualData)) {
+    if (individualData && individualData.length > 0) {
       individualData.forEach((row) => {
         const r = individualSheet.addRow([
           row.user_name || '',
@@ -300,44 +320,48 @@ Deno.serve(async (req) => {
         formatAsPercent(individualSheet, rowIdx, 'E', row.answer_rate);
         formatAsPercent(individualSheet, rowIdx, 'H', row.outbound_contact_rate);
         formatAsPercent(individualSheet, rowIdx, 'I', row.overall_contact_rate);
-        individualSheet.getCell(`J${rowIdx}`).numFmt = '0.00';
+        const durationCell = individualSheet.getCell(`J${rowIdx}`);
+        if (durationCell) durationCell.numFmt = '0.00';
       });
 
       // Totals row
-      const totalsRowNum = individualSheet.lastRow.number + 1;
-      const totalsInbound = individualData.reduce((sum, r) => sum + (r.total_inbound || 0), 0);
-      const totalsAnswered = individualData.reduce((sum, r) => sum + (r.total_answered || 0), 0);
-      const totalsMissed = individualData.reduce((sum, r) => sum + (r.total_missed || 0), 0);
-      const totalsOutbound = individualData.reduce((sum, r) => sum + (r.total_outbound || 0), 0);
-      const totalsOutboundConnected = individualData.reduce((sum, r) => sum + (r.outbound_connected || 0), 0);
-      const totalDurationSeconds = individualData.reduce((sum, r) => sum + ((r.avg_duration_seconds || 0) * (r.total_inbound || 0)), 0);
-      const totalInboundForDuration = individualData.reduce((sum, r) => sum + (r.total_inbound || 0), 0);
+      if (individualData.length > 0) {
+        const totalsRowNum = individualSheet.lastRow.number + 1;
+        const totalsInbound = individualData.reduce((sum, r) => sum + (r.total_inbound || 0), 0);
+        const totalsAnswered = individualData.reduce((sum, r) => sum + (r.total_answered || 0), 0);
+        const totalsMissed = individualData.reduce((sum, r) => sum + (r.total_missed || 0), 0);
+        const totalsOutbound = individualData.reduce((sum, r) => sum + (r.total_outbound || 0), 0);
+        const totalsOutboundConnected = individualData.reduce((sum, r) => sum + (r.outbound_connected || 0), 0);
+        const totalDurationSeconds = individualData.reduce((sum, r) => sum + ((r.avg_duration_seconds || 0) * (r.total_inbound || 0)), 0);
+        const totalInboundForDuration = individualData.reduce((sum, r) => sum + (r.total_inbound || 0), 0);
 
-      const inboundAnswerRate = totalsInbound > 0 ? totalsAnswered / totalsInbound : 0;
-      const outboundRate = totalsOutbound > 0 ? totalsOutboundConnected / totalsOutbound : 0;
-      const totalAnswered = totalsAnswered + totalsOutboundConnected;
-      const totalCalls = totalsInbound + totalsOutbound;
-      const overallRate = totalCalls > 0 ? totalAnswered / totalCalls : 0;
-      const avgDuration = totalInboundForDuration > 0 ? totalDurationSeconds / totalInboundForDuration / 60 : 0;
+        const inboundAnswerRate = totalsInbound > 0 ? totalsAnswered / totalsInbound : 0;
+        const outboundRate = totalsOutbound > 0 ? totalsOutboundConnected / totalsOutbound : 0;
+        const totalAnswered = totalsAnswered + totalsOutboundConnected;
+        const totalCalls = totalsInbound + totalsOutbound;
+        const overallRate = totalCalls > 0 ? totalAnswered / totalCalls : 0;
+        const avgDuration = totalInboundForDuration > 0 ? totalDurationSeconds / totalInboundForDuration / 60 : 0;
 
-      const totalsRow = individualSheet.addRow([
-        'TOTAL',
-        totalsInbound,
-        totalsAnswered,
-        totalsMissed,
-        inboundAnswerRate,
-        totalsOutbound,
-        totalsOutboundConnected,
-        outboundRate,
-        overallRate,
-        avgDuration.toFixed(2)
-      ]);
+        const totalsRow = individualSheet.addRow([
+          'TOTAL',
+          totalsInbound,
+          totalsAnswered,
+          totalsMissed,
+          inboundAnswerRate,
+          totalsOutbound,
+          totalsOutboundConnected,
+          outboundRate,
+          overallRate,
+          avgDuration.toFixed(2)
+        ]);
 
-      applyTotalsFormatting(individualSheet, totalsRowNum, 10);
-      formatAsPercent(individualSheet, totalsRowNum, 'E', inboundAnswerRate);
-      formatAsPercent(individualSheet, totalsRowNum, 'H', outboundRate);
-      formatAsPercent(individualSheet, totalsRowNum, 'I', overallRate);
-      individualSheet.getCell(`J${totalsRowNum}`).numFmt = '0.00';
+        applyTotalsFormatting(individualSheet, totalsRowNum, 10);
+        formatAsPercent(individualSheet, totalsRowNum, 'E', inboundAnswerRate);
+        formatAsPercent(individualSheet, totalsRowNum, 'H', outboundRate);
+        formatAsPercent(individualSheet, totalsRowNum, 'I', overallRate);
+        const durationCell = individualSheet.getCell(`J${totalsRowNum}`);
+        if (durationCell) durationCell.numFmt = '0.00';
+      }
     }
 
     // SHEET 4: Front-End Performance
@@ -345,10 +369,16 @@ Deno.serve(async (req) => {
     frontendSheet.tabColor = tabColors.frontend;
     frontendSheet.pageSetup = { paperSize: 1, orientation: 'landscape' };
 
-    addTitleRow(frontendSheet, 'Front-End Performance (Front Desk Benchmark) – May 2026');
-    addSubtitleRow(frontendSheet, `Generated on: ${today}`);
+    let ftitleRow = frontendSheet.addRow(['Front-End Performance (Front Desk Benchmark) – May 2026']);
+    ftitleRow.font = { bold: true, size: 14 };
+    frontendSheet.mergeCells('A1:J1');
+    
+    let fsubtitleRow = frontendSheet.addRow([`Generated on: ${today}`]);
+    fsubtitleRow.font = { size: 11 };
+    frontendSheet.mergeCells('A2:J2');
     frontendSheet.addRow([]);
 
+    const frontHeaderRowNum = frontendSheet.lastRow.number + 1;
     const frontHeaderRow = frontendSheet.addRow([
       'User',
       'Inbound',
@@ -362,12 +392,10 @@ Deno.serve(async (req) => {
       'Avg Duration (Minutes)'
     ]);
 
-    applyHeaderFormatting(frontendSheet, frontHeaderRow.number, 10);
-    frontendSheet.freezePane = `A${frontHeaderRow.number + 1}`;
-    frontendSheet.autoFilter.from = `A${frontHeaderRow.number}`;
-    frontendSheet.autoFilter.to = `J${frontHeaderRow.number}`;
+    applyHeaderFormatting(frontendSheet, frontHeaderRowNum, 10);
+    frontendSheet.freezePane = `A${frontHeaderRowNum + 1}`;
 
-    if (frontendData && Array.isArray(frontendData)) {
+    if (frontendData && frontendData.length > 0) {
       frontendData.forEach((row) => {
         const r = frontendSheet.addRow([
           row.user_name || '',
@@ -386,58 +414,55 @@ Deno.serve(async (req) => {
         formatAsPercent(frontendSheet, rowIdx, 'E', row.answer_rate);
         formatAsPercent(frontendSheet, rowIdx, 'H', row.outbound_contact_rate);
         formatAsPercent(frontendSheet, rowIdx, 'I', row.overall_contact_rate);
-        frontendSheet.getCell(`J${rowIdx}`).numFmt = '0.00';
+        const durationCell = frontendSheet.getCell(`J${rowIdx}`);
+        if (durationCell) durationCell.numFmt = '0.00';
       });
 
       // Totals row
-      const totalsRowNum = frontendSheet.lastRow.number + 1;
-      const totalsInbound = frontendData.reduce((sum, r) => sum + (r.total_inbound || 0), 0);
-      const totalsAnswered = frontendData.reduce((sum, r) => sum + (r.total_answered || 0), 0);
-      const totalsMissed = frontendData.reduce((sum, r) => sum + (r.total_missed || 0), 0);
-      const totalsOutbound = frontendData.reduce((sum, r) => sum + (r.total_outbound || 0), 0);
-      const totalsOutboundConnected = frontendData.reduce((sum, r) => sum + (r.outbound_connected || 0), 0);
-      const totalDurationSeconds = frontendData.reduce((sum, r) => sum + ((r.avg_duration_seconds || 0) * (r.total_inbound || 0)), 0);
-      const totalInboundForDuration = frontendData.reduce((sum, r) => sum + (r.total_inbound || 0), 0);
+      if (frontendData.length > 0) {
+        const totalsRowNum = frontendSheet.lastRow.number + 1;
+        const totalsInbound = frontendData.reduce((sum, r) => sum + (r.total_inbound || 0), 0);
+        const totalsAnswered = frontendData.reduce((sum, r) => sum + (r.total_answered || 0), 0);
+        const totalsMissed = frontendData.reduce((sum, r) => sum + (r.total_missed || 0), 0);
+        const totalsOutbound = frontendData.reduce((sum, r) => sum + (r.total_outbound || 0), 0);
+        const totalsOutboundConnected = frontendData.reduce((sum, r) => sum + (r.outbound_connected || 0), 0);
+        const totalDurationSeconds = frontendData.reduce((sum, r) => sum + ((r.avg_duration_seconds || 0) * (r.total_inbound || 0)), 0);
+        const totalInboundForDuration = frontendData.reduce((sum, r) => sum + (r.total_inbound || 0), 0);
 
-      const inboundAnswerRate = totalsInbound > 0 ? totalsAnswered / totalsInbound : 0;
-      const outboundRate = totalsOutbound > 0 ? totalsOutboundConnected / totalsOutbound : 0;
-      const totalAnswered = totalsAnswered + totalsOutboundConnected;
-      const totalCalls = totalsInbound + totalsOutbound;
-      const overallRate = totalCalls > 0 ? totalAnswered / totalCalls : 0;
-      const avgDuration = totalInboundForDuration > 0 ? totalDurationSeconds / totalInboundForDuration / 60 : 0;
+        const inboundAnswerRate = totalsInbound > 0 ? totalsAnswered / totalsInbound : 0;
+        const outboundRate = totalsOutbound > 0 ? totalsOutboundConnected / totalsOutbound : 0;
+        const totalAnswered = totalsAnswered + totalsOutboundConnected;
+        const totalCalls = totalsInbound + totalsOutbound;
+        const overallRate = totalCalls > 0 ? totalAnswered / totalCalls : 0;
+        const avgDuration = totalInboundForDuration > 0 ? totalDurationSeconds / totalInboundForDuration / 60 : 0;
 
-      const totalsRow = frontendSheet.addRow([
-        'TOTAL',
-        totalsInbound,
-        totalsAnswered,
-        totalsMissed,
-        inboundAnswerRate,
-        totalsOutbound,
-        totalsOutboundConnected,
-        outboundRate,
-        overallRate,
-        avgDuration.toFixed(2)
-      ]);
+        const totalsRow = frontendSheet.addRow([
+          'TOTAL',
+          totalsInbound,
+          totalsAnswered,
+          totalsMissed,
+          inboundAnswerRate,
+          totalsOutbound,
+          totalsOutboundConnected,
+          outboundRate,
+          overallRate,
+          avgDuration.toFixed(2)
+        ]);
 
-      applyTotalsFormatting(frontendSheet, totalsRowNum, 10);
-      formatAsPercent(frontendSheet, totalsRowNum, 'E', inboundAnswerRate);
-      formatAsPercent(frontendSheet, totalsRowNum, 'H', outboundRate);
-      formatAsPercent(frontendSheet, totalsRowNum, 'I', overallRate);
-      frontendSheet.getCell(`J${totalsRowNum}`).numFmt = '0.00';
+        applyTotalsFormatting(frontendSheet, totalsRowNum, 10);
+        formatAsPercent(frontendSheet, totalsRowNum, 'E', inboundAnswerRate);
+        formatAsPercent(frontendSheet, totalsRowNum, 'H', outboundRate);
+        formatAsPercent(frontendSheet, totalsRowNum, 'I', overallRate);
+        const durationCell = frontendSheet.getCell(`J${totalsRowNum}`);
+        if (durationCell) durationCell.numFmt = '0.00';
+      }
     }
 
     // SHEET 5: User Directory
     const dirSheet = workbook.addWorksheet('User Directory');
     dirSheet.tabColor = tabColors.directory;
-    dirSheet.columns = [
-      { key: 'name', width: 25 },
-      { key: 'extensions', width: 12 },
-      { key: 'location', width: 15 },
-      { key: 'benchmark_group', width: 18 },
-      { key: 'include_in_benchmark', width: 18 },
-      { key: 'active', width: 10 }
-    ];
 
+    const dirHeaderRowNum = dirSheet.lastRow?.number ? dirSheet.lastRow.number + 1 : 1;
     const dirHeaderRow = dirSheet.addRow([
       'User Name',
       'Extension(s)',
@@ -447,12 +472,10 @@ Deno.serve(async (req) => {
       'Active'
     ]);
 
-    applyHeaderFormatting(dirSheet, dirHeaderRow.number, 6);
-    dirSheet.freezePane = `A${dirHeaderRow.number + 1}`;
-    dirSheet.autoFilter.from = `A${dirHeaderRow.number}`;
-    dirSheet.autoFilter.to = `F${dirHeaderRow.number}`;
+    applyHeaderFormatting(dirSheet, dirHeaderRowNum, 6);
+    dirSheet.freezePane = `A${dirHeaderRowNum + 1}`;
 
-    if (userDirectory && Array.isArray(userDirectory)) {
+    if (userDirectory && userDirectory.length > 0) {
       userDirectory.forEach((row) => {
         dirSheet.addRow([
           row.name || '',
@@ -468,18 +491,8 @@ Deno.serve(async (req) => {
     // SHEET 6: Raw Imported Data
     const rawSheet = workbook.addWorksheet('Raw Imported Data');
     rawSheet.tabColor = tabColors.rawData;
-    rawSheet.columns = [
-      { key: 'call_date', width: 12 },
-      { key: 'call_time', width: 10 },
-      { key: 'extension', width: 12 },
-      { key: 'caller_or_dialed', width: 15 },
-      { key: 'duration_seconds', width: 15 },
-      { key: 'result_disposition', width: 15 },
-      { key: 'direction', width: 10 },
-      { key: 'answered', width: 10 },
-      { key: 'location', width: 15 }
-    ];
 
+    const rawHeaderRowNum = rawSheet.lastRow?.number ? rawSheet.lastRow.number + 1 : 1;
     const rawHeaderRow = rawSheet.addRow([
       'Call Date',
       'Call Time',
@@ -492,12 +505,10 @@ Deno.serve(async (req) => {
       'Location'
     ]);
 
-    applyHeaderFormatting(rawSheet, rawHeaderRow.number, 9);
-    rawSheet.freezePane = `A${rawHeaderRow.number + 1}`;
-    rawSheet.autoFilter.from = `A${rawHeaderRow.number}`;
-    rawSheet.autoFilter.to = `I${rawHeaderRow.number}`;
+    applyHeaderFormatting(rawSheet, rawHeaderRowNum, 9);
+    rawSheet.freezePane = `A${rawHeaderRowNum + 1}`;
 
-    if (rawInbound && Array.isArray(rawInbound)) {
+    if (rawInbound && rawInbound.length > 0) {
       rawInbound.forEach((row) => {
         rawSheet.addRow([
           row.call_date || '',
@@ -513,7 +524,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (rawOutbound && Array.isArray(rawOutbound)) {
+    if (rawOutbound && rawOutbound.length > 0) {
       rawOutbound.forEach((row) => {
         rawSheet.addRow([
           row.call_date || '',
@@ -529,6 +540,13 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Auto-fit columns for all sheets
+    [monthlySheet, weeklySheet, individualSheet, frontendSheet, dirSheet, rawSheet].forEach(sheet => {
+      sheet.columns.forEach(column => {
+        column.width = column.width || 12;
+      });
+    });
+
     // Generate buffer
     const buffer = await workbook.xlsx.writeBuffer();
 
@@ -540,6 +558,7 @@ Deno.serve(async (req) => {
       }
     });
   } catch (error) {
+    console.error('Excel export error:', error.message, error.stack);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
