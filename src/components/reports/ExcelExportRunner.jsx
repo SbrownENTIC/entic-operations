@@ -503,6 +503,9 @@ export async function exportPeriodExcel({
       ],
       rows: deskTableRows,
     });
+    // Re-apply percentage format to SUBTOTAL totals cell after addTable
+    const deskTotalsRowNum = deskTableStartRow + deskTableRows.length + 1;
+    wsDesk.getCell(deskTotalsRowNum, 6).numFmt = "0.00%";
   }
   autoFitColumns(wsDesk);
 
@@ -616,6 +619,9 @@ export async function exportPeriodExcel({
       ],
       rows: indivTableRows,
     });
+    // Re-apply percentage format to SUBTOTAL totals cell after addTable
+    const indivTotalsRowNum = indivTableStartRow + indivTableRows.length + 1;
+    wsIndiv.getCell(indivTotalsRowNum, 6).numFmt = "0.00%";
   }
   autoFitColumns(wsIndiv);
 

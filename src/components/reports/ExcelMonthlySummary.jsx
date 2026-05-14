@@ -163,7 +163,7 @@ export function buildMonthlySummarySheet(wb, {
       rows: weekTableDataRows,
     });
 
-    // Style the totals row
+    // Style the totals row — applied after addTable to avoid ExcelJS overwriting formats
     const totalsRowNum = weekTableStartRow + weekTableDataRows.length + 1;
     const totalsRow = ws.getRow(totalsRowNum);
     totalsRow.height = 20;
@@ -174,6 +174,15 @@ export function buildMonthlySummarySheet(wb, {
       if ([3, 4, 5, 6, 7].includes(colNum)) cell.numFmt = "#,##0";
       if (colNum === 8) cell.numFmt = "0.00%";
     });
+    // Re-apply after row iteration to ensure SUBTOTAL formula cell retains percentage format
+    ws.getCell(totalsRowNum, 8).numFmt = "0.00%";
+
+    // Re-apply correct header styling to Answer Rate column — ExcelJS addTable can overwrite it
+    const headerCell = ws.getCell(weekTableStartRow, 8);
+    headerCell.font      = mkFont({ bold: true, color: { argb: "FFFFFFFF" } });
+    headerCell.fill      = mkFill(HEADER_BG);
+    headerCell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+    headerCell.border    = { bottom: { style: "medium", color: { argb: "FFFFFFFF" } }, right: thinBorder };
   }
 
   ws.addRow([]); ws.getRow(ws.rowCount).height = 8;
