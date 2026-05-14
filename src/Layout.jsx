@@ -114,11 +114,7 @@ const navigationItems = [
     url: createPageUrl("Reports"),
     icon: BarChart3,
   },
-  {
-    title: "Call Log Dashboard",
-    url: "/CallLogDashboard",
-    icon: BarChart3,
-  },
+
   {
     title: "Document Management",
     url: createPageUrl("DocumentManagement"),
