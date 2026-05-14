@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
-import XLSX from 'npm:xlsx@0.18.5';
+import ExcelJS from 'npm:exceljs@4.4.0';
 
 Deno.serve(async (req) => {
   try {
@@ -12,19 +12,17 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { monthlyData = [], weeklyData = [], monthlyOutboundData = [], weeklyOutboundData = [], frontendData = [], individualData = [], userDirectory = [], rawInbound = [], rawOutbound = [] } = body;
 
-    const workbook = XLSX.utils.book_new();
+    const workbook = new ExcelJS.Workbook();
     const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
 
     // ===== SHEET 1: Monthly KPI Summary =====
-    const monthlyWSData = [];
+    const monthlyWS = workbook.addWorksheet('Monthly KPI Summary');
     
-    monthlyWSData.push(['Call Log Performance Report – May 2026']);
-    monthlyWSData.push([`Generated on: ${today}`]);
-    monthlyWSData.push([]);
-    monthlyWSData.push(['Monthly KPI Summary']);
+    monthlyWS.addRow(['Call Log Performance Report – May 2026']);
+    monthlyWS.addRow([`Generated on: ${today}`]);
+    monthlyWS.addRow([]);
+    monthlyWS.addRow(['Monthly KPI Summary']);
     
-    // KPI rows
-    const kpiStartRow = monthlyWSData.length;
     if (monthlyData && monthlyData.length > 0) {
       const latestMonth = monthlyData[monthlyData.length - 1];
       const latestOutbound = monthlyOutboundData?.find(o => o.month === latestMonth.month);
@@ -35,22 +33,20 @@ Deno.serve(async (req) => {
       const totalCalls = (latestMonth.total_inbound || 0) + (latestMonth.total_outbound || 0);
       const overallRate = totalCalls === 0 ? 0 : Math.min(totalAnswered / totalCalls, 1.0);
 
-      monthlyWSData.push(['Total Calls', (latestMonth.total_inbound || 0) + (latestMonth.total_outbound || 0)]);
-      monthlyWSData.push(['Inbound', latestMonth.total_inbound || 0]);
-      monthlyWSData.push(['Outbound', latestMonth.total_outbound || 0]);
-      monthlyWSData.push(['Answered', latestMonth.total_answered || 0]);
-      monthlyWSData.push(['Missed', latestMonth.total_missed || 0]);
-      monthlyWSData.push(['Inbound Answer Rate', latestMonth.answer_rate || 0]);
-      monthlyWSData.push(['Outbound Contact Rate', outboundRate]);
-      monthlyWSData.push(['Overall Contact Rate', overallRate]);
+      monthlyWS.addRow(['Total Calls', (latestMonth.total_inbound || 0) + (latestMonth.total_outbound || 0)]);
+      monthlyWS.addRow(['Inbound', latestMonth.total_inbound || 0]);
+      monthlyWS.addRow(['Outbound', latestMonth.total_outbound || 0]);
+      monthlyWS.addRow(['Answered', latestMonth.total_answered || 0]);
+      monthlyWS.addRow(['Missed', latestMonth.total_missed || 0]);
+      monthlyWS.addRow(['Inbound Answer Rate', latestMonth.answer_rate || 0]);
+      monthlyWS.addRow(['Outbound Contact Rate', outboundRate]);
+      monthlyWS.addRow(['Overall Contact Rate', overallRate]);
     }
 
-    monthlyWSData.push([]);
-    monthlyWSData.push([]);
-    monthlyWSData.push(['Weekly Roll-Up']);
+    monthlyWS.addRow([]);
+    monthlyWS.addRow(['Weekly Roll-Up']);
     
-    const weeklyTableHeaderRow = monthlyWSData.length;
-    monthlyWSData.push(['Week', 'Inbound', 'Answered', 'Missed', 'Outbound', 'Outbound Connected (≥30s)', 'Inbound Answer Rate', 'Outbound Contact Rate', 'Overall Contact Rate']);
+    monthlyWS.addRow(['Week', 'Inbound', 'Answered', 'Missed', 'Outbound', 'Outbound Connected (≥30s)', 'Inbound Answer Rate', 'Outbound Contact Rate', 'Overall Contact Rate']);
 
     if (weeklyData && weeklyData.length > 0) {
       weeklyData.forEach((row) => {
@@ -61,7 +57,7 @@ Deno.serve(async (req) => {
         const totalCalls = (row.total_inbound || 0) + (row.total_outbound || 0);
         const overallRate = totalCalls === 0 ? 0 : Math.min(totalAnswered / totalCalls, 1.0);
 
-        monthlyWSData.push([
+        monthlyWS.addRow([
           row.week_start || '',
           row.total_inbound || 0,
           row.total_answered || 0,
@@ -75,16 +71,24 @@ Deno.serve(async (req) => {
       });
     }
 
-    const monthlyWS = XLSX.utils.aoa_to_sheet(monthlyWSData);
-    monthlyWS['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 }];
-    XLSX.utils.book_append_sheet(workbook, monthlyWS, 'Monthly KPI Summary');
+    monthlyWS.columns = [
+      { width: 30 },
+      { width: 15 },
+      { width: 15 },
+      { width: 15 },
+      { width: 15 },
+      { width: 18 },
+      { width: 18 },
+      { width: 18 },
+      { width: 18 }
+    ];
 
     // ===== SHEET 2: Weekly Summary =====
-    const weeklyWSData = [];
-    weeklyWSData.push(['Weekly Summary – May 2026']);
-    weeklyWSData.push([`Generated on: ${today}`]);
-    weeklyWSData.push([]);
-    weeklyWSData.push(['Week', 'Inbound', 'Answered', 'Missed', 'Inbound Answer Rate', 'Outbound', 'Outbound Connected (≥30s)', 'Outbound Contact Rate', 'Overall Contact Rate']);
+    const weeklyWS = workbook.addWorksheet('Weekly Summary');
+    weeklyWS.addRow(['Weekly Summary – May 2026']);
+    weeklyWS.addRow([`Generated on: ${today}`]);
+    weeklyWS.addRow([]);
+    weeklyWS.addRow(['Week', 'Inbound', 'Answered', 'Missed', 'Inbound Answer Rate', 'Outbound', 'Outbound Connected (≥30s)', 'Outbound Contact Rate', 'Overall Contact Rate']);
 
     if (weeklyData && weeklyData.length > 0) {
       weeklyData.forEach((row) => {
@@ -95,7 +99,7 @@ Deno.serve(async (req) => {
         const totalCalls = (row.total_inbound || 0) + (row.total_outbound || 0);
         const overallRate = totalCalls === 0 ? 0 : Math.min(totalAnswered / totalCalls, 1.0);
 
-        weeklyWSData.push([
+        weeklyWS.addRow([
           row.week_start || '',
           row.total_inbound || 0,
           row.total_answered || 0,
@@ -109,20 +113,28 @@ Deno.serve(async (req) => {
       });
     }
 
-    const weeklyWS = XLSX.utils.aoa_to_sheet(weeklyWSData);
-    weeklyWS['!cols'] = [{ wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 15 }, { wch: 12 }, { wch: 18 }, { wch: 18 }, { wch: 18 }];
-    XLSX.utils.book_append_sheet(workbook, weeklyWS, 'Weekly Summary');
+    weeklyWS.columns = [
+      { width: 15 },
+      { width: 12 },
+      { width: 12 },
+      { width: 12 },
+      { width: 15 },
+      { width: 12 },
+      { width: 18 },
+      { width: 18 },
+      { width: 18 }
+    ];
 
     // ===== SHEET 3: Individual Performance =====
-    const indivWSData = [];
-    indivWSData.push(['Individual Performance – May 2026']);
-    indivWSData.push([`Generated on: ${today}`]);
-    indivWSData.push([]);
-    indivWSData.push(['User', 'Inbound', 'Answered', 'Missed', 'Inbound Answer Rate', 'Outbound Attempts', 'Outbound Connected (≥30s)', 'Outbound Contact Rate', 'Overall Contact Rate', 'Avg Duration (Minutes)']);
+    const indivWS = workbook.addWorksheet('Individual Performance');
+    indivWS.addRow(['Individual Performance – May 2026']);
+    indivWS.addRow([`Generated on: ${today}`]);
+    indivWS.addRow([]);
+    indivWS.addRow(['User', 'Inbound', 'Answered', 'Missed', 'Inbound Answer Rate', 'Outbound Attempts', 'Outbound Connected (≥30s)', 'Outbound Contact Rate', 'Overall Contact Rate', 'Avg Duration (Minutes)']);
 
     if (individualData && individualData.length > 0) {
       individualData.forEach((row) => {
-        indivWSData.push([
+        indivWS.addRow([
           row.user_name || '',
           row.total_inbound || 0,
           row.total_answered || 0,
@@ -152,7 +164,7 @@ Deno.serve(async (req) => {
       const overallRate = totalCalls > 0 ? totalAnswered / totalCalls : 0;
       const avgDuration = totalInboundForDuration > 0 ? totalDurationSeconds / totalInboundForDuration / 60 : 0;
 
-      indivWSData.push([
+      indivWS.addRow([
         'TOTAL',
         totalsInbound,
         totalsAnswered,
@@ -166,20 +178,29 @@ Deno.serve(async (req) => {
       ]);
     }
 
-    const indivWS = XLSX.utils.aoa_to_sheet(indivWSData);
-    indivWS['!cols'] = [{ wch: 25 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 }];
-    XLSX.utils.book_append_sheet(workbook, indivWS, 'Individual Performance');
+    indivWS.columns = [
+      { width: 25 },
+      { width: 12 },
+      { width: 12 },
+      { width: 12 },
+      { width: 15 },
+      { width: 15 },
+      { width: 18 },
+      { width: 18 },
+      { width: 18 },
+      { width: 18 }
+    ];
 
     // ===== SHEET 4: Front-End Performance =====
-    const frontWSData = [];
-    frontWSData.push(['Front-End Performance (Front Desk Benchmark) – May 2026']);
-    frontWSData.push([`Generated on: ${today}`]);
-    frontWSData.push([]);
-    frontWSData.push(['User', 'Inbound', 'Answered', 'Missed', 'Inbound Answer Rate', 'Outbound Attempts', 'Outbound Connected (≥30s)', 'Outbound Contact Rate', 'Overall Contact Rate', 'Avg Duration (Minutes)']);
+    const frontWS = workbook.addWorksheet('Front-End Performance');
+    frontWS.addRow(['Front-End Performance (Front Desk Benchmark) – May 2026']);
+    frontWS.addRow([`Generated on: ${today}`]);
+    frontWS.addRow([]);
+    frontWS.addRow(['User', 'Inbound', 'Answered', 'Missed', 'Inbound Answer Rate', 'Outbound Attempts', 'Outbound Connected (≥30s)', 'Outbound Contact Rate', 'Overall Contact Rate', 'Avg Duration (Minutes)']);
 
     if (frontendData && frontendData.length > 0) {
       frontendData.forEach((row) => {
-        frontWSData.push([
+        frontWS.addRow([
           row.user_name || '',
           row.total_inbound || 0,
           row.total_answered || 0,
@@ -209,7 +230,7 @@ Deno.serve(async (req) => {
       const overallRate = totalCalls > 0 ? totalAnswered / totalCalls : 0;
       const avgDuration = totalInboundForDuration > 0 ? totalDurationSeconds / totalInboundForDuration / 60 : 0;
 
-      frontWSData.push([
+      frontWS.addRow([
         'TOTAL',
         totalsInbound,
         totalsAnswered,
@@ -223,17 +244,26 @@ Deno.serve(async (req) => {
       ]);
     }
 
-    const frontWS = XLSX.utils.aoa_to_sheet(frontWSData);
-    frontWS['!cols'] = [{ wch: 25 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 }];
-    XLSX.utils.book_append_sheet(workbook, frontWS, 'Front-End Performance');
+    frontWS.columns = [
+      { width: 25 },
+      { width: 12 },
+      { width: 12 },
+      { width: 12 },
+      { width: 15 },
+      { width: 15 },
+      { width: 18 },
+      { width: 18 },
+      { width: 18 },
+      { width: 18 }
+    ];
 
     // ===== SHEET 5: User Directory =====
-    const dirWSData = [];
-    dirWSData.push(['User Name', 'Extension(s)', 'Location', 'Benchmark Group', 'Include In Benchmark', 'Active']);
+    const dirWS = workbook.addWorksheet('User Directory');
+    dirWS.addRow(['User Name', 'Extension(s)', 'Location', 'Benchmark Group', 'Include In Benchmark', 'Active']);
 
     if (userDirectory && userDirectory.length > 0) {
       userDirectory.forEach((row) => {
-        dirWSData.push([
+        dirWS.addRow([
           row.name || '',
           (row.extensions || []).join(', ') || '',
           row.location || '',
@@ -244,17 +274,22 @@ Deno.serve(async (req) => {
       });
     }
 
-    const dirWS = XLSX.utils.aoa_to_sheet(dirWSData);
-    dirWS['!cols'] = [{ wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 18 }, { wch: 10 }];
-    XLSX.utils.book_append_sheet(workbook, dirWS, 'User Directory');
+    dirWS.columns = [
+      { width: 25 },
+      { width: 15 },
+      { width: 15 },
+      { width: 18 },
+      { width: 18 },
+      { width: 10 }
+    ];
 
     // ===== SHEET 6: Raw Imported Data =====
-    const rawWSData = [];
-    rawWSData.push(['Call Date', 'Call Time', 'Extension', 'Caller/Dialed', 'Duration (sec)', 'Result/Disposition', 'Direction', 'Answered/Flag', 'Location']);
+    const rawWS = workbook.addWorksheet('Raw Imported Data');
+    rawWS.addRow(['Call Date', 'Call Time', 'Extension', 'Caller/Dialed', 'Duration (sec)', 'Result/Disposition', 'Direction', 'Answered/Flag', 'Location']);
 
     if (rawInbound && rawInbound.length > 0) {
       rawInbound.forEach((row) => {
-        rawWSData.push([
+        rawWS.addRow([
           row.call_date || '',
           row.call_time || '',
           row.extension || '',
@@ -270,7 +305,7 @@ Deno.serve(async (req) => {
 
     if (rawOutbound && rawOutbound.length > 0) {
       rawOutbound.forEach((row) => {
-        rawWSData.push([
+        rawWS.addRow([
           row.call_date || '',
           row.call_time || '',
           row.extension || '',
@@ -284,23 +319,22 @@ Deno.serve(async (req) => {
       });
     }
 
-    const rawWS = XLSX.utils.aoa_to_sheet(rawWSData);
-    rawWS['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 10 }, { wch: 15 }];
-    XLSX.utils.book_append_sheet(workbook, rawWS, 'Raw Imported Data');
+    rawWS.columns = [
+      { width: 12 },
+      { width: 10 },
+      { width: 12 },
+      { width: 15 },
+      { width: 15 },
+      { width: 15 },
+      { width: 10 },
+      { width: 10 },
+      { width: 15 }
+    ];
 
-    // Generate buffer using XLSX.write() - proper Deno conversion
-    const arr = XLSX.write(workbook, {
-      type: 'array',
-      bookType: 'xlsx'
-    });
+    // Write to buffer
+    const buffer = await workbook.xlsx.writeBuffer();
 
-    // Convert array of bytes to Uint8Array properly
-    const uint8 = new Uint8Array(arr.length);
-    for (let i = 0; i < arr.length; i++) {
-      uint8[i] = arr[i];
-    }
-
-    return new Response(uint8, {
+    return new Response(buffer, {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
