@@ -364,11 +364,11 @@ export default function CallLogReporting() {
   const overallAnswerRate   = totalInbound > 0 ? totalInboundAnswered / totalInbound : null;
   const overallAvgDurationSec = totalCalls > 0 ? totalDurationSec / totalCalls : 0;
 
-  // ── Front-End Answer Rate: role === "Front End" AND in_benchmark === true ──
+  // ── Front-End Answer Rate: role === "Front Desk" AND in_benchmark === true ──
   const frontEndSummaries = React.useMemo(() => {
     return allEnrichedSummaries.filter(u => {
       const cfg = allUserConfigs.find(c => norm(c.user_name) === norm(u.user));
-      return cfg && cfg.role === "Front End" && u.in_benchmark === true;
+      return cfg && cfg.role === "Front Desk" && u.in_benchmark === true;
     });
   }, [allEnrichedSummaries, allUserConfigs]);
 
