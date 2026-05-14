@@ -1,13 +1,52 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 /**
- * Parse duration string (MM:SS or HH:MM:SS) to seconds
+ * Parse duration string (HH:MM:SS, MM:SS, or blank) to seconds
+ * Supports Vonage format: 0:02:28, 0:00:00, blank/null
  */
 function parseDuration(durationStr) {
-  if (!durationStr) return 0;
-  const parts = String(durationStr).split(':').map(p => parseInt(p, 10));
-  if (parts.length === 2) return parts[0] * 60 + parts[1];
-  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  // Handle null, undefined, or blank
+  if (!durationStr || typeof durationStr !== 'string') {
+    return 0;
+  }
+
+  const trimmed = durationStr.trim();
+  
+  // Handle empty string
+  if (trimmed === '') {
+    return 0;
+  }
+
+  const parts = trimmed.split(':');
+  
+  // HH:MM:SS format (3 parts)
+  if (parts.length === 3) {
+    const hours = parseInt(parts[0], 10);
+    const minutes = parseInt(parts[1], 10);
+    const seconds = parseInt(parts[2], 10);
+    
+    // Validate all parts parsed successfully
+    if (isNaN(hours) || isNaN(minutes) || isNaN(seconds)) {
+      return 0;
+    }
+    
+    return (hours * 3600) + (minutes * 60) + seconds;
+  }
+  
+  // MM:SS format (2 parts)
+  if (parts.length === 2) {
+    const minutes = parseInt(parts[0], 10);
+    const seconds = parseInt(parts[1], 10);
+    
+    // Validate both parts parsed successfully
+    if (isNaN(minutes) || isNaN(seconds)) {
+      return 0;
+    }
+    
+    return (minutes * 60) + seconds;
+  }
+  
+  // Invalid format
   return 0;
 }
 
