@@ -165,7 +165,7 @@ function parseReportingPeriod(inputText) {
   return { periodLabel, periodKey, periodStart, periodEnd };
 }
 
-export default function CdrUpload({ periodKey: propPeriodKey, periodType, periodStart: propPeriodStart, periodEnd: propPeriodEnd }) {
+export default function CdrUpload({ periodKey: propPeriodKey, periodType, periodStart: propPeriodStart, periodEnd: propPeriodEnd, onUploadComplete }) {
   const fileInputRef = useRef(null);
   const queryClient = useQueryClient();
   const [file, setFile] = useState(null);
@@ -418,14 +418,13 @@ export default function CdrUpload({ periodKey: propPeriodKey, periodType, period
 
       if (response.data?.success) {
         console.log("[CdrUpload] CDR saved successfully with id:", response.data.cdr_upload_id);
-        // Invalidate related queries to force refetch
-        await queryClient.invalidateQueries({ queryKey: ["cdr-period", periodKey] });
-        await queryClient.invalidateQueries({ queryKey: ["cdr-metrics", periodKey] });
-        await queryClient.invalidateQueries({ queryKey: ["call-log-cdr-user-stats", periodKey] });
+        await queryClient.invalidateQueries({ queryKey: ["cdr-uploads-all"] });
+        await queryClient.invalidateQueries({ queryKey: ["cdr-operational", periodKey] });
         setError("");
         setFile(null);
         setResult(null);
         if (fileInputRef.current) fileInputRef.current.value = "";
+        if (onUploadComplete) onUploadComplete(periodKey);
       }
       } catch (err) {
       console.error("[CdrUpload] Failed to save CDR:", err);
