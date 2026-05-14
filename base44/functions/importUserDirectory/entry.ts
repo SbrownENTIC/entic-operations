@@ -140,11 +140,17 @@ Deno.serve(async (req) => {
         return Response.json({ error: `CSV parsing failed: ${err.message}` }, { status: 400 });
       }
     } else if (fileType === 'xlsx') {
-      // Parse Excel
+      // Parse Excel using Uint8Array (Deno-compatible, no Buffer)
       try {
-        const buffer = Buffer.from(fileContent, 'base64');
+        // Decode base64 to binary string, then to Uint8Array
+        const binaryString = atob(fileContent);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+
         const workbook = new ExcelJS.Workbook();
-        await workbook.xlsx.load(buffer);
+        await workbook.xlsx.load(bytes);
         const worksheet = workbook.worksheets[0];
 
         if (!worksheet) {
