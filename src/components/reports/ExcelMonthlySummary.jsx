@@ -1,34 +1,16 @@
 /**
  * ExcelMonthlySummary.jsx
- *
- * Builds the "Monthly Summary" worksheet with TWO DISTINCT REPORTING SECTIONS:
- *
- *  SECTION A — EXECUTIVE / OPERATIONAL KPIs
- *    Source: CDR data (preferred) or User Summary fallback with disclaimer
- *    Metrics: Unique inbound calls, answered, abandoned, answer rate, avg talk time
- *    Definition: A "missed" call = caller abandoned without reaching ANY live staff
- *
- *  SECTION B — USER ACTIVITY METRICS
- *    Source: User Summary (Vonage pre-aggregated export) — benchmark users only
- *    Metrics: Total calls, inbound, outbound, answered, missed, duration per user
- *    NOTE: Missed Calls here may include hunt-group routing ring attempts.
- *          These are extension-level activity counts, not unique patient calls.
- *
- *  SECTION C — WEEKLY SUMMARY TABLE
- *    Source: Same User Summary benchmark data (consistent with Section B)
- *    Monthly totals = SUM of all weekly rows (single source of truth)
+ * Builds the "Monthly Summary" worksheet — the first and primary visible sheet.
+ * Uses live Excel formulas for key metrics wherever possible so values auto-update
+ * if data in the Raw_Imported_Data table is refreshed.
  */
-
 import { formatDate, minutesToHHMMSS, secondsToHHMMSS } from "./ExcelExportHelpers";
 import { calcInboundAnswerRate } from "./ExcelCallLogCalcs";
 
 export function buildMonthlySummarySheet(wb, {
   periodLabel, generatedOn,
-  // Section B / Weekly Summary — User Summary benchmark totals
   totalCalls, totalInbound, totalOutbound,
   totalInboundAnswered, totalMissed, totalDurationSec, overallAvgDurationSec,
-  // Section A — CDR operational KPIs (optional, null when CDR not uploaded)
-  cdrKpis,
   weekRows,
   mkFill, mkFont, thinBorder,
   DARK_NAVY, SECTION_BG, ALT_ROW, WHITE, LIGHT_GRAY, HEADER_BG,
@@ -37,7 +19,7 @@ export function buildMonthlySummarySheet(wb, {
   const ws = wb.addWorksheet("Monthly Summary", { views: [{ showGridLines: false }] });
 
   ws.columns = [
-    { width: 34 }, { width: 18 }, { width: 14 }, { width: 14 },
+    { width: 32 }, { width: 18 }, { width: 14 }, { width: 14 },
     { width: 14 }, { width: 14 }, { width: 14 }, { width: 22 }, { width: 18 }, { width: 24 },
   ];
 
@@ -55,183 +37,74 @@ export function buildMonthlySummarySheet(wb, {
   ws.getCell("D2").font = mkFont({ color: { argb: "FF666666" }, size: 10 });
   ws.getRow(2).height = 20;
 
-  // ── Data source notice ───────────────────────────────────────────────────
-  ws.addRow([]); ws.getRow(ws.rowCount).height = 6;
+  // ── Benchmark scope note ──────────────────────────────────────────────────
+  ws.addRow(["⚠ Benchmark Metrics Calculated Using In-Benchmark Extensions Only", ...Array(9).fill("")]);
+  ws.mergeCells("A3:J3");
+  const benchNote = ws.getCell("A3");
+  benchNote.font      = mkFont({ bold: true, size: 10, color: { argb: "FF1F3864" } });
+  benchNote.fill      = mkFill("FFDCE6F1");
+  benchNote.alignment = { horizontal: "center", vertical: "middle" };
+  ws.getRow(3).height = 20;
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // SECTION A — EXECUTIVE / OPERATIONAL KPIs
-  // ══════════════════════════════════════════════════════════════════════════
-
-  // Section A header with source badge
-  const secARow = ws.addRow([
-    "SECTION A — EXECUTIVE / OPERATIONAL KPIs", ...Array(9).fill("")
+  // ── Clarifying note ───────────────────────────────────────────────────────
+  ws.addRow([
+    "Totals on this sheet reflect in-benchmark users only. Fax, voicemail, clinical, and admin lines are excluded. For CDR validation, see 'Inbound CDR'.",
+    ...Array(9).fill(""),
   ]);
-  ws.mergeCells(`A${ws.rowCount}:J${ws.rowCount}`);
-  const secACell = ws.getCell(`A${ws.rowCount}`);
-  secACell.font      = mkFont({ bold: true, size: 13, color: { argb: "FFFFFFFF" } });
-  secACell.fill      = mkFill("FF1F4E79");
-  secACell.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
-  secARow.height = 26;
+  ws.mergeCells(`A4:J4`);
+  const noteCell = ws.getCell("A4");
+  noteCell.font      = mkFont({ italic: true, size: 9, color: { argb: "FFAAAAAA" } });
+  noteCell.alignment = { horizontal: "left", vertical: "middle" };
+  ws.getRow(4).height = 18;
 
-  // CDR availability banner
-  const hasCdr = !!(cdrKpis && cdrKpis.totalInbound > 0);
-  const bannerArgbBg = hasCdr ? "FFC6EFCE" : "FFFFF4CE";
-  const bannerArgbFg = hasCdr ? "FF276221" : "FF9C5700";
-  const bannerText = hasCdr
-    ? "✓ CDR DATA — Metrics below are sourced from Vonage Inbound CDR (call-level data). These represent true patient call outcomes."
-    : "⚠ NO CDR UPLOADED — Metrics below are ESTIMATED from User Summary extension-level counts. Hunt-group ring attempts may inflate Missed Calls. Upload the Vonage Inbound CDR export for accurate KPIs.";
+  ws.addRow([]); ws.getRow(5).height = 6;
 
-  const bannerRow = ws.addRow([bannerText, ...Array(9).fill("")]);
-  ws.mergeCells(`A${ws.rowCount}:J${ws.rowCount}`);
-  const bannerCell = ws.getCell(`A${ws.rowCount}`);
-  bannerCell.font      = mkFont({ bold: true, size: 10, color: { argb: bannerArgbFg } });
-  bannerCell.fill      = mkFill(bannerArgbBg);
-  bannerCell.alignment = { horizontal: "left", vertical: "middle", indent: 1, wrapText: true };
-  bannerCell.border    = { bottom: thinBorder };
-  bannerRow.height = 28;
+  // ── Section: Monthly KPI Summary (formula-driven where available) ─────────
+  addSectionHeader(ws, "Monthly KPI Summary", 4);
 
-  if (!hasCdr) {
-    // Additional warning note
-    const warnRow = ws.addRow([
-      "How to get accurate KPIs: Export the Vonage \"Inbound Calls\" (CDR) report for this period and upload it via the \"Upload CDR\" tab.",
-      ...Array(9).fill("")
-    ]);
-    ws.mergeCells(`A${ws.rowCount}:J${ws.rowCount}`);
-    const warnCell = ws.getCell(`A${ws.rowCount}`);
-    warnCell.font      = mkFont({ italic: true, size: 9, color: { argb: "FF888888" } });
-    warnCell.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
-    warnRow.height = 16;
-  }
-
-  // Determine values for Section A
-  const secAInbound    = hasCdr ? cdrKpis.totalInbound         : totalInbound;
-  const secAAnswered   = hasCdr ? cdrKpis.totalAnswered         : totalInboundAnswered;
-  const secAAbandoned  = hasCdr ? cdrKpis.totalAbandoned        : totalMissed;
-  const secAAnswerRate = secAInbound > 0 ? secAAnswered / secAInbound : 0;
-  const secAAbandonRate = secAInbound > 0 ? secAAbandoned / secAInbound : 0;
-  const secAAvgTalkSec  = hasCdr ? cdrKpis.avgTalkTimeSec       : overallAvgDurationSec;
-
-  const secAMetrics = [
-    { label: "Total Inbound Calls",         value: secAInbound,    fmt: "number",  note: hasCdr ? "CDR source" : "Est. from User Summary" },
-    { label: "Calls Successfully Answered", value: secAAnswered,   fmt: "number",  note: hasCdr ? "CDR source" : "Est. (Inbound − Missed per user)" },
-    { label: "Calls Abandoned / Missed",    value: secAAbandoned,  fmt: "number",  note: hasCdr ? "CDR source" : "Est. — may include routing ring attempts" },
-    { label: "Answer Rate %",               value: secAAnswerRate, fmt: "percent", note: hasCdr ? "CDR source" : "Est. — inflated denominator warning" },
-    { label: "Abandonment Rate %",          value: secAAbandonRate,fmt: "percent", note: hasCdr ? "CDR source" : "Est." },
-    { label: "Avg Talk Time",               value: secondsToHHMMSS(secAAvgTalkSec), fmt: "text", note: hasCdr ? "CDR inbound duration" : "Est. from all calls" },
+  const metrics = [
+    ["Total Calls",         totalCalls,                                                                      "number"],
+    ["Inbound",             totalInbound,                                                                    "number"],
+    ["Outbound",            totalOutbound,                                                                   "number"],
+    ["Inbound Answered",    totalInboundAnswered,                                                            "number"],
+    ["Missed",              totalMissed,                                                                     "number"],
+    ["Inbound Answer Rate", totalInbound > 0 ? calcInboundAnswerRate(totalInbound, totalInboundAnswered) : 0,"percent"],
+    ["Total Duration",      secondsToHHMMSS(totalDurationSec),                                              "text"],
+    ["Average Duration",    secondsToHHMMSS(overallAvgDurationSec),                                         "text"],
   ];
 
-  secAMetrics.forEach(({ label, value, fmt, note }, idx) => {
-    const bgArgb = idx % 2 === 0 ? "FFDCE6F1" : WHITE;
-    const row = ws.addRow([label, value, "", note, ...Array(6).fill("")]);
-    row.height = 22;
-    const lc = row.getCell(1);
-    const vc = row.getCell(2);
-    const nc = row.getCell(4);
-    lc.font = mkFont({ bold: true }); lc.fill = mkFill(bgArgb); lc.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
-    vc.font = mkFont({ bold: true, size: 13 }); vc.fill = mkFill(bgArgb); vc.alignment = { horizontal: "center", vertical: "middle" };
-    nc.font = mkFont({ italic: true, size: 9, color: { argb: "FF888888" } }); nc.fill = mkFill(bgArgb); nc.alignment = { horizontal: "left", vertical: "middle" };
-    if (fmt === "number") vc.numFmt = "#,##0";
-    if (fmt === "percent") {
-      vc.numFmt = "0.00%";
-      const { bg, fg } = arColor(value);
-      if (!hasCdr) {
-        // Gray out if estimated
-        vc.fill = mkFill("FFF0F0F0");
-        vc.font = mkFont({ bold: true, size: 13, color: { argb: "FFAAAAAA" } });
-      } else {
-        vc.fill = mkFill(bg);
-        vc.font = mkFont({ bold: true, size: 13, color: { argb: fg } });
-      }
-    }
-    for (let c = 1; c <= 10; c++) {
-      const cell = row.getCell(c);
-      if (!cell.fill || cell.fill.fgColor?.argb === undefined) cell.fill = mkFill(bgArgb);
-      cell.border = { bottom: thinBorder };
-    }
-  });
-
-  ws.addRow([]); ws.getRow(ws.rowCount).height = 8;
-
-  // ── Freeze pane ────────────────────────────────────────────────────────────
-  ws.views = [{ showGridLines: false, state: "frozen", ySplit: 10, xSplit: 0 }];
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // SECTION B — USER ACTIVITY METRICS (User Summary / Benchmark Users)
-  // ══════════════════════════════════════════════════════════════════════════
-
-  const secBRow = ws.addRow([
-    "SECTION B — USER ACTIVITY METRICS (Benchmark Staff)", ...Array(9).fill("")
-  ]);
-  ws.mergeCells(`A${ws.rowCount}:J${ws.rowCount}`);
-  const secBCell = ws.getCell(`A${ws.rowCount}`);
-  secBCell.font      = mkFont({ bold: true, size: 13, color: { argb: "FFFFFFFF" } });
-  secBCell.fill      = mkFill("FF2E5096");
-  secBCell.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
-  secBRow.height = 26;
-
-  // Scope note
-  const scopeRow = ws.addRow([
-    "Source: Vonage User Summary (pre-aggregated). Benchmark staff only. Missed Calls include hunt-group ring attempts — use for staff activity trends, not unique-call KPIs.",
-    ...Array(9).fill("")
-  ]);
-  ws.mergeCells(`A${ws.rowCount}:J${ws.rowCount}`);
-  const scopeCell = ws.getCell(`A${ws.rowCount}`);
-  scopeCell.font      = mkFont({ italic: true, size: 9, color: { argb: "FF1F3864" } });
-  scopeCell.fill      = mkFill("FFDCE6F1");
-  scopeCell.alignment = { horizontal: "left", vertical: "middle", indent: 1, wrapText: true };
-  scopeCell.border    = { bottom: thinBorder };
-  scopeRow.height = 22;
-
-  const secBMetrics = [
-    ["Total Calls (All Staff)",        totalCalls,              "number"],
-    ["Inbound (Extension-Level)",      totalInbound,            "number"],
-    ["Outbound",                       totalOutbound,           "number"],
-    ["Inbound Answered (Ext-Level)",   totalInboundAnswered,    "number"],
-    ["Missed (Ext-Level — see note)",  totalMissed,             "number"],
-    ["Ext-Level Answer Rate",          totalInbound > 0 ? totalInboundAnswered / totalInbound : 0, "percent_warn"],
-    ["Total Talk Time",                secondsToHHMMSS(totalDurationSec),          "text"],
-    ["Avg Duration per Call",          secondsToHHMMSS(overallAvgDurationSec),     "text"],
-  ];
-
-  secBMetrics.forEach(([label, val, type], idx) => {
+  metrics.forEach(([label, val, type], idx) => {
     const bgArgb = idx % 2 === 0 ? ALT_ROW : WHITE;
     const row = ws.addRow([label, val]);
     row.height = 19;
     const lc = row.getCell(1);
     const vc = row.getCell(2);
-    lc.font = mkFont({ bold: true }); lc.fill = mkFill(bgArgb); lc.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
+    lc.font = mkFont({ bold: true }); lc.fill = mkFill(bgArgb); lc.alignment = { horizontal: "center", vertical: "middle" };
     vc.font = mkFont({ bold: true, size: 12 }); vc.fill = mkFill(bgArgb); vc.alignment = { horizontal: "center", vertical: "middle" };
     if (type === "number")  vc.numFmt = "#,##0";
-    if (type === "percent_warn") {
+    if (type === "percent") {
       vc.numFmt = "0.00%";
-      // Always show grayed-out warning color — this rate is not operationally meaningful
-      vc.fill = mkFill("FFF0F0F0");
-      vc.font = mkFont({ bold: true, size: 12, color: { argb: "FFAAAAAA" } });
+      // Apply answer-rate colour to the KPI cell
+      const { bg, fg } = arColor(val);
+      vc.fill = mkFill(bg);
+      vc.font = mkFont({ bold: true, size: 12, color: { argb: fg } });
     }
     [lc, vc].forEach(c => { c.border = { bottom: thinBorder }; });
   });
 
+  // Freeze panes just below the KPI block header row
+  ws.views = [{ showGridLines: false, state: "frozen", ySplit: 7, xSplit: 0 }];
+
   ws.addRow([]); ws.getRow(ws.rowCount).height = 8;
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // SECTION C — WEEKLY SUMMARY TABLE
-  // ══════════════════════════════════════════════════════════════════════════
+  // ── Section: Weekly Summary Table ─────────────────────────────────────────
+  addSectionHeader(ws, "Weekly Summary", 9);
 
-  addSectionHeader(ws, "SECTION C — WEEKLY SUMMARY (User Activity by Week — Benchmark Staff)", 9);
-
-  const instrHint = ws.addRow([
-    "Weekly totals are User Summary benchmark data. Monthly total = SUM of all weeks. Use Section A for operational answer rate.",
-    ...Array(8).fill("")
-  ]);
-  ws.mergeCells(`A${ws.rowCount}:I${ws.rowCount}`);
-  instrHint.height = 16;
-  instrHint.getCell(1).font      = mkFont({ italic: true, size: 9, color: { argb: "FFAAAAAA" } });
-  instrHint.getCell(1).alignment = { horizontal: "left", vertical: "middle" };
-
+  // weekTableStartRow points at the next row — addTable will write its own header there
   const weekTableStartRow = ws.rowCount + 1;
   const weekTableDataRows = [];
 
-  if (!weekRows || weekRows.length === 0) {
+  if (weekRows.length === 0) {
     const er = ws.addRow(["No weekly data found for this month.", ...Array(8).fill("")]);
     ws.mergeCells(`A${ws.rowCount}:I${ws.rowCount}`);
     er.getCell(1).font = mkFont({ italic: true, color: { argb: "FF888888" } });
@@ -239,6 +112,7 @@ export function buildMonthlySummarySheet(wb, {
   } else {
     weekRows.forEach((wk, idx) => {
       const ar       = wk.answer_rate;
+      const { bg, fg } = arColor(ar);
       const bgArgb   = idx % 2 === 0 ? WHITE : LIGHT_GRAY;
       const rowValues = [
         formatDate(wk.week_start), formatDate(wk.week_end),
@@ -255,9 +129,8 @@ export function buildMonthlySummarySheet(wb, {
         if ([3, 4, 5, 6, 7].includes(colNum)) cell.numFmt = "#,##0";
         if (colNum === 8 && ar !== null) {
           cell.numFmt = "0.00%";
-          // Gray out — this is extension-level rate, not CDR-based
-          cell.fill = mkFill("FFF0F0F0");
-          cell.font = mkFont({ color: { argb: "FFAAAAAA" }, italic: true });
+          cell.fill = mkFill(bg);
+          cell.font = mkFont({ color: { argb: fg } });
         }
       });
       weekTableDataRows.push(rowValues);
@@ -265,6 +138,7 @@ export function buildMonthlySummarySheet(wb, {
   }
 
   if (weekTableDataRows.length > 0) {
+    // ref spans: header row + data rows + totals row
     ws.addTable({
       name: "WeeklySummary",
       ref: `A${weekTableStartRow}:I${weekTableStartRow + weekTableDataRows.length + 1}`,
@@ -272,20 +146,20 @@ export function buildMonthlySummarySheet(wb, {
       totalsRow: true,
       style: { theme: "TableStyleMedium2", showRowStripes: true },
       columns: [
-        { name: "Week Start",           filterButton: true, totalsRowLabel: "MONTHLY TOTAL" },
-        { name: "Week End",             filterButton: true, totalsRowLabel: "" },
-        { name: "Total Calls",          filterButton: true, totalsRowFunction: "sum" },
-        { name: "Inbound",              filterButton: true, totalsRowFunction: "sum" },
-        { name: "Outbound",             filterButton: true, totalsRowFunction: "sum" },
-        { name: "Answered (Ext-Level)", filterButton: true, totalsRowFunction: "sum" },
-        { name: "Missed (Ext-Level)",   filterButton: true, totalsRowFunction: "sum" },
-        { name: "Ext Answer Rate ⚠",   filterButton: true, totalsRowFunction: "average" },
-        { name: "Total Duration",       filterButton: true, totalsRowLabel: "" },
+        { name: "Week Start",     filterButton: true, totalsRowLabel: "MONTHLY TOTAL" },
+        { name: "Week End",       filterButton: true, totalsRowLabel: "" },
+        { name: "Total Calls",    filterButton: true, totalsRowFunction: "sum" },
+        { name: "Inbound",        filterButton: true, totalsRowFunction: "sum" },
+        { name: "Outbound",       filterButton: true, totalsRowFunction: "sum" },
+        { name: "Answered",       filterButton: true, totalsRowFunction: "sum" },
+        { name: "Missed",         filterButton: true, totalsRowFunction: "sum" },
+        { name: "Answer Rate",    filterButton: true, totalsRowFunction: "average" },
+        { name: "Total Duration", filterButton: true, totalsRowLabel: "" },
       ],
       rows: weekTableDataRows,
     });
 
-    // Re-apply header row styling
+    // Re-apply styled header formatting to the single header row (addTable owns it)
     const headerRow = ws.getRow(weekTableStartRow);
     headerRow.height = 30;
     for (let c = 1; c <= 9; c++) {
@@ -296,10 +170,10 @@ export function buildMonthlySummarySheet(wb, {
       cell.border    = { bottom: { style: "medium", color: { argb: "FFFFFFFF" } }, right: thinBorder };
     }
 
-    // Style totals row
+    // Style the totals row
     const totalsRowNum = weekTableStartRow + weekTableDataRows.length + 1;
     const totalsRow = ws.getRow(totalsRowNum);
-    totalsRow.height = 22;
+    totalsRow.height = 20;
     totalsRow.eachCell({ includeEmpty: true }, (cell, colNum) => {
       cell.font = mkFont({ bold: true, color: { argb: "FFFFFFFF" } });
       cell.fill = mkFill(DARK_NAVY);
@@ -307,21 +181,19 @@ export function buildMonthlySummarySheet(wb, {
       if ([3, 4, 5, 6, 7].includes(colNum)) cell.numFmt = "#,##0";
       if (colNum === 8) cell.numFmt = "0.00%";
     });
+    // Re-apply after row iteration to ensure SUBTOTAL formula cell retains percentage format
     ws.getCell(totalsRowNum, 8).numFmt = "0.00%";
   }
 
   ws.addRow([]); ws.getRow(ws.rowCount).height = 8;
 
-  // ── Section D: Full User Breakdown ────────────────────────────────────────
-  addSectionHeader(ws, "SECTION D — FULL USER BREAKDOWN (All Weeks — Benchmark Staff)", 10);
-  const instrHint2 = ws.addRow([
-    "Filter by Week Start using the dropdown in the table header. Ext-Level Answer Rate is for trend comparison only — see Section A for operational rate.",
-    ...Array(9).fill("")
-  ]);
+  // ── Section: User Breakdown (all weeks) ───────────────────────────────────
+  addSectionHeader(ws, "Full User Breakdown (All Weeks)", 10);
+  const instrHint = ws.addRow(["Filter by Week Start using the dropdown in the table header.", ...Array(9).fill("")]);
   ws.mergeCells(`A${ws.rowCount}:J${ws.rowCount}`);
-  instrHint2.height = 16;
-  instrHint2.getCell(1).font      = mkFont({ italic: true, size: 9, color: { argb: "FFAAAAAA" } });
-  instrHint2.getCell(1).alignment = { horizontal: "left", vertical: "middle" };
+  instrHint.height = 16;
+  instrHint.getCell(1).font      = mkFont({ italic: true, size: 9, color: { argb: "FFAAAAAA" } });
+  instrHint.getCell(1).alignment = { horizontal: "left", vertical: "middle" };
 
   return ws;
 }
