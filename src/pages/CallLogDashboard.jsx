@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, Download, Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useMemo, useState } from 'react';
 import { useCallMetrics, formatPercent, KPICard } from '@/components/calllog/CallLogMetrics';
 import { 
   aggregateInboundByWeek, 
@@ -19,7 +20,7 @@ import MonthlyTable from '@/components/calllog/MonthlyTable';
 import IndividualPerformanceTable from '@/components/calllog/IndividualPerformanceTable';
 import CDRUpload from '@/components/calllog/CDRUpload';
 import UserDirectoryTable from '@/components/calllog/UserDirectoryTable';
-import UnmappedExtensionsPanel from '@/components/calllog/UnmappedExtensionsPanel';
+import UnmappedExtensionsAlert from '@/components/calllog/UnmappedExtensionsAlert';
 
 export default function CallLogDashboard() {
   const [selectedMetric, setSelectedMetric] = useState(null);
@@ -174,8 +175,8 @@ export default function CallLogDashboard() {
               </Button>
             </div>
 
-            {/* Unmapped Extensions Warning */}
-            <UnmappedExtensionsPanel />
+            {/* Unmapped Extensions Alert */}
+            <UnmappedExtensionsAlert />
 
             {/* Warnings */}
             {warnings.length > 0 && (
@@ -282,7 +283,7 @@ export default function CallLogDashboard() {
 
           {/* Upload CDR Tab */}
           <TabsContent value="upload" className="space-y-6">
-            <UnmappedExtensionsPanel />
+            <UnmappedExtensionsAlert />
             <Card className="border-blue-200 bg-blue-50">
               <CardHeader>
                 <CardTitle className="text-base">Import Call Records</CardTitle>

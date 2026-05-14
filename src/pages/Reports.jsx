@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, FileText, DollarSign, Clock, Users, Package, X, AlertCircle, Calendar, ShieldCheck } from "lucide-react";
+import { Download, FileText, DollarSign, Clock, Users, Package, X, AlertCircle, Calendar, ShieldCheck, Badge as BadgeIcon } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -20,7 +20,7 @@ import { PaymentTrendChart, InvoiceAgingChart, IncomeDistributionChart, SupplySp
 import OfficeSupplyAnalytics from "../components/reports/OfficeSupplyAnalytics";
 import PaymentQuarterView from "../components/reports/PaymentQuarterView";
 import CallLogDashboard from "../pages/CallLogDashboard";
-import { BarChart3 } from "lucide-react";
+import CallLogTabTrigger from "../components/reports/CallLogTabTrigger";
 
 export default function Reports() {
   const [dateRange, setDateRange] = useState({
@@ -778,10 +778,7 @@ export default function Reports() {
                 <Calendar className="w-5 h-5 shrink-0" />
                 <span className="text-xs font-medium">Yearly Financials</span>
               </TabsTrigger>
-              <TabsTrigger value="call-log" className="flex flex-col items-center justify-center gap-2 py-4 h-full whitespace-normal text-center bg-slate-50 border border-slate-200 rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600 hover:bg-slate-100 hover:border-slate-300 transition-all shadow-sm">
-                <BarChart3 className="w-5 h-5 shrink-0" />
-                <span className="text-xs font-medium">Call Log</span>
-              </TabsTrigger>
+              <CallLogTabTrigger />
 
             </TabsList>
           </div>
