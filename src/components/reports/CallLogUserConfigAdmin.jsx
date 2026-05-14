@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Upload, Save, X, AlertCircle, CheckCircle, Loader2, Users } from "lucide-react";
+import { Upload, Download, Save, X, AlertCircle, CheckCircle, Loader2, Users } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import ExcelJS from "exceljs";
 
@@ -136,6 +136,39 @@ export default function CallLogUserConfigAdmin() {
     toast({ title: "Saved", description: "User config updated." });
   };
 
+  // --- Export ---
+  const handleExport = () => {
+    const headers = ["User", "Extensions", "Location", "Benchmark_Group", "Daily_Goal", "Include_In_Benchmark", "Active", "Notes"];
+    const rows = configs
+      .slice()
+      .sort((a, b) => (a.user_name || "").localeCompare(b.user_name || ""))
+      .map(c => {
+        const exts = Array.isArray(c.extensions) ? c.extensions : (c.extension ? [c.extension] : []);
+        return [
+          c.user_name || "",
+          exts.join(", "),
+          c.location || "",
+          c.benchmark_group || "Other",
+          c.daily_goal != null ? c.daily_goal : "",
+          c.include_in_benchmark ? "TRUE" : "FALSE",
+          c.active !== false ? "TRUE" : "FALSE",
+          c.notes || "",
+        ];
+      });
+
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "call_log_user_directory.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // --- Import ---
   const resetImport = () => {
     setImportOpen(false);
@@ -255,9 +288,14 @@ export default function CallLogUserConfigAdmin() {
           </h3>
           <p className="text-xs text-slate-500 mt-0.5">Manage user location and benchmark group assignments</p>
         </div>
-        <Button size="sm" variant="outline" onClick={() => setImportOpen(true)} className="gap-2">
-          <Upload className="w-3.5 h-3.5" /> Import Users
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={handleExport} disabled={configs.length === 0} className="gap-2">
+            <Download className="w-3.5 h-3.5" /> Export CSV
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setImportOpen(true)} className="gap-2">
+            <Upload className="w-3.5 h-3.5" /> Import Users
+          </Button>
+        </div>
       </div>
 
       {/* Import Panel */}

@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Save, X, Trash2, CheckCircle, Loader2, BookOpen } from "lucide-react";
+import { Plus, Download, Save, X, Trash2, CheckCircle, Loader2, BookOpen } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import {
   AlertDialog,
@@ -40,6 +40,33 @@ export default function CallLogExtensionDirectoryAdmin() {
   const [newRow, setNewRow] = useState({ ...EMPTY_NEW });
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+
+  const handleExport = () => {
+    const headers = ["Extension", "User_Display_Name", "Desk_Name", "Location", "Is_Active", "Notes"];
+    const rows = entries
+      .slice()
+      .sort((a, b) => (a.extension || "").localeCompare(b.extension || ""))
+      .map(e => [
+        e.extension || "",
+        e.user_display_name || "",
+        e.desk_name || "",
+        e.location || "",
+        e.is_active !== false ? "TRUE" : "FALSE",
+        e.notes || "",
+      ]);
+
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "call_log_extension_directory.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const { data: entries = [], isLoading } = useQuery({
     queryKey: ["call-log-extension-directory"],
@@ -149,9 +176,14 @@ export default function CallLogExtensionDirectoryAdmin() {
             Unmapped extensions are excluded from performance metrics.
           </p>
         </div>
-        <Button size="sm" onClick={() => { setAdding(true); setNewRow({ ...EMPTY_NEW }); }} className="gap-1.5 bg-blue-600 hover:bg-blue-700">
-          <Plus className="w-3.5 h-3.5" /> Add Extension
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={handleExport} disabled={entries.length === 0} className="gap-1.5">
+            <Download className="w-3.5 h-3.5" /> Export CSV
+          </Button>
+          <Button size="sm" onClick={() => { setAdding(true); setNewRow({ ...EMPTY_NEW }); }} className="gap-1.5 bg-blue-600 hover:bg-blue-700">
+            <Plus className="w-3.5 h-3.5" /> Add Extension
+          </Button>
+        </div>
       </div>
 
       {/* Search */}
