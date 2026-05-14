@@ -29,15 +29,35 @@ export default function CallLogDashboard() {
   const [activeTab, setActiveTab] = useState('reporting');
   const queryClient = useQueryClient();
 
-  // Fetch all data
+  // Fetch all data with proper pagination to avoid 5000 record limit
+  const fetchAllRecords = async (entity) => {
+    let allRows = [];
+    let skip = 0;
+    const batchSize = 5000;
+
+    while (true) {
+      const batch = await entity.filter({}, '-updated_date', batchSize, skip);
+      
+      if (!batch || batch.length === 0) break;
+
+      allRows = allRows.concat(batch);
+      skip += batchSize;
+
+      // Safety break if batch is smaller than requested (indicates end of data)
+      if (batch.length < batchSize) break;
+    }
+
+    return allRows;
+  };
+
   const { data: inbound = [], isLoading: inboundLoading } = useQuery({
     queryKey: ['inbound-calls'],
-    queryFn: () => base44.entities.InboundCallRaw.list()
+    queryFn: () => fetchAllRecords(base44.entities.InboundCallRaw)
   });
 
   const { data: outbound = [], isLoading: outboundLoading } = useQuery({
     queryKey: ['outbound-calls'],
-    queryFn: () => base44.entities.OutboundCallRaw.list()
+    queryFn: () => fetchAllRecords(base44.entities.OutboundCallRaw)
   });
 
   const { data: users = [], isLoading: usersLoading } = useQuery({
