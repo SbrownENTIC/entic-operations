@@ -36,9 +36,13 @@ export function useCallMetrics(inbound, outbound, users) {
     // Inbound answer rate (all data, capped at 1.0)
     const inboundAnswerRate = totalInbound === 0 ? 0 : Math.min(totalAnswered / totalInbound, 1.0);
 
-    // Calculate outbound metrics (answer rate based on result = "answered" AND duration > 30 seconds)
-    const connectedOutbound = outbound.filter(c => c.result === 'answered' && c.duration_seconds > 30).length;
-    const outboundAnswerRate = totalOutbound === 0 ? 0 : Math.min(connectedOutbound / totalOutbound, 1.0);
+    // Calculate outbound metrics (contact based on duration > 0 seconds)
+    const connectedOutbound = outbound.filter(c => c.duration_seconds > 0).length;
+    const outboundContactRate = totalOutbound === 0 ? 0 : Math.min(connectedOutbound / totalOutbound, 1.0);
+
+    // Overall Contact Rate (combined inbound answered + outbound connected)
+    const totalContacted = totalAnswered + connectedOutbound;
+    const overallContactRate = totalCalls === 0 ? 0 : Math.min(totalContacted / totalCalls, 1.0);
 
     // Benchmark-only metrics
     const benchmarkInbound = inbound.filter(c => {
@@ -73,7 +77,9 @@ export function useCallMetrics(inbound, outbound, users) {
       totalMissed,
       inboundAnswerRate,
       connectedOutbound,
-      outboundAnswerRate,
+      outboundContactRate,
+      totalContacted,
+      overallContactRate,
       benchmarkInbound: benchmarkInbound.length,
       benchmarkAnswered,
       benchmarkAnswerRate,
@@ -87,10 +93,10 @@ export function useCallMetrics(inbound, outbound, users) {
 }
 
 /**
- * Format percentage for display
+ * Format percentage for display (2 decimal places)
  */
 export function formatPercent(num) {
-  return `${(num * 100).toFixed(1)}%`;
+  return `${(num * 100).toFixed(2)}%`;
 }
 
 /**

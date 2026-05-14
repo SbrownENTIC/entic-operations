@@ -10,7 +10,13 @@ export default function IndividualPerformanceTable({ data = [], showOutbound = t
     'total_answered',
     'total_missed',
     'answer_rate',
-    ...(showOutbound ? ['total_outbound', 'avg_duration_seconds'] : [])
+    ...(showOutbound ? [
+      'total_outbound',
+      'outbound_connected',
+      'outbound_contact_rate',
+      'overall_contact_rate',
+      'avg_duration_seconds'
+    ] : [])
   ];
 
   const handleSort = (column) => {
@@ -40,8 +46,15 @@ export default function IndividualPerformanceTable({ data = [], showOutbound = t
     const totalInbound = data.reduce((sum, row) => sum + (row.total_inbound || 0), 0);
     const totalAnswered = data.reduce((sum, row) => sum + (row.total_answered || 0), 0);
     const totalMissed = data.reduce((sum, row) => sum + (row.total_missed || 0), 0);
-    const overallAnswerRate = totalInbound > 0 ? totalAnswered / totalInbound : 0;
+    const inboundAnswerRate = totalInbound > 0 ? totalAnswered / totalInbound : 0;
     const totalOutbound = data.reduce((sum, row) => sum + (row.total_outbound || 0), 0);
+    const totalOutboundConnected = data.reduce((sum, row) => sum + (row.outbound_connected || 0), 0);
+    const outboundContactRate = totalOutbound > 0 ? totalOutboundConnected / totalOutbound : 0;
+    
+    // Overall contact rate
+    const totalCalls = totalInbound + totalOutbound;
+    const totalContacted = totalAnswered + totalOutboundConnected;
+    const overallContactRate = totalCalls > 0 ? totalContacted / totalCalls : 0;
     
     // Weighted average duration
     let totalDurationSeconds = 0;
@@ -59,13 +72,16 @@ export default function IndividualPerformanceTable({ data = [], showOutbound = t
       totalInbound,
       totalAnswered,
       totalMissed,
-      overallAnswerRate,
+      inboundAnswerRate,
       totalOutbound,
+      totalOutboundConnected,
+      outboundContactRate,
+      overallContactRate,
       avgDurationMinutes
     };
   }, [data]);
 
-  const colCount = showOutbound ? 9 : 7;
+  const colCount = showOutbound ? 13 : 7;
   const SortIcon = ({ column }) => {
     if (sortColumn === column) {
       return sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />;
@@ -101,7 +117,10 @@ export default function IndividualPerformanceTable({ data = [], showOutbound = t
             <SortHeader label="Answer Rate" column="answer_rate" />
             {showOutbound && (
               <>
-                <SortHeader label="Outbound" column="total_outbound" />
+                <SortHeader label="Outbound Attempts" column="total_outbound" />
+                <SortHeader label="Outbound Connected" column="outbound_connected" />
+                <SortHeader label="Outbound Contact Rate" column="outbound_contact_rate" />
+                <SortHeader label="Overall Contact Rate" column="overall_contact_rate" />
                 <SortHeader label="Avg Duration (Minutes)" column="avg_duration_seconds" />
               </>
             )}
@@ -124,6 +143,13 @@ export default function IndividualPerformanceTable({ data = [], showOutbound = t
                   {showOutbound && (
                     <>
                       <td className="p-3 text-right text-slate-700">{row.total_outbound || 0}</td>
+                      <td className="p-3 text-right text-green-700 font-medium">{row.outbound_connected || 0}</td>
+                      <td className="p-3 text-right font-semibold text-purple-700">
+                        {row.total_outbound > 0 ? (row.outbound_contact_rate * 100).toFixed(2) : '0'}%
+                      </td>
+                      <td className="p-3 text-right font-semibold text-indigo-700">
+                        {((row.total_inbound + row.total_outbound) > 0 ? (row.overall_contact_rate * 100).toFixed(2) : '0')}%
+                      </td>
                       <td className="p-3 text-right text-slate-600">
                         {(row.avg_duration_seconds / 60).toFixed(2)} min
                       </td>
@@ -132,17 +158,20 @@ export default function IndividualPerformanceTable({ data = [], showOutbound = t
                 </tr>
               ))}
               {totals && (
-                <tr className="bg-slate-200 border-t border-b border-slate-300 font-bold">
+                <tr className="bg-slate-200 border-t border-b border-slate-300 font-bold sticky bottom-0">
                   <td className="p-3 text-slate-900">TOTAL</td>
                   <td className="p-3"></td>
                   <td className="p-3"></td>
                   <td className="p-3 text-right text-slate-900">{totals.totalInbound}</td>
                   <td className="p-3 text-right text-green-800">{totals.totalAnswered}</td>
                   <td className="p-3 text-right text-red-800">{totals.totalMissed}</td>
-                  <td className="p-3 text-right text-blue-900">{(totals.overallAnswerRate * 100).toFixed(1)}%</td>
+                  <td className="p-3 text-right text-blue-900">{(totals.inboundAnswerRate * 100).toFixed(2)}%</td>
                   {showOutbound && (
                     <>
                       <td className="p-3 text-right text-slate-900">{totals.totalOutbound}</td>
+                      <td className="p-3 text-right text-green-800">{totals.totalOutboundConnected}</td>
+                      <td className="p-3 text-right text-purple-900">{(totals.outboundContactRate * 100).toFixed(2)}%</td>
+                      <td className="p-3 text-right text-indigo-900">{(totals.overallContactRate * 100).toFixed(2)}%</td>
                       <td className="p-3 text-right text-slate-900">{totals.avgDurationMinutes} min</td>
                     </>
                   )}

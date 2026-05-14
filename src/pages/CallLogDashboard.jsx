@@ -121,19 +121,40 @@ export default function CallLogDashboard() {
     const inboundByUser = aggregateByUser(inbound, extToUser, users);
     const outboundByUser = aggregateOutboundByUser(outbound, extToUser, users);
     
-    // Merge inbound and outbound data
+    // Merge inbound and outbound data with combined metrics
     const merged = {};
     inboundByUser.forEach(u => {
       merged[u.user_id] = { ...u };
     });
     outboundByUser.forEach(u => {
       if (merged[u.user_id]) {
-        merged[u.user_id] = { ...merged[u.user_id], ...u };
+        merged[u.user_id] = {
+          ...merged[u.user_id],
+          total_outbound: u.total_outbound,
+          outbound_connected: u.outbound_connected,
+          outbound_contact_rate: u.outbound_contact_rate,
+          avg_duration_seconds: u.avg_duration_seconds
+        };
       } else {
-        merged[u.user_id] = { ...u, total_inbound: 0, total_answered: 0 };
+        merged[u.user_id] = {
+          ...u,
+          total_inbound: 0,
+          total_answered: 0,
+          answer_rate: 0,
+          avg_duration_seconds: 0
+        };
       }
     });
-    return Object.values(merged);
+    
+    // Calculate overall contact rate for each user
+    return Object.values(merged).map(user => {
+      const totalCalls = user.total_inbound + user.total_outbound;
+      const totalContacted = user.total_answered + user.outbound_connected;
+      return {
+        ...user,
+        overall_contact_rate: totalCalls > 0 ? Math.min(totalContacted / totalCalls, 1.0) : 0
+      };
+    });
   }, [inbound, outbound, extToUser, users]);
 
   const frontendData = useMemo(() => {
@@ -177,9 +198,16 @@ export default function CallLogDashboard() {
         filteredData = inbound.filter(c => c.missed);
         title = 'Missed Calls';
         break;
-      case 'outbound-answered':
-        filteredData = outbound.filter(c => c.result === 'answered' && c.duration_seconds > 30);
-        title = 'Answered Outbound Calls (>30s)';
+      case 'outbound-connected':
+        filteredData = outbound.filter(c => c.duration_seconds > 0);
+        title = 'Outbound Connected Calls (>0s)';
+        break;
+      case 'overall-contacted':
+        filteredData = [
+          ...inbound.filter(c => c.answered),
+          ...outbound.filter(c => c.duration_seconds > 0)
+        ];
+        title = 'All Answered Inbound + Outbound Connected';
         break;
       case 'benchmark-inbound':
         filteredData = inbound.filter(c => {
@@ -323,16 +351,16 @@ export default function CallLogDashboard() {
                 onClick={() => setSelectedMetric(buildDetailData('answered'))}
               />
               <KPICard
-                title="Outbound Answer Rate"
-                value={formatPercent(metrics.outboundAnswerRate)}
-                subtitle={`${metrics.connectedOutbound} answered of ${metrics.totalOutbound}`}
+                title="Outbound Contact Rate"
+                value={formatPercent(metrics.outboundContactRate)}
+                subtitle={`${metrics.connectedOutbound} connected of ${metrics.totalOutbound}`}
                 variant="rate"
-                onClick={() => setSelectedMetric(buildDetailData('outbound-answered'))}
+                onClick={() => setSelectedMetric(buildDetailData('outbound-connected'))}
               />
             </div>
 
             {/* Second row KPI cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <KPICard
                 title="Missed"
                 value={metrics.totalMissed.toLocaleString()}
@@ -352,6 +380,13 @@ export default function CallLogDashboard() {
                 subtitle={`${metrics.frontDeskAnswered} answered of ${metrics.frontDeskInbound}`}
                 variant="rate"
                 onClick={() => setSelectedMetric(buildDetailData('frontend-inbound'))}
+              />
+              <KPICard
+                title="Overall Contact Rate"
+                value={formatPercent(metrics.overallContactRate)}
+                subtitle={`${metrics.totalContacted} contacted of ${metrics.totalCalls}`}
+                variant="rate"
+                onClick={() => setSelectedMetric(buildDetailData('overall-contacted'))}
               />
             </div>
 
@@ -381,7 +416,7 @@ export default function CallLogDashboard() {
                 <CardTitle>Front-End Performance (Front Desk Benchmark)</CardTitle>
               </CardHeader>
               <CardContent>
-                <IndividualPerformanceTable data={frontendData} showOutbound={false} defaultSort="answer_rate" />
+                <IndividualPerformanceTable data={frontendData} showOutbound={true} defaultSort="overall_contact_rate" />
               </CardContent>
             </Card>
 
@@ -391,7 +426,7 @@ export default function CallLogDashboard() {
                 <CardTitle>Individual Performance (All Users)</CardTitle>
               </CardHeader>
               <CardContent>
-                <IndividualPerformanceTable data={individualData} showOutbound={true} />
+                <IndividualPerformanceTable data={individualData} showOutbound={true} defaultSort="overall_contact_rate" />
               </CardContent>
             </Card>
           </TabsContent>

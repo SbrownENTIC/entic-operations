@@ -111,7 +111,8 @@ export function aggregateByUser(inboundCalls, extToUser, users) {
   const userMap = {};
 
   inboundCalls.forEach(call => {
-    const user = extToUser[call.extension];
+    const normalizedExt = normalizeExtension(call.extension);
+    const user = extToUser[normalizedExt] || extToUser[call.extension];
     if (!user) return;
 
     const userId = user.id;
@@ -124,7 +125,9 @@ export function aggregateByUser(inboundCalls, extToUser, users) {
         total_inbound: 0,
         total_answered: 0,
         total_missed: 0,
-        total_duration_seconds: 0
+        total_duration_seconds: 0,
+        total_outbound: 0,
+        outbound_connected: 0
       };
     }
 
@@ -137,7 +140,9 @@ export function aggregateByUser(inboundCalls, extToUser, users) {
   return Object.values(userMap).map(user => ({
     ...user,
     answer_rate: user.total_inbound === 0 ? 0 : Math.min(user.total_answered / user.total_inbound, 1.0),
-    avg_duration_seconds: user.total_inbound === 0 ? 0 : Math.round(user.total_duration_seconds / user.total_inbound)
+    avg_duration_seconds: user.total_inbound === 0 ? 0 : Math.round(user.total_duration_seconds / user.total_inbound),
+    outbound_contact_rate: 0,
+    overall_contact_rate: 0
   }));
 }
 
@@ -159,19 +164,20 @@ export function aggregateOutboundByUser(outboundCalls, extToUser, users) {
         user_id: userId,
         user_name: user.name,
         total_outbound: 0,
-        connected_outbound: 0,
+        outbound_connected: 0,
         total_duration_seconds: 0
       };
     }
 
     userMap[userId].total_outbound++;
-    if (call.result === 'answered' && (call.duration_seconds || 0) > 30) userMap[userId].connected_outbound++;
+    if ((call.duration_seconds || 0) > 0) userMap[userId].outbound_connected++;
     userMap[userId].total_duration_seconds += call.duration_seconds || 0;
   });
 
   return Object.values(userMap).map(user => ({
     ...user,
-    outbound_answer_rate: user.total_outbound === 0 ? 0 : Math.min(user.connected_outbound / user.total_outbound, 1.0),
+    outbound_contact_rate: user.total_outbound === 0 ? 0 : Math.min(user.outbound_connected / user.total_outbound, 1.0),
+    overall_contact_rate: 0, // Will be merged with inbound data
     avg_duration_seconds: user.total_outbound === 0 ? 0 : Math.round(user.total_duration_seconds / user.total_outbound)
   }));
 }
