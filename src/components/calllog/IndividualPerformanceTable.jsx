@@ -51,10 +51,16 @@ export default function IndividualPerformanceTable({ data = [], showOutbound = t
     const totalOutboundConnected = data.reduce((sum, row) => sum + (row.outbound_connected || 0), 0);
     const outboundContactRate = totalOutbound > 0 ? totalOutboundConnected / totalOutbound : 0;
     
-    // Overall contact rate
+    // Overall contact rate (answered inbound + ALL answered outbound, not just ≥30s)
+    // Note: data rows have overall_contact_rate already calculated per user
+    // For the total, we need to calculate from scratch using the individual rates
     const totalCalls = totalInbound + totalOutbound;
-    const totalContacted = totalAnswered + totalOutboundConnected;
-    const overallContactRate = totalCalls > 0 ? totalContacted / totalCalls : 0;
+    // Sum the total contacted from each row's overall_contact_rate would be circular
+    // Instead, calculate: sum(answered inbound) + sum(total outbound where result=answered)
+    // But we don't have that breakdown here - use the weighted calculation from individual rows
+    const overallContactRateWeighted = totalCalls > 0 
+      ? data.reduce((sum, row) => sum + (row.overall_contact_rate * (row.total_inbound + row.total_outbound)), 0) / totalCalls
+      : 0;
     
     // Weighted average duration
     let totalDurationSeconds = 0;
@@ -76,7 +82,7 @@ export default function IndividualPerformanceTable({ data = [], showOutbound = t
       totalOutbound,
       totalOutboundConnected,
       outboundContactRate,
-      overallContactRate,
+      overallContactRate: overallContactRateWeighted,
       avgDurationMinutes
     };
   }, [data]);

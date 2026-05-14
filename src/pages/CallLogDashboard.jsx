@@ -121,6 +121,21 @@ export default function CallLogDashboard() {
     const inboundByUser = aggregateByUser(inbound, extToUser, users);
     const outboundByUser = aggregateOutboundByUser(outbound, extToUser, users);
     
+    // Build a map of answered outbound by user (for overall contact rate calculation)
+    const answeredOutboundByUser = {};
+    outbound.forEach(call => {
+      const normalizedExt = call.extension?.trim().replace(/[\s\-\(\)]/g, '').replace(/\D/g, '') || '';
+      const user = extToUser[normalizedExt] || extToUser[call.extension];
+      if (!user) return;
+      
+      if (!answeredOutboundByUser[user.id]) {
+        answeredOutboundByUser[user.id] = 0;
+      }
+      if (call.result === 'answered') {
+        answeredOutboundByUser[user.id]++;
+      }
+    });
+    
     // Merge inbound and outbound data with combined metrics
     const merged = {};
     inboundByUser.forEach(u => {
@@ -146,10 +161,11 @@ export default function CallLogDashboard() {
       }
     });
     
-    // Calculate overall contact rate for each user
+    // Calculate overall contact rate: (answered inbound + ALL answered outbound) / (total inbound + total outbound)
     return Object.values(merged).map(user => {
       const totalCalls = user.total_inbound + user.total_outbound;
-      const totalContacted = user.total_answered + user.outbound_connected;
+      const allAnsweredOutbound = answeredOutboundByUser[user.user_id] || 0;
+      const totalContacted = user.total_answered + allAnsweredOutbound;
       return {
         ...user,
         overall_contact_rate: totalCalls > 0 ? Math.min(totalContacted / totalCalls, 1.0) : 0
@@ -199,15 +215,15 @@ export default function CallLogDashboard() {
         title = 'Missed Calls';
         break;
       case 'outbound-connected':
-        filteredData = outbound.filter(c => c.duration_seconds > 0);
-        title = 'Outbound Connected Calls (>0s)';
+        filteredData = outbound.filter(c => c.result === 'answered' && (c.duration_seconds || 0) >= 30);
+        title = 'Outbound Connected Calls (≥30s)';
         break;
       case 'overall-contacted':
         filteredData = [
           ...inbound.filter(c => c.answered),
-          ...outbound.filter(c => c.duration_seconds > 0)
+          ...outbound.filter(c => c.result === 'answered')
         ];
-        title = 'All Answered Inbound + Outbound Connected';
+        title = 'All Answered Inbound + Answered Outbound';
         break;
       case 'benchmark-inbound':
         filteredData = inbound.filter(c => {

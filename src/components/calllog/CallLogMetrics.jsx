@@ -40,8 +40,11 @@ export function useCallMetrics(inbound, outbound, users) {
     const connectedOutbound = outbound.filter(c => c.result === 'answered' && (c.duration_seconds || 0) >= 30).length;
     const outboundContactRate = totalOutbound === 0 ? 0 : Math.min(connectedOutbound / totalOutbound, 1.0);
 
-    // Overall Contact Rate (combined inbound answered + outbound connected)
-    const totalContacted = totalAnswered + connectedOutbound;
+    // For Overall Contact Rate: count ALL answered outbound (no duration threshold)
+    const answeredOutbound = outbound.filter(c => c.result === 'answered').length;
+
+    // Overall Contact Rate (combined inbound answered + all answered outbound)
+    const totalContacted = totalAnswered + answeredOutbound;
     const overallContactRate = totalCalls === 0 ? 0 : Math.min(totalContacted / totalCalls, 1.0);
 
     // Benchmark-only metrics
