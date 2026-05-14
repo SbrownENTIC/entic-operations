@@ -19,7 +19,6 @@ import MonthlyTable from '@/components/calllog/MonthlyTable';
 import IndividualPerformanceTable from '@/components/calllog/IndividualPerformanceTable';
 import CDRUpload from '@/components/calllog/CDRUpload';
 import UserDirectoryTable from '@/components/calllog/UserDirectoryTable';
-import ExtensionMappingTable from '@/components/calllog/ExtensionMappingTable';
 import UnmappedExtensionsPanel from '@/components/calllog/UnmappedExtensionsPanel';
 
 export default function CallLogDashboard() {
@@ -44,31 +43,27 @@ export default function CallLogDashboard() {
     queryFn: () => base44.entities.UserDirectory.list()
   });
 
-  const { data: extensions = [], isLoading: extensionsLoading } = useQuery({
-    queryKey: ['extensions'],
-    queryFn: () => base44.entities.UserExtensions.list()
-  });
+  const isLoading = inboundLoading || outboundLoading || usersLoading;
 
-  const isLoading = inboundLoading || outboundLoading || usersLoading || extensionsLoading;
-
-  // Build extension to user map
+  // Build extension to user map from UserDirectory.extensions
   const extToUser = useMemo(() => {
     const map = {};
-    extensions.forEach(ext => {
-      if (ext.user_id) {
-        const user = users.find(u => u.id === ext.user_id);
-        if (user) map[ext.extension] = user;
+    users.forEach(user => {
+      if (user.extensions && Array.isArray(user.extensions)) {
+        user.extensions.forEach(ext => {
+          map[ext] = user;
+        });
       }
     });
     return map;
-  }, [extensions, users]);
+  }, [users]);
 
   const benchmarkUserIds = useMemo(() => {
     return new Set(users.filter(u => u.include_in_benchmark).map(u => u.id));
   }, [users]);
 
   // Calculate metrics
-  const metrics = useCallMetrics(inbound, outbound, users, extensions);
+  const metrics = useCallMetrics(inbound, outbound, users);
 
   // Aggregate data
   const weeklyData = useMemo(() => {
@@ -159,13 +154,12 @@ export default function CallLogDashboard() {
         </div>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="reporting">Reporting</TabsTrigger>
-            <TabsTrigger value="upload">Upload CDR</TabsTrigger>
-            <TabsTrigger value="users">User Directory</TabsTrigger>
-            <TabsTrigger value="extensions">Extension Mapping</TabsTrigger>
-          </TabsList>
+         <Tabs value={activeTab} onValueChange={setActiveTab}>
+           <TabsList className="grid w-full grid-cols-3">
+             <TabsTrigger value="reporting">Reporting</TabsTrigger>
+             <TabsTrigger value="upload">Upload CDR</TabsTrigger>
+             <TabsTrigger value="users">User Directory</TabsTrigger>
+           </TabsList>
 
           {/* Reporting Tab */}
           <TabsContent value="reporting" className="space-y-6">
@@ -298,7 +292,6 @@ export default function CallLogDashboard() {
                   onUploadSuccess={() => {
                     queryClient.invalidateQueries({ queryKey: ['inbound-calls'] });
                     queryClient.invalidateQueries({ queryKey: ['outbound-calls'] });
-                    queryClient.invalidateQueries({ queryKey: ['extensions'] });
                   }}
                 />
               </CardContent>
@@ -313,18 +306,6 @@ export default function CallLogDashboard() {
               </CardHeader>
               <CardContent>
                 <UserDirectoryTable />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Extension Mapping Tab */}
-          <TabsContent value="extensions">
-            <Card>
-              <CardHeader>
-                <CardTitle>Extension Mapping</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ExtensionMappingTable />
               </CardContent>
             </Card>
           </TabsContent>

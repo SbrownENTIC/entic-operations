@@ -26,11 +26,6 @@ export default function UnmappedExtensionsPanel() {
     queryFn: () => base44.entities.OutboundCallRaw.list(),
   });
 
-  const { data: extensions = [] } = useQuery({
-    queryKey: ['extensions'],
-    queryFn: () => base44.entities.UserExtensions.list(),
-  });
-
   const { data: users = [] } = useQuery({
     queryKey: ['user-directory'],
     queryFn: () => base44.entities.UserDirectory.list(),
@@ -38,9 +33,18 @@ export default function UnmappedExtensionsPanel() {
 
   const activeUsers = useMemo(() => users.filter(u => u.active !== false), [users]);
 
-  // Find unmapped extensions
+  // Find unmapped extensions by checking UserDirectory.extensions array
   const unmappedData = useMemo(() => {
-    const mappedExts = new Set(extensions.map(e => e.extension));
+    // Build set of all mapped extensions from UserDirectory.extensions
+    const mappedExts = new Set();
+    users.forEach(user => {
+      if (user.extensions && Array.isArray(user.extensions)) {
+        user.extensions.forEach(ext => {
+          mappedExts.add(ext);
+        });
+      }
+    });
+
     const unmapped = {};
 
     // Process inbound
@@ -88,7 +92,7 @@ export default function UnmappedExtensionsPanel() {
     });
 
     return Object.values(unmapped);
-  }, [inbound, outbound, extensions]);
+  }, [inbound, outbound, users]);
 
   const handleAssign = async (extension, userId) => {
     if (!userId) return;
@@ -96,31 +100,30 @@ export default function UnmappedExtensionsPanel() {
     setAssigning({ ...assigning, [extension]: true });
 
     try {
-      await base44.entities.UserExtensions.create({
-        extension,
-        user_id: userId,
+      // Find the user and add extension to their extensions array
+      const user = users.find(u => u.id === userId);
+      if (!user) {
+        alert('User not found');
+        return;
+      }
+
+      const currentExtensions = user.extensions || [];
+      // Add extension if not already present
+      if (!currentExtensions.includes(extension)) {
+        currentExtensions.push(extension);
+      }
+
+      await base44.entities.UserDirectory.update(userId, {
+        extensions: currentExtensions
       });
 
-      queryClient.invalidateQueries({ queryKey: ['extensions'] });
+      queryClient.invalidateQueries({ queryKey: ['user-directory'] });
       queryClient.invalidateQueries({ queryKey: ['inbound-calls'] });
       queryClient.invalidateQueries({ queryKey: ['outbound-calls'] });
     } catch (error) {
       alert(`Assignment failed: ${error.message}`);
     } finally {
       setAssigning({ ...assigning, [extension]: false });
-    }
-  };
-
-  const handleMarkIgnore = async (extension) => {
-    try {
-      await base44.entities.UserExtensions.create({
-        extension,
-        user_id: null,
-      });
-
-      queryClient.invalidateQueries({ queryKey: ['extensions'] });
-    } catch (error) {
-      alert(`Failed to mark as ignored: ${error.message}`);
     }
   };
 
@@ -162,18 +165,6 @@ export default function UnmappedExtensionsPanel() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleMarkIgnore(item.extension)}
-                    disabled={assigning[item.extension]}
-                  >
-                    {assigning[item.extension] ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      'Mark as Ignore'
-                    )}
-                  </Button>
                 </div>
               </div>
             ))}

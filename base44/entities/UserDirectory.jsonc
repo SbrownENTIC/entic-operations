@@ -34,6 +34,13 @@
       "type": "boolean",
       "default": true,
       "description": "Whether this user is active"
+    },
+    "extensions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of phone extensions assigned to this user"
     }
   },
   "required": [

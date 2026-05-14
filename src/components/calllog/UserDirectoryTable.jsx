@@ -50,6 +50,7 @@ export default function UserDirectoryTable() {
       include_in_benchmark: false,
       expected_answer_rate: 0.8,
       active: true,
+      extensions: [],
     });
     setEditingUser(null);
   };
@@ -143,7 +144,7 @@ export default function UserDirectoryTable() {
 
           setImportMessage({
             type: 'success',
-            text: `User Directory Imported: ${response.data.created} Created, ${response.data.updated} Updated`,
+            text: `User Directory Imported: ${response.data.users_created} Created, ${response.data.users_updated} Updated, ${response.data.extensions_synced} with extensions`,
             details: response.data.errors
           });
 
@@ -243,6 +244,7 @@ export default function UserDirectoryTable() {
             <tr>
               <th className="text-left px-4 py-3 font-semibold">Name</th>
               <th className="text-left px-4 py-3 font-semibold">Role</th>
+              <th className="text-left px-4 py-3 font-semibold">Extensions</th>
               <th className="text-left px-4 py-3 font-semibold">Benchmark Group</th>
               <th className="text-center px-4 py-3 font-semibold">In Benchmark</th>
               <th className="text-center px-4 py-3 font-semibold">Answer Rate</th>
@@ -255,6 +257,11 @@ export default function UserDirectoryTable() {
               <tr key={user.id} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
                 <td className="px-4 py-3">{user.name}</td>
                 <td className="px-4 py-3 text-slate-600">{user.role || '-'}</td>
+                <td className="px-4 py-3 text-slate-600 font-mono text-xs">
+                  {user.extensions && user.extensions.length > 0 
+                    ? user.extensions.join(', ')
+                    : '-'}
+                </td>
                 <td className="px-4 py-3 text-slate-600">{user.benchmark_group || 'Other'}</td>
                 <td className="px-4 py-3 text-center">
                   <Checkbox
@@ -319,6 +326,21 @@ export default function UserDirectoryTable() {
                 }
                 placeholder="Job title"
               />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Extensions</label>
+              <Input
+                value={(formData?.extensions || []).join(', ')}
+                onChange={(e) => {
+                  const exts = e.target.value
+                    .split(',')
+                    .map(ext => String(ext).trim())
+                    .filter(ext => ext.length > 0);
+                  setFormData({ ...formData, extensions: exts });
+                }}
+                placeholder="e.g., 101, 102, 103"
+              />
+              <p className="text-xs text-slate-500 mt-1">Comma-separated extension numbers</p>
             </div>
             <div>
               <label className="text-sm font-medium">Benchmark Group</label>

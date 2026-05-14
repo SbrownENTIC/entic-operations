@@ -31,23 +31,15 @@ function parseCSV(content) {
 
 async function processRows(rows, headerMap, base44) {
   const existingUsers = await base44.asServiceRole.entities.UserDirectory.list('', 1000);
-  const existingExtensions = await base44.asServiceRole.entities.UserExtensions.list('', 1000);
   
   const userMap = {};
   existingUsers.forEach(u => {
     userMap[u.name.toLowerCase()] = u;
   });
 
-  // Create map of extensions by extension value
-  const extensionMap = {};
-  existingExtensions.forEach(ext => {
-    extensionMap[ext.extension] = ext;
-  });
-
   let users_created = 0;
   let users_updated = 0;
-  let extensions_created = 0;
-  let extensions_updated = 0;
+  let extensions_synced = 0;
   let skipped = 0;
   const errors = [];
 
@@ -108,58 +100,53 @@ async function processRows(rows, headerMap, base44) {
         active,
       };
 
-      // Get user ID (for extension mapping)
+      // Get user ID and handle extensions
       let userId;
       const existingUser = userMap[name.toLowerCase()];
+      
+      // Handle extensions if column exists
+      let extensionsArray = [];
+      if (extensionIdx !== undefined) {
+        const extensionValue = extensionIdx !== undefined && row[extensionIdx] 
+          ? String(row[extensionIdx]).trim() 
+          : '';
+        
+        if (extensionValue && extensionValue.length > 0) {
+          // Split by comma and trim each extension, treat as strings
+          extensionsArray = extensionValue
+            .split(',')
+            .map(ext => String(ext).trim())
+            .filter(ext => ext.length > 0);
+        }
+      }
+      
+      // Add extensions to user data
+      const finalUserData = { ...userData };
+      if (extensionsArray.length > 0) {
+        finalUserData.extensions = extensionsArray;
+      }
+
       if (existingUser) {
-        await base44.asServiceRole.entities.UserDirectory.update(existingUser.id, userData);
+        await base44.asServiceRole.entities.UserDirectory.update(existingUser.id, finalUserData);
         users_updated++;
         userId = existingUser.id;
       } else {
-        const newUser = await base44.asServiceRole.entities.UserDirectory.create(userData);
+        const newUser = await base44.asServiceRole.entities.UserDirectory.create(finalUserData);
         users_created++;
         userId = newUser.id;
         userMap[name.toLowerCase()] = newUser;
       }
 
-      // Handle extension mapping if extension column exists
-      if (extensionIdx !== undefined) {
-        const extension = extensionIdx !== undefined && row[extensionIdx] 
-          ? String(row[extensionIdx]).trim() 
-          : '';
-        
-        if (extension && extension.length > 0) {
-          const existingExt = extensionMap[extension];
-          
-          if (existingExt) {
-            // Extension exists, check if it's mapped to the correct user
-            if (existingExt.user_id !== userId) {
-              // Update to correct user
-              await base44.asServiceRole.entities.UserExtensions.update(existingExt.id, {
-                extension: extension,
-                user_id: userId
-              });
-              extensions_updated++;
-              extensionMap[extension] = { id: existingExt.id, extension, user_id: userId };
-            }
-            // If already mapped correctly, do nothing
-          } else {
-            // Extension does not exist, create it
-            const newExt = await base44.asServiceRole.entities.UserExtensions.create({
-              extension: extension,
-              user_id: userId
-            });
-            extensions_created++;
-            extensionMap[extension] = newExt;
-          }
-        }
+      // Track extension syncing
+      if (extensionsArray.length > 0) {
+        extensions_synced++;
       }
     } catch (error) {
       errors.push(`Row ${rowNum}: ${error.message}`);
     }
   }
 
-  return { users_created, users_updated, extensions_created, extensions_updated, skipped, errors };
+  return { users_created, users_updated, extensions_synced, skipped, errors };
 }
 
 Deno.serve(async (req) => {
@@ -296,8 +283,7 @@ Deno.serve(async (req) => {
       success: true,
       users_created: result.users_created,
       users_updated: result.users_updated,
-      extensions_created: result.extensions_created,
-      extensions_updated: result.extensions_updated,
+      extensions_synced: result.extensions_synced,
       skipped: result.skipped,
       total: result.users_created + result.users_updated + result.skipped,
       errors: result.errors.length > 0 ? result.errors : null,

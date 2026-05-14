@@ -4,16 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 /**
  * Calculate all call metrics from raw data
  */
-export function useCallMetrics(inbound, outbound, users, extensions) {
+export function useCallMetrics(inbound, outbound, users) {
   return useMemo(() => {
-    // Build extension to user map
+    // Build extension to user map from UserDirectory.extensions array
     const extToUser = {};
-    extensions.forEach(ext => {
-      if (ext.user_id) {
-        const user = users.find(u => u.id === ext.user_id);
-        if (user) {
-          extToUser[ext.extension] = user;
-        }
+    users.forEach(user => {
+      if (user.extensions && Array.isArray(user.extensions)) {
+        user.extensions.forEach(ext => {
+          extToUser[ext] = user;
+        });
       }
     });
 
@@ -55,7 +54,7 @@ export function useCallMetrics(inbound, outbound, users, extensions) {
     const frontDeskAnswerRate = frontDeskInbound.length === 0 ? 0 :
       Math.min(frontDeskAnswered / frontDeskInbound.length, 1.0);
 
-    // Unmapped extensions
+    // Unmapped extensions - extensions in call data not in any user.extensions
     const mappedExtensions = new Set(Object.keys(extToUser));
     const unmappedInboundExts = new Set(
       inbound.filter(c => !mappedExtensions.has(c.extension)).map(c => c.extension)
@@ -78,7 +77,7 @@ export function useCallMetrics(inbound, outbound, users, extensions) {
       unmappedCount,
       unmappedExtensions: Array.from(unmappedInboundExts)
     };
-  }, [inbound, outbound, users, extensions]);
+  }, [inbound, outbound, users]);
 }
 
 /**
