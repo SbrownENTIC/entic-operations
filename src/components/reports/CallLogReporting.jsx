@@ -223,6 +223,7 @@ export default function CallLogReporting() {
   const [sortCol, setSortCol] = useState("user");
   const [sortDir, setSortDir] = useState("asc");
   const [userSearch, setUserSearch] = useState("");
+  const [benchmarkOnly, setBenchmarkOnly] = useState(true);
 
   const { data: periods = [], isLoading: periodsLoading } = useQuery({
     queryKey: ["call-log-periods"],
@@ -304,14 +305,22 @@ export default function CallLogReporting() {
     return s;
   }, [allUserConfigs, userSummaries]);
 
-  const enrichedSummaries = React.useMemo(() => {
-    const enriched = userSummaries.filter(u => benchmarkSet.has(norm(u.user))).map(u => ({
+  // All summaries with call data, enriched
+  const allEnrichedSummaries = React.useMemo(() => {
+    return userSummaries.filter(u => (u.total_calls || 0) > 0).map(u => ({
       ...u,
-      inbound_answer_rate: u.inbound > 0 ? ((Number(u.inbound || 0) - Number(u.missed || 0)) / Number(u.inbound)) * 100 : null
+      inbound_answer_rate: u.inbound > 0 ? ((Number(u.inbound || 0) - Number(u.missed || 0)) / Number(u.inbound)) * 100 : null,
+      in_benchmark: benchmarkSet.has(norm(u.user)),
     }));
-    console.log("BENCHMARK_USER_COUNT", enriched.length, "TOTAL_SUMMARY_COUNT", userSummaries.length);
-    return enriched;
   }, [userSummaries, benchmarkSet]);
+
+  // Benchmark-only summaries (include_in_benchmark === true)
+  const enrichedSummaries = React.useMemo(() => {
+    return allEnrichedSummaries.filter(u => u.in_benchmark);
+  }, [allEnrichedSummaries]);
+
+  // Active summaries based on toggle
+  const displaySummaries = benchmarkOnly ? enrichedSummaries : allEnrichedSummaries;
 
   const TABLE_COLS = [
     { key: "user",                  label: "User",                    type: "alpha" },
@@ -335,7 +344,7 @@ export default function CallLogReporting() {
 
   React.useEffect(() => { setUserSearch(""); setSortCol("user"); setSortDir("asc"); }, [selectedPeriod?.id]);
 
-  const activeSummaries = [...enrichedSummaries.filter(u => (u.total_calls || 0) > 0)]
+  const activeSummaries = [...displaySummaries]
     .sort((a, b) => {
       const col = TABLE_COLS.find(c => c.key === sortCol);
       if (!col) return 0;
@@ -518,10 +527,15 @@ export default function CallLogReporting() {
 
   const exportPeriodExcel = () => runExportPeriodExcel({
     selectedPeriod,
-    enrichedSummaries,
+    enrichedSummaries,        // always benchmark-only in export
     frontEndSummaries,
-    totalCalls, totalInbound, totalOutbound,
-    totalInboundAnswered, totalMissed, totalDurationSec, overallAvgDurationSec,
+    totalCalls: enrichedSummaries.reduce((s, u) => s + (u.total_calls || 0), 0),
+    totalInbound: enrichedSummaries.reduce((s, u) => s + (u.inbound || 0), 0),
+    totalOutbound: enrichedSummaries.reduce((s, u) => s + (u.outbound || 0), 0),
+    totalInboundAnswered: enrichedSummaries.reduce((s, u) => s + (u.inbound_answered != null ? u.inbound_answered : (u.answered || 0)), 0),
+    totalMissed: enrichedSummaries.reduce((s, u) => s + (u.missed || 0), 0),
+    totalDurationSec: enrichedSummaries.reduce((s, u) => s + (u.total_duration_seconds || 0), 0),
+    overallAvgDurationSec: (() => { const tc = enrichedSummaries.reduce((s,u) => s+(u.total_calls||0),0); const dur = enrichedSummaries.reduce((s,u) => s+(u.total_duration_seconds||0),0); return tc > 0 ? dur/tc : 0; })(),
     formatPeriodLabel,
   });
 
@@ -738,11 +752,33 @@ export default function CallLogReporting() {
                     </span>
                   </span>
                 )}
+                {/* Benchmark toggle */}
+                <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-0.5 text-xs font-medium shadow-sm">
+                  <button
+                    onClick={() => setBenchmarkOnly(true)}
+                    className={`px-3 py-1 rounded-md transition-all ${benchmarkOnly ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-100"}`}
+                  >
+                    Benchmark Only
+                  </button>
+                  <button
+                    onClick={() => setBenchmarkOnly(false)}
+                    className={`px-3 py-1 rounded-md transition-all ${!benchmarkOnly ? "bg-slate-700 text-white shadow-sm" : "text-slate-600 hover:bg-slate-100"}`}
+                  >
+                    All Extensions
+                  </button>
+                </div>
                 <div className="ml-auto">
                   <Button variant="outline" size="sm" onClick={exportPeriodExcel} disabled={!enrichedSummaries || enrichedSummaries.length === 0} className="gap-2">
                     <Download className="w-4 h-4" /> Export Excel Report
                   </Button>
                 </div>
+              </div>
+              {/* Scope notice */}
+              <div className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-md border ${benchmarkOnly ? "bg-blue-50 border-blue-200 text-blue-700" : "bg-amber-50 border-amber-200 text-amber-700"}`}>
+                <span className="font-semibold">{benchmarkOnly ? "📊 Benchmark Only:" : "📋 All Extensions:"}</span>
+                {benchmarkOnly
+                  ? `Showing ${enrichedSummaries.length} in-benchmark users. Fax, voicemail, clinical, and admin lines excluded.`
+                  : `Showing all ${allEnrichedSummaries.length} extensions. Export always uses Benchmark Only.`}
               </div>
 
               {summariesLoading ? (
@@ -770,7 +806,7 @@ export default function CallLogReporting() {
                       { label: "Outbound",       value: totalOutbound.toLocaleString(),          color: "text-indigo-700" },
                       { label: "Inbound Answered", value: totalInboundAnswered.toLocaleString(), color: "text-green-700" },
                       { label: "Missed",           value: totalMissed.toLocaleString(),          color: "text-red-600" },
-                      { label: "Inbound Answer Rate (All)",
+                      { label: benchmarkOnly ? "Inbound Answer Rate (Benchmark)" : "Inbound Answer Rate (All)",
                         value: overallAnswerRate === null ? "—" : (overallAnswerRate * 100).toFixed(2) + "%",
                         color: overallAnswerRate === null ? "text-slate-400" : overallAnswerRate >= 0.8 ? "text-green-700" : overallAnswerRate >= 0.5 ? "text-yellow-700" : "text-red-600" },
                       { label: "Front-End Answer Rate",
@@ -799,7 +835,7 @@ export default function CallLogReporting() {
                   )}
 
                   <UserBreakdownTable
-                    summaries={enrichedSummaries}
+                    summaries={displaySummaries}
                     sortCol={sortCol}
                     sortDir={sortDir}
                     onSortChange={(col, dir) => { setSortCol(col); setSortDir(dir); }}

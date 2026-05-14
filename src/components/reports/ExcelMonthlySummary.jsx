@@ -37,18 +37,27 @@ export function buildMonthlySummarySheet(wb, {
   ws.getCell("D2").font = mkFont({ color: { argb: "FF666666" }, size: 10 });
   ws.getRow(2).height = 20;
 
+  // ── Benchmark scope note ──────────────────────────────────────────────────
+  ws.addRow(["⚠ Benchmark Metrics Calculated Using In-Benchmark Extensions Only", ...Array(9).fill("")]);
+  ws.mergeCells("A3:J3");
+  const benchNote = ws.getCell("A3");
+  benchNote.font      = mkFont({ bold: true, size: 10, color: { argb: "FF1F3864" } });
+  benchNote.fill      = mkFill("FFDCE6F1");
+  benchNote.alignment = { horizontal: "center", vertical: "middle" };
+  ws.getRow(3).height = 20;
+
   // ── Clarifying note ───────────────────────────────────────────────────────
   ws.addRow([
-    "Totals on this sheet reflect operational call log data. For Vonage CDR inbound-only validation, see the 'Inbound CDR' sheet.",
+    "Totals on this sheet reflect in-benchmark users only. Fax, voicemail, clinical, and admin lines are excluded. For CDR validation, see 'Inbound CDR'.",
     ...Array(9).fill(""),
   ]);
-  ws.mergeCells(`A3:J3`);
-  const noteCell = ws.getCell("A3");
+  ws.mergeCells(`A4:J4`);
+  const noteCell = ws.getCell("A4");
   noteCell.font      = mkFont({ italic: true, size: 9, color: { argb: "FFAAAAAA" } });
   noteCell.alignment = { horizontal: "left", vertical: "middle" };
-  ws.getRow(3).height = 18;
+  ws.getRow(4).height = 18;
 
-  ws.addRow([]); ws.getRow(4).height = 6;
+  ws.addRow([]); ws.getRow(5).height = 6;
 
   // ── Section: Monthly KPI Summary (formula-driven where available) ─────────
   addSectionHeader(ws, "Monthly KPI Summary", 4);
@@ -84,7 +93,7 @@ export function buildMonthlySummarySheet(wb, {
   });
 
   // Freeze panes just below the KPI block header row
-  ws.views = [{ showGridLines: false, state: "frozen", ySplit: 5, xSplit: 0 }];
+  ws.views = [{ showGridLines: false, state: "frozen", ySplit: 7, xSplit: 0 }];
 
   ws.addRow([]); ws.getRow(ws.rowCount).height = 8;
 
