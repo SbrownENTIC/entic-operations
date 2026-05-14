@@ -231,11 +231,10 @@ export default function CallLogDashboard() {
     );
   }
 
-  // Validation warnings
+  // Validation warnings (exclude unmapped count - handled by UnmappedExtensionsAlert)
   const warnings = [];
   if (inbound.length === 0) warnings.push('No inbound call data imported');
   if (users.filter(u => u.include_in_benchmark).length === 0) warnings.push('No benchmark users configured');
-  if (metrics.unmappedCount > 0) warnings.push(`${metrics.unmappedCount} extensions are unmapped`);
 
   return (
     <div className="p-6 bg-slate-50 min-h-screen">
@@ -386,7 +385,6 @@ export default function CallLogDashboard() {
 
           {/* Upload CDR Tab */}
           <TabsContent value="upload" className="space-y-6">
-            <UnmappedExtensionsAlert />
             <Card className="border-blue-200 bg-blue-50">
               <CardHeader>
                 <CardTitle className="text-base">Import Call Records</CardTitle>
