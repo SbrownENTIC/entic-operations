@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,10 +16,12 @@ import CallLogDetailModal from '@/components/calllog/CallLogDetailModal';
 import WeeklyTable from '@/components/calllog/WeeklyTable';
 import MonthlyTable from '@/components/calllog/MonthlyTable';
 import IndividualPerformanceTable from '@/components/calllog/IndividualPerformanceTable';
+import CDRUpload from '@/components/calllog/CDRUpload';
 
 export default function CallLogDashboard() {
   const [selectedMetric, setSelectedMetric] = useState(null);
   const [isExporting, setIsExporting] = useState(false);
+  const queryClient = useQueryClient();
 
   // Fetch all data
   const { data: inbound = [], isLoading: inboundLoading } = useQuery({
@@ -158,6 +160,21 @@ export default function CallLogDashboard() {
             {isExporting ? 'Exporting...' : 'Export to Excel'}
           </Button>
         </div>
+
+        {/* Upload Section */}
+        <Card className="border-blue-200 bg-blue-50">
+          <CardHeader>
+            <CardTitle className="text-base">Import Call Records</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CDRUpload
+              onUploadSuccess={() => {
+                queryClient.invalidateQueries({ queryKey: ['inbound-calls'] });
+                queryClient.invalidateQueries({ queryKey: ['outbound-calls'] });
+              }}
+            />
+          </CardContent>
+        </Card>
 
         {/* Warnings */}
         {warnings.length > 0 && (

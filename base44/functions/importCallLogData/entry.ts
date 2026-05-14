@@ -45,6 +45,32 @@ function extractExtension(toField, fromField, destinationDeviceField) {
   return toStr;
 }
 
+/**
+ * Parse CSV content into array of objects
+ */
+function parseCSV(csvContent) {
+  const lines = csvContent.trim().split('\n');
+  if (lines.length < 2) return [];
+
+  const headerLine = lines[0];
+  const headers = headerLine.split(',').map(h => h.trim());
+
+  const records = [];
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+
+    const values = line.split(',').map(v => v.trim());
+    const record = {};
+    headers.forEach((header, index) => {
+      record[header] = values[index] || '';
+    });
+    records.push(record);
+  }
+
+  return records;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -54,7 +80,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { inboundData, outboundData } = body;
+    const { file, type, inboundData, outboundData } = body;
 
     let inboundCreated = 0;
     let outboundCreated = 0;
@@ -67,66 +93,140 @@ Deno.serve(async (req) => {
       extMap[ext.extension] = ext.user_id;
     });
 
-    // Import inbound calls
-    if (inboundData && Array.isArray(inboundData)) {
-      const inboundRecords = inboundData.map(row => {
-        const { date, time } = parseDateTime(row['Date/Time'] || '');
-        const ext = extractExtension(row['To'], row['From'], row['Destination Device']);
-        const duration = parseDuration(row['Duration']);
-        const disposition = row['Result'] || '';
-        const answered = disposition.toLowerCase().includes('answered');
-        const missed = disposition.toLowerCase().includes('missed');
-
-        if (!extMap[ext]) {
-          unmappedExtensions.add(ext);
-        }
-
-        return {
-          call_date: date,
-          call_time: time,
-          extension: ext,
-          caller_number: row['From'] || '',
-          duration_seconds: duration,
-          disposition: disposition,
-          answered: answered,
-          missed: missed
-        };
-      });
-
-      if (inboundRecords.length > 0) {
-        await base44.asServiceRole.entities.InboundCallRaw.bulkCreate(inboundRecords);
-        inboundCreated = inboundRecords.length;
+    // Handle file-based upload
+    if (file && type) {
+      let records;
+      try {
+        records = parseCSV(file);
+      } catch (error) {
+        return Response.json({
+          error: `CSV parsing failed: ${error.message}`
+        }, { status: 400 });
       }
-    }
 
-    // Import outbound calls
-    if (outboundData && Array.isArray(outboundData)) {
-      const outboundRecords = outboundData.map(row => {
-        const { date, time } = parseDateTime(row['Date/Time'] || '');
-        const ext = extractExtension(row['To'], row['From'], row['Destination Device']);
-        const duration = parseDuration(row['Duration']);
+      if (!records.length) {
+        return Response.json({
+          error: 'CSV file is empty or contains no valid records'
+        }, { status: 400 });
+      }
 
-        if (!extMap[ext]) {
-          unmappedExtensions.add(ext);
+      if (type === 'inbound') {
+        const inboundRecords = records.map(row => {
+          const { date, time } = parseDateTime(row['Date/Time'] || '');
+          const ext = extractExtension(row['To'], row['From'], row['Destination Device']);
+          const duration = parseDuration(row['Duration']);
+          const disposition = row['Result'] || '';
+          const answered = disposition.toLowerCase().includes('answered');
+          const missed = disposition.toLowerCase().includes('missed');
+
+          if (!extMap[ext]) {
+            unmappedExtensions.add(ext);
+          }
+
+          return {
+            call_date: date,
+            call_time: time,
+            extension: ext,
+            caller_number: row['From'] || '',
+            duration_seconds: duration,
+            disposition: disposition,
+            answered: answered,
+            missed: missed
+          };
+        });
+
+        if (inboundRecords.length > 0) {
+          await base44.asServiceRole.entities.InboundCallRaw.bulkCreate(inboundRecords);
+          inboundCreated = inboundRecords.length;
         }
+      } else if (type === 'outbound') {
+        const outboundRecords = records.map(row => {
+          const { date, time } = parseDateTime(row['Date/Time'] || '');
+          const ext = extractExtension(row['To'], row['From'], row['Destination Device']);
+          const duration = parseDuration(row['Duration']);
 
-        return {
-          call_date: date,
-          call_time: time,
-          extension: ext,
-          dialed_number: row['To'] || '',
-          duration_seconds: duration
-        };
-      });
+          if (!extMap[ext]) {
+            unmappedExtensions.add(ext);
+          }
 
-      if (outboundRecords.length > 0) {
-        await base44.asServiceRole.entities.OutboundCallRaw.bulkCreate(outboundRecords);
-        outboundCreated = outboundRecords.length;
+          return {
+            call_date: date,
+            call_time: time,
+            extension: ext,
+            dialed_number: row['To'] || '',
+            duration_seconds: duration
+          };
+        });
+
+        if (outboundRecords.length > 0) {
+          await base44.asServiceRole.entities.OutboundCallRaw.bulkCreate(outboundRecords);
+          outboundCreated = outboundRecords.length;
+        }
+      }
+    } else {
+      // Legacy batch import support
+      // Import inbound calls
+      if (inboundData && Array.isArray(inboundData)) {
+        const inboundRecords = inboundData.map(row => {
+          const { date, time } = parseDateTime(row['Date/Time'] || '');
+          const ext = extractExtension(row['To'], row['From'], row['Destination Device']);
+          const duration = parseDuration(row['Duration']);
+          const disposition = row['Result'] || '';
+          const answered = disposition.toLowerCase().includes('answered');
+          const missed = disposition.toLowerCase().includes('missed');
+
+          if (!extMap[ext]) {
+            unmappedExtensions.add(ext);
+          }
+
+          return {
+            call_date: date,
+            call_time: time,
+            extension: ext,
+            caller_number: row['From'] || '',
+            duration_seconds: duration,
+            disposition: disposition,
+            answered: answered,
+            missed: missed
+          };
+        });
+
+        if (inboundRecords.length > 0) {
+          await base44.asServiceRole.entities.InboundCallRaw.bulkCreate(inboundRecords);
+          inboundCreated = inboundRecords.length;
+        }
+      }
+
+      // Import outbound calls
+      if (outboundData && Array.isArray(outboundData)) {
+        const outboundRecords = outboundData.map(row => {
+          const { date, time } = parseDateTime(row['Date/Time'] || '');
+          const ext = extractExtension(row['To'], row['From'], row['Destination Device']);
+          const duration = parseDuration(row['Duration']);
+
+          if (!extMap[ext]) {
+            unmappedExtensions.add(ext);
+          }
+
+          return {
+            call_date: date,
+            call_time: time,
+            extension: ext,
+            dialed_number: row['To'] || '',
+            duration_seconds: duration
+          };
+        });
+
+        if (outboundRecords.length > 0) {
+          await base44.asServiceRole.entities.OutboundCallRaw.bulkCreate(outboundRecords);
+          outboundCreated = outboundRecords.length;
+        }
       }
     }
 
     return Response.json({
       success: true,
+      created: inboundCreated + outboundCreated,
       inboundCreated,
       outboundCreated,
       unmappedExtensions: Array.from(unmappedExtensions)
