@@ -115,10 +115,13 @@ export default function UserDirectoryTable() {
     if (!file) return;
 
     // Validate file type
-    if (!file.name.endsWith('.xlsx')) {
+    const isCSV = file.name.endsWith('.csv');
+    const isXLSX = file.name.endsWith('.xlsx');
+
+    if (!isCSV && !isXLSX) {
       setImportMessage({
         type: 'error',
-        text: 'Only .xlsx files are supported'
+        text: 'Only .csv and .xlsx files are supported'
       });
       return;
     }
@@ -131,9 +134,11 @@ export default function UserDirectoryTable() {
       reader.onload = async (e) => {
         try {
           const fileContent = e.target.result.split(',')[1]; // Get base64 part
+          const fileType = isCSV ? 'csv' : 'xlsx';
           
           const response = await base44.functions.invoke('importUserDirectory', {
-            fileContent
+            fileContent,
+            fileType
           });
 
           setImportMessage({
@@ -207,7 +212,7 @@ export default function UserDirectoryTable() {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".xlsx"
+            accept=".csv,.xlsx"
             className="hidden"
             onChange={(e) => handleImport(e.target.files?.[0])}
             disabled={importing}
