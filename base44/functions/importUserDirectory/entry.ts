@@ -42,27 +42,27 @@ async function processRows(rows, headerMap, base44) {
   const errors = [];
 
   // Process each row starting from row 2 (skip header)
-   for (let rowNum = 2; rowNum <= rows.length; rowNum++) {
-     const row = rows[rowNum - 1];
-     if (!row || row.length === 0) {
-       skipped++;
-       continue;
-     }
+  for (let rowNum = 2; rowNum <= rows.length; rowNum++) {
+    const row = rows[rowNum - 1];
+    if (!row || row.length === 0) {
+      skipped++;
+      continue;
+    }
 
-     const nameIdx = headerMap['name'];
-     const name = (row[nameIdx] !== null && row[nameIdx] !== undefined) ? String(row[nameIdx]).trim() : '';
+    const nameIdx = headerMap['name'];
+    const name = (row[nameIdx] !== null && row[nameIdx] !== undefined) ? String(row[nameIdx]).trim() : '';
 
-     if (!name) {
-       skipped++;
-       continue;
-     }
+    if (!name) {
+      skipped++;
+      continue;
+    }
 
-     try {
-       const roleIdx = headerMap['role'];
-       const benchmarkGroupIdx = headerMap['benchmark_group'];
-       const includeInBenchmarkIdx = headerMap['include_in_benchmark'];
-       const answerRateIdx = headerMap['expected_answer_rate'];
-       const activeIdx = headerMap['active'];
+    try {
+      const roleIdx = headerMap['role'];
+      const benchmarkGroupIdx = headerMap['benchmark_group'];
+      const includeInBenchmarkIdx = headerMap['include_in_benchmark'];
+      const answerRateIdx = headerMap['expected_answer_rate'];
+      const activeIdx = headerMap['active'];
 
       const role = row[roleIdx] ? String(row[roleIdx]).trim() : '';
       const benchmarkGroup = row[benchmarkGroupIdx] ? String(row[benchmarkGroupIdx]).trim() : 'Other';
@@ -157,10 +157,18 @@ Deno.serve(async (req) => {
           return Response.json({ error: 'Excel file has no sheets' }, { status: 400 });
         }
 
-        // Extract rows from worksheet
-        worksheet.eachRow({ header: 1 }, (row) => {
-          rows.push(row || []);
+        // Extract rows as plain arrays, converting ExcelJS Value objects to primitives
+        worksheet.eachRow((excelRow) => {
+          const rowArray = [];
+          excelRow.eachCell((cell) => {
+            rowArray.push(cell.value);
+          });
+          rows.push(rowArray);
         });
+
+        if (rows.length === 0) {
+          return Response.json({ error: 'Sheet is empty' }, { status: 400 });
+        }
       } catch (err) {
         return Response.json({ error: `Excel parsing failed: ${err.message}` }, { status: 400 });
       }
@@ -174,6 +182,12 @@ Deno.serve(async (req) => {
 
     // Map header row - normalize column names
     const headerRow = rows[0];
+    
+    // Validate headerRow is an array
+    if (!Array.isArray(headerRow)) {
+      return Response.json({ error: 'Invalid header row format' }, { status: 400 });
+    }
+
     const columnMap = {};
     headerRow.forEach((col, index) => {
       if (col) {
