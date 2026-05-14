@@ -267,7 +267,7 @@ export default function UserDirectoryTable() {
                 <td className="px-4 py-3 text-slate-600">{user.location || '-'}</td>
                 <td className="px-4 py-3 text-slate-600">{user.benchmark_group || 'Other'}</td>
                 <td className="px-4 py-3 text-center">
-                  {Math.round((user.expected_answer_rate || 0.8) * 100)}%
+                  {user.include_in_benchmark ? `${Math.round((user.expected_answer_rate || 0.8) * 100)}%` : 'N/A'}
                 </td>
                 <td className="px-4 py-3 text-center">
                   {user.daily_goal || '-'}
@@ -378,18 +378,22 @@ export default function UserDirectoryTable() {
             </div>
             <div>
               <label className="text-sm font-medium">Expected Answer Rate (%)</label>
-              <Input
-                type="number"
-                min="0"
-                max="100"
-                value={Math.round((formData?.expected_answer_rate || 0.8) * 100)}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    expected_answer_rate: parseInt(e.target.value) / 100,
-                  })
-                }
-              />
+              {formData?.include_in_benchmark ? (
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={Math.round((formData?.expected_answer_rate || 0.8) * 100)}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      expected_answer_rate: parseInt(e.target.value) / 100,
+                    })
+                  }
+                />
+              ) : (
+                <div className="p-2 bg-slate-100 rounded text-slate-600 text-sm">N/A - User not in benchmark</div>
+              )}
             </div>
             <div>
               <label className="text-sm font-medium">Daily Goal</label>
