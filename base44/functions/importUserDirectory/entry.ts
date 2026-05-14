@@ -115,8 +115,8 @@ async function processRows(rows, headerMap, base44) {
 
        if (role) userData.role = role;
        if (location) userData.location = location;
-       if (answerRate > 0) userData.expected_answer_rate = answerRate;
        if (dailyGoal !== null) userData.daily_goal = dailyGoal;
+       if (answerRate > 0) userData.expected_answer_rate = answerRate;
 
       // Get user ID and handle extensions
       let userId;
@@ -259,14 +259,14 @@ Deno.serve(async (req) => {
       'expected_answer_rate': ['expected_answer_rate', 'Expected_Answer_Rate', 'expected answer rate', 'Expected Answer Rate', 'expectedanswerrate']
     };
 
-    // Optional fields
+    // Optional fields - order matters, more specific names first
     const optionalFields = {
-      'role': ['role', 'Role'],
-      'location': ['location', 'Location'],
-      'daily_goal': ['daily_goal', 'Daily_Goal', 'daily goal', 'Daily Goal'],
-      'include_in_benchmark': ['include_in_benchmark', 'Include_In_Benchmark', 'include in benchmark', 'Include In Benchmark'],
-      'active': ['active', 'Active'],
-      'extension': ['extension', 'Extension', 'extensions', 'Extensions', 'ext', 'Ext', 'phone_extension', 'Phone_Extension']
+      'role': ['Role', 'role'],
+      'location': ['Location', 'location'],
+      'daily_goal': ['Daily_Goal', 'daily_goal', 'Daily Goal', 'daily goal'],
+      'include_in_benchmark': ['Include_In_Benchmark', 'include_in_benchmark', 'Include In Benchmark', 'include in benchmark'],
+      'active': ['Active', 'active'],
+      'extension': ['Extensions', 'Extension', 'extensions', 'extension', 'Ext', 'ext', 'Phone_Extension', 'phone_extension']
     };
 
     const headers = {};
