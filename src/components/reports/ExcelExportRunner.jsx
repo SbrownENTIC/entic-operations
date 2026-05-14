@@ -188,24 +188,34 @@ export async function exportPeriodExcel({
     .slice()
     .sort((a, b) => (a.week_start || "").localeCompare(b.week_start || ""));
 
+  // Pre-build a temporary benchmark name set for weekRows filtering.
+  // (Full coerceBool-based set is built after userWeekRows; this early pass uses the same logic.)
+  const _earlyBenchmarkNames = new Set(
+    exportUserConfigs
+      .filter(cfg => {
+        const v = cfg.include_in_benchmark;
+        if (typeof v === "boolean") return v;
+        if (v === null || v === undefined) return false;
+        return ["true", "yes", "1", "x", "✓", "checked"].includes(String(v).toLowerCase().trim());
+      })
+      .map(cfg => (cfg.user_name || "").trim().toLowerCase())
+  );
+
   const weekRows = sortedWeeks.map(week => {
-    let totals;
-    if (week.totals && typeof week.totals.total_calls === "number") {
-      totals = week.totals;
-    } else {
-      const snap = Array.isArray(week.user_snapshot) ? week.user_snapshot : [];
-      totals = {
-        total_calls:            snap.reduce((s, u) => s + (u.total_calls || 0), 0),
-        inbound:                snap.reduce((s, u) => s + (u.inbound || 0), 0),
-        outbound:               snap.reduce((s, u) => s + (u.outbound || 0), 0),
-        answered:               snap.reduce((s, u) => s + (u.answered || 0), 0),
-        missed:                 snap.reduce((s, u) => s + (u.missed || 0), 0),
-        total_duration_minutes: snap.reduce((s, u) => s + durationToMinutes(u.total_duration_minutes), 0),
-      };
-    }
-    const inboundCount   = totals.inbound || 0;
+    // Only sum benchmark users so Weekly Summary matches Monthly KPI
+    const snap = Array.isArray(week.user_snapshot) ? week.user_snapshot : [];
+    const benchSnap = snap.filter(u => _earlyBenchmarkNames.has((u.user || "").trim().toLowerCase()));
+    const totals = {
+      total_calls:            benchSnap.reduce((s, u) => s + (u.total_calls || 0), 0),
+      inbound:                benchSnap.reduce((s, u) => s + (u.inbound || 0), 0),
+      outbound:               benchSnap.reduce((s, u) => s + (u.outbound || 0), 0),
+      answered:               benchSnap.reduce((s, u) => s + (u.answered || 0), 0),
+      missed:                 benchSnap.reduce((s, u) => s + (u.missed || 0), 0),
+      total_duration_minutes: benchSnap.reduce((s, u) => s + durationToMinutes(u.total_duration_minutes), 0),
+    };
+    const inboundCount    = totals.inbound || 0;
     const inboundAnswered = calcInboundAnswered(inboundCount, totals.missed || 0);
-    const totalDurMin    = durationToMinutes(totals.total_duration_minutes);
+    const totalDurMin     = durationToMinutes(totals.total_duration_minutes);
     return {
       week_start:             week.week_start,
       week_end:               week.week_end,
@@ -215,9 +225,9 @@ export async function exportPeriodExcel({
       answered:               inboundAnswered,
       missed:                 totals.missed || 0,
       total_duration_minutes: totalDurMin,
-      avg_duration_minutes:   (totals.total_calls || 0) > 0 ? totalDurMin / totals.total_calls : 0,
+      avg_duration_minutes:   totals.total_calls > 0 ? totalDurMin / totals.total_calls : 0,
       answer_rate:            inboundCount > 0 ? calcInboundAnswerRate(inboundCount, inboundAnswered) : null,
-      user_snapshot:          Array.isArray(week.user_snapshot) ? week.user_snapshot : [],
+      user_snapshot:          snap, // keep full snapshot for other sheets
     };
   });
 
@@ -321,6 +331,33 @@ export async function exportPeriodExcel({
     return dailyRate * WORK_DAYS_PER_WEEK;
   };
 
+  // ── Recompute Monthly KPI totals from weekRows — same source as Weekly Summary ──
+  // Only include benchmark users so KPI and Weekly Summary are always aligned.
+  // weekRows already contain totals per week; we need per-user-per-week to apply the
+  // benchmark filter. We use userWeekRows (already built above) filtered to benchmark users.
+  const benchmarkUserNames = new Set(
+    exportUserConfigs
+      .filter(cfg => coerceBool(cfg.include_in_benchmark))
+      .map(cfg => (cfg.user_name || "").trim().toLowerCase())
+  );
+  const benchmarkUserWeekRows = userWeekRows.filter(
+    u => !u._warning && benchmarkUserNames.has((u.user || "").trim().toLowerCase())
+  );
+
+  const kpiTotalCalls           = benchmarkUserWeekRows.reduce((s, u) => s + (u.total_calls || 0), 0);
+  const kpiTotalInbound         = benchmarkUserWeekRows.reduce((s, u) => s + (u.inbound || 0), 0);
+  const kpiTotalOutbound        = benchmarkUserWeekRows.reduce((s, u) => s + (u.outbound || 0), 0);
+  const kpiTotalInboundAnswered = benchmarkUserWeekRows.reduce((s, u) => s + (u.answered || 0), 0);
+  const kpiTotalMissed          = benchmarkUserWeekRows.reduce((s, u) => s + (u.missed || 0), 0);
+  // Duration: userWeekRows stores minutes; convert to seconds for the KPI display
+  const kpiTotalDurationSec     = benchmarkUserWeekRows.reduce((s, u) => s + (u.total_duration_minutes || 0) * 60, 0);
+  const kpiAvgDurationSec       = kpiTotalCalls > 0 ? kpiTotalDurationSec / kpiTotalCalls : 0;
+
+  console.log("[KPI_ALIGN] Benchmark user count:", benchmarkUserNames.size);
+  console.log("[KPI_ALIGN] Benchmark userWeekRows count:", benchmarkUserWeekRows.length);
+  console.log("[KPI_ALIGN] KPI totalCalls:", kpiTotalCalls, "weekRows sum:", weekRows.reduce((s,w)=>s+(w.total_calls||0),0));
+  console.log("[KPI_ALIGN] KPI totalInbound:", kpiTotalInbound, "weekRows sum:", weekRows.reduce((s,w)=>s+(w.inbound||0),0));
+
   // ── Create workbook ────────────────────────────────────────────────────────
   const wb = new ExcelJS.Workbook();
   wb.creator   = "ENTIC Operations Center";
@@ -330,8 +367,13 @@ export async function exportPeriodExcel({
   // ── SHEET 1: Monthly Summary ───────────────────────────────────────────────
   const wsSummary = buildMonthlySummarySheet(wb, {
     periodLabel, generatedOn,
-    totalCalls, totalInbound, totalOutbound,
-    totalInboundAnswered, totalMissed, totalDurationSec, overallAvgDurationSec,
+    totalCalls:           kpiTotalCalls,
+    totalInbound:         kpiTotalInbound,
+    totalOutbound:        kpiTotalOutbound,
+    totalInboundAnswered: kpiTotalInboundAnswered,
+    totalMissed:          kpiTotalMissed,
+    totalDurationSec:     kpiTotalDurationSec,
+    overallAvgDurationSec: kpiAvgDurationSec,
     weekRows,
     ...styleCtx,
   });
