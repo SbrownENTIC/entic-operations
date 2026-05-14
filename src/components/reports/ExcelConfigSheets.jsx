@@ -95,6 +95,7 @@ export function buildConfigBenchmarksSheet(wb, { mkFill, mkFont, thinBorder, DAR
     autoFilter: true,
   });
 
+  ws.properties.tabColor = { argb: "FFB45F06" }; // Burnt Orange
   ws.state = "hidden";
   return ws;
 }
@@ -215,6 +216,7 @@ export function buildConfigExtensionsSheet(wb, { mkFill, mkFont, thinBorder, DAR
     autoFilter: true,
   });
 
+  ws.properties.tabColor = { argb: "FF6A8A1F" }; // Olive Green
   ws.state = "hidden";
   return ws;
 }
@@ -288,6 +290,7 @@ export function buildFormulaReferenceSheet(wb, { mkFill, mkFont, thinBorder, DAR
     sort: true,
   });
 
+  ws.properties.tabColor = { argb: "FF4B6EAF" }; // Slate Blue
   ws.state = "hidden";
   return ws;
 }
@@ -376,6 +379,7 @@ export function buildRawImportedDataSheet(wb, { mkFill, mkFont, thinBorder, DARK
     });
   }
 
+  ws.properties.tabColor = { argb: "FF444444" }; // Dark Charcoal
   ws.state = "hidden";
   return ws;
 }
