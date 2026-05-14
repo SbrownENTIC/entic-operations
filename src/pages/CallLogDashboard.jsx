@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, Download, Loader2 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCallMetrics, formatPercent, KPICard } from '@/components/calllog/CallLogMetrics';
 import { 
   aggregateInboundByWeek, 
@@ -17,10 +18,14 @@ import WeeklyTable from '@/components/calllog/WeeklyTable';
 import MonthlyTable from '@/components/calllog/MonthlyTable';
 import IndividualPerformanceTable from '@/components/calllog/IndividualPerformanceTable';
 import CDRUpload from '@/components/calllog/CDRUpload';
+import UserDirectoryTable from '@/components/calllog/UserDirectoryTable';
+import ExtensionMappingTable from '@/components/calllog/ExtensionMappingTable';
+import UnmappedExtensionsPanel from '@/components/calllog/UnmappedExtensionsPanel';
 
 export default function CallLogDashboard() {
   const [selectedMetric, setSelectedMetric] = useState(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [activeTab, setActiveTab] = useState('reporting');
   const queryClient = useQueryClient();
 
   // Fetch all data
@@ -151,132 +156,179 @@ export default function CallLogDashboard() {
             <h1 className="text-3xl font-bold text-slate-900">Call Log Dashboard</h1>
             <p className="text-slate-600 mt-1">Inbound/outbound metrics and performance analysis</p>
           </div>
-          <Button
-            onClick={handleExport}
-            disabled={isExporting || inbound.length === 0}
-            className="gap-2"
-          >
-            <Download className="w-4 h-4" />
-            {isExporting ? 'Exporting...' : 'Export to Excel'}
-          </Button>
         </div>
 
-        {/* Upload Section */}
-        <Card className="border-blue-200 bg-blue-50">
-          <CardHeader>
-            <CardTitle className="text-base">Import Call Records</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CDRUpload
-              onUploadSuccess={() => {
-                queryClient.invalidateQueries({ queryKey: ['inbound-calls'] });
-                queryClient.invalidateQueries({ queryKey: ['outbound-calls'] });
-              }}
-            />
-          </CardContent>
-        </Card>
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="reporting">Reporting</TabsTrigger>
+            <TabsTrigger value="upload">Upload CDR</TabsTrigger>
+            <TabsTrigger value="users">User Directory</TabsTrigger>
+            <TabsTrigger value="extensions">Extension Mapping</TabsTrigger>
+          </TabsList>
 
-        {/* Warnings */}
-        {warnings.length > 0 && (
-          <Alert variant="warning">
-            <AlertTriangle className="w-4 h-4" />
-            <AlertDescription>
-              <div className="space-y-1">
-                {warnings.map((w, i) => (
-                  <div key={i}>{w}</div>
-                ))}
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
+          {/* Reporting Tab */}
+          <TabsContent value="reporting" className="space-y-6">
+            <div className="flex justify-end">
+              <Button
+                onClick={handleExport}
+                disabled={isExporting || inbound.length === 0}
+                className="gap-2"
+              >
+                <Download className="w-4 h-4" />
+                {isExporting ? 'Exporting...' : 'Export to Excel'}
+              </Button>
+            </div>
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <KPICard
-            title="Total Calls"
-            value={metrics.totalCalls.toLocaleString()}
-            subtitle={`${metrics.totalInbound} inbound, ${metrics.totalOutbound} outbound`}
-            onClick={() => setSelectedMetric({ type: 'total', title: 'All Calls', data: [...inbound, ...outbound] })}
-          />
-          <KPICard
-            title="Inbound"
-            value={metrics.totalInbound.toLocaleString()}
-            onClick={() => setSelectedMetric({ type: 'inbound', title: 'Inbound Calls', data: inbound })}
-          />
-          <KPICard
-            title="Outbound"
-            value={metrics.totalOutbound.toLocaleString()}
-            onClick={() => setSelectedMetric({ type: 'outbound', title: 'Outbound Calls', data: outbound })}
-          />
-          <KPICard
-            title="Answered"
-            value={metrics.totalAnswered.toLocaleString()}
-            subtitle={`${formatPercent(metrics.inboundAnswerRate)} of inbound`}
-            onClick={() => setSelectedMetric({ type: 'answered', title: 'Answered Calls', data: inbound.filter(c => c.answered) })}
-          />
-        </div>
+            {/* Unmapped Extensions Warning */}
+            <UnmappedExtensionsPanel />
 
-        {/* Second row KPI cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <KPICard
-            title="Missed"
-            value={metrics.totalMissed.toLocaleString()}
-            variant="missed"
-            onClick={() => setSelectedMetric({ type: 'missed', title: 'Missed Calls', data: inbound.filter(c => c.missed) })}
-          />
-          <KPICard
-            title="Inbound Answer Rate (Benchmark)"
-            value={formatPercent(metrics.benchmarkAnswerRate)}
-            subtitle={`${metrics.benchmarkAnswered} answered of ${metrics.benchmarkInbound}`}
-            variant="rate"
-          />
-          <KPICard
-            title="Front-End Answer Rate"
-            value={formatPercent(metrics.frontDeskAnswerRate)}
-            subtitle={`${metrics.frontDeskAnswered} answered of ${metrics.frontDeskInbound}`}
-            variant="rate"
-          />
-        </div>
+            {/* Warnings */}
+            {warnings.length > 0 && (
+              <Alert variant="warning">
+                <AlertTriangle className="w-4 h-4" />
+                <AlertDescription>
+                  <div className="space-y-1">
+                    {warnings.map((w, i) => (
+                      <div key={i}>{w}</div>
+                    ))}
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
 
-        {/* Weekly Summary */}
-        <Card className="border-slate-200 shadow-sm">
-          <CardHeader>
-            <CardTitle>Weekly Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <WeeklyTable data={weeklyData} />
-          </CardContent>
-        </Card>
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <KPICard
+                title="Total Calls"
+                value={metrics.totalCalls.toLocaleString()}
+                subtitle={`${metrics.totalInbound} inbound, ${metrics.totalOutbound} outbound`}
+                onClick={() => setSelectedMetric({ type: 'total', title: 'All Calls', data: [...inbound, ...outbound] })}
+              />
+              <KPICard
+                title="Inbound"
+                value={metrics.totalInbound.toLocaleString()}
+                onClick={() => setSelectedMetric({ type: 'inbound', title: 'Inbound Calls', data: inbound })}
+              />
+              <KPICard
+                title="Outbound"
+                value={metrics.totalOutbound.toLocaleString()}
+                onClick={() => setSelectedMetric({ type: 'outbound', title: 'Outbound Calls', data: outbound })}
+              />
+              <KPICard
+                title="Answered"
+                value={metrics.totalAnswered.toLocaleString()}
+                subtitle={`${formatPercent(metrics.inboundAnswerRate)} of inbound`}
+                onClick={() => setSelectedMetric({ type: 'answered', title: 'Answered Calls', data: inbound.filter(c => c.answered) })}
+              />
+            </div>
 
-        {/* Monthly Summary */}
-        <Card className="border-slate-200 shadow-sm">
-          <CardHeader>
-            <CardTitle>Monthly KPI Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <MonthlyTable data={monthlyData} />
-          </CardContent>
-        </Card>
+            {/* Second row KPI cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <KPICard
+                title="Missed"
+                value={metrics.totalMissed.toLocaleString()}
+                variant="missed"
+                onClick={() => setSelectedMetric({ type: 'missed', title: 'Missed Calls', data: inbound.filter(c => c.missed) })}
+              />
+              <KPICard
+                title="Inbound Answer Rate (Benchmark)"
+                value={formatPercent(metrics.benchmarkAnswerRate)}
+                subtitle={`${metrics.benchmarkAnswered} answered of ${metrics.benchmarkInbound}`}
+                variant="rate"
+              />
+              <KPICard
+                title="Front-End Answer Rate"
+                value={formatPercent(metrics.frontDeskAnswerRate)}
+                subtitle={`${metrics.frontDeskAnswered} answered of ${metrics.frontDeskInbound}`}
+                variant="rate"
+              />
+            </div>
 
-        {/* Front-End Performance */}
-        <Card className="border-slate-200 shadow-sm">
-          <CardHeader>
-            <CardTitle>Front-End Performance (Front Desk Benchmark)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <IndividualPerformanceTable data={frontendData} showOutbound={false} />
-          </CardContent>
-        </Card>
+            {/* Weekly Summary */}
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader>
+                <CardTitle>Weekly Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <WeeklyTable data={weeklyData} />
+              </CardContent>
+            </Card>
 
-        {/* Individual Performance */}
-        <Card className="border-slate-200 shadow-sm">
-          <CardHeader>
-            <CardTitle>Individual Performance (All Users)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <IndividualPerformanceTable data={individualData} showOutbound={true} />
-          </CardContent>
-        </Card>
+            {/* Monthly Summary */}
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader>
+                <CardTitle>Monthly KPI Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <MonthlyTable data={monthlyData} />
+              </CardContent>
+            </Card>
+
+            {/* Front-End Performance */}
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader>
+                <CardTitle>Front-End Performance (Front Desk Benchmark)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <IndividualPerformanceTable data={frontendData} showOutbound={false} />
+              </CardContent>
+            </Card>
+
+            {/* Individual Performance */}
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader>
+                <CardTitle>Individual Performance (All Users)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <IndividualPerformanceTable data={individualData} showOutbound={true} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Upload CDR Tab */}
+          <TabsContent value="upload" className="space-y-6">
+            <UnmappedExtensionsPanel />
+            <Card className="border-blue-200 bg-blue-50">
+              <CardHeader>
+                <CardTitle className="text-base">Import Call Records</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CDRUpload
+                  onUploadSuccess={() => {
+                    queryClient.invalidateQueries({ queryKey: ['inbound-calls'] });
+                    queryClient.invalidateQueries({ queryKey: ['outbound-calls'] });
+                    queryClient.invalidateQueries({ queryKey: ['extensions'] });
+                  }}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* User Directory Tab */}
+          <TabsContent value="users">
+            <Card>
+              <CardHeader>
+                <CardTitle>User Directory</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <UserDirectoryTable />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Extension Mapping Tab */}
+          <TabsContent value="extensions">
+            <Card>
+              <CardHeader>
+                <CardTitle>Extension Mapping</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ExtensionMappingTable />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
 
         {/* Detail Modal */}
         {selectedMetric && (
