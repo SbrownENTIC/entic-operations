@@ -167,6 +167,7 @@ Deno.serve(async (req) => {
     });
 
     // Map flexible column names to standard names (including common misspellings)
+    // Extra columns like Extensions, Location, Daily_Goal, Notes will be ignored
     const requiredFields = {
       'name': ['name', 'Name'],
       'role': ['role', 'Role'],
