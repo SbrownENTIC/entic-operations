@@ -61,13 +61,13 @@ async function processRows(rows, headerMap, base44) {
 
     try {
       const roleIdx = headerMap['role'];
-      const benchmarkGroupIdx = headerMap['benchmark_group'];
-      const includeInBenchmarkIdx = headerMap['include_in_benchmark'];
-      const answerRateIdx = headerMap['expected_answer_rate'];
-      const activeIdx = headerMap['active'];
-      const extensionIdx = headerMap['extension'];
+       const benchmarkGroupIdx = headerMap['benchmark_group'];
+       const includeInBenchmarkIdx = headerMap['include_in_benchmark'];
+       const answerRateIdx = headerMap['expected_answer_rate'];
+       const activeIdx = headerMap['active'];
+       const extensionIdx = headerMap['extension'];
 
-      const role = row[roleIdx] ? String(row[roleIdx]).trim() : '';
+       const role = (roleIdx !== undefined && row[roleIdx]) ? String(row[roleIdx]).trim() : '';
       const benchmarkGroup = row[benchmarkGroupIdx] ? String(row[benchmarkGroupIdx]).trim() : 'Other';
       
       let includeInBenchmark = false;
