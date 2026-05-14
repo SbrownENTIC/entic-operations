@@ -310,7 +310,7 @@ export default function CallLogReporting() {
   const allEnrichedSummaries = React.useMemo(() => {
     return userSummaries.filter(u => (u.total_calls || 0) > 0).map(u => ({
       ...u,
-      inbound_answer_rate: u.inbound > 0 ? ((Number(u.inbound || 0) - Number(u.missed || 0)) / Number(u.inbound)) * 100 : null,
+      inbound_answer_rate: u.inbound > 0 ? Math.max(0, ((Number(u.inbound || 0) - Number(u.missed || 0)) / Number(u.inbound)) * 100) : null,
       in_benchmark: benchmarkSet.has(norm(u.user)),
     }));
   }, [userSummaries, benchmarkSet]);
