@@ -6,9 +6,16 @@
       "type": "string",
       "description": "User or extension name"
     },
-    "role": {
+    "extensions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of phone extensions assigned to this user"
+    },
+    "location": {
       "type": "string",
-      "description": "Job role or title"
+      "description": "Office location"
     },
     "benchmark_group": {
       "type": "string",
@@ -19,60 +26,19 @@
       ],
       "description": "Benchmark category for reporting"
     },
-    "include_in_benchmark": {
-      "type": "boolean",
-      "default": false,
-      "description": "Include in benchmark metrics"
+    "role": {
+      "type": "string",
+      "description": "Job role or title"
     },
     "expected_answer_rate": {
       "type": "number",
       "minimum": 0,
       "maximum": 1,
       "description": "Expected answer rate (0-1)"
-    },
-    "active": {
-      "type": "boolean",
-      "default": true,
-      "description": "Whether this user is active"
-    },
-    "extensions": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Array of phone extensions assigned to this user"
     }
   },
   "required": [
     "name"
   ],
-  "rls": {
-    "create": {
-      "user_condition": {
-        "role": "admin"
-      }
-    },
-    "read": {
-      "user_condition": {
-        "role": {
-          "$in": [
-            "admin",
-            "user",
-            "staff",
-            "provider"
-          ]
-        }
-      }
-    },
-    "update": {
-      "user_condition": {
-        "role": "admin"
-      }
-    },
-    "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
-    }
-  }
+  "rls": {}
 }

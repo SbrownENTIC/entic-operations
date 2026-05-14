@@ -60,45 +60,33 @@ async function processRows(rows, headerMap, base44) {
     }
 
     try {
-      const roleIdx = headerMap['role'];
+       const roleIdx = headerMap['role'];
+       const locationIdx = headerMap['location'];
        const benchmarkGroupIdx = headerMap['benchmark_group'];
-       const includeInBenchmarkIdx = headerMap['include_in_benchmark'];
        const answerRateIdx = headerMap['expected_answer_rate'];
-       const activeIdx = headerMap['active'];
        const extensionIdx = headerMap['extension'];
 
        const role = (roleIdx !== undefined && row[roleIdx]) ? String(row[roleIdx]).trim() : '';
-      const benchmarkGroup = row[benchmarkGroupIdx] ? String(row[benchmarkGroupIdx]).trim() : 'Other';
-      
-      let includeInBenchmark = false;
-      const benchmarkValue = String(row[includeInBenchmarkIdx] || '').toLowerCase().trim();
-      if (['yes', 'true', '1'].includes(benchmarkValue)) {
-        includeInBenchmark = true;
-      }
+       const location = (locationIdx !== undefined && row[locationIdx]) ? String(row[locationIdx]).trim() : '';
+       const benchmarkGroup = row[benchmarkGroupIdx] ? String(row[benchmarkGroupIdx]).trim() : 'Other';
 
-      let answerRate = 0.8;
-      const rateValue = row[answerRateIdx];
-      if (rateValue !== null && rateValue !== undefined && rateValue !== '') {
-        const parsedRate = parseFloat(rateValue);
-        if (!isNaN(parsedRate)) {
-          answerRate = Math.max(0, Math.min(1, parsedRate));
-        }
-      }
+       let answerRate = 0;
+       const rateValue = row[answerRateIdx];
+       if (rateValue !== null && rateValue !== undefined && rateValue !== '') {
+         const parsedRate = parseFloat(rateValue);
+         if (!isNaN(parsedRate)) {
+           answerRate = Math.max(0, Math.min(1, parsedRate));
+         }
+       }
 
-      let active = true;
-      const activeValue = String(row[activeIdx] || '').toLowerCase().trim();
-      if (['no', 'false', '0'].includes(activeValue)) {
-        active = false;
-      }
+       const userData = {
+         name,
+         benchmark_group: benchmarkGroup,
+       };
 
-      const userData = {
-        name,
-        role,
-        benchmark_group: benchmarkGroup,
-        include_in_benchmark: includeInBenchmark,
-        expected_answer_rate: answerRate,
-        active,
-      };
+       if (role) userData.role = role;
+       if (location) userData.location = location;
+       if (answerRate > 0) userData.expected_answer_rate = answerRate;
 
       // Get user ID and handle extensions
       let userId;
@@ -237,15 +225,14 @@ Deno.serve(async (req) => {
     // Map flexible column names to standard names (including common misspellings)
     const requiredFields = {
       'name': ['name', 'Name'],
-      'role': ['role', 'Role'],
       'benchmark_group': ['benchmark_group', 'Benchmark_Group', 'benchark_group', 'Benchark_Group', 'benchmark group', 'Benchmark Group', 'benchark group'],
-      'include_in_benchmark': ['include_in_benchmark', 'Include_In_Benchmark', 'include in benchmark', 'Include In Benchmark', 'includeinbenchmark'],
-      'expected_answer_rate': ['expected_answer_rate', 'Expected_Answer_Rate', 'expected answer rate', 'Expected Answer Rate', 'expectedanswerrate'],
-      'active': ['active', 'Active']
+      'expected_answer_rate': ['expected_answer_rate', 'Expected_Answer_Rate', 'expected answer rate', 'Expected Answer Rate', 'expectedanswerrate']
     };
 
     // Optional fields
     const optionalFields = {
+      'role': ['role', 'Role'],
+      'location': ['location', 'Location'],
       'extension': ['extension', 'Extension', 'extensions', 'Extensions', 'ext', 'Ext', 'phone_extension', 'Phone_Extension']
     };
 
@@ -273,7 +260,7 @@ Deno.serve(async (req) => {
     const missingFields = Object.keys(requiredFields).filter(field => headers[field] === undefined);
     if (missingFields.length > 0) {
       return Response.json({
-        error: `Missing required columns: ${missingFields.join(', ')}. Expected: Name, Role, Benchmark_Group, Include_In_Benchmark, Expected Answer Rate, Active`
+        error: `Missing required columns: ${missingFields.join(', ')}. Expected: Name, Benchmark_Group, Expected Answer Rate`
       }, { status: 400 });
     }
 
