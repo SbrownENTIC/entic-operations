@@ -232,7 +232,7 @@ export default function CallLogDashboard() {
                 value={formatPercent(metrics.outboundAnswerRate)}
                 subtitle={`${metrics.connectedOutbound} answered of ${metrics.totalOutbound}`}
                 variant="rate"
-                onClick={() => setSelectedMetric({ type: 'outbound-answered', title: 'Answered Outbound Calls', data: outbound.filter(c => c.result === 'answered') })}
+                onClick={() => setSelectedMetric({ type: 'outbound-answered', title: 'Answered Outbound Calls (>30s)', data: outbound.filter(c => c.result === 'answered' && c.duration_seconds > 30) })}
               />
             </div>
 
