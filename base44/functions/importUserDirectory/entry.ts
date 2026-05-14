@@ -42,22 +42,27 @@ async function processRows(rows, headerMap, base44) {
   const errors = [];
 
   // Process each row starting from row 2 (skip header)
-  for (let rowNum = 2; rowNum <= rows.length; rowNum++) {
-    const row = rows[rowNum - 1];
-    const nameIdx = headerMap['name'];
-    const name = row[nameIdx] ? String(row[nameIdx]).trim() : '';
+   for (let rowNum = 2; rowNum <= rows.length; rowNum++) {
+     const row = rows[rowNum - 1];
+     if (!row || row.length === 0) {
+       skipped++;
+       continue;
+     }
 
-    if (!name) {
-      skipped++;
-      continue;
-    }
+     const nameIdx = headerMap['name'];
+     const name = (row[nameIdx] !== null && row[nameIdx] !== undefined) ? String(row[nameIdx]).trim() : '';
 
-    try {
-      const roleIdx = headerMap['role'];
-      const benchmarkGroupIdx = headerMap['benchmark_group'];
-      const includeInBenchmarkIdx = headerMap['include_in_benchmark'];
-      const answerRateIdx = headerMap['expected_answer_rate'];
-      const activeIdx = headerMap['active'];
+     if (!name) {
+       skipped++;
+       continue;
+     }
+
+     try {
+       const roleIdx = headerMap['role'];
+       const benchmarkGroupIdx = headerMap['benchmark_group'];
+       const includeInBenchmarkIdx = headerMap['include_in_benchmark'];
+       const answerRateIdx = headerMap['expected_answer_rate'];
+       const activeIdx = headerMap['active'];
 
       const role = row[roleIdx] ? String(row[roleIdx]).trim() : '';
       const benchmarkGroup = row[benchmarkGroupIdx] ? String(row[benchmarkGroupIdx]).trim() : 'Other';
@@ -128,23 +133,31 @@ Deno.serve(async (req) => {
 
     if (fileType === 'csv') {
       // Parse CSV
-      const csvContent = atob(fileContent);
-      rows = parseCSV(csvContent);
+      try {
+        const csvContent = atob(fileContent);
+        rows = parseCSV(csvContent);
+      } catch (err) {
+        return Response.json({ error: `CSV parsing failed: ${err.message}` }, { status: 400 });
+      }
     } else if (fileType === 'xlsx') {
       // Parse Excel
-      const buffer = Buffer.from(fileContent, 'base64');
-      const workbook = new ExcelJS.Workbook();
-      await workbook.xlsx.load(buffer);
-      const worksheet = workbook.worksheets[0];
+      try {
+        const buffer = Buffer.from(fileContent, 'base64');
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(buffer);
+        const worksheet = workbook.worksheets[0];
 
-      if (!worksheet) {
-        return Response.json({ error: 'Excel file has no sheets' }, { status: 400 });
+        if (!worksheet) {
+          return Response.json({ error: 'Excel file has no sheets' }, { status: 400 });
+        }
+
+        // Extract rows from worksheet
+        worksheet.eachRow({ header: 1 }, (row) => {
+          rows.push(row || []);
+        });
+      } catch (err) {
+        return Response.json({ error: `Excel parsing failed: ${err.message}` }, { status: 400 });
       }
-
-      // Extract rows from worksheet
-      worksheet.eachRow({ header: 1 }, (row) => {
-        rows.push(row || []);
-      });
     } else {
       return Response.json({ error: 'Unsupported file type' }, { status: 400 });
     }
