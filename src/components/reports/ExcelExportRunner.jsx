@@ -335,6 +335,7 @@ export async function exportPeriodExcel({
     weekRows,
     ...styleCtx,
   });
+  wsSummary.properties.tabColor = { argb: "FF1F4E79" }; // Dark Blue
 
   // Append full user breakdown table to Monthly Summary — benchmark-only users
   const realUserRows = userWeekRows
@@ -400,6 +401,7 @@ export async function exportPeriodExcel({
 
   // ── SHEET 2: Front End Performance ────────────────────────────────────────
   const wsDesk = wb.addWorksheet("Front End Performance", { views: [{ showGridLines: false }] });
+  wsDesk.properties.tabColor = { argb: "FF2E7D6F" }; // Teal
 
   const deskWeekMap = {};
   sortedWeeks.forEach(week => {
@@ -506,6 +508,7 @@ export async function exportPeriodExcel({
 
   // ── SHEET 3: Individual Performance (no Desk column) ─────────────────────
   const wsIndiv = wb.addWorksheet("Individual Performance", { views: [{ showGridLines: false }] });
+  wsIndiv.properties.tabColor = { argb: "FF6C757D" }; // Medium Gray
   wsIndiv.columns = [{ width: 18 }, { width: 34 }, { width: 18 }, { width: 14 }, { width: 14 }, { width: 18 }];
 
   const indivRows = [];
@@ -616,15 +619,16 @@ export async function exportPeriodExcel({
   }
   autoFitColumns(wsIndiv);
 
-  // ── SHEET 4: Inbound CDR ───────────────────────────────────────────────────
+  // ── SHEET 4: Inbound CDR — tab color applied inside buildCdrSheet ─────────
   await buildCdrSheet(wb, {
     periodLabel, generatedOn, cdrUploadData,
     mkFill, mkFont, thinBorder, addSectionHeader, styleTableHeader,
     arColor, DARK_NAVY, ALT_ROW, WHITE, LIGHT_GRAY,
   });
 
-  // ── SHEET 5: Front-End Answer Rate ────────────────────────────────────────
+  // ── SHEET 5: Front-End Inbound Answer Rate ────────────────────────────────
   const wsFrontEnd = wb.addWorksheet("Front-End Inbound Answer Rate", { views: [{ showGridLines: false }] });
+  wsFrontEnd.properties.tabColor = { argb: "FF5A4E8C" }; // Deep Purple
   wsFrontEnd.columns = [
     { width: 34 }, // User
     { width: 14 }, // Total Calls

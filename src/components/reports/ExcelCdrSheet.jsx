@@ -5,6 +5,7 @@ import { autoFitColumns } from "./ExcelExportHelpers";
 export async function buildCdrSheet(wb, { periodLabel, generatedOn, cdrUploadData, mkFill, mkFont, thinBorder, addSectionHeader, styleTableHeader, arColor, DARK_NAVY, ALT_ROW, WHITE }) {
   if (!cdrUploadData) {
     const wsCdrEmpty = wb.addWorksheet("Inbound CDR", { views: [{ showGridLines: false }] });
+    wsCdrEmpty.properties.tabColor = { argb: "FF9AA0A6" }; // Light Gray
     wsCdrEmpty.columns = [{ width: 60 }];
 
     wsCdrEmpty.addRow([`${periodLabel} - Inbound CDR`, ...Array(4).fill("")]);
@@ -32,6 +33,7 @@ export async function buildCdrSheet(wb, { periodLabel, generatedOn, cdrUploadDat
   }
 
   const wsCdr = wb.addWorksheet("Inbound CDR", { views: [{ showGridLines: false, state: "frozen", ySplit: 14, xSplit: 0 }] });
+  wsCdr.properties.tabColor = { argb: "FF9AA0A6" }; // Light Gray
   wsCdr.columns = [
     { width: 30 }, { width: 14 }, { width: 14 }, { width: 18 }, { width: 18 },
   ];
