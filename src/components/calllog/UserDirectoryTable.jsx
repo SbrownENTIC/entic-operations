@@ -42,6 +42,12 @@ export default function UserDirectoryTable() {
     );
   }, [users, search]);
 
+  const getDefaultAnswerRate = (role) => {
+    if (role === 'Call Center') return 0.85;
+    if (role === 'Client Facing') return 0.65;
+    return 0.8;
+  };
+
   const handleNew = () => {
     setFormData({
       name: '',
@@ -327,9 +333,14 @@ export default function UserDirectoryTable() {
               <label className="text-sm font-medium">Role</label>
               <Input
                 value={formData?.role || ''}
-                onChange={(e) =>
-                  setFormData({ ...formData, role: e.target.value })
-                }
+                onChange={(e) => {
+                  const newRole = e.target.value;
+                  setFormData({ 
+                    ...formData, 
+                    role: newRole,
+                    expected_answer_rate: getDefaultAnswerRate(newRole)
+                  })
+                }}
                 placeholder="Job title"
               />
             </div>
