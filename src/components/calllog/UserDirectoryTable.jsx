@@ -27,6 +27,8 @@ export default function UserDirectoryTable() {
   const [formData, setFormData] = useState(null);
   const [importing, setImporting] = useState(false);
   const [importMessage, setImportMessage] = useState(null);
+  const [sortColumn, setSortColumn] = useState('name');
+  const [sortDirection, setSortDirection] = useState('asc');
   const fileInputRef = useRef(null);
   const queryClient = useQueryClient();
 
@@ -35,12 +37,72 @@ export default function UserDirectoryTable() {
     queryFn: () => base44.entities.UserDirectory.list(),
   });
 
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
   const filtered = useMemo(() => {
-    return users.filter(u =>
+    let results = users.filter(u =>
       u.name.toLowerCase().includes(search.toLowerCase()) ||
       (u.role && u.role.toLowerCase().includes(search.toLowerCase()))
     );
-  }, [users, search]);
+
+    results.sort((a, b) => {
+      let aVal, bVal;
+      
+      switch(sortColumn) {
+        case 'name':
+          aVal = (a.name || '').toLowerCase();
+          bVal = (b.name || '').toLowerCase();
+          break;
+        case 'role':
+          aVal = (a.role || '').toLowerCase();
+          bVal = (b.role || '').toLowerCase();
+          break;
+        case 'extensions':
+          aVal = a.extensions?.length || 0;
+          bVal = b.extensions?.length || 0;
+          break;
+        case 'location':
+          aVal = (a.location || '').toLowerCase();
+          bVal = (b.location || '').toLowerCase();
+          break;
+        case 'benchmark_group':
+          aVal = (a.benchmark_group || 'Other').toLowerCase();
+          bVal = (b.benchmark_group || 'Other').toLowerCase();
+          break;
+        case 'expected_answer_rate':
+          aVal = a.expected_answer_rate || 0;
+          bVal = b.expected_answer_rate || 0;
+          break;
+        case 'daily_goal':
+          aVal = a.daily_goal || 0;
+          bVal = b.daily_goal || 0;
+          break;
+        case 'include_in_benchmark':
+          aVal = a.include_in_benchmark ? 1 : 0;
+          bVal = b.include_in_benchmark ? 1 : 0;
+          break;
+        case 'active':
+          aVal = a.active !== false ? 1 : 0;
+          bVal = b.active !== false ? 1 : 0;
+          break;
+        default:
+          return 0;
+      }
+
+      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return results;
+  }, [users, search, sortColumn, sortDirection]);
 
   const getDefaultAnswerRate = (role) => {
     if (role === 'Call Center') return 0.85;
@@ -248,15 +310,60 @@ export default function UserDirectoryTable() {
         <table className="w-full text-sm">
           <thead className="bg-slate-100 border-b">
             <tr>
-              <th className="text-left px-4 py-3 font-semibold">Name</th>
-              <th className="text-left px-4 py-3 font-semibold">Role</th>
-              <th className="text-left px-4 py-3 font-semibold">Extensions</th>
-              <th className="text-left px-4 py-3 font-semibold">Location</th>
-              <th className="text-left px-4 py-3 font-semibold">Benchmark Group</th>
-              <th className="text-center px-4 py-3 font-semibold">Expected Answer Rate</th>
-              <th className="text-center px-4 py-3 font-semibold">Daily Goal</th>
-              <th className="text-center px-4 py-3 font-semibold">In Benchmark</th>
-              <th className="text-center px-4 py-3 font-semibold">Active</th>
+              <th 
+                className="text-left px-4 py-3 font-semibold cursor-pointer hover:bg-slate-200"
+                onClick={() => handleSort('name')}
+              >
+                Name {sortColumn === 'name' && (sortDirection === 'asc' ? '↑' : '↓')}
+              </th>
+              <th 
+                className="text-left px-4 py-3 font-semibold cursor-pointer hover:bg-slate-200"
+                onClick={() => handleSort('role')}
+              >
+                Role {sortColumn === 'role' && (sortDirection === 'asc' ? '↑' : '↓')}
+              </th>
+              <th 
+                className="text-left px-4 py-3 font-semibold cursor-pointer hover:bg-slate-200"
+                onClick={() => handleSort('extensions')}
+              >
+                Extensions {sortColumn === 'extensions' && (sortDirection === 'asc' ? '↑' : '↓')}
+              </th>
+              <th 
+                className="text-left px-4 py-3 font-semibold cursor-pointer hover:bg-slate-200"
+                onClick={() => handleSort('location')}
+              >
+                Location {sortColumn === 'location' && (sortDirection === 'asc' ? '↑' : '↓')}
+              </th>
+              <th 
+                className="text-left px-4 py-3 font-semibold cursor-pointer hover:bg-slate-200"
+                onClick={() => handleSort('benchmark_group')}
+              >
+                Benchmark Group {sortColumn === 'benchmark_group' && (sortDirection === 'asc' ? '↑' : '↓')}
+              </th>
+              <th 
+                className="text-center px-4 py-3 font-semibold cursor-pointer hover:bg-slate-200"
+                onClick={() => handleSort('expected_answer_rate')}
+              >
+                Expected Answer Rate {sortColumn === 'expected_answer_rate' && (sortDirection === 'asc' ? '↑' : '↓')}
+              </th>
+              <th 
+                className="text-center px-4 py-3 font-semibold cursor-pointer hover:bg-slate-200"
+                onClick={() => handleSort('daily_goal')}
+              >
+                Daily Goal {sortColumn === 'daily_goal' && (sortDirection === 'asc' ? '↑' : '↓')}
+              </th>
+              <th 
+                className="text-center px-4 py-3 font-semibold cursor-pointer hover:bg-slate-200"
+                onClick={() => handleSort('include_in_benchmark')}
+              >
+                In Benchmark {sortColumn === 'include_in_benchmark' && (sortDirection === 'asc' ? '↑' : '↓')}
+              </th>
+              <th 
+                className="text-center px-4 py-3 font-semibold cursor-pointer hover:bg-slate-200"
+                onClick={() => handleSort('active')}
+              >
+                Active {sortColumn === 'active' && (sortDirection === 'asc' ? '↑' : '↓')}
+              </th>
               <th className="text-center px-4 py-3 font-semibold">Actions</th>
             </tr>
           </thead>
