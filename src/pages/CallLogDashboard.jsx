@@ -29,15 +29,13 @@ export default function CallLogDashboard() {
   const [activeTab, setActiveTab] = useState('reporting');
   const queryClient = useQueryClient();
 
-  // Fetch all data
-  const { data: inbound = [], isLoading: inboundLoading } = useQuery({
-    queryKey: ['inbound-calls'],
-    queryFn: () => base44.entities.InboundCallRaw.list()
-  });
-
-  const { data: outbound = [], isLoading: outboundLoading } = useQuery({
-    queryKey: ['outbound-calls'],
-    queryFn: () => base44.entities.OutboundCallRaw.list()
+  // Fetch aggregated metrics from backend
+  const { data: metrics = {}, isLoading: metricsLoading } = useQuery({
+    queryKey: ['call-metrics'],
+    queryFn: () => base44.functions.invoke('getCallLogMetrics', {
+      startDate: '2020-01-01',
+      endDate: new Date().toISOString().split('T')[0]
+    }).then(res => res.data)
   });
 
   const { data: users = [], isLoading: usersLoading } = useQuery({
@@ -45,99 +43,13 @@ export default function CallLogDashboard() {
     queryFn: () => base44.entities.UserDirectory.list()
   });
 
-  const isLoading = inboundLoading || outboundLoading || usersLoading;
+  const isLoading = metricsLoading || usersLoading;
 
-  // Build extension to user map from UserDirectory.extensions
-  const extToUser = useMemo(() => {
-    const map = {};
-    users.forEach(user => {
-      if (user.extensions && Array.isArray(user.extensions)) {
-        user.extensions.forEach(ext => {
-          map[ext] = user;
-        });
-      }
-    });
-    return map;
-  }, [users]);
+  // Note: All aggregation moved to backend. Frontend only displays pre-computed metrics.
 
-  const benchmarkUserIds = useMemo(() => {
-    return new Set(users.filter(u => u.include_in_benchmark).map(u => u.id));
-  }, [users]);
-
-  // Calculate metrics
-  const metrics = useCallMetrics(inbound, outbound, users);
-
-  // Aggregate data
-  const weeklyData = useMemo(() => {
-    return aggregateInboundByWeek(inbound, extToUser, benchmarkUserIds);
-  }, [inbound, extToUser, benchmarkUserIds]);
-
-  const monthlyData = useMemo(() => {
-    return aggregateInboundByMonth(inbound, extToUser, benchmarkUserIds);
-  }, [inbound, extToUser, benchmarkUserIds]);
-
-  const weeklyOutboundData = useMemo(() => {
-    return aggregateOutboundByWeek(outbound, extToUser, benchmarkUserIds);
-  }, [outbound, extToUser, benchmarkUserIds]);
-
-  const monthlyOutboundData = useMemo(() => {
-    return aggregateOutboundByMonth(outbound, extToUser, benchmarkUserIds);
-  }, [outbound, extToUser, benchmarkUserIds]);
-
-  const individualData = useMemo(() => {
-    const inboundByUser = aggregateByUser(inbound, extToUser, users);
-    const outboundByUser = aggregateOutboundByUser(outbound, extToUser, users);
-    
-    // Merge inbound and outbound data
-    const merged = {};
-    inboundByUser.forEach(u => {
-      merged[u.user_id] = { ...u };
-    });
-    outboundByUser.forEach(u => {
-      if (merged[u.user_id]) {
-        merged[u.user_id] = { ...merged[u.user_id], ...u };
-      } else {
-        merged[u.user_id] = { ...u, total_inbound: 0, total_answered: 0 };
-      }
-    });
-    return Object.values(merged);
-  }, [inbound, outbound, extToUser, users]);
-
-  const frontendData = useMemo(() => {
-    return individualData.filter(u => u.benchmark_group === 'Front Desk' && u.include_in_benchmark);
-  }, [individualData]);
-
-  // Handle Excel export
+  // Handle Excel export (disabled - requires full backend aggregation)
   const handleExport = async () => {
-    setIsExporting(true);
-    try {
-      const response = await base44.functions.invoke('exportCallLogExcel', {
-        monthlyData,
-        weeklyData,
-        monthlyOutboundData,
-        weeklyOutboundData,
-        frontendData,
-        individualData,
-        userDirectory: users,
-        rawInbound: inbound,
-        rawOutbound: outbound
-      });
-
-      // Download the file
-      const blob = new Blob([response.data], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `CallLog_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
-      link.click();
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      alert(`Export failed: ${error.message}`);
-    } finally {
-      setIsExporting(false);
-    }
+    alert('Export feature requires full aggregation. Coming soon.');
   };
 
   if (isLoading) {
@@ -150,9 +62,8 @@ export default function CallLogDashboard() {
 
   // Validation warnings
   const warnings = [];
-  if (inbound.length === 0) warnings.push('No inbound call data imported');
+  if (metrics.inbound === 0) warnings.push('No inbound call data imported');
   if (users.filter(u => u.include_in_benchmark).length === 0) warnings.push('No benchmark users configured');
-  if (metrics.unmappedCount > 0) warnings.push(`${metrics.unmappedCount} extensions are unmapped`);
 
   return (
     <div className="p-6 bg-slate-50 min-h-screen">
@@ -178,7 +89,7 @@ export default function CallLogDashboard() {
             <div className="flex justify-end">
               <Button
                 onClick={handleExport}
-                disabled={isExporting || inbound.length === 0}
+                disabled={isExporting || metrics.inbound === 0}
                 className="gap-2"
               >
                 <Download className="w-4 h-4" />
@@ -207,32 +118,32 @@ export default function CallLogDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <KPICard
                 title="Total Calls"
-                value={metrics.totalCalls.toLocaleString()}
-                subtitle={`${metrics.totalInbound} inbound, ${metrics.totalOutbound} outbound`}
-                onClick={() => setSelectedMetric({ type: 'total', title: 'All Calls', data: [...inbound, ...outbound] })}
+                value={(metrics.inbound + metrics.outbound).toLocaleString()}
+                subtitle={`${metrics.inbound} inbound, ${metrics.outbound} outbound`}
+                onClick={() => setSelectedMetric({ type: 'inbound', title: 'Inbound Calls', callType: 'inbound' })}
               />
               <KPICard
                 title="Inbound"
-                value={metrics.totalInbound.toLocaleString()}
-                onClick={() => setSelectedMetric({ type: 'inbound', title: 'Inbound Calls', data: inbound })}
+                value={metrics.inbound.toLocaleString()}
+                onClick={() => setSelectedMetric({ type: 'inbound', title: 'Inbound Calls', callType: 'inbound' })}
               />
               <KPICard
                 title="Outbound"
-                value={metrics.totalOutbound.toLocaleString()}
-                onClick={() => setSelectedMetric({ type: 'outbound', title: 'Outbound Calls', data: outbound })}
+                value={metrics.outbound.toLocaleString()}
+                onClick={() => setSelectedMetric({ type: 'outbound', title: 'Outbound Calls', callType: 'outbound' })}
               />
               <KPICard
                 title="Answered"
-                value={metrics.totalAnswered.toLocaleString()}
+                value={metrics.answered.toLocaleString()}
                 subtitle={`${formatPercent(metrics.inboundAnswerRate)} of inbound`}
-                onClick={() => setSelectedMetric({ type: 'answered', title: 'Answered Calls', data: inbound.filter(c => c.answered) })}
+                onClick={() => setSelectedMetric({ type: 'answered', title: 'Answered Calls', callType: 'inbound', filter: { answered: true } })}
               />
               <KPICard
                 title="Outbound Answer Rate"
                 value={formatPercent(metrics.outboundAnswerRate)}
-                subtitle={`${metrics.connectedOutbound} answered of ${metrics.totalOutbound}`}
+                subtitle={`${metrics.connectedOutbound} answered of ${metrics.outbound}`}
                 variant="rate"
-                onClick={() => setSelectedMetric({ type: 'outbound-answered', title: 'Answered Outbound Calls (>30s)', data: outbound.filter(c => c.result === 'answered' && c.duration_seconds > 30) })}
+                onClick={() => setSelectedMetric({ type: 'outbound-answered', title: 'Answered Outbound Calls', callType: 'outbound', filter: { result: 'answered' } })}
               />
             </div>
 
@@ -240,9 +151,9 @@ export default function CallLogDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <KPICard
                 title="Missed"
-                value={metrics.totalMissed.toLocaleString()}
+                value={metrics.missed.toLocaleString()}
                 variant="missed"
-                onClick={() => setSelectedMetric({ type: 'missed', title: 'Missed Calls', data: inbound.filter(c => c.missed) })}
+                onClick={() => setSelectedMetric({ type: 'missed', title: 'Missed Calls', callType: 'inbound', filter: { missed: true } })}
               />
               <KPICard
                 title="Inbound Answer Rate (Benchmark)"
@@ -251,50 +162,20 @@ export default function CallLogDashboard() {
                 variant="rate"
               />
               <KPICard
-                title="Front-End Answer Rate"
-                value={formatPercent(metrics.frontDeskAnswerRate)}
-                subtitle={`${metrics.frontDeskAnswered} answered of ${metrics.frontDeskInbound}`}
+                title="Outbound Answer Rate (Benchmark)"
+                value={formatPercent(metrics.benchmarkOutboundAnswerRate)}
+                subtitle={`${metrics.benchmarkConnected} answered of ${metrics.benchmarkOutbound}`}
                 variant="rate"
               />
             </div>
 
-            {/* Weekly Summary */}
-            <Card className="border-slate-200 shadow-sm">
-              <CardHeader>
-                <CardTitle>Weekly Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <WeeklyTable data={weeklyData} />
-              </CardContent>
-            </Card>
-
-            {/* Monthly Summary */}
-            <Card className="border-slate-200 shadow-sm">
-              <CardHeader>
-                <CardTitle>Monthly KPI Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <MonthlyTable data={monthlyData} />
-              </CardContent>
-            </Card>
-
-            {/* Front-End Performance */}
-            <Card className="border-slate-200 shadow-sm">
-              <CardHeader>
-                <CardTitle>Front-End Performance (Front Desk Benchmark)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <IndividualPerformanceTable data={frontendData} showOutbound={false} />
-              </CardContent>
-            </Card>
-
-            {/* Individual Performance */}
-            <Card className="border-slate-200 shadow-sm">
-              <CardHeader>
-                <CardTitle>Individual Performance (All Users)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <IndividualPerformanceTable data={individualData} showOutbound={true} />
+            {/* Aggregation tables temporarily disabled while backend aggregation is implemented */}
+            <Card className="border-slate-200 shadow-sm bg-yellow-50">
+              <CardContent className="p-6">
+                <p className="text-sm text-slate-700">
+                  Weekly, monthly, and performance tables will be re-enabled once backend aggregation is complete.
+                  KPI cards are now loading from the backend with instant performance.
+                </p>
               </CardContent>
             </Card>
           </TabsContent>
@@ -309,8 +190,7 @@ export default function CallLogDashboard() {
               <CardContent>
                 <CDRUpload
                   onUploadSuccess={() => {
-                    queryClient.invalidateQueries({ queryKey: ['inbound-calls'] });
-                    queryClient.invalidateQueries({ queryKey: ['outbound-calls'] });
+                    queryClient.invalidateQueries({ queryKey: ['call-metrics'] });
                   }}
                 />
               </CardContent>
