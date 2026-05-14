@@ -288,13 +288,13 @@ Deno.serve(async (req) => {
     rawWS['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 10 }, { wch: 15 }];
     XLSX.utils.book_append_sheet(workbook, rawWS, 'Raw Imported Data');
 
-    // Generate buffer using XLSX.write()
+    // Generate buffer using XLSX.write() - use 'array' for Deno compatibility
     const buffer = XLSX.write(workbook, {
-      type: 'buffer',
+      type: 'array',
       bookType: 'xlsx'
     });
 
-    return new Response(buffer, {
+    return new Response(new Uint8Array(buffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
