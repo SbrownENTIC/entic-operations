@@ -224,6 +224,7 @@ export default function CallLogReporting() {
   const [sortDir, setSortDir] = useState("asc");
   const [userSearch, setUserSearch] = useState("");
   const [benchmarkOnly, setBenchmarkOnly] = useState(true);
+  const [activeCardFilter, setActiveCardFilter] = useState(null); // null | "total" | "inbound" | "outbound" | "missed" | "inbound_answered" | "benchmark_rate" | "frontend_rate"
 
   const { data: periods = [], isLoading: periodsLoading } = useQuery({
     queryKey: ["call-log-periods"],
@@ -342,7 +343,7 @@ export default function CallLogReporting() {
     return u[key] ?? 0;
   };
 
-  React.useEffect(() => { setUserSearch(""); setSortCol("user"); setSortDir("asc"); }, [selectedPeriod?.id]);
+  React.useEffect(() => { setUserSearch(""); setSortCol("user"); setSortDir("asc"); setActiveCardFilter(null); }, [selectedPeriod?.id]);
 
   const activeSummaries = [...displaySummaries]
     .sort((a, b) => {
@@ -383,6 +384,42 @@ export default function CallLogReporting() {
   }, 0);
   // Guard: rate must be 0–100%, never NaN or >100%
   const feAnswerRate = feInbound > 0 ? Math.min(feAnswered / feInbound, 1) : 0;
+
+  // ── Card-filter applied to displaySummaries ────────────────────────────────
+  const cardFilteredSummaries = React.useMemo(() => {
+    if (!activeCardFilter) return displaySummaries;
+    switch (activeCardFilter) {
+      case "total":           return displaySummaries; // all
+      case "inbound":         return displaySummaries.filter(u => (u.inbound || 0) > 0);
+      case "outbound":        return displaySummaries.filter(u => (u.outbound || 0) > 0);
+      case "missed":          return displaySummaries.filter(u => (u.missed || 0) > 0);
+      case "inbound_answered":return displaySummaries.filter(u => {
+        const inb = u.inbound || 0;
+        const ans = u.inbound_answered != null ? u.inbound_answered : Math.max(inb - (u.missed || 0), 0);
+        return ans > 0;
+      });
+      case "benchmark_rate":  return displaySummaries.filter(u => u.in_benchmark === true);
+      case "frontend_rate":   return displaySummaries.filter(u => {
+        const cfg = allUserConfigs.find(c => (c.user_name || "").trim().toLowerCase() === (u.user || "").trim().toLowerCase());
+        return u.in_benchmark === true && cfg && cfg.benchmark_group === "Front Desk";
+      });
+      default: return displaySummaries;
+    }
+  }, [activeCardFilter, displaySummaries, allUserConfigs]);
+
+  const CARD_FILTER_LABELS = {
+    total:            "Total Calls",
+    inbound:          "Inbound",
+    outbound:         "Outbound",
+    missed:           "Missed",
+    inbound_answered: "Inbound Answered",
+    benchmark_rate:   "Inbound Answer Rate (Benchmark)",
+    frontend_rate:    "Front-End Answer Rate",
+  };
+
+  const handleCardClick = (filterKey) => {
+    setActiveCardFilter(prev => prev === filterKey ? null : filterKey);
+  };
 
   const resetUpload = () => {
     setShowUpload(false);
@@ -810,29 +847,54 @@ export default function CallLogReporting() {
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {[
-                      { label: "Total Calls",    value: totalCalls.toLocaleString(),            color: "text-slate-900" },
-                      { label: "Inbound",        value: totalInbound.toLocaleString(),           color: "text-blue-700" },
-                      { label: "Outbound",       value: totalOutbound.toLocaleString(),          color: "text-indigo-700" },
-                      { label: "Inbound Answered", value: totalInboundAnswered.toLocaleString(), color: "text-green-700" },
-                      { label: "Missed",           value: totalMissed.toLocaleString(),          color: "text-red-600" },
-                      { label: benchmarkOnly ? "Inbound Answer Rate (Benchmark)" : "Inbound Answer Rate (All)",
+                      { filterKey: "total",            label: "Total Calls",    value: totalCalls.toLocaleString(),            color: "text-slate-900" },
+                      { filterKey: "inbound",          label: "Inbound",        value: totalInbound.toLocaleString(),           color: "text-blue-700" },
+                      { filterKey: "outbound",         label: "Outbound",       value: totalOutbound.toLocaleString(),          color: "text-indigo-700" },
+                      { filterKey: "inbound_answered", label: "Inbound Answered", value: totalInboundAnswered.toLocaleString(), color: "text-green-700" },
+                      { filterKey: "missed",           label: "Missed",           value: totalMissed.toLocaleString(),          color: "text-red-600" },
+                      { filterKey: "benchmark_rate",
+                        label: benchmarkOnly ? "Inbound Answer Rate (Benchmark)" : "Inbound Answer Rate (All)",
                         value: overallAnswerRate === null ? "—" : (overallAnswerRate * 100).toFixed(2) + "%",
                         color: overallAnswerRate === null ? "text-slate-400" : overallAnswerRate >= 0.8 ? "text-green-700" : overallAnswerRate >= 0.5 ? "text-yellow-700" : "text-red-600" },
-                      { label: "Front-End Answer Rate",
+                      { filterKey: "frontend_rate",
+                        label: "Front-End Answer Rate",
                         value: (feAnswerRate * 100).toFixed(2) + "%",
                         color: feInbound === 0 ? "text-slate-400" : feAnswerRate >= 0.8 ? "text-green-700" : feAnswerRate >= 0.5 ? "text-yellow-700" : "text-red-600",
-                        highlight: true },
-                      { label: "Total Duration", value: secondsToHHMMSS(totalDurationSec),      color: "text-slate-700" },
-                      { label: "Avg Duration",   value: secondsToHHMMSS(overallAvgDurationSec), color: "text-slate-700" },
-                    ].map(m => (
-                      <Card key={m.label} className={`shadow-sm ${m.highlight ? "border-blue-300 bg-blue-50/40" : "border-slate-200"}`}>
-                        <CardContent className="p-4">
-                          <p className={`text-xs font-medium mb-1 ${m.highlight ? "text-blue-600 font-semibold" : "text-slate-500"}`}>{m.label}</p>
-                          <p className={`text-2xl font-bold ${m.color}`}>{m.value}</p>
-                          {m.highlight && <p className="text-[10px] text-blue-400 mt-0.5">Front End staff only</p>}
-                        </CardContent>
-                      </Card>
-                    ))}
+                        highlight: true,
+                        subLabel: "Front End staff only" },
+                      { filterKey: null, label: "Total Duration", value: secondsToHHMMSS(totalDurationSec),      color: "text-slate-700" },
+                      { filterKey: null, label: "Avg Duration",   value: secondsToHHMMSS(overallAvgDurationSec), color: "text-slate-700" },
+                    ].map(m => {
+                      const isActive = activeCardFilter === m.filterKey && m.filterKey !== null;
+                      const isClickable = m.filterKey !== null;
+                      return (
+                        <Card
+                          key={m.label}
+                          onClick={isClickable ? () => handleCardClick(m.filterKey) : undefined}
+                          className={[
+                            "shadow-sm transition-all duration-150",
+                            isClickable ? "cursor-pointer" : "",
+                            isActive
+                              ? "border-blue-500 bg-blue-50 shadow-md ring-2 ring-blue-400 ring-offset-1"
+                              : m.highlight
+                                ? "border-blue-300 bg-blue-50/40 hover:shadow-md hover:border-blue-400"
+                                : isClickable
+                                  ? "border-slate-200 hover:shadow-md hover:border-slate-300 hover:bg-slate-50"
+                                  : "border-slate-200",
+                          ].join(" ")}
+                        >
+                          <CardContent className="p-4">
+                            <p className={`text-xs font-medium mb-1 ${isActive ? "text-blue-700 font-semibold" : m.highlight ? "text-blue-600 font-semibold" : "text-slate-500"}`}>
+                              {m.label}
+                              {isActive && <span className="ml-1 text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded-full">Active</span>}
+                            </p>
+                            <p className={`text-2xl font-bold ${m.color}`}>{m.value}</p>
+                            {m.subLabel && !isActive && <p className="text-[10px] text-blue-400 mt-0.5">{m.subLabel}</p>}
+                            {isClickable && !isActive && <p className="text-[10px] text-slate-300 mt-0.5">Click to filter ↓</p>}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
 
                   {sortedWeeks.length > 0 && (
@@ -843,8 +905,21 @@ export default function CallLogReporting() {
                     </Card>
                   )}
 
+                  {activeCardFilter && (
+                    <div className="flex items-center gap-3 px-1">
+                      <span className="text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-full px-3 py-1">
+                        Active Filter: {CARD_FILTER_LABELS[activeCardFilter]}
+                      </span>
+                      <button
+                        onClick={() => setActiveCardFilter(null)}
+                        className="text-xs text-slate-500 hover:text-red-600 underline transition-colors"
+                      >
+                        Clear Filter
+                      </button>
+                    </div>
+                  )}
                   <UserBreakdownTable
-                    summaries={displaySummaries}
+                    summaries={cardFilteredSummaries}
                     sortCol={sortCol}
                     sortDir={sortDir}
                     onSortChange={(col, dir) => { setSortCol(col); setSortDir(dir); }}
