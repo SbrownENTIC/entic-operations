@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Dialog,
   DialogContent,
@@ -10,7 +11,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Trash2, Plus, Edit2 } from 'lucide-react';
+import { Trash2, Plus, Edit2, Upload, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -24,6 +25,9 @@ export default function UserDirectoryTable() {
   const [search, setSearch] = useState('');
   const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const [importMessage, setImportMessage] = useState(null);
+  const fileInputRef = useRef(null);
   const queryClient = useQueryClient();
 
   const { data: users = [], isLoading } = useQuery({
@@ -107,10 +111,91 @@ export default function UserDirectoryTable() {
     }
   };
 
+  const handleImport = async (file) => {
+    if (!file) return;
+
+    // Validate file type
+    if (!file.name.endsWith('.xlsx')) {
+      setImportMessage({
+        type: 'error',
+        text: 'Only .xlsx files are supported'
+      });
+      return;
+    }
+
+    setImporting(true);
+    setImportMessage(null);
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const fileContent = e.target.result.split(',')[1]; // Get base64 part
+          
+          const response = await base44.functions.invoke('importUserDirectory', {
+            fileContent
+          });
+
+          setImportMessage({
+            type: 'success',
+            text: `User Directory Imported: ${response.data.created} Created, ${response.data.updated} Updated`,
+            details: response.data.errors
+          });
+
+          // Refresh all queries
+          queryClient.invalidateQueries({ queryKey: ['user-directory'] });
+          queryClient.invalidateQueries({ queryKey: ['extensions'] });
+          queryClient.invalidateQueries({ queryKey: ['inbound-calls'] });
+          queryClient.invalidateQueries({ queryKey: ['outbound-calls'] });
+        } catch (error) {
+          setImportMessage({
+            type: 'error',
+            text: `Import failed: ${error.message}`
+          });
+        } finally {
+          setImporting(false);
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      setImportMessage({
+        type: 'error',
+        text: `File reading failed: ${error.message}`
+      });
+      setImporting(false);
+    }
+  };
+
   if (isLoading) return <div className="text-center py-4">Loading...</div>;
 
   return (
     <div className="space-y-4">
+      {/* Import Message */}
+      {importMessage && (
+        <Alert variant={importMessage.type === 'error' ? 'destructive' : 'default'}>
+          {importMessage.type === 'error' ? (
+            <AlertCircle className="w-4 h-4" />
+          ) : (
+            <CheckCircle className="w-4 h-4 text-green-600" />
+          )}
+          <AlertDescription>
+            <div className="space-y-2">
+              <div>{importMessage.text}</div>
+              {importMessage.details && (
+                <div className="text-xs space-y-1 mt-2">
+                  {importMessage.details.map((err, i) => (
+                    <div key={i} className="text-slate-600">{err}</div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex gap-3">
         <Input
           placeholder="Search by name or role..."
@@ -118,6 +203,29 @@ export default function UserDirectoryTable() {
           onChange={(e) => setSearch(e.target.value)}
           className="flex-1"
         />
+        <div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx"
+            className="hidden"
+            onChange={(e) => handleImport(e.target.files?.[0])}
+            disabled={importing}
+          />
+          <Button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importing}
+            variant="outline"
+            className="gap-2"
+          >
+            {importing ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Upload className="w-4 h-4" />
+            )}
+            Import Directory
+          </Button>
+        </div>
         <Button onClick={handleNew} className="gap-2">
           <Plus className="w-4 h-4" />
           Add User

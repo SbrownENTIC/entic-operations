@@ -10,7 +10,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Trash2, Plus, Edit2 } from 'lucide-react';
+import { Trash2, Plus, Edit2, AlertCircle } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -128,11 +128,17 @@ export default function ExtensionMappingTable() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((ext, i) => (
+            {filtered.map((ext, i) => {
+              const user = userMap[ext.user_id];
+              const userNotFound = ext.user_id && !user;
+              return (
               <tr key={ext.id} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
                 <td className="px-4 py-3 font-mono">{ext.extension}</td>
-                <td className="px-4 py-3">
-                  {userMap[ext.user_id]?.name || 'Unknown'}
+                <td className="px-4 py-3 flex items-center gap-2">
+                  {user?.name || 'Unknown'}
+                  {userNotFound && (
+                    <AlertCircle className="w-4 h-4 text-yellow-600" title="User not found in directory" />
+                  )}
                 </td>
                 <td className="px-4 py-3 text-center space-x-2">
                   <Button
@@ -151,7 +157,8 @@ export default function ExtensionMappingTable() {
                   </Button>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
