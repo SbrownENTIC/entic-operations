@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, Download, Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useMemo, useState } from 'react';
 import { useCallMetrics, formatPercent, KPICard } from '@/components/calllog/CallLogMetrics';
 import { 
   aggregateInboundByWeek, 
