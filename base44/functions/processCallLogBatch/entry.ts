@@ -149,8 +149,13 @@ Deno.serve(async (req) => {
           });
         });
 
-        if (recordsToInsert.length > 0) {
-          await base44.asServiceRole.entities.InboundCallRaw.bulkCreate(recordsToInsert);
+        // Split inserts into smaller chunks to avoid limits
+        const insertChunkSize = 500;
+        for (let i = 0; i < recordsToInsert.length; i += insertChunkSize) {
+          const chunk = recordsToInsert.slice(i, i + insertChunkSize);
+          if (chunk.length > 0) {
+            await base44.asServiceRole.entities.InboundCallRaw.bulkCreate(chunk);
+          }
         }
       } else if (job.type === 'outbound') {
         batchRows.forEach(row => {
@@ -170,8 +175,13 @@ Deno.serve(async (req) => {
           });
         });
 
-        if (recordsToInsert.length > 0) {
-          await base44.asServiceRole.entities.OutboundCallRaw.bulkCreate(recordsToInsert);
+        // Split inserts into smaller chunks to avoid limits
+        const insertChunkSize = 500;
+        for (let i = 0; i < recordsToInsert.length; i += insertChunkSize) {
+          const chunk = recordsToInsert.slice(i, i + insertChunkSize);
+          if (chunk.length > 0) {
+            await base44.asServiceRole.entities.OutboundCallRaw.bulkCreate(chunk);
+          }
         }
       }
 
@@ -188,15 +198,15 @@ Deno.serve(async (req) => {
       // If more rows remain, trigger next batch
       if (!isComplete) {
         // Invoke self for next batch
-        setTimeout(() => {
-          base44.functions.invoke('processCallLogBatch', { importJobId }).catch(err => {
-            console.error('Error triggering next batch:', err);
-          });
-        }, 100);
+        base44.asServiceRole.functions.invoke('processCallLogBatch', { importJobId }).catch(err => {
+          console.error('Error triggering next batch:', err);
+        });
       }
 
       return Response.json({
         success: true,
+        batchesProcessed: 1,
+        rowsInThisBatch: recordsToInsert.length,
         processedRows: newProcessedRows,
         totalRows: rows.length,
         isComplete,
