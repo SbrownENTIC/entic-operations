@@ -9,6 +9,7 @@ export default function CDRUpload({ onUploadSuccess }) {
   const outboundInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState(null);
+  const [progress, setProgress] = useState(null);
 
   const handleFileSelect = async (file, type) => {
     if (!file) return;
@@ -37,9 +38,19 @@ export default function CDRUpload({ onUploadSuccess }) {
 
           // Show success message
           const typeLabel = type === 'inbound' ? 'Inbound' : 'Outbound';
+          const result = response.data;
           setMessage({
             type: 'success',
-            text: `${typeLabel} CDR Imported Successfully - ${response.data.created} records created`
+            text: `${typeLabel} CDR Imported Successfully - ${result.totalRowsInserted} of ${result.totalRowsParsed} records created in ${result.durationSeconds}s`
+          });
+
+          // Show progress summary
+          setProgress({
+            totalRowsParsed: result.totalRowsParsed,
+            totalRowsInserted: result.totalRowsInserted,
+            totalBatches: result.totalBatches,
+            durationSeconds: result.durationSeconds,
+            completed: true
           });
 
           // Trigger refresh
@@ -84,6 +95,21 @@ export default function CDRUpload({ onUploadSuccess }) {
           )}
           <AlertDescription>{message.text}</AlertDescription>
         </Alert>
+      )}
+
+      {/* Progress Summary */}
+      {progress && progress.completed && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="space-y-2 text-sm">
+            <p className="font-semibold text-blue-900">Import Summary</p>
+            <div className="grid grid-cols-2 gap-2 text-blue-800">
+              <p>Total Rows Parsed: {progress.totalRowsParsed.toLocaleString()}</p>
+              <p>Rows Inserted: {progress.totalRowsInserted.toLocaleString()}</p>
+              <p>Total Batches: {progress.totalBatches}</p>
+              <p>Duration: {progress.durationSeconds}s</p>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Upload Buttons */}

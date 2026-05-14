@@ -71,6 +71,8 @@ function parseCSV(csvContent) {
   return records;
 }
 
+const BATCH_SIZE = 1000;
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -82,9 +84,11 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { file, type, inboundData, outboundData } = body;
 
+    const startTime = Date.now();
     let inboundCreated = 0;
     let outboundCreated = 0;
     let unmappedExtensions = new Set();
+    let totalRowsParsed = 0;
 
     // Fetch existing extensions for mapping
     const extensions = await base44.asServiceRole.entities.UserExtensions.list('-updated_date', 1000);
@@ -109,6 +113,9 @@ Deno.serve(async (req) => {
           error: 'CSV file is empty or contains no valid records'
         }, { status: 400 });
       }
+
+      totalRowsParsed = records.length;
+      const totalBatches = Math.ceil(totalRowsParsed / BATCH_SIZE);
 
       if (type === 'inbound') {
         const inboundRecords = records.map(row => {
@@ -135,9 +142,11 @@ Deno.serve(async (req) => {
           };
         });
 
-        if (inboundRecords.length > 0) {
-          await base44.asServiceRole.entities.InboundCallRaw.bulkCreate(inboundRecords);
-          inboundCreated = inboundRecords.length;
+        // Process in batches
+        for (let i = 0; i < inboundRecords.length; i += BATCH_SIZE) {
+          const batch = inboundRecords.slice(i, i + BATCH_SIZE);
+          await base44.asServiceRole.entities.InboundCallRaw.bulkCreate(batch);
+          inboundCreated += batch.length;
         }
       } else if (type === 'outbound') {
         const outboundRecords = records.map(row => {
@@ -161,15 +170,17 @@ Deno.serve(async (req) => {
           };
         });
 
-        if (outboundRecords.length > 0) {
-          await base44.asServiceRole.entities.OutboundCallRaw.bulkCreate(outboundRecords);
-          outboundCreated = outboundRecords.length;
+        // Process in batches
+        for (let i = 0; i < outboundRecords.length; i += BATCH_SIZE) {
+          const batch = outboundRecords.slice(i, i + BATCH_SIZE);
+          await base44.asServiceRole.entities.OutboundCallRaw.bulkCreate(batch);
+          outboundCreated += batch.length;
         }
       }
     } else {
       // Legacy batch import support
-      // Import inbound calls
       if (inboundData && Array.isArray(inboundData)) {
+        totalRowsParsed = inboundData.length;
         const inboundRecords = inboundData.map(row => {
           const { date, time } = parseDateTime(row['Date/Time'] || '');
           const ext = extractExtension(row['To'], row['From'], row['Destination Device']);
@@ -194,14 +205,15 @@ Deno.serve(async (req) => {
           };
         });
 
-        if (inboundRecords.length > 0) {
-          await base44.asServiceRole.entities.InboundCallRaw.bulkCreate(inboundRecords);
-          inboundCreated = inboundRecords.length;
+        for (let i = 0; i < inboundRecords.length; i += BATCH_SIZE) {
+          const batch = inboundRecords.slice(i, i + BATCH_SIZE);
+          await base44.asServiceRole.entities.InboundCallRaw.bulkCreate(batch);
+          inboundCreated += batch.length;
         }
       }
 
-      // Import outbound calls
       if (outboundData && Array.isArray(outboundData)) {
+        totalRowsParsed = outboundData.length;
         const outboundRecords = outboundData.map(row => {
           const { date, time } = parseDateTime(row['Date/Time'] || '');
           const ext = extractExtension(row['To'], row['From'], row['Destination Device']);
@@ -223,18 +235,26 @@ Deno.serve(async (req) => {
           };
         });
 
-        if (outboundRecords.length > 0) {
-          await base44.asServiceRole.entities.OutboundCallRaw.bulkCreate(outboundRecords);
-          outboundCreated = outboundRecords.length;
+        for (let i = 0; i < outboundRecords.length; i += BATCH_SIZE) {
+          const batch = outboundRecords.slice(i, i + BATCH_SIZE);
+          await base44.asServiceRole.entities.OutboundCallRaw.bulkCreate(batch);
+          outboundCreated += batch.length;
         }
       }
     }
 
+    const durationSeconds = (Date.now() - startTime) / 1000;
+    const totalBatches = Math.ceil(totalRowsParsed / BATCH_SIZE);
+
     return Response.json({
       success: true,
-      created: inboundCreated + outboundCreated,
+      totalRowsParsed,
+      totalRowsInserted: inboundCreated + outboundCreated,
       inboundCreated,
       outboundCreated,
+      totalBatches,
+      durationSeconds: Math.round(durationSeconds * 100) / 100,
+      batchSize: BATCH_SIZE,
       unmappedExtensions: Array.from(unmappedExtensions)
     });
   } catch (error) {
