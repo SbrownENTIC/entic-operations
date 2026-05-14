@@ -149,16 +149,95 @@ export function aggregateOutboundByUser(outboundCalls, extToUser, users) {
         user_id: userId,
         user_name: user.name,
         total_outbound: 0,
+        connected_outbound: 0,
         total_duration_seconds: 0
       };
     }
 
     userMap[userId].total_outbound++;
+    if (call.result === 'answered') userMap[userId].connected_outbound++;
     userMap[userId].total_duration_seconds += call.duration_seconds || 0;
   });
 
   return Object.values(userMap).map(user => ({
     ...user,
+    outbound_answer_rate: user.total_outbound === 0 ? 0 : Math.min(user.connected_outbound / user.total_outbound, 1.0),
     avg_duration_seconds: user.total_outbound === 0 ? 0 : Math.round(user.total_duration_seconds / user.total_outbound)
+  }));
+}
+
+/**
+ * Aggregate outbound calls by week
+ */
+export function aggregateOutboundByWeek(outboundCalls, extToUser, benchmarkUserIds) {
+  const weekMap = {};
+
+  outboundCalls.forEach(call => {
+    const weekKey = getWeekStart(call.call_date);
+    const user = extToUser[call.extension];
+    const isBenchmark = user && benchmarkUserIds.has(user.id);
+
+    if (!weekMap[weekKey]) {
+      weekMap[weekKey] = {
+        week_start: weekKey,
+        total_outbound: 0,
+        connected_outbound: 0,
+        benchmark_outbound: 0,
+        benchmark_connected: 0
+      };
+    }
+
+    weekMap[weekKey].total_outbound++;
+    if (call.result === 'answered') weekMap[weekKey].connected_outbound++;
+
+    if (isBenchmark) {
+      weekMap[weekKey].benchmark_outbound++;
+      if (call.result === 'answered') weekMap[weekKey].benchmark_connected++;
+    }
+  });
+
+  return Object.values(weekMap).map(week => ({
+    ...week,
+    outbound_answer_rate: week.total_outbound === 0 ? 0 : Math.min(week.connected_outbound / week.total_outbound, 1.0),
+    benchmark_outbound_answer_rate: week.benchmark_outbound === 0 ? 0 :
+      Math.min(week.benchmark_connected / week.benchmark_outbound, 1.0)
+  }));
+}
+
+/**
+ * Aggregate outbound calls by month
+ */
+export function aggregateOutboundByMonth(outboundCalls, extToUser, benchmarkUserIds) {
+  const monthMap = {};
+
+  outboundCalls.forEach(call => {
+    const monthKey = getMonthStart(call.call_date);
+    const user = extToUser[call.extension];
+    const isBenchmark = user && benchmarkUserIds.has(user.id);
+
+    if (!monthMap[monthKey]) {
+      monthMap[monthKey] = {
+        month: monthKey,
+        total_outbound: 0,
+        connected_outbound: 0,
+        benchmark_outbound: 0,
+        benchmark_connected: 0
+      };
+    }
+
+    monthMap[monthKey].total_outbound++;
+    if (call.result === 'answered') monthMap[monthKey].connected_outbound++;
+
+    if (isBenchmark) {
+      monthMap[monthKey].benchmark_outbound++;
+      if (call.result === 'answered') monthMap[monthKey].benchmark_connected++;
+    }
+  });
+
+  return Object.values(monthMap).map(month => ({
+    ...month,
+    outbound_answer_rate: month.total_outbound === 0 ? 0 : Math.min(month.connected_outbound / month.total_outbound, 1.0),
+    benchmark_outbound_answer_rate: month.benchmark_outbound === 0 ? 0 :
+      Math.min(month.benchmark_connected / month.benchmark_outbound, 1.0)
   }));
 }

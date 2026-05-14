@@ -24,11 +24,11 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { monthlyData, weeklyData, frontendData, individualData, userDirectory, rawInbound, rawOutbound } = body;
+    const { monthlyData, weeklyData, monthlyOutboundData, weeklyOutboundData, frontendData, individualData, userDirectory, rawInbound, rawOutbound } = body;
 
     const workbook = new ExcelJS.Workbook();
 
-    // SHEET 1: Monthly KPI Summary
+    // SHEET 1: Monthly KPI Summary (Inbound + Outbound)
     const monthlySheet = workbook.addWorksheet('Monthly KPI Summary');
     monthlySheet.tabColor = tabColors.monthly;
     monthlySheet.columns = [
@@ -36,28 +36,44 @@ Deno.serve(async (req) => {
       { header: 'Total Inbound', key: 'total_inbound', width: 15 },
       { header: 'Total Answered', key: 'total_answered', width: 15 },
       { header: 'Total Missed', key: 'total_missed', width: 15 },
-      { header: 'Answer Rate', key: 'answer_rate', width: 15 },
+      { header: 'Inbound Answer Rate', key: 'answer_rate', width: 18 },
       { header: 'Benchmark Inbound', key: 'benchmark_inbound', width: 18 },
       { header: 'Benchmark Answered', key: 'benchmark_answered', width: 18 },
-      { header: 'Benchmark Answer Rate', key: 'benchmark_answer_rate', width: 20 }
+      { header: 'Benchmark Answer Rate', key: 'benchmark_answer_rate', width: 20 },
+      { header: 'Total Outbound', key: 'total_outbound', width: 15 },
+      { header: 'Connected Outbound', key: 'connected_outbound', width: 18 },
+      { header: 'Outbound Answer Rate', key: 'outbound_answer_rate', width: 20 }
     ];
     monthlySheet.getRow(1).font = { bold: true, size: 12 };
     monthlySheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9E1F2' } };
     monthlySheet.freezePane = 'A2';
     monthlySheet.autoFilter.from = 'A1';
-    monthlySheet.autoFilter.to = 'H1';
+    monthlySheet.autoFilter.to = 'K1';
 
     if (monthlyData && Array.isArray(monthlyData)) {
       monthlyData.forEach((row, idx) => {
         const rowNum = idx + 2;
         monthlySheet.addRow(row);
-        // Format answer rate columns as percentage formulas
         monthlySheet.getCell(`E${rowNum}`).numFmt = '0.00%';
         monthlySheet.getCell(`H${rowNum}`).numFmt = '0.00%';
       });
     }
 
-    // SHEET 2: Weekly Summary
+    if (monthlyOutboundData && Array.isArray(monthlyOutboundData)) {
+      monthlyData.forEach((inboundRow, idx) => {
+        const outboundRow = monthlyOutboundData.find(o => o.month === inboundRow.month);
+        if (outboundRow) {
+          const rowNum = idx + 2;
+          const cell = monthlySheet.getRow(rowNum);
+          cell.getCell('I').value = outboundRow.total_outbound || 0;
+          cell.getCell('J').value = outboundRow.connected_outbound || 0;
+          cell.getCell('K').value = outboundRow.outbound_answer_rate || 0;
+          monthlySheet.getCell(`K${rowNum}`).numFmt = '0.00%';
+        }
+      });
+    }
+
+    // SHEET 2: Weekly Summary (Inbound + Outbound)
     const weeklySheet = workbook.addWorksheet('Weekly Summary');
     weeklySheet.tabColor = tabColors.weekly;
     weeklySheet.columns = [
@@ -65,16 +81,19 @@ Deno.serve(async (req) => {
       { header: 'Total Inbound', key: 'total_inbound', width: 15 },
       { header: 'Total Answered', key: 'total_answered', width: 15 },
       { header: 'Total Missed', key: 'total_missed', width: 15 },
-      { header: 'Answer Rate', key: 'answer_rate', width: 15 },
+      { header: 'Inbound Answer Rate', key: 'answer_rate', width: 18 },
       { header: 'Benchmark Inbound', key: 'benchmark_inbound', width: 18 },
       { header: 'Benchmark Answered', key: 'benchmark_answered', width: 18 },
-      { header: 'Benchmark Answer Rate', key: 'benchmark_answer_rate', width: 20 }
+      { header: 'Benchmark Answer Rate', key: 'benchmark_answer_rate', width: 20 },
+      { header: 'Total Outbound', key: 'total_outbound', width: 15 },
+      { header: 'Connected Outbound', key: 'connected_outbound', width: 18 },
+      { header: 'Outbound Answer Rate', key: 'outbound_answer_rate', width: 20 }
     ];
     weeklySheet.getRow(1).font = { bold: true, size: 12 };
     weeklySheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFCE4D6' } };
     weeklySheet.freezePane = 'A2';
     weeklySheet.autoFilter.from = 'A1';
-    weeklySheet.autoFilter.to = 'H1';
+    weeklySheet.autoFilter.to = 'K1';
 
     if (weeklyData && Array.isArray(weeklyData)) {
       weeklyData.forEach((row, idx) => {
@@ -82,6 +101,20 @@ Deno.serve(async (req) => {
         weeklySheet.addRow(row);
         weeklySheet.getCell(`E${rowNum}`).numFmt = '0.00%';
         weeklySheet.getCell(`H${rowNum}`).numFmt = '0.00%';
+      });
+    }
+
+    if (weeklyOutboundData && Array.isArray(weeklyOutboundData)) {
+      weeklyData.forEach((inboundRow, idx) => {
+        const outboundRow = weeklyOutboundData.find(o => o.week_start === inboundRow.week_start);
+        if (outboundRow) {
+          const rowNum = idx + 2;
+          const cell = weeklySheet.getRow(rowNum);
+          cell.getCell('I').value = outboundRow.total_outbound || 0;
+          cell.getCell('J').value = outboundRow.connected_outbound || 0;
+          cell.getCell('K').value = outboundRow.outbound_answer_rate || 0;
+          weeklySheet.getCell(`K${rowNum}`).numFmt = '0.00%';
+        }
       });
     }
 
@@ -200,13 +233,15 @@ Deno.serve(async (req) => {
       { header: 'Time', key: 'call_time', width: 10 },
       { header: 'Extension', key: 'extension', width: 12 },
       { header: 'Dialed Number', key: 'dialed_number', width: 15 },
-      { header: 'Duration (sec)', key: 'duration_seconds', width: 15 }
+      { header: 'Duration (sec)', key: 'duration_seconds', width: 15 },
+      { header: 'Result', key: 'result', width: 15 },
+      { header: 'Location', key: 'location', width: 15 }
     ];
     outboundSheet.getRow(1).font = { bold: true, size: 12 };
     outboundSheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF00B0F0' } };
     outboundSheet.freezePane = 'A2';
     outboundSheet.autoFilter.from = 'A1';
-    outboundSheet.autoFilter.to = 'E1';
+    outboundSheet.autoFilter.to = 'G1';
 
     if (rawOutbound && Array.isArray(rawOutbound)) {
       rawOutbound.forEach(row => {

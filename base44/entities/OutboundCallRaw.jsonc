@@ -23,6 +23,14 @@
       "type": "number",
       "minimum": 0,
       "description": "Call duration in seconds"
+    },
+    "result": {
+      "type": "string",
+      "description": "Call result (e.g., answered, no_answer, failed)"
+    },
+    "location": {
+      "type": "string",
+      "description": "Office location or site"
     }
   },
   "required": [

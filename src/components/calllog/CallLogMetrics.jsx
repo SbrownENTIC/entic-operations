@@ -36,6 +36,10 @@ export function useCallMetrics(inbound, outbound, users) {
     // Inbound answer rate (all data, capped at 1.0)
     const inboundAnswerRate = totalInbound === 0 ? 0 : Math.min(totalAnswered / totalInbound, 1.0);
 
+    // Calculate outbound metrics (answer rate based on result = "answered")
+    const connectedOutbound = outbound.filter(c => c.result === 'answered').length;
+    const outboundAnswerRate = totalOutbound === 0 ? 0 : Math.min(connectedOutbound / totalOutbound, 1.0);
+
     // Benchmark-only metrics
     const benchmarkInbound = inbound.filter(c => {
       const user = extToUser[c.extension];
@@ -68,6 +72,8 @@ export function useCallMetrics(inbound, outbound, users) {
       totalAnswered,
       totalMissed,
       inboundAnswerRate,
+      connectedOutbound,
+      outboundAnswerRate,
       benchmarkInbound: benchmarkInbound.length,
       benchmarkAnswered,
       benchmarkAnswerRate,

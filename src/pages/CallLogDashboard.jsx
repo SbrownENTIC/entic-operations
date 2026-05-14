@@ -11,7 +11,9 @@ import {
   aggregateInboundByWeek, 
   aggregateInboundByMonth, 
   aggregateByUser,
-  aggregateOutboundByUser
+  aggregateOutboundByUser,
+  aggregateOutboundByWeek,
+  aggregateOutboundByMonth
 } from '@/components/calllog/AggregationLogic';
 import CallLogDetailModal from '@/components/calllog/CallLogDetailModal';
 import WeeklyTable from '@/components/calllog/WeeklyTable';
@@ -74,6 +76,14 @@ export default function CallLogDashboard() {
     return aggregateInboundByMonth(inbound, extToUser, benchmarkUserIds);
   }, [inbound, extToUser, benchmarkUserIds]);
 
+  const weeklyOutboundData = useMemo(() => {
+    return aggregateOutboundByWeek(outbound, extToUser, benchmarkUserIds);
+  }, [outbound, extToUser, benchmarkUserIds]);
+
+  const monthlyOutboundData = useMemo(() => {
+    return aggregateOutboundByMonth(outbound, extToUser, benchmarkUserIds);
+  }, [outbound, extToUser, benchmarkUserIds]);
+
   const individualData = useMemo(() => {
     const inboundByUser = aggregateByUser(inbound, extToUser, users);
     const outboundByUser = aggregateOutboundByUser(outbound, extToUser, users);
@@ -104,6 +114,8 @@ export default function CallLogDashboard() {
       const response = await base44.functions.invoke('exportCallLogExcel', {
         monthlyData,
         weeklyData,
+        monthlyOutboundData,
+        weeklyOutboundData,
         frontendData,
         individualData,
         userDirectory: users,
@@ -214,6 +226,13 @@ export default function CallLogDashboard() {
                 value={metrics.totalAnswered.toLocaleString()}
                 subtitle={`${formatPercent(metrics.inboundAnswerRate)} of inbound`}
                 onClick={() => setSelectedMetric({ type: 'answered', title: 'Answered Calls', data: inbound.filter(c => c.answered) })}
+              />
+              <KPICard
+                title="Outbound Answer Rate"
+                value={formatPercent(metrics.outboundAnswerRate)}
+                subtitle={`${metrics.connectedOutbound} answered of ${metrics.totalOutbound}`}
+                variant="rate"
+                onClick={() => setSelectedMetric({ type: 'outbound-answered', title: 'Answered Outbound Calls', data: outbound.filter(c => c.result === 'answered') })}
               />
             </div>
 

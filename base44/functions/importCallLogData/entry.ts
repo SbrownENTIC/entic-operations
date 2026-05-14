@@ -144,6 +144,7 @@ Deno.serve(async (req) => {
           const { date, time } = parseDateTime(row['Date/Time'] || '');
           const ext = extractExtension(row['To'], row['From'], row['Destination Device']);
           const duration = parseDuration(row['Duration']);
+          const result = (row['Result'] || '').toLowerCase();
 
           if (!extMap[ext]) {
             unmappedExtensions.add(ext);
@@ -154,7 +155,9 @@ Deno.serve(async (req) => {
             call_time: time,
             extension: ext,
             dialed_number: row['To'] || '',
-            duration_seconds: duration
+            duration_seconds: duration,
+            result: result,
+            location: row['Location'] || ''
           };
         });
 
@@ -203,6 +206,7 @@ Deno.serve(async (req) => {
           const { date, time } = parseDateTime(row['Date/Time'] || '');
           const ext = extractExtension(row['To'], row['From'], row['Destination Device']);
           const duration = parseDuration(row['Duration']);
+          const result = (row['Result'] || '').toLowerCase();
 
           if (!extMap[ext]) {
             unmappedExtensions.add(ext);
@@ -213,7 +217,9 @@ Deno.serve(async (req) => {
             call_time: time,
             extension: ext,
             dialed_number: row['To'] || '',
-            duration_seconds: duration
+            duration_seconds: duration,
+            result: result,
+            location: row['Location'] || ''
           };
         });
 
