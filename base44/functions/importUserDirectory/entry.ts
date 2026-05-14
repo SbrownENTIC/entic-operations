@@ -29,7 +29,7 @@ function parseCSV(content) {
   return rows;
 }
 
-async function processRows(rows, headerMap, requiredColumns) {
+async function processRows(rows, headerMap, requiredColumns, base44) {
   const existingUsers = await base44.asServiceRole.entities.UserDirectory.list('', 1000);
   const userMap = {};
   existingUsers.forEach(u => {
@@ -164,7 +164,7 @@ Deno.serve(async (req) => {
       }, { status: 400 });
     }
 
-    const result = await processRows(rows, headers, requiredColumns);
+    const result = await processRows(rows, headers, requiredColumns, base44);
 
     return Response.json({
       success: true,
