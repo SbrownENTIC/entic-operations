@@ -245,9 +245,11 @@ export default function UserDirectoryTable() {
               <th className="text-left px-4 py-3 font-semibold">Name</th>
               <th className="text-left px-4 py-3 font-semibold">Role</th>
               <th className="text-left px-4 py-3 font-semibold">Extensions</th>
+              <th className="text-left px-4 py-3 font-semibold">Location</th>
               <th className="text-left px-4 py-3 font-semibold">Benchmark Group</th>
+              <th className="text-center px-4 py-3 font-semibold">Expected Answer Rate</th>
+              <th className="text-center px-4 py-3 font-semibold">Daily Goal</th>
               <th className="text-center px-4 py-3 font-semibold">In Benchmark</th>
-              <th className="text-center px-4 py-3 font-semibold">Answer Rate</th>
               <th className="text-center px-4 py-3 font-semibold">Active</th>
               <th className="text-center px-4 py-3 font-semibold">Actions</th>
             </tr>
@@ -262,15 +264,19 @@ export default function UserDirectoryTable() {
                     ? user.extensions.join(', ')
                     : '-'}
                 </td>
+                <td className="px-4 py-3 text-slate-600">{user.location || '-'}</td>
                 <td className="px-4 py-3 text-slate-600">{user.benchmark_group || 'Other'}</td>
+                <td className="px-4 py-3 text-center">
+                  {Math.round((user.expected_answer_rate || 0.8) * 100)}%
+                </td>
+                <td className="px-4 py-3 text-center">
+                  {user.daily_goal || '-'}
+                </td>
                 <td className="px-4 py-3 text-center">
                   <Checkbox
                     checked={user.include_in_benchmark || false}
                     onCheckedChange={() => handleToggleBenchmark(user)}
                   />
-                </td>
-                <td className="px-4 py-3 text-center">
-                  {Math.round((user.expected_answer_rate || 0.8) * 100)}%
                 </td>
                 <td className="px-4 py-3 text-center">
                   <Checkbox
@@ -361,6 +367,16 @@ export default function UserDirectoryTable() {
               </Select>
             </div>
             <div>
+              <label className="text-sm font-medium">Location</label>
+              <Input
+                value={formData?.location || ''}
+                onChange={(e) =>
+                  setFormData({ ...formData, location: e.target.value })
+                }
+                placeholder="Office location"
+              />
+            </div>
+            <div>
               <label className="text-sm font-medium">Expected Answer Rate (%)</label>
               <Input
                 type="number"
@@ -373,6 +389,18 @@ export default function UserDirectoryTable() {
                     expected_answer_rate: parseInt(e.target.value) / 100,
                   })
                 }
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Daily Goal</label>
+              <Input
+                type="number"
+                min="0"
+                value={formData?.daily_goal || ''}
+                onChange={(e) =>
+                  setFormData({ ...formData, daily_goal: e.target.value ? parseFloat(e.target.value) : null })
+                }
+                placeholder="Daily call goal"
               />
             </div>
             <div className="flex items-center gap-2">
