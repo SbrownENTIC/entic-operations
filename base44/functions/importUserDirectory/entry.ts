@@ -60,14 +60,14 @@ async function processRows(rows, headerMap, base44) {
     }
 
     try {
-       const roleIdx = headers['role'];
-       const locationIdx = headers['location'];
-       const dailyGoalIdx = headers['daily_goal'];
-       const benchmarkGroupIdx = headers['benchmark_group'];
-       const answerRateIdx = headers['expected_answer_rate'];
-       const includeInBenchmarkIdx = headers['include_in_benchmark'];
-       const activeIdx = headers['active'];
-       const extensionIdx = headers['extension'];
+       const roleIdx = headerMap['role'];
+       const locationIdx = headerMap['location'];
+       const dailyGoalIdx = headerMap['daily_goal'];
+       const benchmarkGroupIdx = headerMap['benchmark_group'];
+       const answerRateIdx = headerMap['expected_answer_rate'];
+       const includeInBenchmarkIdx = headerMap['include_in_benchmark'];
+       const activeIdx = headerMap['active'];
+       const extensionIdx = headerMap['extension'];
 
        const role = (roleIdx !== undefined && row[roleIdx]) ? String(row[roleIdx]).trim() : '';
        const location = (locationIdx !== undefined && row[locationIdx]) ? String(row[locationIdx]).trim() : '';
