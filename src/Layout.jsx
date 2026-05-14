@@ -115,6 +115,11 @@ const navigationItems = [
     icon: BarChart3,
   },
   {
+    title: "Call Log Dashboard",
+    url: "/CallLogDashboard",
+    icon: BarChart3,
+  },
+  {
     title: "Document Management",
     url: createPageUrl("DocumentManagement"),
     icon: FileText,

@@ -1,0 +1,46 @@
+{
+  "name": "InboundCallRaw",
+  "type": "object",
+  "properties": {
+    "call_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of call"
+    },
+    "call_time": {
+      "type": "string",
+      "description": "Time of call (HH:MM format)"
+    },
+    "extension": {
+      "type": "string",
+      "description": "Destination extension"
+    },
+    "caller_number": {
+      "type": "string",
+      "description": "Caller phone number"
+    },
+    "duration_seconds": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Call duration in seconds"
+    },
+    "disposition": {
+      "type": "string",
+      "description": "Call result/disposition"
+    },
+    "answered": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if call was answered"
+    },
+    "missed": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if call was missed"
+    }
+  },
+  "required": [
+    "call_date",
+    "extension"
+  ]
+}

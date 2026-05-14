@@ -1,0 +1,274 @@
+import React, { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle, Download, Loader2 } from 'lucide-react';
+import { useCallMetrics, formatPercent, KPICard } from '@/components/calllog/CallLogMetrics';
+import { 
+  aggregateInboundByWeek, 
+  aggregateInboundByMonth, 
+  aggregateByUser,
+  aggregateOutboundByUser
+} from '@/components/calllog/AggregationLogic';
+import CallLogDetailModal from '@/components/calllog/CallLogDetailModal';
+import WeeklyTable from '@/components/calllog/WeeklyTable';
+import MonthlyTable from '@/components/calllog/MonthlyTable';
+import IndividualPerformanceTable from '@/components/calllog/IndividualPerformanceTable';
+
+export default function CallLogDashboard() {
+  const [selectedMetric, setSelectedMetric] = useState(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  // Fetch all data
+  const { data: inbound = [], isLoading: inboundLoading } = useQuery({
+    queryKey: ['inbound-calls'],
+    queryFn: () => base44.entities.InboundCallRaw.list()
+  });
+
+  const { data: outbound = [], isLoading: outboundLoading } = useQuery({
+    queryKey: ['outbound-calls'],
+    queryFn: () => base44.entities.OutboundCallRaw.list()
+  });
+
+  const { data: users = [], isLoading: usersLoading } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => base44.entities.UserDirectory.list()
+  });
+
+  const { data: extensions = [], isLoading: extensionsLoading } = useQuery({
+    queryKey: ['extensions'],
+    queryFn: () => base44.entities.UserExtensions.list()
+  });
+
+  const isLoading = inboundLoading || outboundLoading || usersLoading || extensionsLoading;
+
+  // Build extension to user map
+  const extToUser = useMemo(() => {
+    const map = {};
+    extensions.forEach(ext => {
+      if (ext.user_id) {
+        const user = users.find(u => u.id === ext.user_id);
+        if (user) map[ext.extension] = user;
+      }
+    });
+    return map;
+  }, [extensions, users]);
+
+  const benchmarkUserIds = useMemo(() => {
+    return new Set(users.filter(u => u.include_in_benchmark).map(u => u.id));
+  }, [users]);
+
+  // Calculate metrics
+  const metrics = useCallMetrics(inbound, outbound, users, extensions);
+
+  // Aggregate data
+  const weeklyData = useMemo(() => {
+    return aggregateInboundByWeek(inbound, extToUser, benchmarkUserIds);
+  }, [inbound, extToUser, benchmarkUserIds]);
+
+  const monthlyData = useMemo(() => {
+    return aggregateInboundByMonth(inbound, extToUser, benchmarkUserIds);
+  }, [inbound, extToUser, benchmarkUserIds]);
+
+  const individualData = useMemo(() => {
+    const inboundByUser = aggregateByUser(inbound, extToUser, users);
+    const outboundByUser = aggregateOutboundByUser(outbound, extToUser, users);
+    
+    // Merge inbound and outbound data
+    const merged = {};
+    inboundByUser.forEach(u => {
+      merged[u.user_id] = { ...u };
+    });
+    outboundByUser.forEach(u => {
+      if (merged[u.user_id]) {
+        merged[u.user_id] = { ...merged[u.user_id], ...u };
+      } else {
+        merged[u.user_id] = { ...u, total_inbound: 0, total_answered: 0 };
+      }
+    });
+    return Object.values(merged);
+  }, [inbound, outbound, extToUser, users]);
+
+  const frontendData = useMemo(() => {
+    return individualData.filter(u => u.benchmark_group === 'Front Desk' && u.include_in_benchmark);
+  }, [individualData]);
+
+  // Handle Excel export
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const response = await base44.functions.invoke('exportCallLogExcel', {
+        monthlyData,
+        weeklyData,
+        frontendData,
+        individualData,
+        userDirectory: users,
+        rawInbound: inbound,
+        rawOutbound: outbound
+      });
+
+      // Download the file
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `CallLog_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      alert(`Export failed: ${error.message}`);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-6 bg-slate-50 min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  // Validation warnings
+  const warnings = [];
+  if (inbound.length === 0) warnings.push('No inbound call data imported');
+  if (users.filter(u => u.include_in_benchmark).length === 0) warnings.push('No benchmark users configured');
+  if (metrics.unmappedCount > 0) warnings.push(`${metrics.unmappedCount} extensions are unmapped`);
+
+  return (
+    <div className="p-6 bg-slate-50 min-h-screen">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">Call Log Dashboard</h1>
+            <p className="text-slate-600 mt-1">Inbound/outbound metrics and performance analysis</p>
+          </div>
+          <Button
+            onClick={handleExport}
+            disabled={isExporting || inbound.length === 0}
+            className="gap-2"
+          >
+            <Download className="w-4 h-4" />
+            {isExporting ? 'Exporting...' : 'Export to Excel'}
+          </Button>
+        </div>
+
+        {/* Warnings */}
+        {warnings.length > 0 && (
+          <Alert variant="warning">
+            <AlertTriangle className="w-4 h-4" />
+            <AlertDescription>
+              <div className="space-y-1">
+                {warnings.map((w, i) => (
+                  <div key={i}>{w}</div>
+                ))}
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <KPICard
+            title="Total Calls"
+            value={metrics.totalCalls.toLocaleString()}
+            subtitle={`${metrics.totalInbound} inbound, ${metrics.totalOutbound} outbound`}
+            onClick={() => setSelectedMetric({ type: 'total', title: 'All Calls', data: [...inbound, ...outbound] })}
+          />
+          <KPICard
+            title="Inbound"
+            value={metrics.totalInbound.toLocaleString()}
+            onClick={() => setSelectedMetric({ type: 'inbound', title: 'Inbound Calls', data: inbound })}
+          />
+          <KPICard
+            title="Outbound"
+            value={metrics.totalOutbound.toLocaleString()}
+            onClick={() => setSelectedMetric({ type: 'outbound', title: 'Outbound Calls', data: outbound })}
+          />
+          <KPICard
+            title="Answered"
+            value={metrics.totalAnswered.toLocaleString()}
+            subtitle={`${formatPercent(metrics.inboundAnswerRate)} of inbound`}
+            onClick={() => setSelectedMetric({ type: 'answered', title: 'Answered Calls', data: inbound.filter(c => c.answered) })}
+          />
+        </div>
+
+        {/* Second row KPI cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <KPICard
+            title="Missed"
+            value={metrics.totalMissed.toLocaleString()}
+            variant="missed"
+            onClick={() => setSelectedMetric({ type: 'missed', title: 'Missed Calls', data: inbound.filter(c => c.missed) })}
+          />
+          <KPICard
+            title="Inbound Answer Rate (Benchmark)"
+            value={formatPercent(metrics.benchmarkAnswerRate)}
+            subtitle={`${metrics.benchmarkAnswered} answered of ${metrics.benchmarkInbound}`}
+            variant="rate"
+          />
+          <KPICard
+            title="Front-End Answer Rate"
+            value={formatPercent(metrics.frontDeskAnswerRate)}
+            subtitle={`${metrics.frontDeskAnswered} answered of ${metrics.frontDeskInbound}`}
+            variant="rate"
+          />
+        </div>
+
+        {/* Weekly Summary */}
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader>
+            <CardTitle>Weekly Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <WeeklyTable data={weeklyData} />
+          </CardContent>
+        </Card>
+
+        {/* Monthly Summary */}
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader>
+            <CardTitle>Monthly KPI Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MonthlyTable data={monthlyData} />
+          </CardContent>
+        </Card>
+
+        {/* Front-End Performance */}
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader>
+            <CardTitle>Front-End Performance (Front Desk Benchmark)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <IndividualPerformanceTable data={frontendData} showOutbound={false} />
+          </CardContent>
+        </Card>
+
+        {/* Individual Performance */}
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader>
+            <CardTitle>Individual Performance (All Users)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <IndividualPerformanceTable data={individualData} showOutbound={true} />
+          </CardContent>
+        </Card>
+
+        {/* Detail Modal */}
+        {selectedMetric && (
+          <CallLogDetailModal
+            metric={selectedMetric}
+            onClose={() => setSelectedMetric(null)}
+          />
+        )}
+      </div>
+    </div>
+  );
+}

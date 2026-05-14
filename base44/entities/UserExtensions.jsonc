@@ -1,0 +1,17 @@
+{
+  "name": "UserExtensions",
+  "type": "object",
+  "properties": {
+    "extension": {
+      "type": "string",
+      "description": "Phone extension number"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "Reference to UserDirectory"
+    }
+  },
+  "required": [
+    "extension"
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "name": "UserDirectory",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "User or extension name"
+    },
+    "role": {
+      "type": "string",
+      "description": "Job role or title"
+    },
+    "benchmark_group": {
+      "type": "string",
+      "enum": [
+        "Front Desk",
+        "NP Coordinator",
+        "Other"
+      ],
+      "description": "Benchmark category for reporting"
+    },
+    "include_in_benchmark": {
+      "type": "boolean",
+      "default": false,
+      "description": "Include in benchmark metrics"
+    },
+    "expected_answer_rate": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Expected answer rate (0-1)"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this user is active"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}
