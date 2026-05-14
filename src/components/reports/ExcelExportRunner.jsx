@@ -25,6 +25,7 @@ import {
   buildFormulaReferenceSheet,
   buildRawImportedDataSheet,
 } from "./ExcelConfigSheets";
+import { buildNormalizedDataSheet } from "./ExcelNormalizedDataSheet";
 import {
   durationToMinutes,
   calcInboundAnswered,
@@ -364,9 +365,29 @@ export async function exportPeriodExcel({
   wb.created   = new Date();
   wb.modified  = new Date();
 
+  // ── Build CDR KPIs for Section A (when CDR data is available) ────────────
+  let cdrKpis = null;
+  if (cdrUploadData) {
+    const totalInb  = cdrUploadData.total_inbound_calls    || 0;
+    const totalAns  = Math.min(cdrUploadData.total_inbound_answered || 0, totalInb);
+    const totalAban = cdrUploadData.total_unanswered       || (totalInb - totalAns);
+    // avg talk time: if stored on cdrUploadData use it, otherwise estimate from duration
+    const avgTalkSec = cdrUploadData.avg_talk_time_seconds
+      || (totalAns > 0 ? (cdrUploadData.total_duration_seconds || 0) / totalAns : 0);
+    cdrKpis = {
+      totalInbound:   totalInb,
+      totalAnswered:  totalAns,
+      totalAbandoned: totalAban,
+      answerRate:     totalInb > 0 ? totalAns / totalInb : 0,
+      abandonRate:    totalInb > 0 ? totalAban / totalInb : 0,
+      avgTalkTimeSec: avgTalkSec,
+    };
+  }
+
   // ── SHEET 1: Monthly Summary ───────────────────────────────────────────────
   const wsSummary = buildMonthlySummarySheet(wb, {
     periodLabel, generatedOn,
+    // Section B / Weekly — User Summary benchmark totals
     totalCalls:           kpiTotalCalls,
     totalInbound:         kpiTotalInbound,
     totalOutbound:        kpiTotalOutbound,
@@ -374,6 +395,8 @@ export async function exportPeriodExcel({
     totalMissed:          kpiTotalMissed,
     totalDurationSec:     kpiTotalDurationSec,
     overallAvgDurationSec: kpiAvgDurationSec,
+    // Section A — CDR operational KPIs (null when not uploaded)
+    cdrKpis,
     weekRows,
     ...styleCtx,
   });
@@ -828,6 +851,20 @@ export async function exportPeriodExcel({
     mkFill, mkFont, thinBorder, DARK_NAVY, ALT_ROW, WHITE,
     userWeekRows,
     parseWeekDate,
+  });
+
+  // ── HIDDEN SHEET 9: Normalized_Call_Data — data architecture + audit layer ─
+  buildNormalizedDataSheet(wb, {
+    mkFill, mkFont, thinBorder,
+    DARK_NAVY, ALT_ROW, WHITE, SECTION_BG,
+    addSectionHeader,
+    userWeekRows,
+    cdrUploadData,
+    exportUserConfigs,
+    coerceBool,
+    formatDate,
+    minutesToHHMMSS,
+    secondsToHHMMSS,
   });
 
   // ── Download ──────────────────────────────────────────────────────────────
