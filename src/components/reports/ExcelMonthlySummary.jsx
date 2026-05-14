@@ -62,29 +62,16 @@ export function buildMonthlySummarySheet(wb, {
   // ── Section: Monthly KPI Summary (formula-driven where available) ─────────
   addSectionHeader(ws, "Monthly KPI Summary", 4);
 
-  // Note row: answer rate formula explanation
-  ws.addRow(["ℹ Answer Rate = Answered Inbound Calls ÷ Total Inbound Calls", ...Array(9).fill("")]);
-  ws.mergeCells(`A${ws.rowCount}:J${ws.rowCount}`);
-  const arNote = ws.getCell(`A${ws.rowCount}`);
-  arNote.font      = mkFont({ italic: true, size: 9, color: { argb: "FF1F3864" } });
-  arNote.fill      = mkFill("FFEEF2FA");
-  arNote.alignment = { horizontal: "left", vertical: "middle" };
-  ws.getRow(ws.rowCount).height = 16;
-
   const metrics = [
-    ["Total Calls",         totalCalls,           "number"],
-    ["Inbound",             totalInbound,          "number"],
-    ["Outbound",            totalOutbound,         "number"],
-    ["Inbound Answered",    totalInboundAnswered,  "number"],
-    ["Missed",              totalMissed,           "number"],
-    ["Inbound Answer Rate", null,                  "percent_formula"],
-    ["Total Duration",      secondsToHHMMSS(totalDurationSec),      "text"],
-    ["Average Duration",    secondsToHHMMSS(overallAvgDurationSec), "text"],
+    ["Total Calls",         totalCalls,                                                                      "number"],
+    ["Inbound",             totalInbound,                                                                    "number"],
+    ["Outbound",            totalOutbound,                                                                   "number"],
+    ["Inbound Answered",    totalInboundAnswered,                                                            "number"],
+    ["Missed",              totalMissed,                                                                     "number"],
+    ["Inbound Answer Rate", totalInbound > 0 ? calcInboundAnswerRate(totalInbound, totalInboundAnswered) : 0,"percent"],
+    ["Total Duration",      secondsToHHMMSS(totalDurationSec),                                              "text"],
+    ["Average Duration",    secondsToHHMMSS(overallAvgDurationSec),                                         "text"],
   ];
-
-  // Track row numbers for Inbound (B col) and Inbound Answered so we can write a formula
-  let inboundKpiRow = null;
-  let answeredKpiRow = null;
 
   metrics.forEach(([label, val, type], idx) => {
     const bgArgb = idx % 2 === 0 ? ALT_ROW : WHITE;
@@ -94,16 +81,13 @@ export function buildMonthlySummarySheet(wb, {
     const vc = row.getCell(2);
     lc.font = mkFont({ bold: true }); lc.fill = mkFill(bgArgb); lc.alignment = { horizontal: "center", vertical: "middle" };
     vc.font = mkFont({ bold: true, size: 12 }); vc.fill = mkFill(bgArgb); vc.alignment = { horizontal: "center", vertical: "middle" };
-    if (label === "Inbound")         inboundKpiRow  = ws.rowCount;
-    if (label === "Inbound Answered") answeredKpiRow = ws.rowCount;
     if (type === "number")  vc.numFmt = "#,##0";
-    if (type === "percent_formula") {
-      // Write Excel formula: =IF(B{inbound}=0,0,MIN(B{answered}/B{inbound},1))
-      const inbRef  = inboundKpiRow  ? `B${inboundKpiRow}`  : "0";
-      const ansRef  = answeredKpiRow ? `B${answeredKpiRow}` : "0";
-      vc.value  = { formula: `=IF(${inbRef}=0,0,MIN(${ansRef}/${inbRef},1))`, result: totalInbound > 0 ? Math.min(totalInboundAnswered / totalInbound, 1) : 0 };
+    if (type === "percent") {
       vc.numFmt = "0.00%";
-      vc.font   = mkFont({ bold: true, size: 12 });
+      // Apply answer-rate colour to the KPI cell
+      const { bg, fg } = arColor(val);
+      vc.fill = mkFill(bg);
+      vc.font = mkFont({ bold: true, size: 12, color: { argb: fg } });
     }
     [lc, vc].forEach(c => { c.border = { bottom: thinBorder }; });
   });
@@ -135,13 +119,11 @@ export function buildMonthlySummarySheet(wb, {
       const ar       = wk.answer_rate;
       const { bg, fg } = arColor(ar);
       const bgArgb   = idx % 2 === 0 ? WHITE : LIGHT_GRAY;
-      // Columns: A=Week Start, B=Week End, C=Total Calls, D=Inbound, E=Outbound, F=Answered, G=Missed, H=Answer Rate, I=Total Duration
-      const dataRowNum = weekTableStartRow + idx; // header is at weekTableStartRow-1, data starts at weekTableStartRow
       const rowValues = [
         formatDate(wk.week_start), formatDate(wk.week_end),
         wk.total_calls, wk.inbound, wk.outbound,
         wk.answered, wk.missed,
-        { formula: `=IF(D${dataRowNum}=0,0,MIN(F${dataRowNum}/D${dataRowNum},1))`, result: ar !== null ? ar : 0 },
+        ar !== null ? ar : "",
         minutesToHHMMSS(wk.total_duration_minutes),
       ];
       const row = ws.addRow(rowValues);
@@ -150,9 +132,10 @@ export function buildMonthlySummarySheet(wb, {
         cell.fill = mkFill(bgArgb); cell.font = mkFont({}); cell.border = { bottom: thinBorder, right: thinBorder };
         cell.alignment = { horizontal: "center", vertical: "middle" };
         if ([3, 4, 5, 6, 7].includes(colNum)) cell.numFmt = "#,##0";
-        if (colNum === 8) {
+        if (colNum === 8 && ar !== null) {
           cell.numFmt = "0.00%";
-          if (ar !== null) { cell.fill = mkFill(bg); cell.font = mkFont({ color: { argb: fg } }); }
+          cell.fill = mkFill(bg);
+          cell.font = mkFont({ color: { argb: fg } });
         }
       });
       weekTableDataRows.push(rowValues);
@@ -160,13 +143,9 @@ export function buildMonthlySummarySheet(wb, {
   }
 
   if (weekTableDataRows.length > 0) {
-    const dataFirstRow = weekTableStartRow;
-    const dataLastRow  = weekTableStartRow + weekTableDataRows.length - 1;
-    const totalsRowNum = dataLastRow + 2; // +1 for header already counted, +1 for totals
-
     ws.addTable({
       name: "WeeklySummary",
-      ref: `A${weekTableStartRow - 1}:I${dataLastRow}`,
+      ref: `A${weekTableStartRow}:I${weekTableStartRow + weekTableDataRows.length}`,
       headerRow: true,
       totalsRow: true,
       style: { theme: "TableStyleMedium2", showRowStripes: true },
@@ -178,25 +157,22 @@ export function buildMonthlySummarySheet(wb, {
         { name: "Outbound",       filterButton: true, totalsRowFunction: "sum" },
         { name: "Answered",       filterButton: true, totalsRowFunction: "sum" },
         { name: "Missed",         filterButton: true, totalsRowFunction: "sum" },
-        { name: "Answer Rate",    filterButton: true, totalsRowLabel: "" },
+        { name: "Answer Rate",    filterButton: true, totalsRowFunction: "average" },
         { name: "Total Duration", filterButton: true, totalsRowLabel: "" },
       ],
       rows: weekTableDataRows,
     });
 
-    // Override Answer Rate totals cell with a real formula: SUM(answered)/SUM(inbound)
-    const totalsRow = ws.getRow(dataLastRow + 2);
+    // Style the totals row
+    const totalsRowNum = weekTableStartRow + weekTableDataRows.length + 1;
+    const totalsRow = ws.getRow(totalsRowNum);
     totalsRow.height = 20;
     totalsRow.eachCell({ includeEmpty: true }, (cell, colNum) => {
       cell.font = mkFont({ bold: true, color: { argb: "FFFFFFFF" } });
       cell.fill = mkFill(DARK_NAVY);
       cell.alignment = { horizontal: colNum <= 2 ? "left" : "center", vertical: "middle" };
       if ([3, 4, 5, 6, 7].includes(colNum)) cell.numFmt = "#,##0";
-      if (colNum === 8) {
-        // =IF(SUM(D_first:D_last)=0,0,MIN(SUM(F_first:F_last)/SUM(D_first:D_last),1))
-        cell.value  = { formula: `=IF(SUM(D${dataFirstRow}:D${dataLastRow})=0,0,MIN(SUM(F${dataFirstRow}:F${dataLastRow})/SUM(D${dataFirstRow}:D${dataLastRow}),1))`, result: 0 };
-        cell.numFmt = "0.00%";
-      }
+      if (colNum === 8) cell.numFmt = "0.00%";
     });
   }
 

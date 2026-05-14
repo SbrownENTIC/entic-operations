@@ -352,15 +352,6 @@ export async function exportPeriodExcel({
     wsSummary.mergeCells(`A${wsSummary.rowCount}:K${wsSummary.rowCount}`);
     er.getCell(1).font = mkFont({ italic: true, color: { argb: "FF888888" } }); er.height = 18;
   } else {
-    // Note: columns are A=Week Start, B=Week End, C=User, D=Total Calls, E=Inbound, F=Outbound, G=Answered, H=Missed, I=Total Duration, J=Answer Rate, K=Avg Duration
-    wsSummary.addRow(["ℹ Answer Rate = Answered Inbound Calls ÷ Total Inbound Calls", ...Array(10).fill("")]);
-    wsSummary.mergeCells(`A${wsSummary.rowCount}:K${wsSummary.rowCount}`);
-    const ubNote = wsSummary.getCell(`A${wsSummary.rowCount}`);
-    ubNote.font = mkFont({ italic: true, size: 9, color: { argb: "FF1F3864" } });
-    ubNote.fill = mkFill("FFEEF2FA");
-    ubNote.alignment = { horizontal: "left", vertical: "middle" };
-    wsSummary.getRow(wsSummary.rowCount).height = 16;
-
     const userHRow = wsSummary.addRow(["Week Start", "Week End", "User", "Total Calls", "Inbound", "Outbound", "Answered", "Missed", "Total Duration", "Answer Rate", "Avg Duration"]);
     styleTableHeader(userHRow, 11);
     const userTableStartRow = wsSummary.rowCount;
@@ -370,13 +361,10 @@ export async function exportPeriodExcel({
       const ar = u.answer_rate !== undefined ? u.answer_rate : null;
       const { bg, fg } = arColor(ar);
       const bgArgb = idx % 2 === 0 ? WHITE : ALT_ROW;
-      // E=Inbound (col 5), G=Answered (col 7) — row number = userTableStartRow + idx
-      const dataRowNum = userTableStartRow + idx;
       const rowValues = [
         formatDate(u.week_start), formatDate(u.week_end), u.user || "",
         u.total_calls, u.inbound, u.outbound, u.answered, u.missed,
-        minutesToHHMMSS(u.total_duration_minutes),
-        { formula: `=IF(E${dataRowNum}=0,0,MIN(G${dataRowNum}/E${dataRowNum},1))`, result: ar !== null ? ar : 0 },
+        minutesToHHMMSS(u.total_duration_minutes), ar !== null ? ar : "",
         minutesToHHMMSS(u.avg_duration_minutes),
       ];
       const row = wsSummary.addRow(rowValues);
@@ -386,7 +374,7 @@ export async function exportPeriodExcel({
         cell.alignment = { horizontal: "center", vertical: "middle" };
         if (colNum <= 3) cell.alignment = { horizontal: "left", vertical: "middle" };
         if ([4, 5, 6, 7, 8].includes(colNum)) cell.numFmt = "#,##0";
-        if (colNum === 10) { cell.numFmt = "0.00%"; if (ar !== null) { cell.fill = mkFill(bg); cell.font = mkFont({ color: { argb: fg } }); } }
+        if (colNum === 10 && ar !== null) { cell.numFmt = "0.00%"; cell.fill = mkFill(bg); cell.font = mkFont({ color: { argb: fg } }); }
       });
       tableRows.push(rowValues);
     });
@@ -475,29 +463,17 @@ export async function exportPeriodExcel({
   wsDesk.addRow([]); wsDesk.getRow(wsDesk.rowCount).height = 8;
   addSectionHeader(wsDesk, "Detailed Front End Performance by Week", 6);
 
-  // Note row for Front End Performance
-  wsDesk.addRow(["ℹ Answer Rate = Answered Inbound Calls ÷ Total Inbound Calls", ...Array(5).fill("")]);
-  wsDesk.mergeCells(`A${wsDesk.rowCount}:F${wsDesk.rowCount}`);
-  const deskNote = wsDesk.getCell(`A${wsDesk.rowCount}`);
-  deskNote.font = mkFont({ italic: true, size: 9, color: { argb: "FF1F3864" } });
-  deskNote.fill = mkFill("FFEEF2FA");
-  deskNote.alignment = { horizontal: "left", vertical: "middle" };
-  wsDesk.getRow(wsDesk.rowCount).height = 16;
-
   const deskTableStartRow = wsDesk.rowCount + 1;
   const deskHRow = wsDesk.addRow(["Week Start", "Desk", "Location", "Total Answered", "Weekly Goal", "% of Weekly Goal"]);
   styleTableHeader(deskHRow, 6, 3);
   wsDesk.views = [{ showGridLines: false, state: "frozen", ySplit: deskTableStartRow, xSplit: 0 }];
 
-  // Columns: A=Week Start, B=Desk, C=Location, D=Total Answered, E=Weekly Goal, F=% of Weekly Goal
   const deskTableRows = [];
   deskRows.forEach((d, idx) => {
     const pct = d.weeklyGoal > 0 ? d.totalAnswered / d.weeklyGoal : 0;
     const { bg, fg } = perfColor(pct);
     const bgArgb = idx % 2 === 0 ? WHITE : ALT_ROW;
-    const dataRowNum = deskTableStartRow + idx;
-    const rowValues = [formatDate(d.week_start), d.desk, d.location, d.totalAnswered, d.weeklyGoal,
-      { formula: `=IF(E${dataRowNum}=0,0,MIN(D${dataRowNum}/E${dataRowNum},1))`, result: pct }];
+    const rowValues = [formatDate(d.week_start), d.desk, d.location, d.totalAnswered, d.weeklyGoal, pct];
     const row = wsDesk.addRow(rowValues); row.height = 18;
     row.eachCell({ includeEmpty: true }, (cell, colNum) => {
       cell.fill = mkFill(bgArgb); cell.font = mkFont({}); cell.border = { bottom: thinBorder, right: thinBorder };
@@ -510,31 +486,21 @@ export async function exportPeriodExcel({
   });
 
   if (deskRows.length > 0) {
-    const deskDataFirstRow = deskTableStartRow;
-    const deskDataLastRow  = deskTableStartRow + deskTableRows.length - 1;
     wsDesk.addTable({
       name: "DeskPerformance",
-      ref: `A${deskTableStartRow}:F${deskDataLastRow}`,
+      ref: `A${deskTableStartRow}:F${wsDesk.rowCount}`,
       headerRow: true, totalsRow: true,
       style: { theme: "TableStyleMedium2", showRowStripes: true },
       columns: [
-        { name: "Week Start",       filterButton: true, totalsRowLabel: "TOTAL" },
-        { name: "Desk",             filterButton: true, totalsRowLabel: "" },
-        { name: "Location",         filterButton: true, totalsRowLabel: "" },
-        { name: "Total Answered",   filterButton: true, totalsRowFunction: "sum" },
-        { name: "Weekly Goal",      filterButton: true, totalsRowFunction: "sum" },
-        { name: "% of Weekly Goal", filterButton: true, totalsRowLabel: "" },
+        { name: "Week Start", filterButton: true, totalsRowLabel: "TOTAL" },
+        { name: "Desk", filterButton: true, totalsRowLabel: "" },
+        { name: "Location", filterButton: true, totalsRowLabel: "" },
+        { name: "Total Answered", filterButton: true, totalsRowFunction: "sum" },
+        { name: "Weekly Goal", filterButton: true, totalsRowFunction: "sum" },
+        { name: "% of Weekly Goal", filterButton: true, totalsRowFunction: "average" },
       ],
       rows: deskTableRows,
     });
-    // Override % of Weekly Goal totals cell with SUM-based formula
-    const deskTotalsRow = wsDesk.getRow(deskDataLastRow + 2);
-    const deskTotalsCell = deskTotalsRow.getCell(6);
-    deskTotalsCell.value  = { formula: `=IF(SUM(E${deskDataFirstRow}:E${deskDataLastRow})=0,0,MIN(SUM(D${deskDataFirstRow}:D${deskDataLastRow})/SUM(E${deskDataFirstRow}:E${deskDataLastRow}),1))`, result: 0 };
-    deskTotalsCell.numFmt = "0.00%";
-    deskTotalsCell.font   = mkFont({ bold: true, color: { argb: "FFFFFFFF" } });
-    deskTotalsCell.fill   = mkFill(DARK_NAVY);
-    deskTotalsCell.alignment = { horizontal: "center", vertical: "middle" };
   }
   autoFitColumns(wsDesk);
 
@@ -599,17 +565,8 @@ export async function exportPeriodExcel({
   wsIndiv.addRow([]); wsIndiv.getRow(wsIndiv.rowCount).height = 8;
   addSectionHeader(wsIndiv, "Detailed Individual Performance by Week", 6);
 
-  // Note row for Individual Performance
-  wsIndiv.addRow(["ℹ Answer Rate = Answered Inbound Calls ÷ Total Inbound Calls", ...Array(5).fill("")]);
-  wsIndiv.mergeCells(`A${wsIndiv.rowCount}:F${wsIndiv.rowCount}`);
-  const indivNote = wsIndiv.getCell(`A${wsIndiv.rowCount}`);
-  indivNote.font = mkFont({ italic: true, size: 9, color: { argb: "FF1F3864" } });
-  indivNote.fill = mkFill("FFEEF2FA");
-  indivNote.alignment = { horizontal: "left", vertical: "middle" };
-  wsIndiv.getRow(wsIndiv.rowCount).height = 16;
-
   const indivTableStartRow = wsIndiv.rowCount + 1;
-  // Columns: A=Week Start, B=User, C=Location, D=Answered, E=Weekly Goal, F=% of Weekly Goal
+  // 6 columns: Week Start | User | Location | Answered | Weekly Goal | % of Weekly Goal
   const indivHRow = wsIndiv.addRow(["Week Start", "User", "Location", "Answered", "Weekly Goal", "% of Weekly Goal"]);
   styleTableHeader(indivHRow, 6);
   wsIndiv.views = [{ showGridLines: false, state: "frozen", ySplit: indivTableStartRow, xSplit: 0 }];
@@ -617,25 +574,22 @@ export async function exportPeriodExcel({
   const indivTableRows = [];
   indivRows.forEach((r, idx) => {
     const bgArgb = idx % 2 === 0 ? WHITE : ALT_ROW;
-    const dataRowNum = indivTableStartRow + idx;
-    const hasGoal = r.weeklyGoal !== null && r.weeklyGoal !== undefined && r.weeklyGoal > 0;
     const rowValues = [
       formatDate(r.week_start), r.user, r.location || "", r.answered,
       r.weeklyGoal !== null && r.weeklyGoal !== undefined ? r.weeklyGoal : "",
-      hasGoal
-        ? { formula: `=IF(E${dataRowNum}=0,0,MIN(D${dataRowNum}/E${dataRowNum},1))`, result: r.percentOfGoal !== null ? r.percentOfGoal : 0 }
-        : "",
+      r.percentOfGoal !== null && r.percentOfGoal !== undefined ? r.percentOfGoal : "",
     ];
     const row = wsIndiv.addRow(rowValues); row.height = 18;
     row.eachCell({ includeEmpty: true }, (cell, colNum) => {
       cell.fill = mkFill(bgArgb); cell.font = mkFont({}); cell.border = { bottom: thinBorder, right: thinBorder };
       cell.alignment = { horizontal: "center", vertical: "middle" };
+      // Left-align text-heavy columns
       if (colNum <= 2) cell.alignment = { horizontal: "left", vertical: "middle" };
       if (colNum === 4) cell.numFmt = "#,##0";
       if (colNum === 5 && r.weeklyGoal !== null && r.weeklyGoal !== undefined) cell.numFmt = "#,##0";
       if (colNum === 6) {
         cell.numFmt = "0.00%";
-        if (hasGoal && r.percentOfGoal !== null && r.percentOfGoal !== undefined) {
+        if (r.percentOfGoal !== null && r.percentOfGoal !== undefined) {
           const { bg, fg } = perfColor(r.percentOfGoal); cell.fill = mkFill(bg); cell.font = mkFont({ color: { argb: fg } });
         }
       }
@@ -644,11 +598,9 @@ export async function exportPeriodExcel({
   });
 
   if (indivRows.length > 0) {
-    const indivDataFirstRow = indivTableStartRow;
-    const indivDataLastRow  = indivTableStartRow + indivTableRows.length - 1;
     wsIndiv.addTable({
       name: "IndividualPerformance",
-      ref: `A${indivTableStartRow}:F${indivDataLastRow}`,
+      ref: `A${indivTableStartRow}:F${wsIndiv.rowCount}`,
       headerRow: true, totalsRow: true,
       style: { theme: "TableStyleMedium2", showRowStripes: true },
       columns: [
@@ -657,18 +609,10 @@ export async function exportPeriodExcel({
         { name: "Location",         filterButton: true, totalsRowLabel: "" },
         { name: "Answered",         filterButton: true, totalsRowFunction: "sum" },
         { name: "Weekly Goal",      filterButton: true, totalsRowFunction: "sum" },
-        { name: "% of Weekly Goal", filterButton: true, totalsRowLabel: "" },
+        { name: "% of Weekly Goal", filterButton: true, totalsRowFunction: "average" },
       ],
       rows: indivTableRows,
     });
-    // Override % of Weekly Goal totals cell with SUM-based formula
-    const indivTotalsRow  = wsIndiv.getRow(indivDataLastRow + 2);
-    const indivTotalsCell = indivTotalsRow.getCell(6);
-    indivTotalsCell.value  = { formula: `=IF(SUM(E${indivDataFirstRow}:E${indivDataLastRow})=0,0,MIN(SUM(D${indivDataFirstRow}:D${indivDataLastRow})/SUM(E${indivDataFirstRow}:E${indivDataLastRow}),1))`, result: 0 };
-    indivTotalsCell.numFmt = "0.00%";
-    indivTotalsCell.font   = mkFont({ bold: true, color: { argb: "FFFFFFFF" } });
-    indivTotalsCell.fill   = mkFill(DARK_NAVY);
-    indivTotalsCell.alignment = { horizontal: "center", vertical: "middle" };
   }
   autoFitColumns(wsIndiv);
 
@@ -705,10 +649,9 @@ export async function exportPeriodExcel({
   wsFrontEnd.addRow([`Reporting Period: ${periodLabel}`]); wsFrontEnd.getCell("A3").font = mkFont({ bold: true }); wsFrontEnd.getRow(3).height = 18;
   wsFrontEnd.addRow([`Generated On: ${generatedOn}`]); wsFrontEnd.getCell("A4").font = mkFont({ color: { argb: "FF666666" } }); wsFrontEnd.getRow(4).height = 18;
   wsFrontEnd.addRow([`Scope: In-Benchmark Front End staff only (role = "Front End" AND include_in_benchmark = true). Inbound calls only in denominator.`]); wsFrontEnd.getCell("A5").font = mkFont({ italic: true, size: 10, color: { argb: "FF888888" } }); wsFrontEnd.getRow(5).height = 16;
-  wsFrontEnd.addRow(["ℹ Answer Rate = Answered Inbound Calls ÷ Total Inbound Calls"]); wsFrontEnd.getCell("A6").font = mkFont({ italic: true, size: 9, color: { argb: "FF1F3864" } }); wsFrontEnd.getCell("A6").fill = mkFill("FFEEF2FA"); wsFrontEnd.getCell("A6").alignment = { horizontal: "left", vertical: "middle" }; wsFrontEnd.getRow(6).height = 16;
   wsFrontEnd.addRow([]); wsFrontEnd.getRow(6).height = 6;
 
-  // Summary aggregate row (static values for the summary block — formulas in the detail table below reference data rows)
+  // Summary aggregate row
   const feUsers = (frontEndSummaries || []).filter(u => (u.total_calls || 0) > 0);
   const feAggInbound  = feUsers.reduce((s, u) => s + (u.inbound || 0), 0);
   const feAggAnswered = feUsers.reduce((s, u) => {
@@ -718,16 +661,14 @@ export async function exportPeriodExcel({
   }, 0);
   const feAggMissed   = feUsers.reduce((s, u) => s + (u.missed || 0), 0);
   const feAggTotal    = feUsers.reduce((s, u) => s + (u.total_calls || 0), 0);
+  // Cap at 100%, return 0 if no inbound calls
   const feAggRate     = feAggInbound > 0 ? Math.min(feAggAnswered / feAggInbound, 1) : 0;
   const feAggDurSec   = feUsers.reduce((s, u) => s + (u.inbound_duration_seconds || 0), 0);
 
   addSectionHeader(wsFrontEnd, "Front-End Aggregate Summary", 8);
-  // We'll write static values here — the detail table below has the live formulas
-  const feSumRowNum = wsFrontEnd.rowCount + 1;
   const feSumRow = wsFrontEnd.addRow([
     "ALL FRONT-END STAFF", feAggTotal, feAggInbound, feAggAnswered, feAggMissed,
-    { formula: `=IF(${feAggInbound}=0,0,MIN(${feAggAnswered}/${feAggInbound},1))`, result: feAggRate },
-    secondsToHHMMSS(feAggDurSec), periodLabel
+    feAggRate !== null ? feAggRate : "", secondsToHHMMSS(feAggDurSec), periodLabel
   ]);
   feSumRow.height = 22;
   feSumRow.eachCell({ includeEmpty: true }, (cell, colNum) => {
@@ -736,7 +677,7 @@ export async function exportPeriodExcel({
     cell.alignment = { horizontal: "center", vertical: "middle" };
     cell.border = { bottom: thinBorder, right: thinBorder };
     if ([2, 3, 4, 5].includes(colNum)) cell.numFmt = "#,##0";
-    if (colNum === 6) {
+    if (colNum === 6 && feAggRate !== null) {
       cell.numFmt = "0.00%";
       const { bg, fg } = arColor(feAggRate);
       cell.fill = mkFill(bg); cell.font = mkFont({ bold: true, color: { argb: fg } });
@@ -746,7 +687,6 @@ export async function exportPeriodExcel({
   wsFrontEnd.addRow([]); wsFrontEnd.getRow(wsFrontEnd.rowCount).height = 8;
   addSectionHeader(wsFrontEnd, "Front-End User Breakdown", 8);
 
-  // Columns: A=User, B=Total Calls, C=Inbound, D=Answered, E=Missed, F=Answer Rate, G=Inbound Duration, H=Reporting Period
   const feTableStartRow = wsFrontEnd.rowCount + 1;
   const feHRow = wsFrontEnd.addRow(["User", "Total Calls", "Inbound", "Answered", "Missed", "Answer Rate", "Inbound Duration", "Reporting Period"]);
   styleTableHeader(feHRow, 8);
@@ -769,14 +709,11 @@ export async function exportPeriodExcel({
       ? Math.min(u.inbound_answered, inbound)
       : Math.max(inbound - (u.missed || 0), 0);
     const missed   = u.missed || 0;
+    // Cap at 100%, return 0 (not null) when no inbound calls
     const ar       = inbound > 0 ? Math.min(answered / inbound, 1) : 0;
     const durSec   = u.inbound_duration_seconds || 0;
     const bgArgb   = idx % 2 === 0 ? WHITE : ALT_ROW;
-    const dataRowNum = feTableStartRow + idx;
-    // F = Answer Rate: =IF(C{row}=0,0,MIN(D{row}/C{row},1))
-    const rowValues = [u.user || "", u.total_calls || 0, inbound, answered, missed,
-      { formula: `=IF(C${dataRowNum}=0,0,MIN(D${dataRowNum}/C${dataRowNum},1))`, result: ar },
-      secondsToHHMMSS(durSec), periodLabel];
+    const rowValues = [u.user || "", u.total_calls || 0, inbound, answered, missed, ar !== null ? ar : "", secondsToHHMMSS(durSec), periodLabel];
     const row = wsFrontEnd.addRow(rowValues);
     row.height = 18;
     row.eachCell({ includeEmpty: true }, (cell, colNum) => {
@@ -785,7 +722,7 @@ export async function exportPeriodExcel({
       cell.border = { bottom: thinBorder, right: thinBorder };
       cell.alignment = { horizontal: colNum === 1 ? "left" : "center", vertical: "middle" };
       if ([2, 3, 4, 5].includes(colNum)) cell.numFmt = "#,##0";
-      if (colNum === 6) {
+      if (colNum === 6 && ar !== null) {
         cell.numFmt = "0.00%";
         const { bg, fg } = arColor(ar);
         cell.fill = mkFill(bg); cell.font = mkFont({ color: { argb: fg } });
@@ -800,33 +737,23 @@ export async function exportPeriodExcel({
     er.getCell(1).font = mkFont({ italic: true, color: { argb: "FF888888" } });
     er.height = 18;
   } else {
-    const feDataFirstRow = feTableStartRow;
-    const feDataLastRow  = feTableStartRow + feTableRows.length - 1;
     wsFrontEnd.addTable({
       name: "FrontEndAnswerRate",
-      ref: `A${feTableStartRow}:H${feDataLastRow}`,
-      headerRow: true, totalsRow: true,
+      ref: `A${feTableStartRow}:H${wsFrontEnd.rowCount}`,
+      headerRow: true, totalsRow: false,
       style: { theme: "TableStyleMedium2", showRowStripes: true },
       columns: [
-        { name: "User",             filterButton: true, totalsRowLabel: "TOTAL" },
-        { name: "Total Calls",      filterButton: true, totalsRowFunction: "sum" },
-        { name: "Inbound",          filterButton: true, totalsRowFunction: "sum" },
-        { name: "Answered",         filterButton: true, totalsRowFunction: "sum" },
-        { name: "Missed",           filterButton: true, totalsRowFunction: "sum" },
-        { name: "Answer Rate",      filterButton: true, totalsRowLabel: "" },
-        { name: "Inbound Duration", filterButton: true, totalsRowLabel: "" },
-        { name: "Reporting Period", filterButton: true, totalsRowLabel: "" },
+        { name: "User", filterButton: true },
+        { name: "Total Calls", filterButton: true },
+        { name: "Inbound", filterButton: true },
+        { name: "Answered", filterButton: true },
+        { name: "Missed", filterButton: true },
+        { name: "Answer Rate", filterButton: true },
+        { name: "Inbound Duration", filterButton: true },
+        { name: "Reporting Period", filterButton: true },
       ],
       rows: feTableRows,
     });
-    // Override Answer Rate totals cell with SUM-based formula
-    const feTotalsRow  = wsFrontEnd.getRow(feDataLastRow + 2);
-    const feTotalsCell = feTotalsRow.getCell(6);
-    feTotalsCell.value  = { formula: `=IF(SUM(C${feDataFirstRow}:C${feDataLastRow})=0,0,MIN(SUM(D${feDataFirstRow}:D${feDataLastRow})/SUM(C${feDataFirstRow}:C${feDataLastRow}),1))`, result: feAggRate };
-    feTotalsCell.numFmt = "0.00%";
-    feTotalsCell.font   = mkFont({ bold: true, color: { argb: "FFFFFFFF" } });
-    feTotalsCell.fill   = mkFill(DARK_NAVY);
-    feTotalsCell.alignment = { horizontal: "center", vertical: "middle" };
   }
   autoFitColumns(wsFrontEnd);
 
