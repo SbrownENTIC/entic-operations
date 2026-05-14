@@ -1,0 +1,63 @@
+{
+  "name": "ImportJob",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "inbound",
+        "outbound"
+      ],
+      "description": "Type of call log import"
+    },
+    "total_rows": {
+      "type": "number",
+      "description": "Total rows to process"
+    },
+    "processed_rows": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of rows processed so far"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "parsing",
+        "processing",
+        "complete",
+        "error"
+      ],
+      "default": "processing",
+      "description": "Current status of the import job"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the import started"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the import completed"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Error message if import failed"
+    },
+    "csv_data": {
+      "type": "string",
+      "description": "Serialized CSV rows (stored temporarily)"
+    },
+    "batch_size": {
+      "type": "number",
+      "default": 1000,
+      "description": "Number of rows per batch"
+    }
+  },
+  "required": [
+    "type",
+    "total_rows",
+    "status",
+    "started_at"
+  ]
+}

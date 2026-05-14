@@ -86,20 +86,21 @@ function extractExtension(toField, fromField, destinationDeviceField) {
 
 /**
  * Parse CSV content into array of objects
+ * Handles quoted fields and comma-separated values
  */
 function parseCSV(csvContent) {
   const lines = csvContent.trim().split('\n');
   if (lines.length < 2) return [];
 
   const headerLine = lines[0];
-  const headers = headerLine.split(',').map(h => h.trim());
+  const headers = parseCSVLine(headerLine);
 
   const records = [];
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
 
-    const values = line.split(',').map(v => v.trim());
+    const values = parseCSVLine(line);
     const record = {};
     headers.forEach((header, index) => {
       record[header] = values[index] || '';
@@ -110,7 +111,36 @@ function parseCSV(csvContent) {
   return records;
 }
 
-const BATCH_SIZE = 1000;
+/**
+ * Parse a single CSV line handling quoted values
+ */
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    const nextChar = line[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        current += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  result.push(current.trim());
+  return result;
+}
 
 Deno.serve(async (req) => {
   try {
@@ -121,180 +151,55 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { file, type, inboundData, outboundData } = body;
+    const { file, type } = body;
 
-    const startTime = Date.now();
-    let inboundCreated = 0;
-    let outboundCreated = 0;
-    let unmappedExtensions = new Set();
-    let totalRowsParsed = 0;
-
-    // Fetch existing extensions for mapping
-    const extensions = await base44.asServiceRole.entities.UserExtensions.list('-updated_date', 1000);
-    const extMap = {};
-    extensions.forEach(ext => {
-      extMap[ext.extension] = ext.user_id;
-    });
-
-    // Handle file-based upload
-    if (file && type) {
-      let records;
-      try {
-        records = parseCSV(file);
-      } catch (error) {
-        return Response.json({
-          error: `CSV parsing failed: ${error.message}`
-        }, { status: 400 });
-      }
-
-      if (!records.length) {
-        return Response.json({
-          error: 'CSV file is empty or contains no valid records'
-        }, { status: 400 });
-      }
-
-      totalRowsParsed = records.length;
-      const totalBatches = Math.ceil(totalRowsParsed / BATCH_SIZE);
-
-      if (type === 'inbound') {
-        const inboundRecords = records.map(row => {
-          const { date, time } = parseDateTime(row['Date/Time'] || '');
-          const ext = extractExtension(row['To'], row['From'], row['Destination Device']);
-          const duration = parseDuration(row['Duration']);
-          const disposition = row['Result'] || '';
-          const answered = disposition.toLowerCase().includes('answered');
-          const missed = disposition.toLowerCase().includes('missed');
-
-          if (!extMap[ext]) {
-            unmappedExtensions.add(ext);
-          }
-
-          return {
-            call_date: date,
-            call_time: time,
-            extension: ext,
-            caller_number: row['From'] || '',
-            duration_seconds: duration,
-            disposition: disposition,
-            answered: answered,
-            missed: missed
-          };
-        });
-
-        // Process in batches
-        for (let i = 0; i < inboundRecords.length; i += BATCH_SIZE) {
-          const batch = inboundRecords.slice(i, i + BATCH_SIZE);
-          await base44.asServiceRole.entities.InboundCallRaw.bulkCreate(batch);
-          inboundCreated += batch.length;
-        }
-      } else if (type === 'outbound') {
-        const outboundRecords = records.map(row => {
-          const { date, time } = parseDateTime(row['Date/Time'] || '');
-          const ext = extractExtension(row['To'], row['From'], row['Destination Device']);
-          const duration = parseDuration(row['Duration']);
-          const result = (row['Result'] || '').toLowerCase();
-
-          if (!extMap[ext]) {
-            unmappedExtensions.add(ext);
-          }
-
-          return {
-            call_date: date,
-            call_time: time,
-            extension: ext,
-            dialed_number: row['To'] || '',
-            duration_seconds: duration,
-            result: result,
-            location: row['Location'] || ''
-          };
-        });
-
-        // Process in batches
-        for (let i = 0; i < outboundRecords.length; i += BATCH_SIZE) {
-          const batch = outboundRecords.slice(i, i + BATCH_SIZE);
-          await base44.asServiceRole.entities.OutboundCallRaw.bulkCreate(batch);
-          outboundCreated += batch.length;
-        }
-      }
-    } else {
-      // Legacy batch import support
-      if (inboundData && Array.isArray(inboundData)) {
-        totalRowsParsed = inboundData.length;
-        const inboundRecords = inboundData.map(row => {
-          const { date, time } = parseDateTime(row['Date/Time'] || '');
-          const ext = extractExtension(row['To'], row['From'], row['Destination Device']);
-          const duration = parseDuration(row['Duration']);
-          const disposition = row['Result'] || '';
-          const answered = disposition.toLowerCase().includes('answered');
-          const missed = disposition.toLowerCase().includes('missed');
-
-          if (!extMap[ext]) {
-            unmappedExtensions.add(ext);
-          }
-
-          return {
-            call_date: date,
-            call_time: time,
-            extension: ext,
-            caller_number: row['From'] || '',
-            duration_seconds: duration,
-            disposition: disposition,
-            answered: answered,
-            missed: missed
-          };
-        });
-
-        for (let i = 0; i < inboundRecords.length; i += BATCH_SIZE) {
-          const batch = inboundRecords.slice(i, i + BATCH_SIZE);
-          await base44.asServiceRole.entities.InboundCallRaw.bulkCreate(batch);
-          inboundCreated += batch.length;
-        }
-      }
-
-      if (outboundData && Array.isArray(outboundData)) {
-        totalRowsParsed = outboundData.length;
-        const outboundRecords = outboundData.map(row => {
-          const { date, time } = parseDateTime(row['Date/Time'] || '');
-          const ext = extractExtension(row['To'], row['From'], row['Destination Device']);
-          const duration = parseDuration(row['Duration']);
-          const result = (row['Result'] || '').toLowerCase();
-
-          if (!extMap[ext]) {
-            unmappedExtensions.add(ext);
-          }
-
-          return {
-            call_date: date,
-            call_time: time,
-            extension: ext,
-            dialed_number: row['To'] || '',
-            duration_seconds: duration,
-            result: result,
-            location: row['Location'] || ''
-          };
-        });
-
-        for (let i = 0; i < outboundRecords.length; i += BATCH_SIZE) {
-          const batch = outboundRecords.slice(i, i + BATCH_SIZE);
-          await base44.asServiceRole.entities.OutboundCallRaw.bulkCreate(batch);
-          outboundCreated += batch.length;
-        }
-      }
+    if (!file || !type) {
+      return Response.json({
+        error: 'Missing file or type parameter'
+      }, { status: 400 });
     }
 
-    const durationSeconds = (Date.now() - startTime) / 1000;
-    const totalBatches = Math.ceil(totalRowsParsed / BATCH_SIZE);
+    // Parse CSV
+    let records;
+    try {
+      records = parseCSV(file);
+    } catch (error) {
+      return Response.json({
+        error: `CSV parsing failed: ${error.message}`
+      }, { status: 400 });
+    }
+
+    if (!records.length) {
+      return Response.json({
+        error: 'CSV file is empty or contains no valid records'
+      }, { status: 400 });
+    }
+
+    // Create ImportJob to track progress
+    const importJob = await base44.asServiceRole.entities.ImportJob.create({
+      type: type,
+      total_rows: records.length,
+      processed_rows: 0,
+      status: 'parsing',
+      started_at: new Date().toISOString(),
+      csv_data: JSON.stringify(records),
+      batch_size: 1000
+    });
+
+    // Trigger background batch processing
+    try {
+      await base44.asServiceRole.functions.invoke('processCallLogBatch', {
+        importJobId: importJob.id
+      });
+    } catch (err) {
+      console.error('Error triggering batch processing:', err);
+    }
 
     return Response.json({
       success: true,
-      totalRowsParsed,
-      totalRowsInserted: inboundCreated + outboundCreated,
-      inboundCreated,
-      outboundCreated,
-      totalBatches,
-      durationSeconds: Math.round(durationSeconds * 100) / 100,
-      batchSize: BATCH_SIZE,
-      unmappedExtensions: Array.from(unmappedExtensions)
+      importJobId: importJob.id,
+      totalRows: records.length,
+      status: 'processing'
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

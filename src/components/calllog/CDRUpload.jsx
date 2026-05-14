@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Upload, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
@@ -10,6 +10,62 @@ export default function CDRUpload({ onUploadSuccess }) {
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState(null);
   const [progress, setProgress] = useState(null);
+  const [importJobId, setImportJobId] = useState(null);
+  const pollIntervalRef = useRef(null);
+
+  // Poll import job progress
+  useEffect(() => {
+    if (!importJobId) return;
+
+    const pollJob = async () => {
+      try {
+        const job = await base44.asServiceRole.entities.ImportJob.get(importJobId);
+        
+        if (!job) return;
+
+        const percentComplete = Math.round((job.processed_rows / job.total_rows) * 100);
+        setProgress({
+          totalRows: job.total_rows,
+          processedRows: job.processed_rows,
+          percentComplete,
+          status: job.status
+        });
+
+        // Stop polling when complete or error
+        if (job.status === 'complete' || job.status === 'error') {
+          clearInterval(pollIntervalRef.current);
+          setUploading(false);
+          setImportJobId(null);
+
+          if (job.status === 'complete') {
+            setMessage({
+              type: 'success',
+              text: `Import Complete - ${job.processed_rows.toLocaleString()} rows processed`
+            });
+            if (onUploadSuccess) {
+              onUploadSuccess();
+            }
+          } else {
+            setMessage({
+              type: 'error',
+              text: `Import failed: ${job.error_message}`
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error polling import job:', error);
+      }
+    };
+
+    pollJob();
+    pollIntervalRef.current = setInterval(pollJob, 2000);
+
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, [importJobId, onUploadSuccess]);
 
   const handleFileSelect = async (file, type) => {
     if (!file) return;
@@ -22,41 +78,29 @@ export default function CDRUpload({ onUploadSuccess }) {
 
     setUploading(true);
     setMessage(null);
+    setProgress(null);
 
     try {
-      // Read file as base64
+      // Read file as text
       const reader = new FileReader();
       reader.onload = async (e) => {
         try {
           const fileContent = e.target.result;
           
-          // Call backend function
+          // Call backend function to create ImportJob
           const response = await base44.functions.invoke('importCallLogData', {
             file: fileContent,
             type: type
           });
 
-          // Show success message
-          const typeLabel = type === 'inbound' ? 'Inbound' : 'Outbound';
-          const result = response.data;
-          setMessage({
-            type: 'success',
-            text: `${typeLabel} CDR Imported Successfully - ${result.totalRowsInserted} of ${result.totalRowsParsed} records created in ${result.durationSeconds}s`
-          });
-
-          // Show progress summary
+          // Store job ID to poll
+          setImportJobId(response.data.importJobId);
           setProgress({
-            totalRowsParsed: result.totalRowsParsed,
-            totalRowsInserted: result.totalRowsInserted,
-            totalBatches: result.totalBatches,
-            durationSeconds: result.durationSeconds,
-            completed: true
+            totalRows: response.data.totalRows,
+            processedRows: 0,
+            percentComplete: 0,
+            status: 'processing'
           });
-
-          // Trigger refresh
-          if (onUploadSuccess) {
-            onUploadSuccess();
-          }
 
           // Reset input
           if (type === 'inbound' && inboundInputRef.current) {
@@ -65,21 +109,20 @@ export default function CDRUpload({ onUploadSuccess }) {
             outboundInputRef.current.value = '';
           }
         } catch (error) {
+          setUploading(false);
           setMessage({
             type: 'error',
             text: `Import failed: ${error.message}`
           });
-        } finally {
-          setUploading(false);
         }
       };
       reader.readAsText(file);
     } catch (error) {
+      setUploading(false);
       setMessage({
         type: 'error',
         text: `File reading failed: ${error.message}`
       });
-      setUploading(false);
     }
   };
 
@@ -97,16 +140,27 @@ export default function CDRUpload({ onUploadSuccess }) {
         </Alert>
       )}
 
-      {/* Progress Summary */}
-      {progress && progress.completed && (
+      {/* Progress Tracking */}
+      {progress && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="space-y-2 text-sm">
-            <p className="font-semibold text-blue-900">Import Summary</p>
-            <div className="grid grid-cols-2 gap-2 text-blue-800">
-              <p>Total Rows Parsed: {progress.totalRowsParsed.toLocaleString()}</p>
-              <p>Rows Inserted: {progress.totalRowsInserted.toLocaleString()}</p>
-              <p>Total Batches: {progress.totalBatches}</p>
-              <p>Duration: {progress.durationSeconds}s</p>
+          <div className="space-y-3">
+            <div className="flex justify-between text-sm font-semibold text-blue-900">
+              <span>Import Progress</span>
+              <span>{progress.percentComplete}%</span>
+            </div>
+            
+            {/* Progress Bar */}
+            <div className="w-full bg-blue-200 rounded-full h-2">
+              <div
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${progress.percentComplete}%` }}
+              />
+            </div>
+            
+            {/* Progress Details */}
+            <div className="grid grid-cols-2 gap-2 text-sm text-blue-800">
+              <p>Rows Processed: {progress.processedRows.toLocaleString()} / {progress.totalRows.toLocaleString()}</p>
+              <p>Status: {progress.status === 'complete' ? '✓ Complete' : '⏳ ' + progress.status}</p>
             </div>
           </div>
         </div>
