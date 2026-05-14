@@ -127,6 +127,69 @@ export default function CallLogDashboard() {
     return individualData.filter(u => u.benchmark_group === 'Front Desk' && u.include_in_benchmark);
   }, [individualData]);
 
+  // Build filtered datasets for KPI detail modals
+  const buildDetailData = (filterType) => {
+    const benchmarkUserIds = new Set(users.filter(u => u.include_in_benchmark).map(u => u.id));
+    const frontDeskUserIds = new Set(users.filter(u => u.benchmark_group === 'Front Desk' && u.include_in_benchmark).map(u => u.id));
+    const extToUserMap = {};
+    users.forEach(user => {
+      if (user.extensions && Array.isArray(user.extensions)) {
+        user.extensions.forEach(ext => {
+          extToUserMap[ext] = user;
+        });
+      }
+    });
+
+    let filteredData = [];
+    let title = '';
+
+    switch(filterType) {
+      case 'total':
+        filteredData = [...inbound, ...outbound];
+        title = 'All Calls';
+        break;
+      case 'inbound':
+        filteredData = [...inbound];
+        title = 'Inbound Calls';
+        break;
+      case 'outbound':
+        filteredData = [...outbound];
+        title = 'Outbound Calls';
+        break;
+      case 'answered':
+        filteredData = inbound.filter(c => c.answered);
+        title = 'Answered Calls';
+        break;
+      case 'missed':
+        filteredData = inbound.filter(c => c.missed);
+        title = 'Missed Calls';
+        break;
+      case 'outbound-answered':
+        filteredData = outbound.filter(c => c.result === 'answered' && c.duration_seconds > 30);
+        title = 'Answered Outbound Calls (>30s)';
+        break;
+      case 'benchmark-inbound':
+        filteredData = inbound.filter(c => {
+          const user = extToUserMap[c.extension];
+          return user && benchmarkUserIds.has(user.id);
+        });
+        title = 'Inbound Calls (Benchmark Users)';
+        break;
+      case 'frontend-inbound':
+        filteredData = inbound.filter(c => {
+          const user = extToUserMap[c.extension];
+          return user && frontDeskUserIds.has(user.id);
+        });
+        title = 'Inbound Calls (Front Desk)';
+        break;
+      default:
+        filteredData = [];
+        title = 'Call Records';
+    }
+
+    return { type: filterType, title, data: filteredData };
+  };
+
   // Handle Excel export
   const handleExport = async () => {
     setIsExporting(true);
@@ -229,30 +292,30 @@ export default function CallLogDashboard() {
                 title="Total Calls"
                 value={metrics.totalCalls.toLocaleString()}
                 subtitle={`${metrics.totalInbound} inbound, ${metrics.totalOutbound} outbound`}
-                onClick={() => setSelectedMetric({ type: 'total', title: 'All Calls', data: [...inbound, ...outbound] })}
+                onClick={() => setSelectedMetric(buildDetailData('total'))}
               />
               <KPICard
                 title="Inbound"
                 value={metrics.totalInbound.toLocaleString()}
-                onClick={() => setSelectedMetric({ type: 'inbound', title: 'Inbound Calls', data: inbound })}
+                onClick={() => setSelectedMetric(buildDetailData('inbound'))}
               />
               <KPICard
                 title="Outbound"
                 value={metrics.totalOutbound.toLocaleString()}
-                onClick={() => setSelectedMetric({ type: 'outbound', title: 'Outbound Calls', data: outbound })}
+                onClick={() => setSelectedMetric(buildDetailData('outbound'))}
               />
               <KPICard
                 title="Answered"
                 value={metrics.totalAnswered.toLocaleString()}
                 subtitle={`${formatPercent(metrics.inboundAnswerRate)} of inbound`}
-                onClick={() => setSelectedMetric({ type: 'answered', title: 'Answered Calls', data: inbound.filter(c => c.answered) })}
+                onClick={() => setSelectedMetric(buildDetailData('answered'))}
               />
               <KPICard
                 title="Outbound Answer Rate"
                 value={formatPercent(metrics.outboundAnswerRate)}
                 subtitle={`${metrics.connectedOutbound} answered of ${metrics.totalOutbound}`}
                 variant="rate"
-                onClick={() => setSelectedMetric({ type: 'outbound-answered', title: 'Answered Outbound Calls (>30s)', data: outbound.filter(c => c.result === 'answered' && c.duration_seconds > 30) })}
+                onClick={() => setSelectedMetric(buildDetailData('outbound-answered'))}
               />
             </div>
 
@@ -262,19 +325,21 @@ export default function CallLogDashboard() {
                 title="Missed"
                 value={metrics.totalMissed.toLocaleString()}
                 variant="missed"
-                onClick={() => setSelectedMetric({ type: 'missed', title: 'Missed Calls', data: inbound.filter(c => c.missed) })}
+                onClick={() => setSelectedMetric(buildDetailData('missed'))}
               />
               <KPICard
                 title="Inbound Answer Rate (Benchmark)"
                 value={formatPercent(metrics.benchmarkAnswerRate)}
                 subtitle={`${metrics.benchmarkAnswered} answered of ${metrics.benchmarkInbound}`}
                 variant="rate"
+                onClick={() => setSelectedMetric(buildDetailData('benchmark-inbound'))}
               />
               <KPICard
                 title="Front-End Answer Rate"
                 value={formatPercent(metrics.frontDeskAnswerRate)}
                 subtitle={`${metrics.frontDeskAnswered} answered of ${metrics.frontDeskInbound}`}
                 variant="rate"
+                onClick={() => setSelectedMetric(buildDetailData('frontend-inbound'))}
               />
             </div>
 
