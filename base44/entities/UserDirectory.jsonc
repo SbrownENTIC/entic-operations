@@ -26,6 +26,20 @@
       ],
       "description": "Benchmark category for reporting"
     },
+    "daily_goal": {
+      "type": "number",
+      "description": "Daily call goal"
+    },
+    "include_in_benchmark": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether to include in benchmark calculations"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the user is active"
+    },
     "role": {
       "type": "string",
       "description": "Job role or title"
@@ -35,10 +49,6 @@
       "minimum": 0,
       "maximum": 1,
       "description": "Expected answer rate (0-1)"
-    },
-    "daily_goal": {
-      "type": "number",
-      "description": "Daily call goal"
     }
   },
   "required": [

@@ -65,6 +65,8 @@ async function processRows(rows, headerMap, base44) {
        const dailyGoalIdx = headers['daily_goal'];
        const benchmarkGroupIdx = headers['benchmark_group'];
        const answerRateIdx = headers['expected_answer_rate'];
+       const includeInBenchmarkIdx = headers['include_in_benchmark'];
+       const activeIdx = headers['active'];
        const extensionIdx = headers['extension'];
 
        const role = (roleIdx !== undefined && row[roleIdx]) ? String(row[roleIdx]).trim() : '';
@@ -88,9 +90,27 @@ async function processRows(rows, headerMap, base44) {
          }
        }
 
+       let includeInBenchmark = false;
+       if (includeInBenchmarkIdx !== undefined) {
+         const benchValue = String(row[includeInBenchmarkIdx] || '').toLowerCase().trim();
+         if (['yes', 'true', '1'].includes(benchValue)) {
+           includeInBenchmark = true;
+         }
+       }
+
+       let active = true;
+       if (activeIdx !== undefined) {
+         const activeValue = String(row[activeIdx] || '').toLowerCase().trim();
+         if (['no', 'false', '0'].includes(activeValue)) {
+           active = false;
+         }
+       }
+
        const userData = {
          name,
          benchmark_group: benchmarkGroup,
+         include_in_benchmark: includeInBenchmark,
+         active
        };
 
        if (role) userData.role = role;
@@ -244,6 +264,8 @@ Deno.serve(async (req) => {
       'role': ['role', 'Role'],
       'location': ['location', 'Location'],
       'daily_goal': ['daily_goal', 'Daily_Goal', 'daily goal', 'Daily Goal'],
+      'include_in_benchmark': ['include_in_benchmark', 'Include_In_Benchmark', 'include in benchmark', 'Include In Benchmark'],
+      'active': ['active', 'Active'],
       'extension': ['extension', 'Extension', 'extensions', 'Extensions', 'ext', 'Ext', 'phone_extension', 'Phone_Extension']
     };
 
