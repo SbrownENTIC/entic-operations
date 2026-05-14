@@ -298,7 +298,8 @@ export async function exportPeriodExcel({
     if (!cfg) return false;
     const includeInBench = coerceBool(cfg.include_in_benchmark);
     const isActive = cfg.active === undefined || cfg.active === null ? true : coerceBool(cfg.active);
-    return cfg.benchmark_group === "Front Desk" && includeInBench === true && isActive;
+    // Role must be "Front End" AND in_benchmark must be true
+    return cfg.role === "Front End" && includeInBench === true && isActive;
   };
 
   const getUserLocation = (userName) => {
@@ -335,9 +336,9 @@ export async function exportPeriodExcel({
     ...styleCtx,
   });
 
-  // Append full user breakdown table to Monthly Summary (continues after the section header added in buildMonthlySummarySheet)
+  // Append full user breakdown table to Monthly Summary — benchmark-only users
   const realUserRows = userWeekRows
-    .filter(u => !u._warning && (u.total_calls || 0) > 0)
+    .filter(u => !u._warning && (u.total_calls || 0) > 0 && coerceBool(exportUserConfigMap[u.user]?.include_in_benchmark))
     .sort((a, b) => {
       const aHasAr = a.answer_rate !== null && a.answer_rate !== undefined;
       const bHasAr = b.answer_rate !== null && b.answer_rate !== undefined;
@@ -511,9 +512,11 @@ export async function exportPeriodExcel({
   sortedWeeks.forEach(week => {
     const snapshot = Array.isArray(week.user_snapshot) ? week.user_snapshot : [];
     snapshot.forEach(u => {
-      const userName  = u.user || "";
-      const answered  = u.answered || 0;
-      const eligible  = isFrontDeskBenchmark(userName);
+      const userName = u.user || "";
+      // Individual Performance sheet: only include benchmark users
+      if (!coerceBool(exportUserConfigMap[userName]?.include_in_benchmark)) return;
+      const answered   = u.answered || 0;
+      const eligible   = isFrontDeskBenchmark(userName);
       const weeklyGoal = eligible ? getDeskGoal(userName) : 0;
       if (eligible && weeklyGoal > 0) {
         indivRows.push({ week_start: week.week_start, user: userName, location: getUserLocation(userName), answered, weeklyGoal, percentOfGoal: answered / weeklyGoal, isDeskUser: true });
@@ -645,16 +648,21 @@ export async function exportPeriodExcel({
   wsFrontEnd.addRow([]); wsFrontEnd.getRow(2).height = 6;
   wsFrontEnd.addRow([`Reporting Period: ${periodLabel}`]); wsFrontEnd.getCell("A3").font = mkFont({ bold: true }); wsFrontEnd.getRow(3).height = 18;
   wsFrontEnd.addRow([`Generated On: ${generatedOn}`]); wsFrontEnd.getCell("A4").font = mkFont({ color: { argb: "FF666666" } }); wsFrontEnd.getRow(4).height = 18;
-  wsFrontEnd.addRow([`Scope: Front End staff only (benchmark_group = "Front End")`]); wsFrontEnd.getCell("A5").font = mkFont({ italic: true, size: 10, color: { argb: "FF888888" } }); wsFrontEnd.getRow(5).height = 16;
+  wsFrontEnd.addRow([`Scope: In-Benchmark Front End staff only (role = "Front End" AND include_in_benchmark = true). Inbound calls only in denominator.`]); wsFrontEnd.getCell("A5").font = mkFont({ italic: true, size: 10, color: { argb: "FF888888" } }); wsFrontEnd.getRow(5).height = 16;
   wsFrontEnd.addRow([]); wsFrontEnd.getRow(6).height = 6;
 
   // Summary aggregate row
   const feUsers = (frontEndSummaries || []).filter(u => (u.total_calls || 0) > 0);
   const feAggInbound  = feUsers.reduce((s, u) => s + (u.inbound || 0), 0);
-  const feAggAnswered = feUsers.reduce((s, u) => s + (u.inbound_answered != null ? u.inbound_answered : Math.max((u.inbound || 0) - (u.missed || 0), 0)), 0);
+  const feAggAnswered = feUsers.reduce((s, u) => {
+    const inb = u.inbound || 0;
+    const ans = u.inbound_answered != null ? Math.min(u.inbound_answered, inb) : Math.max(inb - (u.missed || 0), 0);
+    return s + ans;
+  }, 0);
   const feAggMissed   = feUsers.reduce((s, u) => s + (u.missed || 0), 0);
   const feAggTotal    = feUsers.reduce((s, u) => s + (u.total_calls || 0), 0);
-  const feAggRate     = feAggInbound > 0 ? feAggAnswered / feAggInbound : null;
+  // Cap at 100%, return 0 if no inbound calls
+  const feAggRate     = feAggInbound > 0 ? Math.min(feAggAnswered / feAggInbound, 1) : 0;
   const feAggDurSec   = feUsers.reduce((s, u) => s + (u.inbound_duration_seconds || 0), 0);
 
   addSectionHeader(wsFrontEnd, "Front-End Aggregate Summary", 8);
@@ -686,16 +694,23 @@ export async function exportPeriodExcel({
 
   const feTableRows = [];
   const feSorted = [...feUsers].sort((a, b) => {
-    const ar_a = a.inbound > 0 ? (a.inbound_answered != null ? a.inbound_answered : Math.max(a.inbound - (a.missed || 0), 0)) / a.inbound : 0;
-    const ar_b = b.inbound > 0 ? (b.inbound_answered != null ? b.inbound_answered : Math.max(b.inbound - (b.missed || 0), 0)) / b.inbound : 0;
-    return ar_a - ar_b; // lowest first
+    const calcAr = (u) => {
+      const inb = u.inbound || 0;
+      if (inb === 0) return 0;
+      const ans = u.inbound_answered != null ? Math.min(u.inbound_answered, inb) : Math.max(inb - (u.missed || 0), 0);
+      return Math.min(ans / inb, 1);
+    };
+    return calcAr(a) - calcAr(b); // lowest first
   });
 
   feSorted.forEach((u, idx) => {
     const inbound  = u.inbound || 0;
-    const answered = u.inbound_answered != null ? u.inbound_answered : Math.max(inbound - (u.missed || 0), 0);
+    const answered = u.inbound_answered != null
+      ? Math.min(u.inbound_answered, inbound)
+      : Math.max(inbound - (u.missed || 0), 0);
     const missed   = u.missed || 0;
-    const ar       = inbound > 0 ? answered / inbound : null;
+    // Cap at 100%, return 0 (not null) when no inbound calls
+    const ar       = inbound > 0 ? Math.min(answered / inbound, 1) : 0;
     const durSec   = u.inbound_duration_seconds || 0;
     const bgArgb   = idx % 2 === 0 ? WHITE : ALT_ROW;
     const rowValues = [u.user || "", u.total_calls || 0, inbound, answered, missed, ar !== null ? ar : "", secondsToHHMMSS(durSec), periodLabel];

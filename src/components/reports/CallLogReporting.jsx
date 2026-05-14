@@ -364,16 +364,25 @@ export default function CallLogReporting() {
   const overallAnswerRate   = totalInbound > 0 ? totalInboundAnswered / totalInbound : null;
   const overallAvgDurationSec = totalCalls > 0 ? totalDurationSec / totalCalls : 0;
 
-  // ── Front-End Answer Rate (benchmark_group === "Front End") ──────────────
+  // ── Front-End Answer Rate: role === "Front End" AND in_benchmark === true ──
   const frontEndSummaries = React.useMemo(() => {
-    return userSummaries.filter(u => {
+    return allEnrichedSummaries.filter(u => {
       const cfg = allUserConfigs.find(c => norm(c.user_name) === norm(u.user));
-      return cfg && cfg.benchmark_group === "Front End";
+      return cfg && cfg.role === "Front End" && u.in_benchmark === true;
     });
-  }, [userSummaries, allUserConfigs]);
+  }, [allEnrichedSummaries, allUserConfigs]);
+
   const feInbound  = frontEndSummaries.reduce((s, u) => s + (u.inbound || 0), 0);
-  const feAnswered = frontEndSummaries.reduce((s, u) => s + (u.inbound_answered != null ? u.inbound_answered : Math.max((u.inbound || 0) - (u.missed || 0), 0)), 0);
-  const feAnswerRate = feInbound > 0 ? feAnswered / feInbound : null;
+  // Use inbound_answered if available; otherwise inbound − missed (never below 0), capped at inbound
+  const feAnswered = frontEndSummaries.reduce((s, u) => {
+    const inb = u.inbound || 0;
+    const answered = u.inbound_answered != null
+      ? Math.min(u.inbound_answered, inb)
+      : Math.max(inb - (u.missed || 0), 0);
+    return s + answered;
+  }, 0);
+  // Guard: rate must be 0–100%, never NaN or >100%
+  const feAnswerRate = feInbound > 0 ? Math.min(feAnswered / feInbound, 1) : 0;
 
   const resetUpload = () => {
     setShowUpload(false);
@@ -810,8 +819,8 @@ export default function CallLogReporting() {
                         value: overallAnswerRate === null ? "—" : (overallAnswerRate * 100).toFixed(2) + "%",
                         color: overallAnswerRate === null ? "text-slate-400" : overallAnswerRate >= 0.8 ? "text-green-700" : overallAnswerRate >= 0.5 ? "text-yellow-700" : "text-red-600" },
                       { label: "Front-End Answer Rate",
-                        value: feAnswerRate === null ? "—" : (feAnswerRate * 100).toFixed(2) + "%",
-                        color: feAnswerRate === null ? "text-slate-400" : feAnswerRate >= 0.8 ? "text-green-700" : feAnswerRate >= 0.5 ? "text-yellow-700" : "text-red-600",
+                        value: (feAnswerRate * 100).toFixed(2) + "%",
+                        color: feInbound === 0 ? "text-slate-400" : feAnswerRate >= 0.8 ? "text-green-700" : feAnswerRate >= 0.5 ? "text-yellow-700" : "text-red-600",
                         highlight: true },
                       { label: "Total Duration", value: secondsToHHMMSS(totalDurationSec),      color: "text-slate-700" },
                       { label: "Avg Duration",   value: secondsToHHMMSS(overallAvgDurationSec), color: "text-slate-700" },
