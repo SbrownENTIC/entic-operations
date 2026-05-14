@@ -170,7 +170,7 @@ export function aggregateOutboundByUser(outboundCalls, extToUser, users) {
     }
 
     userMap[userId].total_outbound++;
-    if ((call.duration_seconds || 0) > 0) userMap[userId].outbound_connected++;
+    if (call.result === 'answered' && (call.duration_seconds || 0) >= 30) userMap[userId].outbound_connected++;
     userMap[userId].total_duration_seconds += call.duration_seconds || 0;
   });
 
@@ -205,11 +205,11 @@ export function aggregateOutboundByWeek(outboundCalls, extToUser, benchmarkUserI
     }
 
     weekMap[weekKey].total_outbound++;
-    if (call.result === 'answered' && (call.duration_seconds || 0) > 30) weekMap[weekKey].connected_outbound++;
+    if (call.result === 'answered' && (call.duration_seconds || 0) >= 30) weekMap[weekKey].connected_outbound++;
 
     if (isBenchmark) {
       weekMap[weekKey].benchmark_outbound++;
-      if (call.result === 'answered' && (call.duration_seconds || 0) > 30) weekMap[weekKey].benchmark_connected++;
+      if (call.result === 'answered' && (call.duration_seconds || 0) >= 30) weekMap[weekKey].benchmark_connected++;
     }
   });
 
@@ -244,11 +244,11 @@ export function aggregateOutboundByMonth(outboundCalls, extToUser, benchmarkUser
     }
 
     monthMap[monthKey].total_outbound++;
-    if (call.result === 'answered' && (call.duration_seconds || 0) > 30) monthMap[monthKey].connected_outbound++;
+    if (call.result === 'answered' && (call.duration_seconds || 0) >= 30) monthMap[monthKey].connected_outbound++;
 
     if (isBenchmark) {
       monthMap[monthKey].benchmark_outbound++;
-      if (call.result === 'answered' && (call.duration_seconds || 0) > 30) monthMap[monthKey].benchmark_connected++;
+      if (call.result === 'answered' && (call.duration_seconds || 0) >= 30) monthMap[monthKey].benchmark_connected++;
     }
   });
 

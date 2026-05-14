@@ -36,8 +36,8 @@ export function useCallMetrics(inbound, outbound, users) {
     // Inbound answer rate (all data, capped at 1.0)
     const inboundAnswerRate = totalInbound === 0 ? 0 : Math.min(totalAnswered / totalInbound, 1.0);
 
-    // Calculate outbound metrics (contact based on duration > 0 seconds)
-    const connectedOutbound = outbound.filter(c => c.duration_seconds > 0).length;
+    // Calculate outbound metrics (connected = answered AND duration >= 30 seconds)
+    const connectedOutbound = outbound.filter(c => c.result === 'answered' && (c.duration_seconds || 0) >= 30).length;
     const outboundContactRate = totalOutbound === 0 ? 0 : Math.min(connectedOutbound / totalOutbound, 1.0);
 
     // Overall Contact Rate (combined inbound answered + outbound connected)
