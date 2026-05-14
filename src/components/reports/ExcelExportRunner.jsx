@@ -298,8 +298,8 @@ export async function exportPeriodExcel({
     if (!cfg) return false;
     const includeInBench = coerceBool(cfg.include_in_benchmark);
     const isActive = cfg.active === undefined || cfg.active === null ? true : coerceBool(cfg.active);
-    // Role must be "Front Desk" AND in_benchmark must be true
-    return cfg.role === "Front Desk" && includeInBench === true && isActive;
+    // benchmark_group must be "Front Desk" AND in_benchmark must be true
+    return cfg.benchmark_group === "Front Desk" && includeInBench === true && isActive;
   };
 
   const getUserLocation = (userName) => {
