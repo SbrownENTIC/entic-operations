@@ -26,15 +26,21 @@ export default function ExtensionMappingTable() {
   const [formData, setFormData] = useState(null);
   const queryClient = useQueryClient();
 
-  const { data: extensions = [] } = useQuery({
-    queryKey: ['extensions'],
-    queryFn: () => base44.entities.UserExtensions.list(),
-  });
-
   const { data: users = [] } = useQuery({
     queryKey: ['user-directory'],
     queryFn: () => base44.entities.UserDirectory.list(),
   });
+
+  // Extract extensions from UserDirectory extension column
+  const extensions = useMemo(() => {
+    return users
+      .filter(u => u.extension && u.extension.trim())
+      .map(u => ({
+        id: u.id,
+        extension: u.extension,
+        user_id: u.id,
+      }));
+  }, [users]);
 
   const activeUsers = useMemo(
     () => users.filter((u) => u.active !== false),
@@ -80,12 +86,8 @@ export default function ExtensionMappingTable() {
     }
 
     try {
-      if (editingExt) {
-        await base44.entities.UserExtensions.update(editingExt, formData);
-      } else {
-        await base44.entities.UserExtensions.create(formData);
-      }
-      queryClient.invalidateQueries({ queryKey: ['extensions'] });
+      await base44.entities.UserDirectory.update(editingExt, { extension: formData.extension });
+      queryClient.invalidateQueries({ queryKey: ['user-directory'] });
       setFormData(null);
       setEditingExt(null);
     } catch (error) {
@@ -94,10 +96,10 @@ export default function ExtensionMappingTable() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Delete this extension mapping?')) return;
+    if (!confirm('Delete this extension?')) return;
     try {
-      await base44.entities.UserExtensions.delete(id);
-      queryClient.invalidateQueries({ queryKey: ['extensions'] });
+      await base44.entities.UserDirectory.update(id, { extension: '' });
+      queryClient.invalidateQueries({ queryKey: ['user-directory'] });
     } catch (error) {
       alert(`Delete failed: ${error.message}`);
     }
