@@ -259,7 +259,7 @@ Deno.serve(async (req) => {
 
     // Optional fields
     const optionalFields = {
-      'extension': ['extension', 'Extension', 'ext', 'Ext', 'phone_extension', 'Phone_Extension']
+      'extension': ['extension', 'Extension', 'extensions', 'Extensions', 'ext', 'Ext', 'phone_extension', 'Phone_Extension']
     };
 
     const headers = {};

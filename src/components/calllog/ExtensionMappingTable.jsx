@@ -125,7 +125,7 @@ export default function ExtensionMappingTable() {
           <thead className="bg-slate-100 border-b">
             <tr>
               <th className="text-left px-4 py-3 font-semibold">Extension</th>
-              <th className="text-left px-4 py-3 font-semibold">Assigned User</th>
+              <th className="text-left px-4 py-3 font-semibold">Name</th>
               <th className="text-center px-4 py-3 font-semibold">Actions</th>
             </tr>
           </thead>
