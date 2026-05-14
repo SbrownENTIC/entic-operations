@@ -355,6 +355,17 @@ export default function CallLogReporting() {
   const overallAnswerRate   = totalInbound > 0 ? totalInboundAnswered / totalInbound : null;
   const overallAvgDurationSec = totalCalls > 0 ? totalDurationSec / totalCalls : 0;
 
+  // ── Front-End Answer Rate (benchmark_group === "Front End") ──────────────
+  const frontEndSummaries = React.useMemo(() => {
+    return userSummaries.filter(u => {
+      const cfg = allUserConfigs.find(c => norm(c.user_name) === norm(u.user));
+      return cfg && cfg.benchmark_group === "Front End";
+    });
+  }, [userSummaries, allUserConfigs]);
+  const feInbound  = frontEndSummaries.reduce((s, u) => s + (u.inbound || 0), 0);
+  const feAnswered = frontEndSummaries.reduce((s, u) => s + (u.inbound_answered != null ? u.inbound_answered : Math.max((u.inbound || 0) - (u.missed || 0), 0)), 0);
+  const feAnswerRate = feInbound > 0 ? feAnswered / feInbound : null;
+
   const resetUpload = () => {
     setShowUpload(false);
     setUploadFile(null);
@@ -508,6 +519,7 @@ export default function CallLogReporting() {
   const exportPeriodExcel = () => runExportPeriodExcel({
     selectedPeriod,
     enrichedSummaries,
+    frontEndSummaries,
     totalCalls, totalInbound, totalOutbound,
     totalInboundAnswered, totalMissed, totalDurationSec, overallAvgDurationSec,
     formatPeriodLabel,
@@ -758,16 +770,21 @@ export default function CallLogReporting() {
                       { label: "Outbound",       value: totalOutbound.toLocaleString(),          color: "text-indigo-700" },
                       { label: "Inbound Answered", value: totalInboundAnswered.toLocaleString(), color: "text-green-700" },
                       { label: "Missed",           value: totalMissed.toLocaleString(),          color: "text-red-600" },
-                      { label: "Inbound Answer Rate",
+                      { label: "Inbound Answer Rate (All)",
                         value: overallAnswerRate === null ? "—" : (overallAnswerRate * 100).toFixed(2) + "%",
                         color: overallAnswerRate === null ? "text-slate-400" : overallAnswerRate >= 0.8 ? "text-green-700" : overallAnswerRate >= 0.5 ? "text-yellow-700" : "text-red-600" },
+                      { label: "Front-End Answer Rate",
+                        value: feAnswerRate === null ? "—" : (feAnswerRate * 100).toFixed(2) + "%",
+                        color: feAnswerRate === null ? "text-slate-400" : feAnswerRate >= 0.8 ? "text-green-700" : feAnswerRate >= 0.5 ? "text-yellow-700" : "text-red-600",
+                        highlight: true },
                       { label: "Total Duration", value: secondsToHHMMSS(totalDurationSec),      color: "text-slate-700" },
                       { label: "Avg Duration",   value: secondsToHHMMSS(overallAvgDurationSec), color: "text-slate-700" },
                     ].map(m => (
-                      <Card key={m.label} className="border-slate-200 shadow-sm">
+                      <Card key={m.label} className={`shadow-sm ${m.highlight ? "border-blue-300 bg-blue-50/40" : "border-slate-200"}`}>
                         <CardContent className="p-4">
-                          <p className="text-xs font-medium text-slate-500 mb-1">{m.label}</p>
+                          <p className={`text-xs font-medium mb-1 ${m.highlight ? "text-blue-600 font-semibold" : "text-slate-500"}`}>{m.label}</p>
                           <p className={`text-2xl font-bold ${m.color}`}>{m.value}</p>
+                          {m.highlight && <p className="text-[10px] text-blue-400 mt-0.5">Front End staff only</p>}
                         </CardContent>
                       </Card>
                     ))}

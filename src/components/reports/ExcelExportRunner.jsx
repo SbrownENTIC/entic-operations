@@ -159,6 +159,7 @@ const WORK_DAYS_PER_WEEK = 5;
 export async function exportPeriodExcel({
   selectedPeriod,
   enrichedSummaries,
+  frontEndSummaries = [],
   totalCalls, totalInbound, totalOutbound,
   totalInboundAnswered, totalMissed, totalDurationSec, overallAvgDurationSec,
   formatPeriodLabel,
@@ -619,7 +620,129 @@ export async function exportPeriodExcel({
     arColor, DARK_NAVY, ALT_ROW, WHITE, LIGHT_GRAY,
   });
 
-  // ── HIDDEN SHEET 5: Config_Benchmarks ─────────────────────────────────────
+  // ── SHEET 5: Front-End Answer Rate ────────────────────────────────────────
+  const wsFrontEnd = wb.addWorksheet("Front-End Answer Rate", { views: [{ showGridLines: false }] });
+  wsFrontEnd.columns = [
+    { width: 34 }, // User
+    { width: 14 }, // Total Calls
+    { width: 14 }, // Inbound
+    { width: 14 }, // Answered
+    { width: 14 }, // Missed
+    { width: 16 }, // Answer Rate
+    { width: 18 }, // Inbound Duration
+    { width: 20 }, // Reporting Period
+  ];
+
+  // Title
+  wsFrontEnd.addRow([`${periodLabel} – Front-End Answer Rate`, "", "", "", "", "", "", ""]);
+  wsFrontEnd.mergeCells("A1:H1");
+  const feTitle = wsFrontEnd.getCell("A1");
+  feTitle.font = mkFont({ bold: true, size: 16, color: { argb: WHITE } });
+  feTitle.fill = mkFill(DARK_NAVY);
+  feTitle.alignment = { horizontal: "center", vertical: "middle" };
+  wsFrontEnd.getRow(1).height = 40;
+
+  wsFrontEnd.addRow([]); wsFrontEnd.getRow(2).height = 6;
+  wsFrontEnd.addRow([`Reporting Period: ${periodLabel}`]); wsFrontEnd.getCell("A3").font = mkFont({ bold: true }); wsFrontEnd.getRow(3).height = 18;
+  wsFrontEnd.addRow([`Generated On: ${generatedOn}`]); wsFrontEnd.getCell("A4").font = mkFont({ color: { argb: "FF666666" } }); wsFrontEnd.getRow(4).height = 18;
+  wsFrontEnd.addRow([`Scope: Front End staff only (benchmark_group = "Front End")`]); wsFrontEnd.getCell("A5").font = mkFont({ italic: true, size: 10, color: { argb: "FF888888" } }); wsFrontEnd.getRow(5).height = 16;
+  wsFrontEnd.addRow([]); wsFrontEnd.getRow(6).height = 6;
+
+  // Summary aggregate row
+  const feUsers = (frontEndSummaries || []).filter(u => (u.total_calls || 0) > 0);
+  const feAggInbound  = feUsers.reduce((s, u) => s + (u.inbound || 0), 0);
+  const feAggAnswered = feUsers.reduce((s, u) => s + (u.inbound_answered != null ? u.inbound_answered : Math.max((u.inbound || 0) - (u.missed || 0), 0)), 0);
+  const feAggMissed   = feUsers.reduce((s, u) => s + (u.missed || 0), 0);
+  const feAggTotal    = feUsers.reduce((s, u) => s + (u.total_calls || 0), 0);
+  const feAggRate     = feAggInbound > 0 ? feAggAnswered / feAggInbound : null;
+  const feAggDurSec   = feUsers.reduce((s, u) => s + (u.inbound_duration_seconds || 0), 0);
+
+  addSectionHeader(wsFrontEnd, "Front-End Aggregate Summary", 8);
+  const feSumRow = wsFrontEnd.addRow([
+    "ALL FRONT-END STAFF", feAggTotal, feAggInbound, feAggAnswered, feAggMissed,
+    feAggRate !== null ? feAggRate : "", secondsToHHMMSS(feAggDurSec), periodLabel
+  ]);
+  feSumRow.height = 22;
+  feSumRow.eachCell({ includeEmpty: true }, (cell, colNum) => {
+    cell.fill = mkFill("FFDCE6F1");
+    cell.font = mkFont({ bold: true });
+    cell.alignment = { horizontal: "center", vertical: "middle" };
+    cell.border = { bottom: thinBorder, right: thinBorder };
+    if ([2, 3, 4, 5].includes(colNum)) cell.numFmt = "#,##0";
+    if (colNum === 6 && feAggRate !== null) {
+      cell.numFmt = "0.00%";
+      const { bg, fg } = arColor(feAggRate);
+      cell.fill = mkFill(bg); cell.font = mkFont({ bold: true, color: { argb: fg } });
+    }
+  });
+
+  wsFrontEnd.addRow([]); wsFrontEnd.getRow(wsFrontEnd.rowCount).height = 8;
+  addSectionHeader(wsFrontEnd, "Front-End User Breakdown", 8);
+
+  const feTableStartRow = wsFrontEnd.rowCount + 1;
+  const feHRow = wsFrontEnd.addRow(["User", "Total Calls", "Inbound", "Answered", "Missed", "Answer Rate", "Inbound Duration", "Reporting Period"]);
+  styleTableHeader(feHRow, 8);
+  wsFrontEnd.views = [{ showGridLines: false, state: "frozen", ySplit: feTableStartRow, xSplit: 0 }];
+
+  const feTableRows = [];
+  const feSorted = [...feUsers].sort((a, b) => {
+    const ar_a = a.inbound > 0 ? (a.inbound_answered != null ? a.inbound_answered : Math.max(a.inbound - (a.missed || 0), 0)) / a.inbound : 0;
+    const ar_b = b.inbound > 0 ? (b.inbound_answered != null ? b.inbound_answered : Math.max(b.inbound - (b.missed || 0), 0)) / b.inbound : 0;
+    return ar_a - ar_b; // lowest first
+  });
+
+  feSorted.forEach((u, idx) => {
+    const inbound  = u.inbound || 0;
+    const answered = u.inbound_answered != null ? u.inbound_answered : Math.max(inbound - (u.missed || 0), 0);
+    const missed   = u.missed || 0;
+    const ar       = inbound > 0 ? answered / inbound : null;
+    const durSec   = u.inbound_duration_seconds || 0;
+    const bgArgb   = idx % 2 === 0 ? WHITE : ALT_ROW;
+    const rowValues = [u.user || "", u.total_calls || 0, inbound, answered, missed, ar !== null ? ar : "", secondsToHHMMSS(durSec), periodLabel];
+    const row = wsFrontEnd.addRow(rowValues);
+    row.height = 18;
+    row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+      cell.fill = mkFill(bgArgb);
+      cell.font = mkFont({});
+      cell.border = { bottom: thinBorder, right: thinBorder };
+      cell.alignment = { horizontal: colNum === 1 ? "left" : "center", vertical: "middle" };
+      if ([2, 3, 4, 5].includes(colNum)) cell.numFmt = "#,##0";
+      if (colNum === 6 && ar !== null) {
+        cell.numFmt = "0.00%";
+        const { bg, fg } = arColor(ar);
+        cell.fill = mkFill(bg); cell.font = mkFont({ color: { argb: fg } });
+      }
+    });
+    feTableRows.push(rowValues);
+  });
+
+  if (feTableRows.length === 0) {
+    const er = wsFrontEnd.addRow(["No Front-End staff data found for this period.", ...Array(7).fill("")]);
+    wsFrontEnd.mergeCells(`A${wsFrontEnd.rowCount}:H${wsFrontEnd.rowCount}`);
+    er.getCell(1).font = mkFont({ italic: true, color: { argb: "FF888888" } });
+    er.height = 18;
+  } else {
+    wsFrontEnd.addTable({
+      name: "FrontEndAnswerRate",
+      ref: `A${feTableStartRow}:H${wsFrontEnd.rowCount}`,
+      headerRow: true, totalsRow: false,
+      style: { theme: "TableStyleMedium2", showRowStripes: true },
+      columns: [
+        { name: "User", filterButton: true },
+        { name: "Total Calls", filterButton: true },
+        { name: "Inbound", filterButton: true },
+        { name: "Answered", filterButton: true },
+        { name: "Missed", filterButton: true },
+        { name: "Answer Rate", filterButton: true },
+        { name: "Inbound Duration", filterButton: true },
+        { name: "Reporting Period", filterButton: true },
+      ],
+      rows: feTableRows,
+    });
+  }
+  autoFitColumns(wsFrontEnd);
+
+  // ── HIDDEN SHEET 6 (was 5): Config_Benchmarks ────────────────────────────
   buildConfigBenchmarksSheet(wb, { mkFill, mkFont, thinBorder, DARK_NAVY, ALT_ROW, WHITE });
 
   // ── HIDDEN SHEET 6: Config_Extensions ────────────────────────────────────
