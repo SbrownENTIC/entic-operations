@@ -138,10 +138,12 @@ async function processRows(rows, headerMap, base44) {
         }
       }
       
-      // Add extensions to user data
+      // Add extensions to user data (only if present)
       const finalUserData = { ...userData };
       if (extensionsArray.length > 0) {
         finalUserData.extensions = extensionsArray;
+      } else {
+        finalUserData.extensions = [];
       }
 
       if (existingUser) {
