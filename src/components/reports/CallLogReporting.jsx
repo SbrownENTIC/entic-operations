@@ -413,8 +413,8 @@ export default function CallLogReporting() {
     outbound:         "Outbound",
     missed:           "Missed",
     inbound_answered: "Inbound Answered",
-    benchmark_rate:   "Inbound Answer Rate (Benchmark)",
-    frontend_rate:    "Front-End Answer Rate",
+    benchmark_rate:   benchmarkOnly ? "Inbound/Outbound Answer Rate (Benchmark)" : "Inbound/Outbound Answer Rate (All)",
+    frontend_rate:    "Front-End Inbound Answer Rate",
   };
 
   const handleCardClick = (filterKey) => {
@@ -853,11 +853,11 @@ export default function CallLogReporting() {
                       { filterKey: "inbound_answered", label: "Inbound Answered", value: totalInboundAnswered.toLocaleString(), color: "text-green-700" },
                       { filterKey: "missed",           label: "Missed",           value: totalMissed.toLocaleString(),          color: "text-red-600" },
                       { filterKey: "benchmark_rate",
-                        label: benchmarkOnly ? "Inbound Answer Rate (Benchmark)" : "Inbound Answer Rate (All)",
+                        label: benchmarkOnly ? "Inbound/Outbound Answer Rate (Benchmark)" : "Inbound/Outbound Answer Rate (All)",
                         value: overallAnswerRate === null ? "—" : (overallAnswerRate * 100).toFixed(2) + "%",
                         color: overallAnswerRate === null ? "text-slate-400" : overallAnswerRate >= 0.8 ? "text-green-700" : overallAnswerRate >= 0.5 ? "text-yellow-700" : "text-red-600" },
                       { filterKey: "frontend_rate",
-                        label: "Front-End Answer Rate",
+                        label: "Front-End Inbound Answer Rate",
                         value: (feAnswerRate * 100).toFixed(2) + "%",
                         color: feInbound === 0 ? "text-slate-400" : feAnswerRate >= 0.8 ? "text-green-700" : feAnswerRate >= 0.5 ? "text-yellow-700" : "text-red-600",
                         highlight: true,

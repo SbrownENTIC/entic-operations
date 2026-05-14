@@ -624,7 +624,7 @@ export async function exportPeriodExcel({
   });
 
   // ── SHEET 5: Front-End Answer Rate ────────────────────────────────────────
-  const wsFrontEnd = wb.addWorksheet("Front-End Answer Rate", { views: [{ showGridLines: false }] });
+  const wsFrontEnd = wb.addWorksheet("Front-End Inbound Answer Rate", { views: [{ showGridLines: false }] });
   wsFrontEnd.columns = [
     { width: 34 }, // User
     { width: 14 }, // Total Calls
@@ -637,7 +637,7 @@ export async function exportPeriodExcel({
   ];
 
   // Title
-  wsFrontEnd.addRow([`${periodLabel} – Front-End Answer Rate`, "", "", "", "", "", "", ""]);
+  wsFrontEnd.addRow([`${periodLabel} – Front-End Inbound Answer Rate`, "", "", "", "", "", "", ""]);
   wsFrontEnd.mergeCells("A1:H1");
   const feTitle = wsFrontEnd.getCell("A1");
   feTitle.font = mkFont({ bold: true, size: 16, color: { argb: WHITE } });
@@ -648,7 +648,7 @@ export async function exportPeriodExcel({
   wsFrontEnd.addRow([]); wsFrontEnd.getRow(2).height = 6;
   wsFrontEnd.addRow([`Reporting Period: ${periodLabel}`]); wsFrontEnd.getCell("A3").font = mkFont({ bold: true }); wsFrontEnd.getRow(3).height = 18;
   wsFrontEnd.addRow([`Generated On: ${generatedOn}`]); wsFrontEnd.getCell("A4").font = mkFont({ color: { argb: "FF666666" } }); wsFrontEnd.getRow(4).height = 18;
-  wsFrontEnd.addRow([`Scope: In-Benchmark Front End staff only (role = "Front End" AND include_in_benchmark = true). Inbound calls only in denominator.`]); wsFrontEnd.getCell("A5").font = mkFont({ italic: true, size: 10, color: { argb: "FF888888" } }); wsFrontEnd.getRow(5).height = 16;
+  wsFrontEnd.addRow([`Scope: In-Benchmark Front Desk staff only (benchmark_group = "Front Desk" AND include_in_benchmark = true). Inbound calls only in denominator.`]); wsFrontEnd.getCell("A5").font = mkFont({ italic: true, size: 10, color: { argb: "FF888888" } }); wsFrontEnd.getRow(5).height = 16;
   wsFrontEnd.addRow([]); wsFrontEnd.getRow(6).height = 6;
 
   // Summary aggregate row
@@ -665,7 +665,7 @@ export async function exportPeriodExcel({
   const feAggRate     = feAggInbound > 0 ? Math.min(feAggAnswered / feAggInbound, 1) : 0;
   const feAggDurSec   = feUsers.reduce((s, u) => s + (u.inbound_duration_seconds || 0), 0);
 
-  addSectionHeader(wsFrontEnd, "Front-End Aggregate Summary", 8);
+  addSectionHeader(wsFrontEnd, "Front-End Inbound Aggregate Summary", 8);
   const feSumRow = wsFrontEnd.addRow([
     "ALL FRONT-END STAFF", feAggTotal, feAggInbound, feAggAnswered, feAggMissed,
     feAggRate !== null ? feAggRate : "", secondsToHHMMSS(feAggDurSec), periodLabel
@@ -685,7 +685,7 @@ export async function exportPeriodExcel({
   });
 
   wsFrontEnd.addRow([]); wsFrontEnd.getRow(wsFrontEnd.rowCount).height = 8;
-  addSectionHeader(wsFrontEnd, "Front-End User Breakdown", 8);
+  addSectionHeader(wsFrontEnd, "Front-End Inbound User Breakdown", 8);
 
   const feTableStartRow = wsFrontEnd.rowCount + 1;
   const feHRow = wsFrontEnd.addRow(["User", "Total Calls", "Inbound", "Answered", "Missed", "Answer Rate", "Inbound Duration", "Reporting Period"]);
@@ -738,7 +738,7 @@ export async function exportPeriodExcel({
     er.height = 18;
   } else {
     wsFrontEnd.addTable({
-      name: "FrontEndAnswerRate",
+      name: "FrontEndInboundAnswerRate",
       ref: `A${feTableStartRow}:H${wsFrontEnd.rowCount}`,
       headerRow: true, totalsRow: false,
       style: { theme: "TableStyleMedium2", showRowStripes: true },
