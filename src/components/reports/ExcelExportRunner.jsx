@@ -25,6 +25,7 @@ import {
   buildFormulaReferenceSheet,
   buildRawImportedDataSheet,
 } from "./ExcelConfigSheets";
+import { buildOperationalKPIsSheet } from "./ExcelOperationalKPIs";
 import {
   durationToMinutes,
   calcInboundAnswered,
@@ -667,7 +668,23 @@ export async function exportPeriodExcel({
   }
   autoFitColumns(wsIndiv);
 
-  // ── SHEET 4: Inbound CDR — tab color applied inside buildCdrSheet ─────────
+  // ── SHEET 4: Operational KPIs (True Unique Call Metrics) ─────────────────
+  // Pull normalized summary from the CDR upload record if available
+  const normalizedSummary = cdrUploadData?.normalized_call_summary || null;
+  const hasNormalizedData = normalizedSummary && normalizedSummary.total_unique_inbound > 0;
+
+  const wsOpKPIs = buildOperationalKPIsSheet(wb, {
+    periodLabel, generatedOn,
+    normalizedCalls: null, // not needed — summary pre-computed at upload time
+    summary: normalizedSummary,
+    hourlyBreakdown: normalizedSummary?.hourly_breakdown || [],
+    locationBreakdown: normalizedSummary?.location_breakdown || [],
+    mkFill, mkFont, thinBorder,
+    DARK_NAVY, SECTION_BG, ALT_ROW, WHITE, LIGHT_GRAY, HEADER_BG,
+    addSectionHeader, arColor,
+  });
+
+  // ── SHEET 5: Inbound CDR — tab color applied inside buildCdrSheet ─────────
   await buildCdrSheet(wb, {
     periodLabel, generatedOn, cdrUploadData,
     mkFill, mkFont, thinBorder, addSectionHeader, styleTableHeader,

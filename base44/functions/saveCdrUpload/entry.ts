@@ -25,6 +25,7 @@ Deno.serve(async (req) => {
       mapped_rows,
       unmapped_rows,
       unmapped_extensions,
+      normalized_call_summary,
       userStats
     } = payload;
 
@@ -93,7 +94,8 @@ Deno.serve(async (req) => {
         total_unanswered,
         mapped_rows,
         unmapped_rows,
-        unmapped_extensions: Array.isArray(unmapped_extensions) ? unmapped_extensions : []
+        unmapped_extensions: Array.isArray(unmapped_extensions) ? unmapped_extensions : [],
+        normalized_call_summary: normalized_call_summary || null,
       });
     } else {
       // Create new
@@ -111,7 +113,8 @@ Deno.serve(async (req) => {
         total_unanswered,
         mapped_rows,
         unmapped_rows,
-        unmapped_extensions: Array.isArray(unmapped_extensions) ? unmapped_extensions : []
+        unmapped_extensions: Array.isArray(unmapped_extensions) ? unmapped_extensions : [],
+        normalized_call_summary: normalized_call_summary || null,
       });
       cdrUploadId = newRecord.id;
     }

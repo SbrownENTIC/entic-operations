@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Upload, AlertCircle, CheckCircle, Loader2, X } from "lucide-react";
+import { normalizeCdrRows, groupCallsByLocation } from "./CdrNormalization";
 import { formatDateToEST } from "@/components/DateUtils";
 
 // --- CSV parsing (handles quoted fields with embedded commas) ---
@@ -329,17 +330,34 @@ export default function CdrUpload({ periodKey: propPeriodKey, periodType, period
       }
 
       const processed = processRows(rows, extensionMap);
-      setResult(processed);
+
+      // ── Run true call normalization (deduplicates by Call ID) ──────────────
+      let normalizedSummary = null;
+      let locationBreakdown = null;
+      try {
+        const { normalizedCalls, summary: normSummary, hourlyBreakdown } = normalizeCdrRows(rows);
+        locationBreakdown = groupCallsByLocation(normalizedCalls);
+        normalizedSummary = {
+          ...normSummary,
+          hourly_breakdown: hourlyBreakdown,
+          location_breakdown: locationBreakdown,
+        };
+        console.log("[CdrUpload] Normalized:", normSummary.total_unique_inbound, "unique inbound from", normSummary.total_raw_cdr_rows, "raw rows");
+      } catch (normErr) {
+        console.warn("[CdrUpload] Normalization failed (non-fatal):", normErr);
+      }
+
+      setResult({ ...processed, normalizedSummary });
 
       // Auto-save after processing
-      await handleSave(processed, file.name);
+      await handleSave(processed, file.name, normalizedSummary);
     } catch (err) {
       setError("Failed to parse file: " + (err.message || "unknown error"));
     }
     setProcessing(false);
   };
 
-  const handleSave = async (processed, fileName) => {
+  const handleSave = async (processed, fileName, normalizedSummary = null) => {
     if (!processed || !periodKey) {
       setError("Missing period or processing data");
       return;
@@ -394,6 +412,7 @@ export default function CdrUpload({ periodKey: propPeriodKey, periodType, period
         mapped_rows: processed.totalMapped,
         unmapped_rows: processed.totalUnmapped,
         unmapped_extensions: unmappedExts,
+        normalized_call_summary: normalizedSummary || null,
         userStats
       });
 
@@ -529,16 +548,40 @@ export default function CdrUpload({ periodKey: propPeriodKey, periodType, period
       {/* Results */}
       {result && (
         <div className="space-y-3">
-          {/* Summary bar */}
+          {/* Normalized KPI Summary — shown if normalization succeeded */}
+          {result.normalizedSummary && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+              <p className="text-xs font-bold text-green-800 mb-2">✅ True Operational KPIs (Deduplicated by Call ID)</p>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { label: "Unique Inbound Calls", value: result.normalizedSummary.total_unique_inbound, color: "text-blue-700" },
+                  { label: "Calls Answered", value: result.normalizedSummary.inbound_answered, color: "text-green-700" },
+                  { label: "Truly Missed", value: result.normalizedSummary.inbound_truly_missed, color: "text-red-600" },
+                  { label: "Answer Rate", value: ((result.normalizedSummary.inbound_answer_rate || 0) * 100).toFixed(1) + "%", color: result.normalizedSummary.inbound_answer_rate >= 0.8 ? "text-green-700" : result.normalizedSummary.inbound_answer_rate >= 0.5 ? "text-yellow-700" : "text-red-600" },
+                ].map(m => (
+                  <div key={m.label} className="bg-white border border-green-200 rounded p-2 text-center">
+                    <p className="text-[10px] text-slate-500 mb-0.5">{m.label}</p>
+                    <p className={`text-lg font-bold ${m.color}`}>{typeof m.value === "number" ? m.value.toLocaleString() : m.value}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[10px] text-slate-500 mt-1.5">
+                Raw CDR rows: {result.normalizedSummary.total_raw_cdr_rows?.toLocaleString()} → Inflation factor: ~{result.normalizedSummary.avg_routing_events_per_call}x per call.
+                The "Operational KPIs" sheet in your Excel export will use these true values.
+              </p>
+            </div>
+          )}
+
+          {/* Raw Summary bar */}
           <div className="grid grid-cols-4 gap-3">
             {[
-              { label: "Total Inbound Calls", value: result.totalInbound,     color: "text-blue-700" },
-              { label: "Total Answered",     value: result.totalAnswered,     color: "text-green-700" },
-              { label: "Total Unanswered",   value: result.totalUnanswered,   color: result.totalUnanswered > 0 ? "text-red-600" : "text-slate-400" },
-              { label: "Mapped",             value: result.totalMapped,       color: "text-slate-700" },
+              { label: "Raw CDR Rows (Inflated)", value: result.totalInbound,   color: "text-slate-500" },
+              { label: "Raw Answered Events",     value: result.totalAnswered,   color: "text-slate-500" },
+              { label: "Raw Unanswered Events",   value: result.totalUnanswered, color: "text-slate-500" },
+              { label: "Mapped to Users",         value: result.totalMapped,     color: "text-slate-700" },
             ].map(m => (
-              <div key={m.label} className="bg-white border border-slate-200 rounded-lg p-3 text-center shadow-sm">
-                <p className="text-xs text-slate-500 mb-1">{m.label}</p>
+              <div key={m.label} className="bg-white border border-slate-200 rounded-lg p-3 text-center shadow-sm opacity-75">
+                <p className="text-xs text-slate-400 mb-1">{m.label}</p>
                 <p className={`text-2xl font-bold ${m.color}`}>{m.value.toLocaleString()}</p>
               </div>
             ))}
