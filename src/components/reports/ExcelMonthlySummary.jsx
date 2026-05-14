@@ -100,12 +100,7 @@ export function buildMonthlySummarySheet(wb, {
   // ── Section: Weekly Summary Table ─────────────────────────────────────────
   addSectionHeader(ws, "Weekly Summary", 9);
 
-  const weekHRow = ws.addRow([
-    "Week Start", "Week End", "Total Calls", "Inbound", "Outbound",
-    "Answered", "Missed", "Answer Rate", "Total Duration",
-  ]);
-  styleTableHeader(weekHRow, 9);
-
+  // weekTableStartRow points at the next row — addTable will write its own header there
   const weekTableStartRow = ws.rowCount + 1;
   const weekTableDataRows = [];
 
@@ -143,9 +138,10 @@ export function buildMonthlySummarySheet(wb, {
   }
 
   if (weekTableDataRows.length > 0) {
+    // ref spans: header row + data rows + totals row
     ws.addTable({
       name: "WeeklySummary",
-      ref: `A${weekTableStartRow}:I${weekTableStartRow + weekTableDataRows.length}`,
+      ref: `A${weekTableStartRow}:I${weekTableStartRow + weekTableDataRows.length + 1}`,
       headerRow: true,
       totalsRow: true,
       style: { theme: "TableStyleMedium2", showRowStripes: true },
@@ -163,7 +159,18 @@ export function buildMonthlySummarySheet(wb, {
       rows: weekTableDataRows,
     });
 
-    // Style the totals row — applied after addTable to avoid ExcelJS overwriting formats
+    // Re-apply styled header formatting to the single header row (addTable owns it)
+    const headerRow = ws.getRow(weekTableStartRow);
+    headerRow.height = 30;
+    for (let c = 1; c <= 9; c++) {
+      const cell = headerRow.getCell(c);
+      cell.font      = mkFont({ bold: true, color: { argb: "FFFFFFFF" } });
+      cell.fill      = mkFill(HEADER_BG);
+      cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+      cell.border    = { bottom: { style: "medium", color: { argb: "FFFFFFFF" } }, right: thinBorder };
+    }
+
+    // Style the totals row
     const totalsRowNum = weekTableStartRow + weekTableDataRows.length + 1;
     const totalsRow = ws.getRow(totalsRowNum);
     totalsRow.height = 20;
@@ -176,13 +183,6 @@ export function buildMonthlySummarySheet(wb, {
     });
     // Re-apply after row iteration to ensure SUBTOTAL formula cell retains percentage format
     ws.getCell(totalsRowNum, 8).numFmt = "0.00%";
-
-    // Re-apply correct header styling to Answer Rate column — ExcelJS addTable can overwrite it
-    const headerCell = ws.getCell(weekTableStartRow, 8);
-    headerCell.font      = mkFont({ bold: true, color: { argb: "FFFFFFFF" } });
-    headerCell.fill      = mkFill(HEADER_BG);
-    headerCell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
-    headerCell.border    = { bottom: { style: "medium", color: { argb: "FFFFFFFF" } }, right: thinBorder };
   }
 
   ws.addRow([]); ws.getRow(ws.rowCount).height = 8;
