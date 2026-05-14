@@ -304,7 +304,7 @@ export default function CallLogDashboard() {
                 <CardTitle>Front-End Performance (Front Desk Benchmark)</CardTitle>
               </CardHeader>
               <CardContent>
-                <IndividualPerformanceTable data={frontendData} showOutbound={false} />
+                <IndividualPerformanceTable data={frontendData} showOutbound={false} defaultSort="answer_rate" />
               </CardContent>
             </Card>
 
