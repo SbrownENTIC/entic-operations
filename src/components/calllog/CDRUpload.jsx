@@ -19,8 +19,11 @@ export default function CDRUpload({ onUploadSuccess }) {
 
     const pollJob = async () => {
       try {
-        const job = await base44.asServiceRole.entities.ImportJob.get(importJobId);
+        const response = await base44.functions.invoke('getImportJobStatus', {
+          importJobId: importJobId
+        });
         
+        const job = response.data;
         if (!job) return;
 
         const percentComplete = Math.round((job.processed_rows / job.total_rows) * 100);
