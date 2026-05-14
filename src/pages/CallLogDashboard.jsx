@@ -198,6 +198,10 @@ export default function CallLogDashboard() {
         filteredData = inbound.filter(c => c.missed);
         title = 'Missed Calls';
         break;
+      case 'outbound-answered':
+        filteredData = outbound.filter(c => c.result === 'answered');
+        title = 'Outbound Answered Calls';
+        break;
       case 'outbound-connected':
         filteredData = outbound.filter(c => c.duration_seconds > 0);
         title = 'Outbound Connected Calls (>0s)';
@@ -355,6 +359,13 @@ export default function CallLogDashboard() {
                 value={metrics.totalMissed.toLocaleString()}
                 variant="missed"
                 onClick={() => setSelectedMetric(buildDetailData('missed'))}
+              />
+              <KPICard
+                title="Outbound Answer Rate"
+                value={formatPercent(metrics.outboundAnswerRate)}
+                subtitle={`${metrics.answeredOutbound} answered of ${metrics.totalOutbound}`}
+                variant="rate"
+                onClick={() => setSelectedMetric(buildDetailData('outbound-answered'))}
               />
               <KPICard
                 title="Outbound Contact Rate"
