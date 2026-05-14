@@ -326,7 +326,7 @@ export default function CallLogDashboard() {
               </Alert>
             )}
 
-            {/* KPI Cards */}
+            {/* KPI Cards - 2 rows of 4 */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <KPICard
                 title="Total Calls"
@@ -351,35 +351,24 @@ export default function CallLogDashboard() {
                 onClick={() => setSelectedMetric(buildDetailData('answered'))}
               />
               <KPICard
-                title="Outbound Contact Rate"
-                value={formatPercent(metrics.outboundContactRate)}
-                subtitle={`${metrics.connectedOutbound} connected of ${metrics.totalOutbound}`}
-                variant="rate"
-                onClick={() => setSelectedMetric(buildDetailData('outbound-connected'))}
-              />
-            </div>
-
-            {/* Second row KPI cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <KPICard
                 title="Missed"
                 value={metrics.totalMissed.toLocaleString()}
                 variant="missed"
                 onClick={() => setSelectedMetric(buildDetailData('missed'))}
               />
               <KPICard
-                title="Inbound Answer Rate (Benchmark)"
+                title="Outbound Contact Rate"
+                value={formatPercent(metrics.outboundContactRate)}
+                subtitle={`${metrics.connectedOutbound} connected of ${metrics.totalOutbound}`}
+                variant="rate"
+                onClick={() => setSelectedMetric(buildDetailData('outbound-connected'))}
+              />
+              <KPICard
+                title="Benchmark Answer Rate"
                 value={formatPercent(metrics.benchmarkAnswerRate)}
                 subtitle={`${metrics.benchmarkAnswered} answered of ${metrics.benchmarkInbound}`}
                 variant="rate"
                 onClick={() => setSelectedMetric(buildDetailData('benchmark-inbound'))}
-              />
-              <KPICard
-                title="Front-End Answer Rate"
-                value={formatPercent(metrics.frontDeskAnswerRate)}
-                subtitle={`${metrics.frontDeskAnswered} answered of ${metrics.frontDeskInbound}`}
-                variant="rate"
-                onClick={() => setSelectedMetric(buildDetailData('frontend-inbound'))}
               />
               <KPICard
                 title="Overall Contact Rate"
