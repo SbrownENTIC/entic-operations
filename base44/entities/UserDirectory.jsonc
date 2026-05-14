@@ -35,6 +35,10 @@
       "minimum": 0,
       "maximum": 1,
       "description": "Expected answer rate (0-1)"
+    },
+    "daily_goal": {
+      "type": "number",
+      "description": "Daily call goal"
     }
   },
   "required": [

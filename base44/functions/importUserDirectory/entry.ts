@@ -60,11 +60,12 @@ async function processRows(rows, headerMap, base44) {
     }
 
     try {
-       const roleIdx = headerMap['role'];
-       const locationIdx = headerMap['location'];
-       const benchmarkGroupIdx = headerMap['benchmark_group'];
-       const answerRateIdx = headerMap['expected_answer_rate'];
-       const extensionIdx = headerMap['extension'];
+       const roleIdx = headers['role'];
+       const locationIdx = headers['location'];
+       const dailyGoalIdx = headers['daily_goal'];
+       const benchmarkGroupIdx = headers['benchmark_group'];
+       const answerRateIdx = headers['expected_answer_rate'];
+       const extensionIdx = headers['extension'];
 
        const role = (roleIdx !== undefined && row[roleIdx]) ? String(row[roleIdx]).trim() : '';
        const location = (locationIdx !== undefined && row[locationIdx]) ? String(row[locationIdx]).trim() : '';
@@ -79,6 +80,14 @@ async function processRows(rows, headerMap, base44) {
          }
        }
 
+       let dailyGoal = null;
+       if (dailyGoalIdx !== undefined && row[dailyGoalIdx]) {
+         const parsedGoal = parseFloat(row[dailyGoalIdx]);
+         if (!isNaN(parsedGoal) && parsedGoal > 0) {
+           dailyGoal = parsedGoal;
+         }
+       }
+
        const userData = {
          name,
          benchmark_group: benchmarkGroup,
@@ -87,6 +96,7 @@ async function processRows(rows, headerMap, base44) {
        if (role) userData.role = role;
        if (location) userData.location = location;
        if (answerRate > 0) userData.expected_answer_rate = answerRate;
+       if (dailyGoal !== null) userData.daily_goal = dailyGoal;
 
       // Get user ID and handle extensions
       let userId;
@@ -233,6 +243,7 @@ Deno.serve(async (req) => {
     const optionalFields = {
       'role': ['role', 'Role'],
       'location': ['location', 'Location'],
+      'daily_goal': ['daily_goal', 'Daily_Goal', 'daily goal', 'Daily Goal'],
       'extension': ['extension', 'Extension', 'extensions', 'Extensions', 'ext', 'Ext', 'phone_extension', 'Phone_Extension']
     };
 
