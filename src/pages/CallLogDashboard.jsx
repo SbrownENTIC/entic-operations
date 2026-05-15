@@ -491,13 +491,19 @@ export default function CallLogDashboard() {
       summary.addRow([]);
 
       // KPI block
-      [
+      const kpiData = [
         ["Total Calls", totalInbound + totalOutbound],
         ["Inbound", totalInbound],
         ["Outbound", totalOutbound],
         ["Answered", totalAnswered],
         ["Missed", totalMissed]
-      ].forEach(([label, val]) => {
+      ];
+      
+      if (!Array.isArray(kpiData)) throw new Error("kpiData is not an array");
+      kpiData.forEach((item) => {
+        const label = item[0];
+        const val = item[1];
+        
         const row = summary.addRow([label, val]);
         row.getCell(1).font = { ...baseFont, bold: true };
         row.getCell(2).numFmt = "#,##0";
@@ -516,7 +522,12 @@ export default function CallLogDashboard() {
       ];
 
       if (!Array.isArray(metricsData)) throw new Error("metricsData is not an array");
-      metricsData.forEach(([label, val, greenRef, yellowRef]) => {
+      metricsData.forEach((item) => {
+        const label = item[0];
+        const val = item[1];
+        const greenRef = item[2];
+        const yellowRef = item[3];
+        
         const row = summary.addRow([label, val]);
         row.getCell(1).font = { ...baseFont, bold: true };
         row.getCell(2).numFmt = "0.00%";
