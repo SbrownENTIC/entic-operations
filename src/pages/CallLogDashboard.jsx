@@ -121,9 +121,13 @@ export default function CallLogDashboard() {
   const individualData = useMemo(() => {
     const inboundByUser = aggregateByUser(inbound, extToUser, users);
     const outboundByUser = aggregateOutboundByUser(outbound, extToUser, users);
-    
+
+    if (!Array.isArray(inboundByUser)) throw new Error("inboundByUser is not an array");
+    if (!Array.isArray(outboundByUser)) throw new Error("outboundByUser is not an array");
+
     // Build a map of answered outbound by user (for overall contact rate calculation)
     const answeredOutboundByUser = {};
+    if (Array.isArray(outbound)) {
     outbound.forEach(call => {
       const normalizedExt = call.extension?.trim().replace(/[\s\-\(\)]/g, '').replace(/\D/g, '') || '';
       const user = extToUser[normalizedExt] || extToUser[call.extension];
@@ -135,14 +139,18 @@ export default function CallLogDashboard() {
       if (call.result === 'answered') {
         answeredOutboundByUser[user.id]++;
       }
-    });
-    
-    // Merge inbound and outbound data with combined metrics
-    const merged = {};
-    inboundByUser.forEach(u => {
+      });
+      }
+
+      // Merge inbound and outbound data with combined metrics
+      const merged = {};
+      if (Array.isArray(inboundByUser)) {
+      inboundByUser.forEach(u => {
       merged[u.user_id] = { ...u };
-    });
-    outboundByUser.forEach(u => {
+      });
+      }
+      if (Array.isArray(outboundByUser)) {
+      outboundByUser.forEach(u => {
       if (merged[u.user_id]) {
         merged[u.user_id] = {
           ...merged[u.user_id],
@@ -160,10 +168,13 @@ export default function CallLogDashboard() {
           avg_duration_seconds: 0
         };
       }
-    });
-    
-    // Calculate overall contact rate: (answered inbound + ALL answered outbound) / (total inbound + total outbound)
-    return Object.values(merged).map(user => {
+      });
+      }
+
+      // Calculate overall contact rate: (answered inbound + ALL answered outbound) / (total inbound + total outbound)
+      const mergedValues = Object.values(merged);
+      if (!Array.isArray(mergedValues)) throw new Error("mergedValues is not an array");
+      return mergedValues.map(user => {
       const totalCalls = user.total_inbound + user.total_outbound;
       const allAnsweredOutbound = answeredOutboundByUser[user.user_id] || 0;
       const totalContacted = user.total_answered + allAnsweredOutbound;
@@ -175,6 +186,10 @@ export default function CallLogDashboard() {
   }, [inbound, outbound, extToUser, users]);
 
   const frontendData = useMemo(() => {
+    if (!Array.isArray(individualData)) {
+      console.error("individualData is not an array in frontendData memo:", individualData);
+      return [];
+    }
     return individualData.filter(u => u.benchmark_group === 'Front Desk' && u.include_in_benchmark);
   }, [individualData]);
 
@@ -500,6 +515,7 @@ export default function CallLogDashboard() {
         ["Overall Contact Rate", overallContactRate, "Overall_ContactRate_Green", "Overall_ContactRate_Yellow"]
       ];
 
+      if (!Array.isArray(metricsData)) throw new Error("metricsData is not an array");
       metricsData.forEach(([label, val, greenRef, yellowRef]) => {
         const row = summary.addRow([label, val]);
         row.getCell(1).font = { ...baseFont, bold: true };
@@ -540,6 +556,7 @@ export default function CallLogDashboard() {
       // Weekly data
       if (!Array.isArray(weeklyData)) throw new Error("weeklyData iteration failed");
       if (weeklyData && weeklyData.length > 0) {
+        if (!Array.isArray(weeklyData)) throw new Error("weeklyData is not iterable in summary section");
         weeklyData.forEach((w) => {
           const row = summary.addRow([
             w.week_start || "",
@@ -594,7 +611,9 @@ export default function CallLogDashboard() {
 
       if (!Array.isArray(frontendData)) throw new Error("frontendData is not an array");
       if (frontendData && frontendData.length > 0) {
-        const sorted = [...frontendData].sort((a, b) => (b.answer_rate || 0) - (a.answer_rate || 0));
+        if (!Array.isArray(frontendData)) throw new Error("frontendData is not iterable in FrontEnd sheet");
+        const sorted = Array.isArray(frontendData) ? [...frontendData].sort((a, b) => (b.answer_rate || 0) - (a.answer_rate || 0)) : [];
+        if (!Array.isArray(sorted)) throw new Error("sorted frontendData is not an array");
         let totalInb = 0, totalAns = 0, totalMis = 0;
 
         sorted.forEach((u) => {
@@ -660,7 +679,9 @@ export default function CallLogDashboard() {
 
       if (!Array.isArray(individualData)) throw new Error("individualData is not an array");
       if (individualData && individualData.length > 0) {
-        const sorted = [...individualData].sort((a, b) => (b.answer_rate || 0) - (a.answer_rate || 0));
+        if (!Array.isArray(individualData)) throw new Error("individualData is not iterable in Individual Performance sheet");
+        const sorted = Array.isArray(individualData) ? [...individualData].sort((a, b) => (b.answer_rate || 0) - (a.answer_rate || 0)) : [];
+        if (!Array.isArray(sorted)) throw new Error("sorted individualData is not an array");
         let totInb = 0, totOut = 0, totAns = 0, totMis = 0, totDur = 0, totOutConnected = 0;
 
         sorted.forEach((u) => {
@@ -795,7 +816,7 @@ export default function CallLogDashboard() {
         const perfGreen = 0.85;
         const perfYellow = 0.7;
 
-        const usersSliced = users.slice(0, 10);
+        const usersSliced = Array.isArray(users) ? users.slice(0, 10) : [];
         if (!Array.isArray(usersSliced)) throw new Error("usersSliced is not an array");
         usersSliced.forEach((user, idx) => {
           // Determine daily goal based on user role or location
