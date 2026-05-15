@@ -617,21 +617,29 @@ export default function UserDirectoryTable() {
             </div>
             <div>
               <label className="text-sm font-medium">Daily Goal</label>
-              <Input
-                type="number"
-                min="0"
-                value={formData?.daily_goal || ''}
-                onChange={(e) =>
-                  setFormData({ ...formData, daily_goal: e.target.value ? parseFloat(e.target.value) : null })
-                }
-                placeholder="Daily call goal"
-              />
+              {formData?.include_in_benchmark ? (
+                <Input
+                  type="number"
+                  min="0"
+                  value={formData?.daily_goal || ''}
+                  onChange={(e) =>
+                    setFormData({ ...formData, daily_goal: e.target.value ? parseFloat(e.target.value) : null })
+                  }
+                  placeholder="Daily call goal"
+                />
+              ) : (
+                <div className="p-2 bg-slate-100 rounded text-slate-600 text-sm">0 - User not in benchmark</div>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <Checkbox
                 checked={formData?.include_in_benchmark || false}
                 onCheckedChange={(checked) =>
-                  setFormData({ ...formData, include_in_benchmark: checked })
+                  setFormData({ 
+                    ...formData, 
+                    include_in_benchmark: checked,
+                    daily_goal: checked ? formData?.daily_goal : 0
+                  })
                 }
               />
               <label className="text-sm font-medium">Include in Benchmark</label>
