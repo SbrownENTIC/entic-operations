@@ -376,7 +376,180 @@ export default function CallLogDashboard() {
       summary.views = [{ state: "frozen", ySplit: 3 }];
       autoFitColumns(summary);
 
-      // ===== SHEET 2: WEEKLY SUMMARY =====
+      // ===== SHEET 2: INBOUND CDR =====
+      const inboundCDR = wb.addWorksheet("Inbound CDR");
+      inboundCDR.properties.tabColor = { argb: "FF5B9BD5" };
+      inboundCDR.columns = [
+        { header: "Call Date", width: 12 },
+        { header: "Call Time", width: 12 },
+        { header: "Extension", width: 12 },
+        { header: "Caller Number", width: 15 },
+        { header: "Duration (sec)", width: 15 },
+        { header: "Disposition", width: 15 },
+        { header: "Answered", width: 12 }
+      ];
+
+      inboundCDR.getRow(1).eachCell((cell) => applyHeaderStyle(cell));
+
+      if (inbound && inbound.length > 0) {
+        inbound.forEach((call) => {
+          inboundCDR.addRow([
+            call.call_date || "",
+            call.call_time || "",
+            call.extension || "",
+            call.caller_number || "",
+            call.duration_seconds || 0,
+            call.disposition || "",
+            call.answered ? "Yes" : "No"
+          ]);
+        });
+      }
+
+      inboundCDR.autoFilter = { from: "A1", to: `G${inboundCDR.rowCount}` };
+      inboundCDR.views = [{ state: "frozen", ySplit: 1 }];
+      autoFitColumns(inboundCDR);
+
+      // ===== SHEET 3: FRONT-END INBOUND ANSWER RATE =====
+      const feInboundRate = wb.addWorksheet("Front-End Inbound Answer Rate");
+      feInboundRate.properties.tabColor = { argb: "FF7030A0" };
+      feInboundRate.columns = [
+        { header: "User", width: 30 },
+        { header: "Total Inbound", width: 15 },
+        { header: "Answered", width: 15 },
+        { header: "Answer Rate", width: 15 }
+      ];
+
+      feInboundRate.getRow(1).eachCell((cell) => applyHeaderStyle(cell));
+
+      if (frontendData && frontendData.length > 0) {
+        frontendData.forEach((u) => {
+          feInboundRate.addRow([
+            u.user_name || "",
+            u.total_inbound || 0,
+            u.total_answered || 0,
+            u.answer_rate || 0
+          ]);
+        });
+      }
+
+      feInboundRate.autoFilter = { from: "A1", to: `D${feInboundRate.rowCount}` };
+      autoFitColumns(feInboundRate);
+
+      // ===== SHEET 4: CONFIG_BENCHMARKS =====
+      const configBench = wb.addWorksheet("Config_Benchmarks");
+      configBench.properties.tabColor = { argb: "FFC55A11" };
+      configBench.columns = [
+        { header: "Category", width: 20 },
+        { header: "Metric", width: 30 },
+        { header: "Target Value", width: 15 },
+        { header: "Unit", width: 15 },
+        { header: "Notes", width: 30 }
+      ];
+
+      configBench.getRow(1).eachCell((cell) => applyHeaderStyle(cell));
+
+      const benchData = [
+        ["Front Desk", "Inbound Answer Rate", 0.9, "Decimal", "90% target"],
+        ["Front Desk", "Outbound Contact Rate (30s+)", 0.7, "Decimal", "70% target"]
+      ];
+
+      benchData.forEach((row) => {
+        configBench.addRow(row);
+      });
+
+      configBench.state = "hidden";
+      configBench.protect("ENTIC_23!");
+      autoFitColumns(configBench);
+
+      // ===== SHEET 5: CONFIG_EXTENSIONS =====
+      const configExt = wb.addWorksheet("Config_Extensions");
+      configExt.properties.tabColor = { argb: "FF70AD47" };
+      configExt.columns = [
+        { header: "Extension", width: 15 },
+        { header: "User", width: 30 },
+        { header: "Location", width: 20 }
+      ];
+
+      configExt.getRow(1).eachCell((cell) => applyHeaderStyle(cell));
+
+      if (users && users.length > 0) {
+        users.forEach((u) => {
+          if (u.extensions && Array.isArray(u.extensions)) {
+            u.extensions.forEach((ext) => {
+              configExt.addRow([ext, u.name || "", u.location || ""]);
+            });
+          }
+        });
+      }
+
+      configExt.state = "hidden";
+      configExt.protect("ENTIC_23!");
+      autoFitColumns(configExt);
+
+      // ===== SHEET 6: FORMULA_REFERENCE =====
+      const formulaRef = wb.addWorksheet("Formula_Reference");
+      formulaRef.properties.tabColor = { argb: "FF002060" };
+      formulaRef.columns = [
+        { header: "Metric", width: 30 },
+        { header: "Formula", width: 40 },
+        { header: "Description", width: 40 }
+      ];
+
+      formulaRef.getRow(1).eachCell((cell) => applyHeaderStyle(cell));
+
+      const formulas = [
+        ["Answer Rate", "Answered / Total Inbound", "Percentage of inbound calls answered"],
+        ["Outbound Contact Rate", "Connected (30s+) / Total Outbound", "Percentage of outbound calls with 30+ sec duration"],
+        ["Overall Contact Rate", "(Inbound Answered + Outbound Connected) / Total Calls", "Combined contact rate"]
+      ];
+
+      formulas.forEach((row) => {
+        formulaRef.addRow(row);
+      });
+
+      formulaRef.state = "hidden";
+      formulaRef.protect("ENTIC_23!");
+      autoFitColumns(formulaRef);
+
+      // ===== SHEET 7: RAW_IMPORTED_DATA =====
+      const rawData = wb.addWorksheet("Raw_Imported_Data");
+      rawData.properties.tabColor = { argb: "FF595959" };
+      rawData.columns = [
+        { header: "Call Date", width: 12 },
+        { header: "Call Time", width: 12 },
+        { header: "Extension", width: 12 },
+        { header: "Direction", width: 12 },
+        { header: "Number", width: 15 },
+        { header: "Duration (sec)", width: 15 },
+        { header: "Result", width: 15 },
+        { header: "Location", width: 15 }
+      ];
+
+      rawData.getRow(1).eachCell((cell) => applyHeaderStyle(cell));
+
+      if (inbound && inbound.length > 0) {
+        inbound.forEach((call) => {
+          rawData.addRow([
+            call.call_date || "", call.call_time || "", call.extension || "", "Inbound",
+            call.caller_number || "", call.duration_seconds || 0, call.disposition || "", ""
+          ]);
+        });
+      }
+
+      if (outbound && outbound.length > 0) {
+        outbound.forEach((call) => {
+          rawData.addRow([
+            call.call_date || "", call.call_time || "", call.extension || "", "Outbound",
+            call.dialed_number || "", call.duration_seconds || 0, call.result || "", call.location || ""
+          ]);
+        });
+      }
+
+      rawData.autoFilter = { from: "A1", to: `H${rawData.rowCount}` };
+      rawData.views = [{ state: "frozen", ySplit: 1 }];
+      autoFitColumns(rawData);
+
+      // ===== SHEET 8: WEEKLY SUMMARY =====
       const weekly = wb.addWorksheet("Weekly Summary");
       weekly.properties.tabColor = { argb: "FF00B0F0" };
       weekly.columns = [
