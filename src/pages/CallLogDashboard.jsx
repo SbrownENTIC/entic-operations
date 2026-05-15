@@ -653,6 +653,17 @@ export default function CallLogDashboard() {
           rows: frontendTableRows
         });
 
+        const percentColumns = ["Answer Rate", "Outbound Contact Rate", "% of Goal"];
+        frontEnd.columns.forEach((column) => {
+          if (percentColumns.includes(column.header)) {
+            column.eachCell((cell, rowNumber) => {
+              if (rowNumber !== 1) {
+                cell.numFmt = "0.00%";
+              }
+            });
+          }
+        });
+
         const totalAnsRate = totalInb > 0 ? totalAns / totalInb : 0;
         const totalOutRate = totalOut > 0 ? totalOutConn / totalOut : 0;
         const avgPercentOfGoal = percentOfGoalValues.length > 0 
@@ -666,7 +677,7 @@ export default function CallLogDashboard() {
           else totalsRow.getCell(i).numFmt = "#,##0";
           totalsRow.getCell(i).alignment = { horizontal: "right" };
         }
-      }
+        }
 
       frontEnd.views = [{ state: "frozen", ySplit: 1 }];
       autoFitColumns(frontEnd);
@@ -748,6 +759,17 @@ export default function CallLogDashboard() {
           rows: individualTableRows
         });
 
+        const percentColumns = ["Answer Rate", "Outbound Contact Rate", "% of Goal"];
+        individual.columns.forEach((column) => {
+          if (percentColumns.includes(column.header)) {
+            column.eachCell((cell, rowNumber) => {
+              if (rowNumber !== 1) {
+                cell.numFmt = "0.00%";
+              }
+            });
+          }
+        });
+
         const totAnsRate = totInb > 0 ? totAns / totInb : 0;
         const totOutRate = totOut > 0 ? totOutConnected / totOut : 0;
         const avgPercentOfGoal = percentOfGoalValues.length > 0 
@@ -770,7 +792,7 @@ export default function CallLogDashboard() {
           else totalsRow.getCell(i).numFmt = "#,##0";
           totalsRow.getCell(i).alignment = { horizontal: "right" };
         }
-      }
+        }
 
       individual.views = [{ state: "frozen", ySplit: 1 }];
       autoFitColumns(individual);
