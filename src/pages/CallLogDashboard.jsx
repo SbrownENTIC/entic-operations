@@ -23,6 +23,7 @@ import IndividualPerformanceTable from '@/components/calllog/IndividualPerforman
 import CDRUpload from '@/components/calllog/CDRUpload';
 import UserDirectoryTable from '@/components/calllog/UserDirectoryTable';
 import UnmappedExtensionsAlert from '@/components/calllog/UnmappedExtensionsAlert';
+import GoalTrackingWidget from '@/components/calllog/GoalTrackingWidget';
 
 export default function CallLogDashboard() {
   const [selectedMetric, setSelectedMetric] = useState(null);
@@ -382,27 +383,22 @@ export default function CallLogDashboard() {
         cell.alignment = { horizontal: "right" };
       });
 
-      // Define named ranges for formula references
-      wb.definedNames.add("AnswerRate_Green", "Config_Benchmarks!$C$2");
-      wb.definedNames.add("AnswerRate_Yellow", "Config_Benchmarks!$C$3");
-      wb.definedNames.add("AnswerRate_Red", "Config_Benchmarks!$C$4");
-      wb.definedNames.add("CallCenter_Expected_AR", "Config_Benchmarks!$C$5");
-      wb.definedNames.add("ClientFacing_Expected_AR", "Config_Benchmarks!$C$6");
-      wb.definedNames.add("Outbound_Green", "Config_Benchmarks!$C$7");
-      wb.definedNames.add("Outbound_Yellow", "Config_Benchmarks!$C$8");
-      wb.definedNames.add("FrontEnd_AR_Green", "Config_Benchmarks!$C$10");
-      wb.definedNames.add("FrontEnd_AR_Yellow", "Config_Benchmarks!$C$11");
-      wb.definedNames.add("CallCenter_Expected_CPH", "Config_Benchmarks!$C$12");
-      wb.definedNames.add("ClientFacing_Expected_CPH", "Config_Benchmarks!$C$13");
-      wb.definedNames.add("CallCenter_Daily_Goal", "Config_Benchmarks!$C$14");
-      wb.definedNames.add("ClientFacing_Daily_Goal", "Config_Benchmarks!$C$15");
-      wb.definedNames.add("CallCenter_Outbound_Mix", "Config_Benchmarks!$C$16");
-      wb.definedNames.add("ClientFacing_Outbound_Mix", "Config_Benchmarks!$C$17");
-      wb.definedNames.add("WorkDays_Per_Week", "Config_Benchmarks!$C$18");
-      wb.definedNames.add("Performance_Green", "Config_Benchmarks!$C$19");
-      wb.definedNames.add("Performance_Yellow", "Config_Benchmarks!$C$20");
-      wb.definedNames.add("Overall_ContactRate_Green", "Config_Benchmarks!$C$21");
-      wb.definedNames.add("Overall_ContactRate_Yellow", "Config_Benchmarks!$C$22");
+      // Store benchmark thresholds as static values for sheet references
+      const benchmarkThresholds = {
+        answerRateGreen: 0.5,
+        answerRateYellow: 0.2,
+        callCenterAR: 0.85,
+        clientFacingAR: 0.65,
+        outboundGreen: 0.4,
+        outboundYellow: 0.2,
+        frontEndGreen: 0.6,
+        frontEndYellow: 0.4,
+        performanceGreen: 0.85,
+        performanceYellow: 0.7,
+        overallContactGreen: 0.65,
+        overallContactYellow: 0.45,
+        workDaysPerWeek: 5
+      };
 
       // Protect the sheet
       configSheet.protect("ENTIC_23!", {
@@ -904,6 +900,9 @@ export default function CallLogDashboard() {
                 <IndividualPerformanceTable data={individualData} showOutbound={true} defaultSort="overall_contact_rate" />
               </CardContent>
             </Card>
+
+            {/* Weekly Goal Tracking */}
+            <GoalTrackingWidget individualData={individualData} users={users} />
           </TabsContent>
 
           {/* Upload CDR Tab */}
