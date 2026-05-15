@@ -785,13 +785,189 @@ export default function CallLogDashboard() {
       }
 
       individual.autoFilter = { from: "A1", to: `K${individual.rowCount}` };
-      individual.views = [{ state: "frozen", ySplit: 1 }];
-      autoFitColumns(individual);
+       individual.views = [{ state: "frozen", ySplit: 1 }];
+       autoFitColumns(individual);
 
-      // ===== PHASE 2 COMPLETE: Professional formatting, goal tracking, conditional coloring =====
+       // ===== PHASE 3: ADD CONFIG, FORMULA, AND RAW DATA SHEETS =====
 
-      // Write buffer and download
-      const buffer = await wb.xlsx.writeBuffer();
+       // 1. CONFIG_BENCHMARKS SHEET
+       const configBenchmarks = wb.addWorksheet("Config_Benchmarks");
+       configBenchmarks.properties.tabColor = { argb: "FF808080" };
+       configBenchmarks.columns = [
+         { header: "Name", width: 30 },
+         { header: "Extensions", width: 30 },
+         { header: "Location", width: 20 },
+         { header: "Benchmark Group", width: 20 },
+         { header: "Daily Goal", width: 12 },
+         { header: "Include in Benchmark", width: 18 },
+         { header: "Active", width: 10 },
+         { header: "Role", width: 20 },
+         { header: "Expected Answer Rate", width: 18 }
+       ];
+
+       configBenchmarks.getRow(1).eachCell((cell) => {
+         cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: WHITE } };
+         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD3D3D3" } };
+         cell.alignment = { horizontal: "center", vertical: "middle" };
+       });
+
+       let configIdx = 0;
+       while (configIdx < users.length) {
+         const u = users[configIdx];
+         const extStr = Array.isArray(u.extensions) ? u.extensions.join(", ") : u.extensions || "";
+         const row = configBenchmarks.addRow([
+           u.name || "",
+           extStr,
+           u.location || "",
+           u.benchmark_group || "",
+           u.daily_goal || 0,
+           u.include_in_benchmark ? "Yes" : "No",
+           u.active ? "Yes" : "No",
+           u.role || "",
+           u.expected_answer_rate || ""
+         ]);
+         for (let i = 1; i <= 9; i++) {
+           row.getCell(i).alignment = { horizontal: "left" };
+         }
+         configIdx++;
+       }
+
+       autoFitColumns(configBenchmarks);
+       configBenchmarks.protect("ENTIC_23!", {
+         selectLockedCells: false,
+         selectUnlockedCells: false
+       });
+       configBenchmarks.state = "hidden";
+
+       // 2. FORMULA_REFERENCE SHEET
+       const formulaRef = wb.addWorksheet("Formula_Reference");
+       formulaRef.properties.tabColor = { argb: "FF7030A0" };
+       formulaRef.columns = [{ width: 30 }, { width: 60 }];
+
+       const formulaHeader = formulaRef.addRow(["Calculation", "Formula/Logic"]);
+       formulaHeader.eachCell((cell) => {
+         cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: WHITE } };
+         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD3D3D3" } };
+         cell.alignment = { horizontal: "left", vertical: "top" };
+       });
+
+       const formulaData = [
+         ["Inbound Answer Rate", "= Answered Calls ÷ Total Inbound Calls"],
+         ["Outbound Contact Rate (30s+)", "= Outbound Calls with duration ≥ 30 seconds ÷ Total Outbound Calls"],
+         ["% of Goal", "= (Answered + Outbound) ÷ Weekly Goal"],
+         ["Daily Goal", "= Expected Calls Per Hour × 7.5 hours"],
+         ["Weekly Goal", "= Daily Goal × 5 work days"],
+         ["Overall Contact Rate", "= (Answered + Outbound Connected) ÷ Total Calls"],
+         ["Average % of Goal (Total Row)", "= Average of all individual % of Goal values"]
+       ];
+
+       let fIdx = 0;
+       while (fIdx < formulaData.length) {
+         const item = formulaData[fIdx];
+         const fRow = formulaRef.addRow([item[0], item[1]]);
+         fRow.getCell(1).font = { name: "Calibri", size: 10, bold: true };
+         fRow.getCell(2).font = { name: "Calibri", size: 10 };
+         fRow.alignment = { horizontal: "left", vertical: "top", wrapText: true };
+         fIdx++;
+       }
+
+       autoFitColumns(formulaRef);
+       formulaRef.protect("ENTIC_23!", {
+         selectLockedCells: false,
+         selectUnlockedCells: false
+       });
+       formulaRef.state = "hidden";
+
+       // 3. RAW_IMPORTED_DATA SHEET
+       const rawData = wb.addWorksheet("Raw_Imported_Data");
+       rawData.properties.tabColor = { argb: "FFFFC000" };
+       rawData.columns = [
+         { header: "Date", width: 12 },
+         { header: "Time", width: 10 },
+         { header: "User", width: 20 },
+         { header: "Extension", width: 12 },
+         { header: "Direction", width: 12 },
+         { header: "Duration (seconds)", width: 16 },
+         { header: "Answered", width: 10 },
+         { header: "WeekStart", width: 12 },
+         { header: "Month", width: 12 },
+         { header: "ParsedDurationSeconds", width: 20 }
+       ];
+
+       rawData.getRow(1).eachCell((cell) => {
+         cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: WHITE } };
+         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD3D3D3" } };
+         cell.alignment = { horizontal: "center", vertical: "middle" };
+       });
+
+       // Add inbound data
+       let inIdx = 0;
+       while (inIdx < inbound.length) {
+         const call = inbound[inIdx];
+         const callDate = call.call_date || "";
+         const callTime = call.call_time || "";
+         const userObj = users.find(u => u.extensions && u.extensions.includes(call.extension));
+         const userName = userObj ? userObj.name : "Unmapped";
+         const weekStart = call.week_start || "";
+         const month = call.month || "";
+         const rawRow = rawData.addRow([
+           callDate,
+           callTime,
+           userName,
+           call.extension || "",
+           "Inbound",
+           call.duration_seconds || 0,
+           call.answered ? "Yes" : "No",
+           weekStart,
+           month,
+           call.duration_seconds || 0
+         ]);
+         for (let i = 1; i <= 10; i++) rawRow.getCell(i).alignment = { horizontal: "left" };
+         inIdx++;
+       }
+
+       // Add outbound data
+       let outIdx = 0;
+       while (outIdx < outbound.length) {
+         const call = outbound[outIdx];
+         const callDate = call.call_date || "";
+         const callTime = call.call_time || "";
+         const userObj = users.find(u => u.extensions && u.extensions.includes(call.extension));
+         const userName = userObj ? userObj.name : "Unmapped";
+         const weekStart = call.week_start || "";
+         const month = call.month || "";
+         const parsedDur = call.duration_seconds || 0;
+         const outRow = rawData.addRow([
+           callDate,
+           callTime,
+           userName,
+           call.extension || "",
+           "Outbound",
+           call.duration_seconds || 0,
+           parsedDur >= 30 ? "Yes" : "No",
+           weekStart,
+           month,
+           parsedDur
+         ]);
+         for (let i = 1; i <= 10; i++) outRow.getCell(i).alignment = { horizontal: "left" };
+         outIdx++;
+       }
+
+       autoFitColumns(rawData);
+
+       // Reorder sheets: Executive, Front-End, Individual, Raw_Imported_Data, Config_Benchmarks, Formula_Reference
+       summary.state = "visible";
+       summary.properties.tabColor = { argb: "FF4472C4" };
+       frontEnd.state = "visible";
+       frontEnd.properties.tabColor = { argb: "FF70AD47" };
+       individual.state = "visible";
+       individual.properties.tabColor = { argb: "FFED7D31" };
+       rawData.state = "visible";
+
+       // ===== PHASE 3 COMPLETE =====
+
+       // Write buffer and download
+       const buffer = await wb.xlsx.writeBuffer();
 
       const blob = new Blob([buffer], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
