@@ -789,11 +789,11 @@ export default function CallLogDashboard() {
           }
 
           // Set formula for Daily Goal (Column D) - VLOOKUP into Config_Benchmarks
-          const dailyGoalFormula = `=IFERROR(VLOOKUP(C${rowNum},Config_Benchmarks!$A:$C,3,0),0)`;
+          const dailyGoalFormula = `=IFERROR(VLOOKUP(C${rowNum},Config_Benchmarks!$A$1:$C$100,3,FALSE),0)`;
           row.getCell(4).value = { formula: dailyGoalFormula };
 
           // Set formula for Weekly Goal (Column E) - Daily Goal × WorkDaysPerWeek
-          const weeklyGoalFormula = `=D${rowNum}*VLOOKUP("Work Days Per Week",Config_Benchmarks!$B:$C,2,0)`;
+          const weeklyGoalFormula = `=D${rowNum}*VLOOKUP("Work Days Per Week",Config_Benchmarks!$B$1:$C$100,2,FALSE)`;
           row.getCell(5).value = { formula: weeklyGoalFormula };
 
           // Column F stays with actual call counts (sample 0 for now)
@@ -804,7 +804,7 @@ export default function CallLogDashboard() {
           row.getCell(7).value = { formula: percentFormula };
 
           // Set formula for Status (Column H) - reference Performance thresholds
-          const statusFormula = `=IF(G${rowNum}>=VLOOKUP("Green - % of Goal",Config_Benchmarks!$B:$C,2,0),"GREEN",IF(G${rowNum}>=VLOOKUP("Yellow - % of Goal",Config_Benchmarks!$B:$C,2,0),"YELLOW","RED"))`;
+          const statusFormula = `=IF(G${rowNum}>=VLOOKUP("Green - % of Goal",Config_Benchmarks!$B$1:$C$100,2,FALSE),"GREEN",IF(G${rowNum}>=VLOOKUP("Yellow - % of Goal",Config_Benchmarks!$B$1:$C$100,2,FALSE),"YELLOW","RED"))`;
           row.getCell(8).value = { formula: statusFormula };
 
           // Apply conditional coloring based on status (will be recalculated in Excel)
