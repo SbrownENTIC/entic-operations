@@ -263,8 +263,8 @@ export default function CallLogDashboard() {
         rawOutbound: outbound
       });
 
-      // Download the file
-      const blob = new Blob([response.data], {
+      // response.data is already a binary buffer from the backend
+      const blob = new Blob([new Uint8Array(response.data)], {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       });
       const url = URL.createObjectURL(blob);
