@@ -98,13 +98,59 @@ export default function CallLogDashboard() {
     return new Set(users.filter(u => u.include_in_benchmark).map(u => u.id));
   }, [users]);
 
+  // Helper to parse duration string "H:MM:SS" to seconds
+  const parseDurationSeconds = (duration) => {
+    if (!duration || typeof duration !== 'string') return 0;
+    const parts = duration.split(':').map(p => parseInt(p, 10) || 0);
+    if (parts.length === 3) {
+      return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    } else if (parts.length === 2) {
+      return parts[0] * 60 + parts[1];
+    }
+    return 0;
+  };
+
   // Calculate metrics
   const metrics = useCallMetrics(inbound, outbound, users);
 
+  // Calculate outbound connected calls (duration >= 30 seconds)
+  const outboundConnected = useMemo(() => {
+    let count = 0;
+    if (Array.isArray(outbound)) {
+      outbound.forEach(call => {
+        const seconds = parseDurationSeconds(call.duration_seconds);
+        if (seconds >= 30) {
+          count++;
+        }
+      });
+    }
+    return count;
+  }, [outbound]);
+
   // Aggregate data
   const weeklyData = useMemo(() => {
-    return aggregateInboundByWeek(inbound, extToUser, benchmarkUserIds);
-  }, [inbound, extToUser, benchmarkUserIds]);
+    const inboundWeekly = aggregateInboundByWeek(inbound, extToUser, benchmarkUserIds);
+    const outboundWeekly = aggregateOutboundByWeek(outbound, extToUser, benchmarkUserIds);
+
+    // Merge weekly inbound and outbound by week_start
+    const weekMap = {};
+    if (Array.isArray(inboundWeekly)) {
+      inboundWeekly.forEach(w => {
+        weekMap[w.week_start] = { ...w };
+      });
+    }
+    if (Array.isArray(outboundWeekly)) {
+      outboundWeekly.forEach(w => {
+        if (weekMap[w.week_start]) {
+          weekMap[w.week_start].total_outbound = w.total_outbound || 0;
+          weekMap[w.week_start].outbound_connected = w.outbound_connected || 0;
+        } else {
+          weekMap[w.week_start] = { ...w, total_inbound: 0, total_answered: 0, total_missed: 0 };
+        }
+      });
+    }
+    return Object.values(weekMap);
+  }, [inbound, outbound, extToUser, benchmarkUserIds]);
 
   const monthlyData = useMemo(() => {
     return aggregateInboundByMonth(inbound, extToUser, benchmarkUserIds);
@@ -282,6 +328,10 @@ export default function CallLogDashboard() {
       if (!Array.isArray(individualData)) throw new Error("individualData must be an array");
       if (!Array.isArray(inbound)) throw new Error("inbound must be an array");
       if (!Array.isArray(outbound)) throw new Error("outbound must be an array");
+
+      // Debug logs for outbound data
+      console.log("Executive Outbound Total:", outbound.length);
+      console.log("Executive Outbound Connected:", outboundConnected);
 
       // ===== PHASE 1: MINIMAL STABLE EXPORT =====
       // Colors & Fonts
@@ -546,9 +596,11 @@ export default function CallLogDashboard() {
       frontEnd.columns = [
         { header: "User", width: 30 },
         { header: "Inbound", width: 12 },
+        { header: "Outbound", width: 12 },
         { header: "Answered", width: 12 },
         { header: "Missed", width: 12 },
         { header: "Answer Rate", width: 15 },
+        { header: "Outbound Contact Rate", width: 18 },
         { header: "Daily Goal", width: 12 },
         { header: "Weekly Goal", width: 13 },
         { header: "% of Goal", width: 12 }
@@ -563,15 +615,17 @@ export default function CallLogDashboard() {
       if (!Array.isArray(frontendData)) throw new Error("frontendData is not an array");
       if (frontendData.length > 0) {
         const sorted = [...frontendData].sort((a, b) => (b.answer_rate || 0) - (a.answer_rate || 0));
-        let totalInb = 0, totalAns = 0, totalMis = 0, totalGoal = 0, totalWeekGoal = 0;
+        let totalInb = 0, totalOut = 0, totalAns = 0, totalMis = 0, totalOutConn = 0, totalGoal = 0, totalWeekGoal = 0;
         let frontIdx = 0;
 
         while (frontIdx < sorted.length) {
           const u = sorted[frontIdx];
-          const rate = u.answer_rate || 0;
+          const ansRate = u.answer_rate || 0;
           const inbound = u.total_inbound || 0;
           const answered = u.total_answered || 0;
           const outbound = u.total_outbound || 0;
+          const outConn = u.outbound_connected || 0;
+          const outRate = outbound > 0 ? outConn / outbound : 0;
           const dailyGoal = getExpectedCallsPerHour("Call Center") * 7.5;
           const weeklyGoal = dailyGoal * 5; // 5 workdays hardcoded
           const goalActivity = answered + outbound; // Answered + Outbound only
@@ -580,9 +634,11 @@ export default function CallLogDashboard() {
           const row = frontEnd.addRow([
             u.user_name || "",
             inbound,
+            outbound,
             answered,
             u.total_missed || 0,
-            rate,
+            ansRate,
+            outRate,
             dailyGoal,
             weeklyGoal,
             goalPercent
@@ -591,43 +647,53 @@ export default function CallLogDashboard() {
           row.getCell(2).numFmt = "#,##0";
           row.getCell(3).numFmt = "#,##0";
           row.getCell(4).numFmt = "#,##0";
-          row.getCell(5).numFmt = "0.00%";
-          row.getCell(6).numFmt = "#,##0";
-          row.getCell(7).numFmt = "#,##0";
-          row.getCell(8).numFmt = "0.00%";
+          row.getCell(5).numFmt = "#,##0";
+          row.getCell(6).numFmt = "0.00%";
+          row.getCell(7).numFmt = "0.00%";
+          row.getCell(8).numFmt = "#,##0";
+          row.getCell(9).numFmt = "#,##0";
+          row.getCell(10).numFmt = "0.00%";
 
-          // Conditional formatting for Answer Rate (col 5) and Goal % (col 8)
-          applyConditionalColor(row.getCell(5), rate, 0.50, 0.20);
-          applyConditionalColor(row.getCell(8), goalPercent, 1.00, 0.90);
+          // Conditional formatting for Answer Rate (col 6), Outbound Contact Rate (col 7), and Goal % (col 10)
+          applyConditionalColor(row.getCell(6), ansRate, 0.50, 0.20);
+          applyConditionalColor(row.getCell(7), outRate, 0.50, 0.20);
+          applyConditionalColor(row.getCell(10), goalPercent, 1.00, 0.90);
 
-          for (let i = 2; i <= 8; i++) row.getCell(i).alignment = { horizontal: "right" };
+          for (let i = 2; i <= 10; i++) row.getCell(i).alignment = { horizontal: "right" };
 
           totalInb += inbound;
+          totalOut += outbound;
           totalAns += answered;
           totalMis += u.total_missed || 0;
+          totalOutConn += outConn;
           totalGoal = dailyGoal; // Last daily goal (same for all)
           totalWeekGoal = weeklyGoal;
           frontIdx++;
         }
 
-        const totalRate = totalInb > 0 ? totalAns / totalInb : 0;
-        const totalGoalActivity = totalAns + 0; // Front-end typically no outbound, but include for completeness
+        const totalAnsRate = totalInb > 0 ? totalAns / totalInb : 0;
+        const totalOutRate = totalOut > 0 ? totalOutConn / totalOut : 0;
+        const totalGoalActivity = totalAns + totalOut; // Answered + Outbound only
         const totalGoalPercent = totalWeekGoal > 0 ? totalGoalActivity / totalWeekGoal : 0;
-        const totalsRow = frontEnd.addRow(["TOTAL", totalInb, totalAns, totalMis, totalRate, totalGoal, totalWeekGoal, totalGoalPercent]);
+        const totalsRow = frontEnd.addRow(["TOTAL", totalInb, totalOut, totalAns, totalMis, totalAnsRate, totalOutRate, totalGoal, totalWeekGoal, totalGoalPercent]);
         totalsRow.font = { name: "Calibri", size: 11, bold: true };
         totalsRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9E1F2" } };
         totalsRow.getCell(2).numFmt = "#,##0";
         totalsRow.getCell(3).numFmt = "#,##0";
         totalsRow.getCell(4).numFmt = "#,##0";
-        totalsRow.getCell(5).numFmt = "0.00%";
-        totalsRow.getCell(6).numFmt = "#,##0";
-        totalsRow.getCell(7).numFmt = "#,##0";
-        totalsRow.getCell(8).numFmt = "0.00%";
-        applyConditionalColor(totalsRow.getCell(8), totalGoalPercent, 1.00, 0.90);
-        for (let i = 2; i <= 8; i++) totalsRow.getCell(i).alignment = { horizontal: "right" };
+        totalsRow.getCell(5).numFmt = "#,##0";
+        totalsRow.getCell(6).numFmt = "0.00%";
+        totalsRow.getCell(7).numFmt = "0.00%";
+        totalsRow.getCell(8).numFmt = "#,##0";
+        totalsRow.getCell(9).numFmt = "#,##0";
+        totalsRow.getCell(10).numFmt = "0.00%";
+        applyConditionalColor(totalsRow.getCell(6), totalAnsRate, 0.50, 0.20);
+        applyConditionalColor(totalsRow.getCell(7), totalOutRate, 0.50, 0.20);
+        applyConditionalColor(totalsRow.getCell(10), totalGoalPercent, 1.00, 0.90);
+        for (let i = 2; i <= 10; i++) totalsRow.getCell(i).alignment = { horizontal: "right" };
       }
 
-      frontEnd.autoFilter = { from: "A1", to: `H${frontEnd.rowCount}` };
+      frontEnd.autoFilter = { from: "A1", to: `J${frontEnd.rowCount}` };
       frontEnd.views = [{ state: "frozen", ySplit: 1 }];
       autoFitColumns(frontEnd);
 
