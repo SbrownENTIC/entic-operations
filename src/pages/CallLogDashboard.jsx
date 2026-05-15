@@ -879,7 +879,7 @@ export default function CallLogDashboard() {
         feKpiRow.values = ["Total Productive Calls", totalAns + totalOutConn, "Avg Calls/Day", avgOfAvgCallsPerDay, "Avg Answer Rate", totalAnsRate, "Avg OB Contact Rate", totalOutRate];
         feKpiRow.height = 20;
         feKpiRow.eachCell({ includeEmpty: false }, (cell, colNum) => {
-          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE9ECEF" } };
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFF99" } };
           cell.font = { name: "Calibri", size: 10, bold: true, color: { argb: "FF1F3864" } };
           cell.alignment = { horizontal: "center", vertical: "middle" };
           if (colNum === 4) cell.numFmt = "0.00";
@@ -1028,7 +1028,7 @@ export default function CallLogDashboard() {
         npcKpiRow.values = ["Total Productive Calls", npcTotalAns + npcTotalOutConn, "Avg Calls/Day", npcAvgOfAvgCallsPerDay, "Avg Answer Rate", npcAnsRate, "Avg OB Contact Rate", npcOutRate];
         npcKpiRow.height = 20;
         npcKpiRow.eachCell({ includeEmpty: false }, (cell, colNum) => {
-          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE9ECEF" } };
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFF99" } };
           cell.font = { name: "Calibri", size: 10, bold: true, color: { argb: "FF1F3864" } };
           cell.alignment = { horizontal: "center", vertical: "middle" };
           if (colNum === 4) cell.numFmt = "0.00";
@@ -1173,7 +1173,7 @@ export default function CallLogDashboard() {
         indKpiRow.values = ["Total Productive Calls", totAns + totOutConnected, "Avg Calls/Day", indAvgOfAvgCallsPerDay, "Avg Answer Rate", totAnsRate, "Avg OB Contact Rate", totOutRate];
         indKpiRow.height = 20;
         indKpiRow.eachCell({ includeEmpty: false }, (cell, colNum) => {
-          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE9ECEF" } };
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFF99" } };
           cell.font = { name: "Calibri", size: 10, bold: true, color: { argb: "FF1F3864" } };
           cell.alignment = { horizontal: "center", vertical: "middle" };
           if (colNum === 4) cell.numFmt = "0.00";
