@@ -163,6 +163,8 @@ export function aggregateOutboundByUser(outboundCalls, extToUser, users) {
       userMap[userId] = {
         user_id: userId,
         user_name: user.name,
+        benchmark_group: user.benchmark_group,
+        include_in_benchmark: user.include_in_benchmark,
         total_outbound: 0,
         outbound_connected: 0,
         total_duration_seconds: 0
