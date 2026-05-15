@@ -331,17 +331,10 @@ Deno.serve(async (req) => {
       { width: 15 }
     ];
 
-    // Write to temp file, then read as binary
-    const tmpPath = `/tmp/calllog_${Date.now()}.xlsx`;
-    await workbook.xlsx.writeFile(tmpPath);
-    
-    // Read the file as binary
-    const fileBuffer = await Deno.readFile(tmpPath);
-    
-    // Clean up temp file
-    await Deno.remove(tmpPath).catch(() => {});
+    // Generate buffer directly
+    const buffer = await workbook.xlsx.writeBuffer();
 
-    return new Response(fileBuffer, {
+    return new Response(buffer, {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
