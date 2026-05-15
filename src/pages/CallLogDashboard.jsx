@@ -232,11 +232,18 @@ export default function CallLogDashboard() {
   }, [inbound, outbound, extToUser, users]);
 
   const frontendData = useMemo(() => {
-    if (!Array.isArray(individualData)) {
-      console.error("individualData is not an array in frontendData memo:", individualData);
-      return [];
-    }
-    return individualData.filter(u => u.benchmark_group === 'Front Desk' && u.include_in_benchmark);
+    if (!Array.isArray(individualData)) return [];
+    return individualData.filter(u => u.benchmark_group === 'Front Desk');
+  }, [individualData]);
+
+  const npCoordinatorData = useMemo(() => {
+    if (!Array.isArray(individualData)) return [];
+    return individualData.filter(u => u.benchmark_group === 'NP Coordinator');
+  }, [individualData]);
+
+  const otherUsersData = useMemo(() => {
+    if (!Array.isArray(individualData)) return [];
+    return individualData.filter(u => u.benchmark_group !== 'Front Desk' && u.benchmark_group !== 'NP Coordinator');
   }, [individualData]);
 
   // Build filtered datasets for KPI detail modals
@@ -317,7 +324,8 @@ export default function CallLogDashboard() {
       console.log("weeklyData:", Array.isArray(weeklyData) ? `array (${weeklyData.length})` : "NOT ARRAY");
       console.log("monthlyData:", Array.isArray(monthlyData) ? `array (${monthlyData.length})` : "NOT ARRAY");
       console.log("frontendData:", Array.isArray(frontendData) ? `array (${frontendData.length})` : "NOT ARRAY");
-      console.log("individualData:", Array.isArray(individualData) ? `array (${individualData.length})` : "NOT ARRAY");
+      console.log("npCoordinatorData:", Array.isArray(npCoordinatorData) ? `array (${npCoordinatorData.length})` : "NOT ARRAY");
+      console.log("otherUsersData:", Array.isArray(otherUsersData) ? `array (${otherUsersData.length})` : "NOT ARRAY");
       console.log("inbound:", Array.isArray(inbound) ? `array (${inbound.length})` : "NOT ARRAY");
       console.log("outbound:", Array.isArray(outbound) ? `array (${outbound.length})` : "NOT ARRAY");
       
@@ -464,9 +472,27 @@ export default function CallLogDashboard() {
         ["Missed", totalMissed, false]
       ];
       
+      // NP Coordinator group totals
+      let totalNPCInbound = 0, totalNPCAnswered = 0;
+      npCoordinatorData.forEach(u => {
+        totalNPCInbound += u.total_inbound || 0;
+        totalNPCAnswered += u.total_answered || 0;
+      });
+      const npcRate = totalNPCInbound > 0 ? totalNPCAnswered / totalNPCInbound : 0;
+
+      // Other users group totals
+      let totalOtherInbound = 0, totalOtherAnswered = 0;
+      otherUsersData.forEach(u => {
+        totalOtherInbound += u.total_inbound || 0;
+        totalOtherAnswered += u.total_answered || 0;
+      });
+      const otherRate = totalOtherInbound > 0 ? totalOtherAnswered / totalOtherInbound : 0;
+
       const rateMetricsData = [
-        ["Inbound Answer Rate", inboundRate, true],
-        ["Front-End Answer Rate", frontEndRate, true],
+        ["Inbound Answer Rate (All)", inboundRate, true],
+        ["Front Desk Answer Rate", frontEndRate, true],
+        ["NP Coordinator Answer Rate", npcRate, true],
+        ["Other Users Answer Rate", otherRate, true],
         ["Outbound Contact Rate (30s+)", outboundContactRate, true],
         ["Overall Contact Rate", overallContactRate, true]
       ];
@@ -714,7 +740,118 @@ export default function CallLogDashboard() {
       frontEnd.views = [{ state: "frozen", ySplit: 1 }];
       autoFitColumns(frontEnd);
 
-      // ===== SHEET 3: INDIVIDUAL PERFORMANCE WITH GOAL TRACKING & CONDITIONAL FORMATTING =====
+      // ===== SHEET 3: NP COORDINATOR PERFORMANCE =====
+      const npCoord = wb.addWorksheet("NP Coordinator Performance");
+      npCoord.properties.tabColor = { argb: "FF7030A0" };
+      npCoord.columns = [
+        { header: "User", width: 30 },
+        { header: "Inbound", width: 12 },
+        { header: "Outbound", width: 12 },
+        { header: "Answered", width: 12 },
+        { header: "Missed", width: 12 },
+        { header: "Answer Rate", width: 15 },
+        { header: "Outbound Contact Rate", width: 18 },
+        { header: "Daily Goal", width: 12 },
+        { header: "Weekly Goal", width: 13 },
+        { header: "% of Goal", width: 12 }
+      ];
+
+      npCoord.getRow(1).eachCell((cell) => {
+        cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: WHITE } };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_BG } };
+        cell.alignment = { horizontal: "center", vertical: "middle" };
+      });
+
+      if (npCoordinatorData.length > 0) {
+        const npcSorted = [...npCoordinatorData].sort((a, b) => (b.answer_rate || 0) - (a.answer_rate || 0));
+        let npcTotalInb = 0, npcTotalOut = 0, npcTotalAns = 0, npcTotalMis = 0, npcTotalOutConn = 0, npcTotalGoal = 0, npcTotalWeekGoal = 0;
+        const npcPctOfGoalValues = [];
+        const npcTableRows = [];
+
+        let npcIdx = 0;
+        while (npcIdx < npcSorted.length) {
+          const u = npcSorted[npcIdx];
+          const ansRate = u.answer_rate || 0;
+          const inb = u.total_inbound || 0;
+          const ans = u.total_answered || 0;
+          const out = u.total_outbound || 0;
+          const outConn = u.outbound_connected || 0;
+          const outRate = out > 0 ? outConn / out : 0;
+          const dailyGoal = userGoalMap[u.user_name] || 0;
+          const weeklyGoal = dailyGoal * WorkDaysPerWeek;
+          const performanceTotal = ans + out;
+          const goalPercent = weeklyGoal > 0 ? performanceTotal / weeklyGoal : 0;
+
+          npcPctOfGoalValues.push(goalPercent);
+          npcTableRows.push([u.user_name || "", inb, out, ans, u.total_missed || 0, ansRate, outRate, dailyGoal, weeklyGoal, goalPercent]);
+
+          npcTotalInb += inb; npcTotalOut += out; npcTotalAns += ans; npcTotalMis += u.total_missed || 0; npcTotalOutConn += outConn;
+          npcTotalGoal += dailyGoal;
+          npcTotalWeekGoal += weeklyGoal;
+          npcIdx++;
+        }
+
+        npCoord.addTable({
+          name: "NPCoordinatorPerformanceTable",
+          ref: "A1",
+          headerRow: true,
+          totalsRow: false,
+          style: { theme: "TableStyleMedium6", showRowStripes: true },
+          columns: [
+            { name: "User" }, { name: "Inbound" }, { name: "Outbound" }, { name: "Answered" },
+            { name: "Missed" }, { name: "Answer Rate" }, { name: "Outbound Contact Rate" },
+            { name: "Daily Goal" }, { name: "Weekly Goal" }, { name: "% of Goal" }
+          ],
+          rows: npcTableRows
+        });
+
+        const npcPercentColumns = ["Answer Rate", "Outbound Contact Rate", "% of Goal"];
+        npCoord.columns.forEach((column) => {
+          if (npcPercentColumns.includes(column.header)) {
+            column.eachCell((cell, rowNumber) => {
+              if (rowNumber !== 1) cell.numFmt = "0.00%";
+            });
+          }
+        });
+
+        const npcCFGreen = 0.50, npcCFYellow = 0.20, npcGoalGreen = 1.00, npcGoalYellow = 0.90;
+        const applyNPCColor = (cell, value, green, yellow) => {
+          if (value >= green) {
+            cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFC6EFCE" } };
+            cell.font = { ...cell.font, color: { argb: "FF006100" } };
+          } else if (value >= yellow) {
+            cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFEB9C" } };
+            cell.font = { ...cell.font, color: { argb: "FF9C6500" } };
+          } else {
+            cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFC7CE" } };
+            cell.font = { ...cell.font, color: { argb: "FF9C0006" } };
+          }
+        };
+
+        for (let row = 2; row <= npcTableRows.length + 1; row++) {
+          applyNPCColor(npCoord.getCell(`F${row}`), npcTableRows[row - 2][5], npcCFGreen, npcCFYellow);
+          applyNPCColor(npCoord.getCell(`G${row}`), npcTableRows[row - 2][6], npcCFGreen, npcCFYellow);
+          applyNPCColor(npCoord.getCell(`J${row}`), npcTableRows[row - 2][9], npcGoalGreen, npcGoalYellow);
+        }
+
+        const npcAnsRate = npcTotalInb > 0 ? npcTotalAns / npcTotalInb : 0;
+        const npcOutRate = npcTotalOut > 0 ? npcTotalOutConn / npcTotalOut : 0;
+        const npcAvgGoalPct = npcPctOfGoalValues.length > 0
+          ? npcPctOfGoalValues.reduce((s, v) => s + v, 0) / npcPctOfGoalValues.length : 0;
+        const npcTotalsRow = npCoord.addRow(["TOTAL", npcTotalInb, npcTotalOut, npcTotalAns, npcTotalMis, npcAnsRate, npcOutRate, npcTotalGoal, npcTotalWeekGoal, npcAvgGoalPct]);
+        npcTotalsRow.font = { name: "Calibri", size: 11, bold: true };
+        npcTotalsRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9E1F2" } };
+        for (let i = 2; i <= 10; i++) {
+          if (i === 6 || i === 7 || i === 10) npcTotalsRow.getCell(i).numFmt = "0.00%";
+          else npcTotalsRow.getCell(i).numFmt = "#,##0";
+          npcTotalsRow.getCell(i).alignment = { horizontal: "right" };
+        }
+      }
+
+      npCoord.views = [{ state: "frozen", ySplit: 1 }];
+      autoFitColumns(npCoord);
+
+      // ===== SHEET 4: INDIVIDUAL PERFORMANCE (Other Users — excludes Front Desk and NP Coordinator) =====
       const individual = wb.addWorksheet("Individual Performance");
       individual.properties.tabColor = { argb: "FF7F7F7F" };
       individual.columns = [
@@ -737,9 +874,9 @@ export default function CallLogDashboard() {
         cell.alignment = { horizontal: "center", vertical: "middle" };
       });
 
-      if (!Array.isArray(individualData)) throw new Error("individualData is not an array");
-      if (individualData.length > 0) {
-        const sorted = [...individualData].sort((a, b) => (b.answer_rate || 0) - (a.answer_rate || 0));
+      if (!Array.isArray(otherUsersData)) throw new Error("otherUsersData is not an array");
+      if (otherUsersData.length > 0) {
+        const sorted = [...otherUsersData].sort((a, b) => (b.answer_rate || 0) - (a.answer_rate || 0));
         let totInb = 0, totOut = 0, totAns = 0, totMis = 0, totDur = 0, totOutConnected = 0, totalGoal = 0, totalWeekGoal = 0;
         let indIdx = 0;
         const percentOfGoalValues = [];
@@ -1045,11 +1182,13 @@ export default function CallLogDashboard() {
 
        autoFitColumns(rawData);
 
-       // Reorder sheets: Executive, Front-End, Individual, Raw_Imported_Data, Config_Benchmarks, Formula_Reference
+       // Sheet visibility and tab colors
        summary.state = "visible";
        summary.properties.tabColor = { argb: "FF4472C4" };
        frontEnd.state = "visible";
        frontEnd.properties.tabColor = { argb: "FF70AD47" };
+       npCoord.state = "visible";
+       npCoord.properties.tabColor = { argb: "FF7030A0" };
        individual.state = "visible";
        individual.properties.tabColor = { argb: "FFED7D31" };
        rawData.state = "visible";
