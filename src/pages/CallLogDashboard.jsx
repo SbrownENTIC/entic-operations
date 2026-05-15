@@ -664,6 +664,37 @@ export default function CallLogDashboard() {
           }
         });
 
+        const answerRateGreen = 0.50;
+        const answerRateYellow = 0.20;
+        const contactRateGreen = 0.50;
+        const contactRateYellow = 0.20;
+        const goalPercentGreen = 1.00;
+        const goalPercentYellow = 0.90;
+
+        const applyConditionalColorToCell = (cell, value, greenThreshold, yellowThreshold) => {
+          if (value >= greenThreshold) {
+            cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFC6EFCE" } };
+            cell.font = { ...cell.font, color: { argb: "FF006100" } };
+          } else if (value >= yellowThreshold) {
+            cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFEB9C" } };
+            cell.font = { ...cell.font, color: { argb: "FF9C6500" } };
+          } else {
+            cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFC7CE" } };
+            cell.font = { ...cell.font, color: { argb: "FF9C0006" } };
+          }
+        };
+
+        const frontendTableRowCount = frontendTableRows.length;
+        for (let row = 2; row <= frontendTableRowCount + 1; row++) {
+          const ansRateCell = frontEnd.getCell(`F${row}`);
+          const outRateCell = frontEnd.getCell(`G${row}`);
+          const goalCell = frontEnd.getCell(`J${row}`);
+
+          applyConditionalColorToCell(ansRateCell, frontendTableRows[row - 2][5], answerRateGreen, answerRateYellow);
+          applyConditionalColorToCell(outRateCell, frontendTableRows[row - 2][6], contactRateGreen, contactRateYellow);
+          applyConditionalColorToCell(goalCell, frontendTableRows[row - 2][9], goalPercentGreen, goalPercentYellow);
+        }
+
         const totalAnsRate = totalInb > 0 ? totalAns / totalInb : 0;
         const totalOutRate = totalOut > 0 ? totalOutConn / totalOut : 0;
         const avgPercentOfGoal = percentOfGoalValues.length > 0 
@@ -769,6 +800,37 @@ export default function CallLogDashboard() {
             });
           }
         });
+
+        const answerRateGreen = 0.50;
+        const answerRateYellow = 0.20;
+        const contactRateGreen = 0.50;
+        const contactRateYellow = 0.20;
+        const goalPercentGreen = 1.00;
+        const goalPercentYellow = 0.90;
+
+        const applyConditionalColorToCell = (cell, value, greenThreshold, yellowThreshold) => {
+          if (value >= greenThreshold) {
+            cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFC6EFCE" } };
+            cell.font = { ...cell.font, color: { argb: "FF006100" } };
+          } else if (value >= yellowThreshold) {
+            cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFEB9C" } };
+            cell.font = { ...cell.font, color: { argb: "FF9C6500" } };
+          } else {
+            cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFC7CE" } };
+            cell.font = { ...cell.font, color: { argb: "FF9C0006" } };
+          }
+        };
+
+        const individualTableRowCount = individualTableRows.length;
+        for (let row = 2; row <= individualTableRowCount + 1; row++) {
+          const ansRateCell = individual.getCell(`F${row}`);
+          const outRateCell = individual.getCell(`G${row}`);
+          const goalCell = individual.getCell(`J${row}`);
+
+          applyConditionalColorToCell(ansRateCell, individualTableRows[row - 2][5], answerRateGreen, answerRateYellow);
+          applyConditionalColorToCell(outRateCell, individualTableRows[row - 2][6], contactRateGreen, contactRateYellow);
+          applyConditionalColorToCell(goalCell, individualTableRows[row - 2][9], goalPercentGreen, goalPercentYellow);
+        }
 
         const totAnsRate = totInb > 0 ? totAns / totInb : 0;
         const totOutRate = totOut > 0 ? totOutConnected / totOut : 0;
