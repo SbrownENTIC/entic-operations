@@ -200,7 +200,7 @@ export default function UserDirectoryTable() {
   };
 
   const handleBulkUpdateDailyGoal = async () => {
-    if (!bulkEditDailyGoal || selectedUsers.length === 0) {
+    if (bulkEditDailyGoal === '' || selectedUsers.length === 0) {
       alert('Please select users and enter a daily goal');
       return;
     }
