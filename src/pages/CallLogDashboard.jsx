@@ -251,6 +251,25 @@ export default function CallLogDashboard() {
   // Handle Excel export
   const handleExportExcel = async () => {
     try {
+      // Validate all datasets before export
+      console.log("weeklyData length:", weeklyData?.length);
+      console.log("monthlyData length:", monthlyData?.length);
+      console.log("weeklyOutboundData length:", weeklyOutboundData?.length);
+      console.log("monthlyOutboundData length:", monthlyOutboundData?.length);
+      console.log("frontendData length:", frontendData?.length);
+      console.log("individualData length:", individualData?.length);
+      console.log("inbound length:", inbound?.length);
+      console.log("outbound length:", outbound?.length);
+
+      if (!Array.isArray(weeklyData)) throw new Error("weeklyData is not an array");
+      if (!Array.isArray(monthlyData)) throw new Error("monthlyData is not an array");
+      if (!Array.isArray(weeklyOutboundData)) throw new Error("weeklyOutboundData is not an array");
+      if (!Array.isArray(monthlyOutboundData)) throw new Error("monthlyOutboundData is not an array");
+      if (!Array.isArray(frontendData)) throw new Error("frontendData is not an array");
+      if (!Array.isArray(individualData)) throw new Error("individualData is not an array");
+      if (!Array.isArray(inbound)) throw new Error("inbound is not an array");
+      if (!Array.isArray(outbound)) throw new Error("outbound is not an array");
+
       const HEADER_BG = "FF1F3864";
       const WHITE = "FFFFFFFF";
       const KPI_BG = "FFF2F2F2";
@@ -380,6 +399,7 @@ export default function CallLogDashboard() {
         ["Location Goal", "Farmington – Phone Only Daily", 40, "Number", "Daily call target for Farmington Phone Only"]
       ];
 
+      if (!Array.isArray(benchmarks)) throw new Error("benchmarks is not an array");
       benchmarks.forEach((row) => {
         const dataRow = configSheet.addRow(row);
         // Format Target Value column as percentage if < 1, otherwise as number
@@ -518,6 +538,7 @@ export default function CallLogDashboard() {
       });
 
       // Weekly data
+      if (!Array.isArray(weeklyData)) throw new Error("weeklyData iteration failed");
       if (weeklyData && weeklyData.length > 0) {
         weeklyData.forEach((w) => {
           const row = summary.addRow([
@@ -571,6 +592,7 @@ export default function CallLogDashboard() {
         cell.alignment = { horizontal: "center", vertical: "middle" };
       });
 
+      if (!Array.isArray(frontendData)) throw new Error("frontendData is not an array");
       if (frontendData && frontendData.length > 0) {
         const sorted = [...frontendData].sort((a, b) => (b.answer_rate || 0) - (a.answer_rate || 0));
         let totalInb = 0, totalAns = 0, totalMis = 0;
@@ -636,6 +658,7 @@ export default function CallLogDashboard() {
         cell.alignment = { horizontal: "center", vertical: "middle" };
       });
 
+      if (!Array.isArray(individualData)) throw new Error("individualData is not an array");
       if (individualData && individualData.length > 0) {
         const sorted = [...individualData].sort((a, b) => (b.answer_rate || 0) - (a.answer_rate || 0));
         let totInb = 0, totOut = 0, totAns = 0, totMis = 0, totDur = 0, totOutConnected = 0;
@@ -714,6 +737,7 @@ export default function CallLogDashboard() {
         cell.alignment = { horizontal: "center", vertical: "middle" };
       });
 
+      if (!Array.isArray(inbound)) throw new Error("inbound is not an array");
       if (inbound && inbound.length > 0) {
         inbound.forEach((call) => {
           rawData.addRow([
@@ -723,6 +747,7 @@ export default function CallLogDashboard() {
         });
       }
 
+      if (!Array.isArray(outbound)) throw new Error("outbound is not an array");
       if (outbound && outbound.length > 0) {
         outbound.forEach((call) => {
           rawData.addRow([
@@ -764,12 +789,15 @@ export default function CallLogDashboard() {
       goalTracking.mergeCells("A2:H2");
 
       // Add sample user rows with calculated values
+      if (!Array.isArray(users)) throw new Error("users is not an array");
       if (users && users.length > 0) {
         const workDaysPerWeek = 5; // From Config_Benchmarks
         const perfGreen = 0.85;
         const perfYellow = 0.7;
 
-        users.slice(0, 10).forEach((user, idx) => {
+        const usersSliced = users.slice(0, 10);
+        if (!Array.isArray(usersSliced)) throw new Error("usersSliced is not an array");
+        usersSliced.forEach((user, idx) => {
           // Determine daily goal based on user role or location
           let dailyGoal = 0;
           if (user.role === "Call Center") {
