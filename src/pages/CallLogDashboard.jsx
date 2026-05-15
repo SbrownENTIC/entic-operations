@@ -806,9 +806,15 @@ export default function CallLogDashboard() {
        ];
 
        configBenchmarks.getRow(1).eachCell((cell) => {
-         cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: WHITE } };
-         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD3D3D3" } };
+         cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF595959" } };
          cell.alignment = { horizontal: "center", vertical: "middle" };
+         cell.border = {
+           top: { style: "thin" },
+           left: { style: "thin" },
+           bottom: { style: "thin" },
+           right: { style: "thin" }
+         };
        });
 
        let configIdx = 0;
@@ -846,9 +852,15 @@ export default function CallLogDashboard() {
 
        const formulaHeader = formulaRef.addRow(["Calculation", "Formula/Logic"]);
        formulaHeader.eachCell((cell) => {
-         cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: WHITE } };
-         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD3D3D3" } };
-         cell.alignment = { horizontal: "left", vertical: "top" };
+         cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF5B2C6F" } };
+         cell.alignment = { horizontal: "center", vertical: "middle" };
+         cell.border = {
+           top: { style: "thin" },
+           left: { style: "thin" },
+           bottom: { style: "thin" },
+           right: { style: "thin" }
+         };
        });
 
        const formulaData = [
@@ -895,9 +907,15 @@ export default function CallLogDashboard() {
        ];
 
        rawData.getRow(1).eachCell((cell) => {
-         cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: WHITE } };
-         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD3D3D3" } };
+         cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F4C5C" } };
          cell.alignment = { horizontal: "center", vertical: "middle" };
+         cell.border = {
+           top: { style: "thin" },
+           left: { style: "thin" },
+           bottom: { style: "thin" },
+           right: { style: "thin" }
+         };
        });
 
        // Add inbound data
