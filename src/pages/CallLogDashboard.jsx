@@ -603,6 +603,7 @@ export default function CallLogDashboard() {
         const sorted = [...frontendData].sort((a, b) => (b.answer_rate || 0) - (a.answer_rate || 0));
         let totalInb = 0, totalOut = 0, totalAns = 0, totalMis = 0, totalOutConn = 0, totalGoal = 0, totalWeekGoal = 0;
         let frontIdx = 0;
+        const percentOfGoalValues = [];
 
         while (frontIdx < sorted.length) {
           const u = sorted[frontIdx];
@@ -616,7 +617,9 @@ export default function CallLogDashboard() {
           const weeklyGoal = dailyGoal * 5; // 5 workdays hardcoded
           const goalActivity = answered + outbound; // Answered + Outbound only
           const goalPercent = weeklyGoal > 0 ? goalActivity / weeklyGoal : 0;
-          
+
+          percentOfGoalValues.push(goalPercent);
+
           const row = frontEnd.addRow([
             u.user_name || "",
             inbound,
@@ -659,9 +662,10 @@ export default function CallLogDashboard() {
 
         const totalAnsRate = totalInb > 0 ? totalAns / totalInb : 0;
         const totalOutRate = totalOut > 0 ? totalOutConn / totalOut : 0;
-        const totalGoalActivity = totalAns + totalOut;
-        const totalGoalPercent = totalWeekGoal > 0 ? totalGoalActivity / totalWeekGoal : 0;
-        const totalsRow = frontEnd.addRow(["TOTAL", totalInb, totalOut, totalAns, totalMis, totalAnsRate, totalOutRate, totalGoal, totalWeekGoal, totalGoalPercent]);
+        const avgPercentOfGoal = percentOfGoalValues.length > 0 
+          ? percentOfGoalValues.reduce((sum, v) => sum + v, 0) / percentOfGoalValues.length 
+          : 0;
+        const totalsRow = frontEnd.addRow(["TOTAL", totalInb, totalOut, totalAns, totalMis, totalAnsRate, totalOutRate, totalGoal, totalWeekGoal, avgPercentOfGoal]);
         totalsRow.font = { name: "Calibri", size: 11, bold: true };
         totalsRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9E1F2" } };
         totalsRow.getCell(2).numFmt = "#,##0";
@@ -708,6 +712,7 @@ export default function CallLogDashboard() {
         const sorted = [...individualData].sort((a, b) => (b.answer_rate || 0) - (a.answer_rate || 0));
         let totInb = 0, totOut = 0, totAns = 0, totMis = 0, totDur = 0, totOutConnected = 0, totalGoal = 0, totalWeekGoal = 0;
         let indIdx = 0;
+        const percentOfGoalValues = [];
 
         while (indIdx < sorted.length) {
           const u = sorted[indIdx];
@@ -723,6 +728,8 @@ export default function CallLogDashboard() {
           const weeklyGoal = dailyGoal * 5; // 5 workdays hardcoded
           const goalActivity = ans + out; // Answered + Outbound only
           const goalPercent = weeklyGoal > 0 ? goalActivity / weeklyGoal : 0;
+
+          percentOfGoalValues.push(goalPercent);
 
           const row = individual.addRow([
             u.user_name || "",
@@ -755,15 +762,16 @@ export default function CallLogDashboard() {
 
         const totAnsRate = totInb > 0 ? totAns / totInb : 0;
         const totOutRate = totOut > 0 ? totOutConnected / totOut : 0;
-        const totGoalActivity = totAns + totOut;
-        const totGoalPercent = totalWeekGoal > 0 ? totGoalActivity / totalWeekGoal : 0;
+        const avgPercentOfGoal = percentOfGoalValues.length > 0 
+          ? percentOfGoalValues.reduce((sum, v) => sum + v, 0) / percentOfGoalValues.length 
+          : 0;
         const totalsRow = individual.addRow([
           "TOTAL", totInb, totOut, totAns, totMis,
           totAnsRate,
           totOutRate,
           totalGoal,
           totalWeekGoal,
-          totGoalPercent,
+          avgPercentOfGoal,
           totInb > 0 ? totDur / totInb / 60 : 0
         ]);
         totalsRow.font = { name: "Calibri", size: 11, bold: true };
