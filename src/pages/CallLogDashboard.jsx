@@ -763,54 +763,79 @@ export default function CallLogDashboard() {
       instructRow.getCell(1).font = { italic: true, color: { argb: "FF666666" } };
       goalTracking.mergeCells("A2:H2");
 
-      // Add sample user rows with formulas (placeholder data)
+      // Add sample user rows with calculated values
       if (users && users.length > 0) {
+        const workDaysPerWeek = 5; // From Config_Benchmarks
+        const perfGreen = 0.85;
+        const perfYellow = 0.7;
+
         users.slice(0, 10).forEach((user, idx) => {
-          const rowNum = 3 + idx;
+          // Determine daily goal based on user role or location
+          let dailyGoal = 0;
+          if (user.role === "Call Center") {
+            dailyGoal = 160;
+          } else if (user.role === "Client Facing") {
+            dailyGoal = 120;
+          } else if (user.location) {
+            // Location-based goal fallback
+            const locationGoals = {
+              "Bloomfield – Check In Daily": 35,
+              "Bloomfield – Check Out Daily": 30,
+              "Manchester – Check In Daily": 40,
+              "Manchester – Check Out Daily": 35,
+              "Glastonbury – Check In Daily": 38,
+              "Glastonbury – Check Out Daily": 32,
+              "Farmington – Check In Daily": 36,
+              "Farmington – Check Out Daily": 31,
+              "Farmington – Phone Only Daily": 40
+            };
+            dailyGoal = locationGoals[user.location] || 0;
+          }
+
+          const weeklyGoal = dailyGoal * workDaysPerWeek;
+          const callsThisWeek = individualData.find(u => u.user_id === user.id)?.total_inbound || 0;
+          const percentOfGoal = weeklyGoal > 0 ? callsThisWeek / weeklyGoal : 0;
+          
+          let status = "RED";
+          if (percentOfGoal >= perfGreen) status = "GREEN";
+          else if (percentOfGoal >= perfYellow) status = "YELLOW";
+
           const row = goalTracking.addRow([
             user.name || "",
             user.role || "Client Facing",
             user.location || "",
-            0,  // Daily Goal - will reference Config_Benchmarks via VLOOKUP
-            0,  // Weekly Goal formula: =D{rowNum}*Config_Benchmarks!C18
-            0,  // Calls This Week (sample)
-            0,  // % of Goal formula: =F{rowNum}/E{rowNum}
-            ""  // Status
+            dailyGoal,
+            weeklyGoal,
+            callsThisWeek,
+            percentOfGoal,
+            status
           ]);
 
           // Format columns
-          for (let i = 4; i <= 8; i++) {
-            if (i === 7) {
-              row.getCell(i).numFmt = "0.0%";
-            } else {
-              row.getCell(i).numFmt = "#,##0";
-            }
+          row.getCell(4).numFmt = "#,##0";
+          row.getCell(5).numFmt = "#,##0";
+          row.getCell(6).numFmt = "#,##0";
+          row.getCell(7).numFmt = "0.0%";
+          
+          for (let i = 4; i <= 7; i++) {
             row.getCell(i).alignment = { horizontal: "right" };
           }
 
-          // Set formula for Daily Goal (Column D) - VLOOKUP into Config_Benchmarks
-          const dailyGoalFormula = `=IFERROR(VLOOKUP(C${rowNum},Config_Benchmarks!$A$1:$C$100,3,FALSE),0)`;
-          row.getCell(4).value = { formula: dailyGoalFormula };
+          // Apply conditional coloring to % of Goal column
+          if (percentOfGoal >= perfGreen) {
+            row.getCell(7).fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_BG } };
+          } else if (percentOfGoal >= perfYellow) {
+            row.getCell(7).fill = { type: "pattern", pattern: "solid", fgColor: { argb: YELLOW_BG } };
+          } else {
+            row.getCell(7).fill = { type: "pattern", pattern: "solid", fgColor: { argb: RED_BG } };
+          }
 
-          // Set formula for Weekly Goal (Column E) - Daily Goal × WorkDaysPerWeek
-          const weeklyGoalFormula = `=D${rowNum}*VLOOKUP("Work Days Per Week",Config_Benchmarks!$B$1:$C$100,2,FALSE)`;
-          row.getCell(5).value = { formula: weeklyGoalFormula };
-
-          // Column F stays with actual call counts (sample 0 for now)
-          row.getCell(6).value = 0;
-
-          // Set formula for % of Goal (Column G)
-          const percentFormula = `=IFERROR(F${rowNum}/E${rowNum},0)`;
-          row.getCell(7).value = { formula: percentFormula };
-
-          // Set formula for Status (Column H) - reference Performance thresholds
-          const statusFormula = `=IF(G${rowNum}>=VLOOKUP("Green - % of Goal",Config_Benchmarks!$B$1:$C$100,2,FALSE),"GREEN",IF(G${rowNum}>=VLOOKUP("Yellow - % of Goal",Config_Benchmarks!$B$1:$C$100,2,FALSE),"YELLOW","RED"))`;
-          row.getCell(8).value = { formula: statusFormula };
-
-          // Apply conditional coloring based on status (will be recalculated in Excel)
+          // Apply alternating row coloring
           if (idx % 2 === 0) {
             for (let i = 1; i <= 8; i++) {
-              row.getCell(i).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFAFAFA" } };
+              if (i !== 7) { // Don't override the % of Goal coloring
+                row.getCell(i).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFAFAFA" } };
+              }
             }
           }
         });
