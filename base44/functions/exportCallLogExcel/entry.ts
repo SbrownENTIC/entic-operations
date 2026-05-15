@@ -16,337 +16,254 @@ Deno.serve(async (req) => {
       monthlyOutboundData = [], 
       weeklyOutboundData = [], 
       frontendData = [], 
-      individualData = [], 
-      userDirectory = [], 
-      rawInbound = [], 
-      rawOutbound = [] 
+      individualData = [] 
     } = body;
 
-    const workbook = new ExcelJS.Workbook();
-    const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    // ===== CREATE WORKBOOK =====
+    const wb = new ExcelJS.Workbook();
+    wb.creator = "ENTIC Operations Center";
+    wb.created = new Date();
 
-    // ===== SHEET 1: Executive Summary =====
-    const exWS = workbook.addWorksheet('Executive Summary');
-    exWS.columns = [
-      { width: 30 },
-      { width: 15 }
-    ];
+    // ===== CALCULATE METRICS =====
+    let totalInbound = 0, totalOutbound = 0, totalAnswered = 0, totalMissed = 0;
+    let totalOutboundConnected = 0, totalFrontEndInbound = 0, totalFrontEndAnswered = 0;
 
-    exWS.addRow(['Call Log Performance Report – May 2026']);
-    exWS.addRow([`Generated on: ${today}`]);
-    exWS.addRow([]);
-    exWS.addRow(['Metric', 'Value']);
-
-    let dataRow = 5;
-    
     if (monthlyData && monthlyData.length > 0) {
-      const latestMonth = monthlyData[monthlyData.length - 1];
-      const latestOutbound = monthlyOutboundData?.find(o => o.month === latestMonth.month);
-      
-      const connectedOutbound = latestOutbound?.connected_outbound || 0;
-      const outboundRate = latestMonth.total_outbound === 0 ? 0 : Math.min(connectedOutbound / latestMonth.total_outbound, 1.0);
-      const totalAnswered = (latestMonth.total_answered || 0) + connectedOutbound;
-      const totalCalls = (latestMonth.total_inbound || 0) + (latestMonth.total_outbound || 0);
-      const overallRate = totalCalls === 0 ? 0 : Math.min(totalAnswered / totalCalls, 1.0);
-
-      exWS.addRow(['Total Calls', totalCalls]);
-      exWS.addRow(['Inbound', latestMonth.total_inbound || 0]);
-      exWS.addRow(['Outbound', latestMonth.total_outbound || 0]);
-      exWS.addRow(['Answered', latestMonth.total_answered || 0]);
-      exWS.addRow(['Missed', latestMonth.total_missed || 0]);
-      exWS.addRow(['Inbound Answer Rate', latestMonth.answer_rate || 0]);
-      exWS.addRow(['Outbound Contact Rate', outboundRate]);
-      exWS.addRow(['Overall Contact Rate', overallRate]);
-      dataRow = 13;
+      const latest = monthlyData[monthlyData.length - 1];
+      totalInbound = latest.total_inbound || 0;
+      totalAnswered = latest.total_answered || 0;
+      totalMissed = latest.total_missed || 0;
     }
 
-    // Format percentage cells
-    exWS.getCell(`B11`).numFmt = '0.00%';
-    exWS.getCell(`B12`).numFmt = '0.00%';
-    exWS.getCell(`B13`).numFmt = '0.00%';
+    if (monthlyOutboundData && monthlyOutboundData.length > 0) {
+      const latest = monthlyOutboundData[monthlyOutboundData.length - 1];
+      totalOutbound = latest.total_outbound || 0;
+      totalOutboundConnected = latest.connected_outbound || 0;
+    }
 
-    // ===== SHEET 2: Weekly Summary =====
-    const weeklyWS = workbook.addWorksheet('Weekly Summary');
-    weeklyWS.columns = [
-      { width: 15 },
-      { width: 12 },
-      { width: 12 },
-      { width: 12 },
-      { width: 15 },
-      { width: 12 },
-      { width: 18 },
-      { width: 18 },
-      { width: 18 }
+    if (frontendData && frontendData.length > 0) {
+      totalFrontEndInbound = frontendData.reduce((sum, u) => sum + (u.total_inbound || 0), 0);
+      totalFrontEndAnswered = frontendData.reduce((sum, u) => sum + (u.total_answered || 0), 0);
+    }
+
+    const totalCalls = totalInbound + totalOutbound;
+    const inboundRate = totalInbound > 0 ? totalAnswered / totalInbound : 0;
+    const frontEndRate = totalFrontEndInbound > 0 ? totalFrontEndAnswered / totalFrontEndInbound : 0;
+    const outboundContactRate = totalOutbound > 0 ? totalOutboundConnected / totalOutbound : 0;
+    const totalContacted = totalAnswered + totalOutboundConnected;
+    const overallContactRate = totalCalls > 0 ? totalContacted / totalCalls : 0;
+
+    // ===== SHEET 1: EXECUTIVE SUMMARY =====
+    const summary = wb.addWorksheet("Executive Summary");
+    summary.columns = [
+      { width: 28 },
+      { width: 20 }
     ];
 
-    weeklyWS.addRow(['Weekly Summary – May 2026']);
-    weeklyWS.addRow([`Generated on: ${today}`]);
-    weeklyWS.addRow([]);
-    const headerRow = weeklyWS.addRow(['Week', 'Inbound', 'Answered', 'Missed', 'Outbound', 'Outbound Connected (≥30s)', 'Inbound Answer Rate', 'Outbound Contact Rate', 'Overall Contact Rate']);
-    let dataStartRow = 5;
+    // Title
+    summary.mergeCells("A1:B1");
+    summary.getCell("A1").value = "Call Log Executive Summary";
+    summary.getCell("A1").font = { size: 16, bold: true };
+    summary.getCell("A1").alignment = { horizontal: "center" };
+
+    summary.addRow([]);
+
+    summary.addRow(["Total Calls", totalCalls]);
+    summary.addRow(["Inbound", totalInbound]);
+    summary.addRow(["Outbound", totalOutbound]);
+    summary.addRow(["Answered", totalAnswered]);
+    summary.addRow(["Missed", totalMissed]);
+
+    summary.addRow([]);
+
+    summary.addRow(["Inbound Answer Rate", inboundRate]);
+    summary.addRow(["Front-End Answer Rate", frontEndRate]);
+    summary.addRow(["Outbound Contact Rate (30s+)", outboundContactRate]);
+    summary.addRow(["Overall Contact Rate", overallContactRate]);
+
+    // Percent formatting
+    summary.getCell("B8").numFmt = "0.00%";
+    summary.getCell("B9").numFmt = "0.00%";
+    summary.getCell("B10").numFmt = "0.00%";
+    summary.getCell("B11").numFmt = "0.00%";
+
+    // Bold labels
+    for (let i = 3; i <= 11; i++) {
+      summary.getCell(`A${i}`).font = { bold: true };
+    }
+
+    // ===== SHEET 2: WEEKLY SUMMARY =====
+    const weekly = wb.addWorksheet("Weekly Summary");
+    weekly.columns = [
+      { header: "Week Starting", key: "week", width: 15 },
+      { header: "Total Inbound", key: "inbound", width: 15 },
+      { header: "Answered", key: "answered", width: 15 },
+      { header: "Missed", key: "missed", width: 15 },
+      { header: "Answer Rate", key: "rate", width: 15 }
+    ];
+
+    weekly.getRow(1).font = { bold: true };
 
     if (weeklyData && weeklyData.length > 0) {
-      weeklyData.forEach((row) => {
-        const outboundOutbound = weeklyOutboundData?.find(o => o.week_start === row.week_start);
-        const outboundConnected = outboundOutbound?.connected_outbound || 0;
-        const outboundRate = row.total_outbound === 0 ? 0 : Math.min(outboundConnected / row.total_outbound, 1.0);
-        const totalAnswered = (row.total_answered || 0) + outboundConnected;
-        const totalCalls = (row.total_inbound || 0) + (row.total_outbound || 0);
-        const overallRate = totalCalls === 0 ? 0 : Math.min(totalAnswered / totalCalls, 1.0);
-
-        weeklyWS.addRow([
-          row.week_start || '',
-          row.total_inbound || 0,
-          row.total_answered || 0,
-          row.total_missed || 0,
-          row.total_outbound || 0,
-          outboundConnected,
-          row.answer_rate || 0,
-          outboundRate,
-          overallRate
-        ]);
+      weeklyData.forEach((w) => {
+        weekly.addRow({
+          week: w.week_start || "",
+          inbound: w.total_inbound || 0,
+          answered: w.total_answered || 0,
+          missed: w.total_missed || 0,
+          rate: w.answer_rate || 0
+        });
       });
     }
 
-    // Format percentage columns in Weekly Summary
-    const lastWeeklyRow = weeklyWS.rowCount;
-    for (let i = dataStartRow; i <= lastWeeklyRow; i++) {
-      weeklyWS.getCell(`G${i}`).numFmt = '0.00%';
-      weeklyWS.getCell(`H${i}`).numFmt = '0.00%';
-      weeklyWS.getCell(`I${i}`).numFmt = '0.00%';
-    }
+    // Percent formatting
+    weekly.eachRow((row, rowNumber) => {
+      if (rowNumber > 1) {
+        row.getCell(5).numFmt = "0.00%";
+      }
+    });
 
-    weeklyWS.autoFilter = {
-      from: { row: 4, column: 1 },
-      to: { row: lastWeeklyRow, column: 9 }
+    // Enable filtering
+    weekly.autoFilter = {
+      from: "A1",
+      to: `E${weekly.rowCount}`
     };
 
-    // ===== SHEET 3: Front-End Performance =====
-    const frontWS = workbook.addWorksheet('Front-End Performance');
-    frontWS.columns = [
-      { width: 25 },
-      { width: 12 },
-      { width: 12 },
-      { width: 12 },
-      { width: 15 },
-      { width: 15 },
-      { width: 18 },
-      { width: 18 },
-      { width: 18 },
-      { width: 18 }
+    // ===== SHEET 3: FRONT-END PERFORMANCE =====
+    const frontEnd = wb.addWorksheet("Front-End Performance");
+    frontEnd.columns = [
+      { header: "User", key: "user", width: 30 },
+      { header: "Inbound", key: "inbound", width: 15 },
+      { header: "Answered", key: "answered", width: 15 },
+      { header: "Missed", key: "missed", width: 15 },
+      { header: "Answer Rate", key: "rate", width: 15 }
     ];
 
-    frontWS.addRow(['Front-End Performance (Front Desk Benchmark) – May 2026']);
-    frontWS.addRow([`Generated on: ${today}`]);
-    frontWS.addRow([]);
-    frontWS.addRow(['User', 'Inbound', 'Answered', 'Missed', 'Inbound Answer Rate', 'Outbound Attempts', 'Outbound Connected (≥30s)', 'Outbound Contact Rate', 'Overall Contact Rate', 'Avg Duration (Minutes)']);
-    
-    let frontDataStart = 5;
+    frontEnd.getRow(1).font = { bold: true };
+
     if (frontendData && frontendData.length > 0) {
-      frontendData.forEach((row) => {
-        frontWS.addRow([
-          row.user_name || '',
-          row.total_inbound || 0,
-          row.total_answered || 0,
-          row.total_missed || 0,
-          row.answer_rate || 0,
-          row.total_outbound || 0,
-          row.outbound_connected || 0,
-          row.outbound_contact_rate || 0,
-          row.overall_contact_rate || 0,
-          ((row.avg_duration_seconds || 0) / 60)
-        ]);
+      frontendData.forEach((u) => {
+        frontEnd.addRow({
+          user: u.user_name || "",
+          inbound: u.total_inbound || 0,
+          answered: u.total_answered || 0,
+          missed: u.total_missed || 0,
+          rate: u.answer_rate || 0
+        });
       });
 
       // Totals row
-      const totalsInbound = frontendData.reduce((sum, r) => sum + (r.total_inbound || 0), 0);
-      const totalsAnswered = frontendData.reduce((sum, r) => sum + (r.total_answered || 0), 0);
-      const totalsMissed = frontendData.reduce((sum, r) => sum + (r.total_missed || 0), 0);
-      const totalsOutbound = frontendData.reduce((sum, r) => sum + (r.total_outbound || 0), 0);
-      const totalsOutboundConnected = frontendData.reduce((sum, r) => sum + (r.outbound_connected || 0), 0);
-      const totalDurationSeconds = frontendData.reduce((sum, r) => sum + ((r.avg_duration_seconds || 0) * (r.total_inbound || 0)), 0);
-      const totalInboundForDuration = frontendData.reduce((sum, r) => sum + (r.total_inbound || 0), 0);
+      const frontEndTotalInbound = frontendData.reduce((sum, u) => sum + (u.total_inbound || 0), 0);
+      const frontEndTotalAnswered = frontendData.reduce((sum, u) => sum + (u.total_answered || 0), 0);
+      const frontEndTotalMissed = frontendData.reduce((sum, u) => sum + (u.total_missed || 0), 0);
+      const frontEndTotalRate = frontEndTotalInbound > 0 ? frontEndTotalAnswered / frontEndTotalInbound : 0;
 
-      const inboundAnswerRate = totalsInbound > 0 ? totalsAnswered / totalsInbound : 0;
-      const outboundRate = totalsOutbound > 0 ? totalsOutboundConnected / totalsOutbound : 0;
-      const totalAnswered = totalsAnswered + totalsOutboundConnected;
-      const totalCalls = totalsInbound + totalsOutbound;
-      const overallRate = totalCalls > 0 ? totalAnswered / totalCalls : 0;
-      const avgDuration = totalInboundForDuration > 0 ? totalDurationSeconds / totalInboundForDuration / 60 : 0;
+      frontEnd.addRow({
+        user: "TOTAL",
+        inbound: frontEndTotalInbound,
+        answered: frontEndTotalAnswered,
+        missed: frontEndTotalMissed,
+        rate: frontEndTotalRate
+      });
 
-      frontWS.addRow([
-        'TOTAL',
-        totalsInbound,
-        totalsAnswered,
-        totalsMissed,
-        inboundAnswerRate,
-        totalsOutbound,
-        totalsOutboundConnected,
-        outboundRate,
-        overallRate,
-        avgDuration
-      ]);
+      const lastFrontEndRow = frontEnd.lastRow.number;
+      frontEnd.getRow(lastFrontEndRow).font = { bold: true };
     }
 
-    const lastFrontRow = frontWS.rowCount;
-    for (let i = frontDataStart; i <= lastFrontRow; i++) {
-      frontWS.getCell(`E${i}`).numFmt = '0.00%';
-      frontWS.getCell(`H${i}`).numFmt = '0.00%';
-      frontWS.getCell(`I${i}`).numFmt = '0.00%';
-      frontWS.getCell(`J${i}`).numFmt = '0.00';
-    }
+    // Percent formatting
+    frontEnd.eachRow((row, rowNumber) => {
+      if (rowNumber > 1) {
+        row.getCell(5).numFmt = "0.00%";
+      }
+    });
 
-    frontWS.autoFilter = {
-      from: { row: 4, column: 1 },
-      to: { row: lastFrontRow, column: 10 }
+    frontEnd.autoFilter = {
+      from: "A1",
+      to: `E${frontEnd.rowCount}`
     };
 
-    // ===== SHEET 4: Individual Performance =====
-    const indivWS = workbook.addWorksheet('Individual Performance');
-    indivWS.columns = [
-      { width: 25 },
-      { width: 12 },
-      { width: 12 },
-      { width: 12 },
-      { width: 15 },
-      { width: 15 },
-      { width: 18 },
-      { width: 18 },
-      { width: 18 },
-      { width: 18 }
+    // ===== SHEET 4: INDIVIDUAL PERFORMANCE =====
+    const individual = wb.addWorksheet("Individual Performance");
+    individual.columns = [
+      { header: "User", key: "user", width: 30 },
+      { header: "Inbound", key: "inbound", width: 15 },
+      { header: "Outbound", key: "outbound", width: 15 },
+      { header: "Answered", key: "answered", width: 15 },
+      { header: "Missed", key: "missed", width: 15 },
+      { header: "Answer Rate", key: "rate", width: 15 },
+      { header: "Avg Duration (Minutes)", key: "avgMin", width: 20 }
     ];
 
-    indivWS.addRow(['Individual Performance (All Users) – May 2026']);
-    indivWS.addRow([`Generated on: ${today}`]);
-    indivWS.addRow([]);
-    indivWS.addRow(['User', 'Inbound', 'Answered', 'Missed', 'Inbound Answer Rate', 'Outbound Attempts', 'Outbound Connected (≥30s)', 'Outbound Contact Rate', 'Overall Contact Rate', 'Avg Duration (Minutes)']);
-    
-    let indivDataStart = 5;
+    individual.getRow(1).font = { bold: true };
+
+    let indivTotalInbound = 0, indivTotalOutbound = 0, indivTotalAnswered = 0, indivTotalMissed = 0;
+    let indivTotalDurationSeconds = 0;
+
     if (individualData && individualData.length > 0) {
-      individualData.forEach((row) => {
-        indivWS.addRow([
-          row.user_name || '',
-          row.total_inbound || 0,
-          row.total_answered || 0,
-          row.total_missed || 0,
-          row.answer_rate || 0,
-          row.total_outbound || 0,
-          row.outbound_connected || 0,
-          row.outbound_contact_rate || 0,
-          row.overall_contact_rate || 0,
-          ((row.avg_duration_seconds || 0) / 60)
-        ]);
+      individualData.forEach((u) => {
+        const inbound = u.total_inbound || 0;
+        const outbound = u.total_outbound || 0;
+        const answered = u.total_answered || 0;
+        const missed = u.total_missed || 0;
+        const avgDurationSec = u.avg_duration_seconds || 0;
+        const rate = inbound > 0 ? answered / inbound : 0;
+
+        individual.addRow({
+          user: u.user_name || "",
+          inbound: inbound,
+          outbound: outbound,
+          answered: answered,
+          missed: missed,
+          rate: rate,
+          avgMin: avgDurationSec / 60
+        });
+
+        indivTotalInbound += inbound;
+        indivTotalOutbound += outbound;
+        indivTotalAnswered += answered;
+        indivTotalMissed += missed;
+        indivTotalDurationSeconds += avgDurationSec * inbound;
       });
 
       // Totals row
-      const totalsInbound = individualData.reduce((sum, r) => sum + (r.total_inbound || 0), 0);
-      const totalsAnswered = individualData.reduce((sum, r) => sum + (r.total_answered || 0), 0);
-      const totalsMissed = individualData.reduce((sum, r) => sum + (r.total_missed || 0), 0);
-      const totalsOutbound = individualData.reduce((sum, r) => sum + (r.total_outbound || 0), 0);
-      const totalsOutboundConnected = individualData.reduce((sum, r) => sum + (r.outbound_connected || 0), 0);
-      const totalDurationSeconds = individualData.reduce((sum, r) => sum + ((r.avg_duration_seconds || 0) * (r.total_inbound || 0)), 0);
-      const totalInboundForDuration = individualData.reduce((sum, r) => sum + (r.total_inbound || 0), 0);
+      const indivTotalRate = indivTotalInbound > 0 ? indivTotalAnswered / indivTotalInbound : 0;
+      const indivAvgMinutes = indivTotalInbound > 0 ? indivTotalDurationSeconds / indivTotalInbound / 60 : 0;
 
-      const inboundAnswerRate = totalsInbound > 0 ? totalsAnswered / totalsInbound : 0;
-      const outboundRate = totalsOutbound > 0 ? totalsOutboundConnected / totalsOutbound : 0;
-      const totalAnswered = totalsAnswered + totalsOutboundConnected;
-      const totalCalls = totalsInbound + totalsOutbound;
-      const overallRate = totalCalls > 0 ? totalAnswered / totalCalls : 0;
-      const avgDuration = totalInboundForDuration > 0 ? totalDurationSeconds / totalInboundForDuration / 60 : 0;
+      individual.addRow({
+        user: "TOTAL",
+        inbound: indivTotalInbound,
+        outbound: indivTotalOutbound,
+        answered: indivTotalAnswered,
+        missed: indivTotalMissed,
+        rate: indivTotalRate,
+        avgMin: indivAvgMinutes
+      });
 
-      indivWS.addRow([
-        'TOTAL',
-        totalsInbound,
-        totalsAnswered,
-        totalsMissed,
-        inboundAnswerRate,
-        totalsOutbound,
-        totalsOutboundConnected,
-        outboundRate,
-        overallRate,
-        avgDuration
-      ]);
+      const lastIndividualRow = individual.lastRow.number;
+      individual.getRow(lastIndividualRow).font = { bold: true };
     }
 
-    const lastIndivRow = indivWS.rowCount;
-    for (let i = indivDataStart; i <= lastIndivRow; i++) {
-      indivWS.getCell(`E${i}`).numFmt = '0.00%';
-      indivWS.getCell(`H${i}`).numFmt = '0.00%';
-      indivWS.getCell(`I${i}`).numFmt = '0.00%';
-      indivWS.getCell(`J${i}`).numFmt = '0.00';
-    }
+    // Format percent + minutes
+    individual.eachRow((row, rowNumber) => {
+      if (rowNumber > 1) {
+        row.getCell(6).numFmt = "0.00%";
+        row.getCell(7).numFmt = "0.00";
+      }
+    });
 
-    indivWS.autoFilter = {
-      from: { row: 4, column: 1 },
-      to: { row: lastIndivRow, column: 10 }
+    individual.autoFilter = {
+      from: "A1",
+      to: `G${individual.rowCount}`
     };
 
-    // ===== SHEET 5: Raw Data =====
-    const rawWS = workbook.addWorksheet('Raw Data');
-    rawWS.columns = [
-      { width: 12 },
-      { width: 10 },
-      { width: 12 },
-      { width: 15 },
-      { width: 15 },
-      { width: 15 },
-      { width: 10 },
-      { width: 10 },
-      { width: 15 }
-    ];
-
-    rawWS.addRow(['Call Log Raw Data']);
-    rawWS.addRow([`Generated on: ${today}`]);
-    rawWS.addRow([]);
-    rawWS.addRow(['Call Date', 'Call Time', 'Extension', 'Caller/Dialed', 'Duration (sec)', 'Result/Disposition', 'Direction', 'Answered', 'Location']);
-    
-    let rawDataStart = 5;
-    if (rawInbound && rawInbound.length > 0) {
-      rawInbound.forEach((row) => {
-        rawWS.addRow([
-          row.call_date || '',
-          row.call_time || '',
-          row.extension || '',
-          row.caller_number || '',
-          row.duration_seconds || 0,
-          row.disposition || '',
-          'Inbound',
-          row.answered ? 'Yes' : 'No',
-          ''
-        ]);
-      });
-    }
-
-    if (rawOutbound && rawOutbound.length > 0) {
-      rawOutbound.forEach((row) => {
-        rawWS.addRow([
-          row.call_date || '',
-          row.call_time || '',
-          row.extension || '',
-          row.dialed_number || '',
-          row.duration_seconds || 0,
-          row.result || '',
-          'Outbound',
-          row.result === 'answered' ? 'Yes' : 'No',
-          row.location || ''
-        ]);
-      });
-    }
-
-    const lastRawRow = rawWS.rowCount;
-    rawWS.autoFilter = {
-      from: { row: 4, column: 1 },
-      to: { row: lastRawRow, column: 9 }
-    };
-
-    // Generate buffer
-    const buffer = await workbook.xlsx.writeBuffer();
+    // ===== FINAL EXPORT =====
+    const buffer = await wb.xlsx.writeBuffer();
 
     return new Response(buffer, {
       status: 200,
       headers: {
-        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment; filename="CallLog_Report_${new Date().toISOString().split('T')[0]}.xlsx"`
+        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition": `attachment; filename="CallLog_Report_${new Date().toISOString().split("T")[0]}.xlsx"`
       }
     });
   } catch (error) {
