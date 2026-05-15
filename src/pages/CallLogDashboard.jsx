@@ -1567,13 +1567,23 @@ export default function CallLogDashboard() {
               </CardContent>
             </Card>
 
+            {/* NP Coordinator Performance */}
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader>
+                <CardTitle>NP Coordinator Performance (NP Coordinator Benchmark)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <IndividualPerformanceTable data={npCoordinatorData} showOutbound={true} defaultSort="overall_contact_rate" />
+              </CardContent>
+            </Card>
+
             {/* Individual Performance */}
             <Card className="border-slate-200 shadow-sm">
               <CardHeader>
-                <CardTitle>Individual Performance (All Users)</CardTitle>
+                <CardTitle>Individual Performance (Other Users)</CardTitle>
               </CardHeader>
               <CardContent>
-                <IndividualPerformanceTable data={individualData} showOutbound={true} defaultSort="overall_contact_rate" />
+                <IndividualPerformanceTable data={otherUsersData} showOutbound={true} defaultSort="overall_contact_rate" />
               </CardContent>
             </Card>
 
