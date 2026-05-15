@@ -263,58 +263,62 @@ export default function CallLogDashboard() {
     return { type: filterType, title, data: filteredData };
   };
 
-  // Handle Excel export
+  // Handle Excel export - PHASE 1: Minimal stable export
   const handleExportExcel = async () => {
     try {
-      // Validate all datasets before export
-      console.log("weeklyData length:", weeklyData?.length);
-      console.log("monthlyData length:", monthlyData?.length);
-      console.log("weeklyOutboundData length:", weeklyOutboundData?.length);
-      console.log("monthlyOutboundData length:", monthlyOutboundData?.length);
-      console.log("frontendData length:", frontendData?.length);
-      console.log("individualData length:", individualData?.length);
-      console.log("inbound length:", inbound?.length);
-      console.log("outbound length:", outbound?.length);
+      // ===== VALIDATION: Log all datasets =====
+      console.log("=== EXPORT VALIDATION ===");
+      console.log("weeklyData:", Array.isArray(weeklyData) ? `array (${weeklyData.length})` : "NOT ARRAY");
+      console.log("monthlyData:", Array.isArray(monthlyData) ? `array (${monthlyData.length})` : "NOT ARRAY");
+      console.log("frontendData:", Array.isArray(frontendData) ? `array (${frontendData.length})` : "NOT ARRAY");
+      console.log("individualData:", Array.isArray(individualData) ? `array (${individualData.length})` : "NOT ARRAY");
+      console.log("inbound:", Array.isArray(inbound) ? `array (${inbound.length})` : "NOT ARRAY");
+      console.log("outbound:", Array.isArray(outbound) ? `array (${outbound.length})` : "NOT ARRAY");
+      
+      // ===== STRICT VALIDATION =====
+      if (!Array.isArray(weeklyData)) throw new Error("weeklyData must be an array");
+      if (!Array.isArray(monthlyData)) throw new Error("monthlyData must be an array");
+      if (!Array.isArray(frontendData)) throw new Error("frontendData must be an array");
+      if (!Array.isArray(individualData)) throw new Error("individualData must be an array");
+      if (!Array.isArray(inbound)) throw new Error("inbound must be an array");
+      if (!Array.isArray(outbound)) throw new Error("outbound must be an array");
 
-      if (!Array.isArray(weeklyData)) throw new Error("weeklyData is not an array");
-      if (!Array.isArray(monthlyData)) throw new Error("monthlyData is not an array");
-      if (!Array.isArray(weeklyOutboundData)) throw new Error("weeklyOutboundData is not an array");
-      if (!Array.isArray(monthlyOutboundData)) throw new Error("monthlyOutboundData is not an array");
-      if (!Array.isArray(frontendData)) throw new Error("frontendData is not an array");
-      if (!Array.isArray(individualData)) throw new Error("individualData is not an array");
-      if (!Array.isArray(inbound)) throw new Error("inbound is not an array");
-      if (!Array.isArray(outbound)) throw new Error("outbound is not an array");
-
+      // ===== PHASE 1: MINIMAL STABLE EXPORT =====
+      // Colors & Fonts
       const HEADER_BG = "FF1F3864";
       const WHITE = "FFFFFFFF";
-      const KPI_BG = "FFF2F2F2";
       const GREEN_BG = "FFC6EFCE";
       const YELLOW_BG = "FFFFEB9C";
       const RED_BG = "FFFFC7CE";
       const baseFont = { name: "Calibri", size: 11 };
+      
+      // ===== CALCULATE METRICS (defensive) =====
+      let totalInbound = 0;
+      let totalOutbound = 0;
+      let totalAnswered = 0;
+      let totalMissed = 0;
+      let totalFrontEndInbound = 0;
+      let totalFrontEndAnswered = 0;
+      let totalOutboundConnected = 0;
 
-      // Calculate metrics
-      let totalInbound = 0, totalOutbound = 0, totalAnswered = 0, totalMissed = 0;
-      let totalOutboundConnected = 0, totalFrontEndInbound = 0, totalFrontEndAnswered = 0;
-
-      if (monthlyData && monthlyData.length > 0) {
-        const latest = monthlyData[monthlyData.length - 1];
-        totalInbound = latest.total_inbound || 0;
-        totalAnswered = latest.total_answered || 0;
-        totalMissed = latest.total_missed || 0;
+      // Extract latest monthly inbound metrics
+      if (monthlyData.length > 0) {
+        const latestMonth = monthlyData[monthlyData.length - 1];
+        totalInbound = latestMonth.total_inbound || 0;
+        totalAnswered = latestMonth.total_answered || 0;
+        totalMissed = latestMonth.total_missed || 0;
       }
 
-      if (monthlyOutboundData && monthlyOutboundData.length > 0) {
-        const latest = monthlyOutboundData[monthlyOutboundData.length - 1];
-        totalOutbound = latest.total_outbound || 0;
-        totalOutboundConnected = latest.connected_outbound || 0;
+      // Extract frontend totals
+      let idx = 0;
+      while (idx < frontendData.length) {
+        const user = frontendData[idx];
+        totalFrontEndInbound += user.total_inbound || 0;
+        totalFrontEndAnswered += user.total_answered || 0;
+        idx++;
       }
 
-      if (frontendData && frontendData.length > 0) {
-        totalFrontEndInbound = frontendData.reduce((sum, u) => sum + (u.total_inbound || 0), 0);
-        totalFrontEndAnswered = frontendData.reduce((sum, u) => sum + (u.total_answered || 0), 0);
-      }
-
+      // Calculate rates
       const totalCalls = totalInbound + totalOutbound;
       const inboundRate = totalInbound > 0 ? totalAnswered / totalInbound : 0;
       const frontEndRate = totalFrontEndInbound > 0 ? totalFrontEndAnswered / totalFrontEndInbound : 0;
@@ -357,115 +361,8 @@ export default function CallLogDashboard() {
         }
       };
 
-      // ===== SHEET 0: CONFIG_BENCHMARKS (Protected & Hidden) =====
-      // Exact replication from Benchmarks.xlsx structure
-      const configSheet = wb.addWorksheet("Config_Benchmarks");
-      configSheet.properties.tabColor = { argb: "FF595959" };
-      configSheet.state = "hidden";
-      configSheet.columns = [
-        { width: 25 },
-        { width: 35 },
-        { width: 15 },
-        { width: 12 },
-        { width: 40 }
-      ];
-
-      // Header row
-      const headerRow = configSheet.addRow(["Category", "Metric", "Target Value", "Unit", "Notes"]);
-      headerRow.eachCell((cell) => {
-        cell.font = { ...baseFont, bold: true, color: { argb: WHITE } };
-        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_BG } };
-        cell.alignment = { horizontal: "left", vertical: "middle" };
-      });
-      configSheet.getRow(1).height = 22;
-
-      // Benchmark data - exact replication from Benchmarks.xlsx
-      const benchmarks = [
-        ["Answer Rate", "Green Threshold (Good)", 0.5, "Decimal", "Answer rate ≥ 50% shown in green"],
-        ["Answer Rate", "Yellow Threshold (Warning)", 0.2, "Decimal", "Answer rate ≥ 20% and < 50% shown in yellow"],
-        ["Answer Rate", "Red Threshold (Poor)", 0, "Decimal", "Answer rate < 20% shown in red"],
-        ["Phone Role", "Call Center Expected AR", 0.85, "Decimal", "Expected inbound answer rate for Call Center extensions"],
-        ["Phone Role", "Client Facing Expected AR", 0.65, "Decimal", "Expected inbound answer rate for Client Facing extensions"],
-        ["Phone Role", "Call Center Expected CPH", 8, "Number", "Expected calls per hour for Call Center role"],
-        ["Phone Role", "Client Facing Expected CPH", 6, "Number", "Expected calls per hour for Client Facing role"],
-        ["Outbound Contact Rate", "Green Threshold (Good)", 0.4, "Decimal", "Outbound contact rate ≥ 40% shown in green"],
-        ["Outbound Contact Rate", "Yellow Threshold (Warning)", 0.2, "Decimal", "Outbound contact rate ≥ 20% and < 40% shown in yellow"],
-        ["Outbound Contact Rate", "Red Threshold (Poor)", 0, "Decimal", "Outbound contact rate < 20% shown in red"],
-        ["Front-End", "Answer Rate Green", 0.6, "Decimal", "Front Desk expected answer rate threshold for green"],
-        ["Front-End", "Answer Rate Yellow", 0.4, "Decimal", "Front Desk expected answer rate threshold for yellow"],
-        ["Daily Goal", "Call Center Target", 160, "Number", "Daily call target for Call Center role"],
-        ["Daily Goal", "Client Facing Target", 120, "Number", "Daily call target for Client Facing role"],
-        ["Outbound Mix", "Call Center Expected %", 0.15, "Decimal", "Expected outbound as % of total calls"],
-        ["Outbound Mix", "Client Facing Expected %", 0.1, "Decimal", "Expected outbound as % of total calls"],
-        ["Performance", "Work Days Per Week", 5, "Number", "Standard work days per week for goal calculations"],
-        ["Performance Tracking", "Green - % of Goal", 0.85, "Decimal", "Performance ≥ 85% of goal shown in green"],
-        ["Performance Tracking", "Yellow - % of Goal", 0.7, "Decimal", "Performance ≥ 70% and < 85% of goal shown in yellow"],
-        ["Performance Tracking", "Red - % of Goal", 0, "Decimal", "Performance < 70% of goal shown in red"],
-        ["Executive Summary", "Overall Contact Rate Green", 0.65, "Decimal", "Overall contact rate ≥ 65% shown in green"],
-        ["Executive Summary", "Overall Contact Rate Yellow", 0.45, "Decimal", "Overall contact rate ≥ 45% and < 65% shown in yellow"],
-        ["Location Goal", "Bloomfield – Check In Daily", 35, "Number", "Daily call target for Bloomfield Check In"],
-        ["Location Goal", "Bloomfield – Check Out Daily", 30, "Number", "Daily call target for Bloomfield Check Out"],
-        ["Location Goal", "Manchester – Check In Daily", 40, "Number", "Daily call target for Manchester Check In"],
-        ["Location Goal", "Manchester – Check Out Daily", 35, "Number", "Daily call target for Manchester Check Out"],
-        ["Location Goal", "Glastonbury – Check In Daily", 38, "Number", "Daily call target for Glastonbury Check In"],
-        ["Location Goal", "Glastonbury – Check Out Daily", 32, "Number", "Daily call target for Glastonbury Check Out"],
-        ["Location Goal", "Farmington – Check In Daily", 36, "Number", "Daily call target for Farmington Check In"],
-        ["Location Goal", "Farmington – Check Out Daily", 31, "Number", "Daily call target for Farmington Check Out"],
-        ["Location Goal", "Farmington – Phone Only Daily", 40, "Number", "Daily call target for Farmington Phone Only"]
-      ];
-
-      if (!Array.isArray(benchmarks)) throw new Error("benchmarks is not an array");
-      benchmarks.forEach((row) => {
-        const dataRow = configSheet.addRow(row);
-        // Format Target Value column as percentage if < 1, otherwise as number
-        const cell = dataRow.getCell(3);
-        if (row[2] < 1 && row[2] > 0) {
-          cell.numFmt = "0.00%";
-        } else if (typeof row[2] === 'number') {
-          cell.numFmt = "#,##0";
-        }
-        cell.alignment = { horizontal: "right" };
-      });
-
-      // Store benchmark thresholds as static values for sheet references
-      const benchmarkThresholds = {
-        answerRateGreen: 0.5,
-        answerRateYellow: 0.2,
-        callCenterAR: 0.85,
-        clientFacingAR: 0.65,
-        outboundGreen: 0.4,
-        outboundYellow: 0.2,
-        frontEndGreen: 0.6,
-        frontEndYellow: 0.4,
-        performanceGreen: 0.85,
-        performanceYellow: 0.7,
-        overallContactGreen: 0.65,
-        overallContactYellow: 0.45,
-        workDaysPerWeek: 5
-      };
-
-      // Protect the sheet
-      configSheet.protect("ENTIC_23!", {
-        sheet: true,
-        content: true,
-        objects: false,
-        scenarios: false,
-        formatCells: false,
-        formatColumns: false,
-        formatRows: false,
-        insertColumns: false,
-        insertRows: false,
-        insertHyperlinks: false,
-        deleteColumns: false,
-        deleteRows: false,
-        selectLockedCells: true,
-        sort: false,
-        autoFilter: false,
-        pivotTables: false,
-        selectUnlockedCells: true
-      });
-
-      autoFitColumns(configSheet);
+      // ===== PHASE 1: SKIP Config_Benchmarks, Goal Tracking =====
+      // Reintroduce in PHASE 2 after minimal export is stable
 
       // ===== SHEET 1: CALL LOG EXECUTIVE REPORT =====
       const summary = wb.addWorksheet("Call Log Executive Report");
@@ -490,7 +387,7 @@ export default function CallLogDashboard() {
 
       summary.addRow([]);
 
-      // KPI block
+      // ===== KPI BLOCK =====
       const kpiData = [
         ["Total Calls", totalInbound + totalOutbound],
         ["Inbound", totalInbound],
@@ -500,16 +397,19 @@ export default function CallLogDashboard() {
       ];
       
       if (!Array.isArray(kpiData)) throw new Error("kpiData is not an array");
-      kpiData.forEach((item) => {
+      let kpiIdx = 0;
+      while (kpiIdx < kpiData.length) {
+        const item = kpiData[kpiIdx];
         const label = item[0];
         const val = item[1];
         
         const row = summary.addRow([label, val]);
-        row.getCell(1).font = { ...baseFont, bold: true };
+        row.getCell(1).font = { name: "Calibri", size: 11, bold: true };
         row.getCell(2).numFmt = "#,##0";
-        row.getCell(2).fill = { type: "pattern", pattern: "solid", fgColor: { argb: KPI_BG } };
         row.getCell(2).alignment = { horizontal: "right" };
-      });
+        
+        kpiIdx++;
+      }
 
       summary.addRow([]);
 
@@ -521,27 +421,21 @@ export default function CallLogDashboard() {
         ["Overall Contact Rate", overallContactRate, "Overall_ContactRate_Green", "Overall_ContactRate_Yellow"]
       ];
 
+      // ===== PHASE 1: Simple metrics (no conditional formatting) =====
       if (!Array.isArray(metricsData)) throw new Error("metricsData is not an array");
-      metricsData.forEach((item) => {
+      let metricsIdx = 0;
+      while (metricsIdx < metricsData.length) {
+        const item = metricsData[metricsIdx];
         const label = item[0];
         const val = item[1];
-        const greenRef = item[2];
-        const yellowRef = item[3];
         
         const row = summary.addRow([label, val]);
-        row.getCell(1).font = { ...baseFont, bold: true };
+        row.getCell(1).font = { name: "Calibri", size: 11, bold: true };
         row.getCell(2).numFmt = "0.00%";
         row.getCell(2).alignment = { horizontal: "right" };
         
-        // Apply conditional formatting based on Config_Benchmarks thresholds
-        // For now, use hardcoded values; in Excel formulas will reference named ranges
-        let greenThreshold = 0.5, yellowThreshold = 0.2;
-        if (greenRef === "FrontEnd_AR_Green") { greenThreshold = 0.6; yellowThreshold = 0.4; }
-        if (greenRef === "Outbound_Green") { greenThreshold = 0.4; yellowThreshold = 0.2; }
-        if (greenRef === "Overall_ContactRate_Green") { greenThreshold = 0.65; yellowThreshold = 0.45; }
-        
-        applyConditionalColor(row.getCell(2), val, greenThreshold, yellowThreshold);
-      });
+        metricsIdx++;
+      }
 
       summary.addRow([]);
       summary.addRow([]);
@@ -566,9 +460,10 @@ export default function CallLogDashboard() {
 
       // Weekly data
       if (!Array.isArray(weeklyData)) throw new Error("weeklyData iteration failed");
-      if (weeklyData && weeklyData.length > 0) {
-        if (!Array.isArray(weeklyData)) throw new Error("weeklyData is not iterable in summary section");
-        weeklyData.forEach((w) => {
+      if (weeklyData.length > 0) {
+        let wIdx = 0;
+        while (wIdx < weeklyData.length) {
+          const w = weeklyData[wIdx];
           const row = summary.addRow([
             w.week_start || "",
             w.total_inbound || 0,
@@ -581,7 +476,8 @@ export default function CallLogDashboard() {
           row.getCell(4).numFmt = "#,##0";
           row.getCell(5).numFmt = "0.00%";
           for (let i = 2; i <= 5; i++) row.getCell(i).alignment = { horizontal: "right" };
-        });
+          wIdx++;
+        }
 
         // Monthly total row
         const totRow = summary.addRow([
@@ -591,7 +487,7 @@ export default function CallLogDashboard() {
           totalMissed,
           totalInbound > 0 ? totalAnswered / totalInbound : 0
         ]);
-        totRow.font = { ...baseFont, bold: true };
+        totRow.font = { name: "Calibri", size: 11, bold: true };
         totRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE7E6E6" } };
         totRow.getCell(2).numFmt = "#,##0";
         totRow.getCell(3).numFmt = "#,##0";
@@ -615,19 +511,19 @@ export default function CallLogDashboard() {
       ];
 
       frontEnd.getRow(1).eachCell((cell) => {
-        cell.font = { ...baseFont, bold: true, color: { argb: WHITE } };
+        cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: WHITE } };
         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_BG } };
         cell.alignment = { horizontal: "center", vertical: "middle" };
       });
 
       if (!Array.isArray(frontendData)) throw new Error("frontendData is not an array");
-      if (frontendData && frontendData.length > 0) {
-        if (!Array.isArray(frontendData)) throw new Error("frontendData is not iterable in FrontEnd sheet");
-        const sorted = Array.isArray(frontendData) ? [...frontendData].sort((a, b) => (b.answer_rate || 0) - (a.answer_rate || 0)) : [];
-        if (!Array.isArray(sorted)) throw new Error("sorted frontendData is not an array");
+      if (frontendData.length > 0) {
+        const sorted = [...frontendData].sort((a, b) => (b.answer_rate || 0) - (a.answer_rate || 0));
         let totalInb = 0, totalAns = 0, totalMis = 0;
+        let frontIdx = 0;
 
-        sorted.forEach((u) => {
+        while (frontIdx < sorted.length) {
+          const u = sorted[frontIdx];
           const rate = u.answer_rate || 0;
           const row = frontEnd.addRow([
             u.user_name || "",
@@ -641,27 +537,24 @@ export default function CallLogDashboard() {
           row.getCell(3).numFmt = "#,##0";
           row.getCell(4).numFmt = "#,##0";
           row.getCell(5).numFmt = "0.00%";
-          
+
           for (let i = 2; i <= 5; i++) row.getCell(i).alignment = { horizontal: "right" };
-          
-          // Apply color based on FrontEnd_AR thresholds from Config_Benchmarks
-          applyConditionalColor(row.getCell(5), rate, 0.6, 0.4);
 
           totalInb += u.total_inbound || 0;
           totalAns += u.total_answered || 0;
           totalMis += u.total_missed || 0;
-        });
+          frontIdx++;
+        }
 
         const totalRate = totalInb > 0 ? totalAns / totalInb : 0;
         const totalsRow = frontEnd.addRow(["TOTAL", totalInb, totalAns, totalMis, totalRate]);
-        totalsRow.font = { ...baseFont, bold: true };
+        totalsRow.font = { name: "Calibri", size: 11, bold: true };
         totalsRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE7E6E6" } };
         totalsRow.getCell(2).numFmt = "#,##0";
         totalsRow.getCell(3).numFmt = "#,##0";
         totalsRow.getCell(4).numFmt = "#,##0";
         totalsRow.getCell(5).numFmt = "0.00%";
         for (let i = 2; i <= 5; i++) totalsRow.getCell(i).alignment = { horizontal: "right" };
-        applyConditionalColor(totalsRow.getCell(5), totalRate, 0.6, 0.4);
       }
 
       frontEnd.autoFilter = { from: "A1", to: `E${frontEnd.rowCount}` };
@@ -683,19 +576,19 @@ export default function CallLogDashboard() {
       ];
 
       individual.getRow(1).eachCell((cell) => {
-        cell.font = { ...baseFont, bold: true, color: { argb: WHITE } };
+        cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: WHITE } };
         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_BG } };
         cell.alignment = { horizontal: "center", vertical: "middle" };
       });
 
       if (!Array.isArray(individualData)) throw new Error("individualData is not an array");
-      if (individualData && individualData.length > 0) {
-        if (!Array.isArray(individualData)) throw new Error("individualData is not iterable in Individual Performance sheet");
-        const sorted = Array.isArray(individualData) ? [...individualData].sort((a, b) => (b.answer_rate || 0) - (a.answer_rate || 0)) : [];
-        if (!Array.isArray(sorted)) throw new Error("sorted individualData is not an array");
+      if (individualData.length > 0) {
+        const sorted = [...individualData].sort((a, b) => (b.answer_rate || 0) - (a.answer_rate || 0));
         let totInb = 0, totOut = 0, totAns = 0, totMis = 0, totDur = 0, totOutConnected = 0;
+        let indIdx = 0;
 
-        sorted.forEach((u) => {
+        while (indIdx < sorted.length) {
+          const u = sorted[indIdx];
           const inb = u.total_inbound || 0;
           const out = u.total_outbound || 0;
           const ans = u.total_answered || 0;
@@ -719,12 +612,10 @@ export default function CallLogDashboard() {
             else row.getCell(i).numFmt = "#,##0";
             row.getCell(i).alignment = { horizontal: "right" };
           }
-          // Apply benchmark-driven conditional coloring - reference Config_Benchmarks thresholds
-          applyConditionalColor(row.getCell(6), ansRate, 0.5, 0.2); // Answer Rate from Config_Benchmarks
-          applyConditionalColor(row.getCell(7), outRate, 0.4, 0.2); // Outbound Contact Rate from Config_Benchmarks
 
           totInb += inb; totOut += out; totAns += ans; totMis += mis; totDur += dur * inb; totOutConnected += outConn;
-        });
+          indIdx++;
+        }
 
         const totAnsRate = totInb > 0 ? totAns / totInb : 0;
         const totOutRate = totOut > 0 ? totOutConnected / totOut : 0;
@@ -734,7 +625,7 @@ export default function CallLogDashboard() {
           totOutRate,
           totInb > 0 ? totDur / totInb / 60 : 0
         ]);
-        totalsRow.font = { ...baseFont, bold: true };
+        totalsRow.font = { name: "Calibri", size: 11, bold: true };
         totalsRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE7E6E6" } };
         for (let i = 2; i <= 8; i++) {
           if (i === 6 || i === 7) totalsRow.getCell(i).numFmt = "0.00%";
@@ -742,168 +633,14 @@ export default function CallLogDashboard() {
           else totalsRow.getCell(i).numFmt = "#,##0";
           totalsRow.getCell(i).alignment = { horizontal: "right" };
         }
-        applyConditionalColor(totalsRow.getCell(6), totAnsRate, 0.5, 0.2);
-        applyConditionalColor(totalsRow.getCell(7), totOutRate, 0.4, 0.2);
       }
 
       individual.autoFilter = { from: "A1", to: `H${individual.rowCount}` };
       individual.views = [{ state: "frozen", ySplit: 1 }];
       autoFitColumns(individual);
 
-      // ===== SHEET 5: RAW DATA =====
-      const rawData = wb.addWorksheet("Raw Data");
-      rawData.properties.tabColor = { argb: "FF595959" };
-      rawData.columns = [
-        { header: "Call Date", width: 12 },
-        { header: "Call Time", width: 12 },
-        { header: "Extension", width: 12 },
-        { header: "Direction", width: 12 },
-        { header: "Number", width: 15 },
-        { header: "Duration (sec)", width: 15 },
-        { header: "Result", width: 15 }
-      ];
-
-      rawData.getRow(1).eachCell((cell) => {
-        cell.font = { ...baseFont, bold: true, color: { argb: WHITE } };
-        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_BG } };
-        cell.alignment = { horizontal: "center", vertical: "middle" };
-      });
-
-      if (!Array.isArray(inbound)) throw new Error("inbound is not an array");
-      if (inbound && inbound.length > 0) {
-        inbound.forEach((call) => {
-          rawData.addRow([
-            call.call_date || "", call.call_time || "", call.extension || "", "Inbound",
-            call.caller_number || "", call.duration_seconds || 0, call.disposition || ""
-          ]);
-        });
-      }
-
-      if (!Array.isArray(outbound)) throw new Error("outbound is not an array");
-      if (outbound && outbound.length > 0) {
-        outbound.forEach((call) => {
-          rawData.addRow([
-            call.call_date || "", call.call_time || "", call.extension || "", "Outbound",
-            call.dialed_number || "", call.duration_seconds || 0, call.result || ""
-          ]);
-        });
-      }
-
-      rawData.autoFilter = { from: "A1", to: `G${rawData.rowCount}` };
-      rawData.views = [{ state: "frozen", ySplit: 1 }];
-      autoFitColumns(rawData);
-
-      // ===== SHEET 4: GOAL TRACKING (Formula-Driven) =====
-      const goalTracking = wb.addWorksheet("Goal Tracking");
-      goalTracking.properties.tabColor = { argb: "FF4472C4" };
-      goalTracking.columns = [
-        { header: "User Name", width: 30 },
-        { header: "Phone Role", width: 15 },
-        { header: "Location/Name", width: 30 },
-        { header: "Daily Goal", width: 12 },
-        { header: "Weekly Goal (×5)", width: 15 },
-        { header: "Calls This Week", width: 15 },
-        { header: "% of Goal", width: 12 },
-        { header: "Status", width: 12 }
-      ];
-
-      goalTracking.getRow(1).eachCell((cell) => {
-        cell.font = { ...baseFont, bold: true, color: { argb: WHITE } };
-        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_BG } };
-        cell.alignment = { horizontal: "center", vertical: "middle" };
-      });
-
-      // Add instructions row
-      goalTracking.insertRows(2, 1);
-      const instructRow = goalTracking.getRow(2);
-      instructRow.getCell(1).value = "Formulas reference Config_Benchmarks for Phone Role & Location Goals. Edit Config_Benchmarks to update all calculations.";
-      instructRow.getCell(1).font = { italic: true, color: { argb: "FF666666" } };
-      goalTracking.mergeCells("A2:H2");
-
-      // Add sample user rows with calculated values
-      if (!Array.isArray(users)) throw new Error("users is not an array");
-      if (users && users.length > 0) {
-        const workDaysPerWeek = 5; // From Config_Benchmarks
-        const perfGreen = 0.85;
-        const perfYellow = 0.7;
-
-        const usersSliced = Array.isArray(users) ? users.slice(0, 10) : [];
-        if (!Array.isArray(usersSliced)) throw new Error("usersSliced is not an array");
-        usersSliced.forEach((user, idx) => {
-          // Determine daily goal based on user role or location
-          let dailyGoal = 0;
-          if (user.role === "Call Center") {
-            dailyGoal = 160;
-          } else if (user.role === "Client Facing") {
-            dailyGoal = 120;
-          } else if (user.location) {
-            // Location-based goal fallback
-            const locationGoals = {
-              "Bloomfield – Check In Daily": 35,
-              "Bloomfield – Check Out Daily": 30,
-              "Manchester – Check In Daily": 40,
-              "Manchester – Check Out Daily": 35,
-              "Glastonbury – Check In Daily": 38,
-              "Glastonbury – Check Out Daily": 32,
-              "Farmington – Check In Daily": 36,
-              "Farmington – Check Out Daily": 31,
-              "Farmington – Phone Only Daily": 40
-            };
-            dailyGoal = locationGoals[user.location] || 0;
-          }
-
-          const weeklyGoal = dailyGoal * workDaysPerWeek;
-          const callsThisWeek = individualData.find(u => u.user_id === user.id)?.total_inbound || 0;
-          const percentOfGoal = weeklyGoal > 0 ? callsThisWeek / weeklyGoal : 0;
-          
-          let status = "RED";
-          if (percentOfGoal >= perfGreen) status = "GREEN";
-          else if (percentOfGoal >= perfYellow) status = "YELLOW";
-
-          const row = goalTracking.addRow([
-            user.name || "",
-            user.role || "Client Facing",
-            user.location || "",
-            dailyGoal,
-            weeklyGoal,
-            callsThisWeek,
-            percentOfGoal,
-            status
-          ]);
-
-          // Format columns
-          row.getCell(4).numFmt = "#,##0";
-          row.getCell(5).numFmt = "#,##0";
-          row.getCell(6).numFmt = "#,##0";
-          row.getCell(7).numFmt = "0.0%";
-          
-          for (let i = 4; i <= 7; i++) {
-            row.getCell(i).alignment = { horizontal: "right" };
-          }
-
-          // Apply conditional coloring to % of Goal column
-          if (percentOfGoal >= perfGreen) {
-            row.getCell(7).fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_BG } };
-          } else if (percentOfGoal >= perfYellow) {
-            row.getCell(7).fill = { type: "pattern", pattern: "solid", fgColor: { argb: YELLOW_BG } };
-          } else {
-            row.getCell(7).fill = { type: "pattern", pattern: "solid", fgColor: { argb: RED_BG } };
-          }
-
-          // Apply alternating row coloring
-          if (idx % 2 === 0) {
-            for (let i = 1; i <= 8; i++) {
-              if (i !== 7) { // Don't override the % of Goal coloring
-                row.getCell(i).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFAFAFA" } };
-              }
-            }
-          }
-        });
-      }
-
-      goalTracking.autoFilter = { from: "A1", to: `H${goalTracking.rowCount}` };
-      goalTracking.views = [{ state: "frozen", ySplit: 2 }];
-      autoFitColumns(goalTracking);
+      // ===== PHASE 1: SKIP Raw Data & Goal Tracking =====
+      // Reintroduce in PHASE 2 after minimal export is stable
 
       // Write buffer and download
       const buffer = await wb.xlsx.writeBuffer();
