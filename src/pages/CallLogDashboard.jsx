@@ -418,12 +418,13 @@ export default function CallLogDashboard() {
       };
 
       // ===== PHASE 2: PROFESSIONAL FORMATTING + GOAL TRACKING =====
-      // Helper: get expected calls per hour based on role
-      const getExpectedCallsPerHour = (role) => {
-        if (role === "Call Center") return 10;
-        if (role === "Client Facing") return 7;
-        return 5; // default
-      };
+      const WorkDaysPerWeek = 5;
+
+      // Build a lookup map from user_name -> daily_goal from the UserDirectory
+      const userGoalMap = {};
+      users.forEach(u => {
+        if (u.name) userGoalMap[u.name] = u.daily_goal || 0;
+      });
 
       // ===== SHEET 1: CALL LOG EXECUTIVE REPORT =====
       const summary = wb.addWorksheet("Call Log Executive Report");
@@ -614,10 +615,10 @@ export default function CallLogDashboard() {
           const outbound = u.total_outbound || 0;
           const outConn = u.outbound_connected || 0;
           const outRate = outbound > 0 ? outConn / outbound : 0;
-          const dailyGoal = getExpectedCallsPerHour("Call Center") * 7.5;
-          const weeklyGoal = dailyGoal * 5;
-          const goalActivity = answered + outbound;
-          const goalPercent = weeklyGoal > 0 ? goalActivity / weeklyGoal : 0;
+          const dailyGoal = userGoalMap[u.user_name] || 0;
+          const weeklyGoal = dailyGoal * WorkDaysPerWeek;
+          const performanceTotal = answered + outbound;
+          const goalPercent = weeklyGoal > 0 ? performanceTotal / weeklyGoal : 0;
 
           percentOfGoalValues.push(goalPercent);
           frontendTableRows.push([u.user_name || "", inbound, outbound, answered, u.total_missed || 0, ansRate, outRate, dailyGoal, weeklyGoal, goalPercent]);
@@ -627,8 +628,8 @@ export default function CallLogDashboard() {
           totalAns += answered;
           totalMis += u.total_missed || 0;
           totalOutConn += outConn;
-          totalGoal = dailyGoal;
-          totalWeekGoal = weeklyGoal;
+          totalGoal += dailyGoal;
+          totalWeekGoal += weeklyGoal;
           frontIdx++;
         }
 
@@ -754,17 +755,17 @@ export default function CallLogDashboard() {
           const outConn = u.outbound_connected || 0;
           const ansRate = inb > 0 ? ans / inb : 0;
           const outRate = out > 0 ? outConn / out : 0;
-          const dailyGoal = getExpectedCallsPerHour(u.role || "Call Center") * 7.5;
-          const weeklyGoal = dailyGoal * 5;
-          const goalActivity = ans + out;
-          const goalPercent = weeklyGoal > 0 ? goalActivity / weeklyGoal : 0;
+          const dailyGoal = userGoalMap[u.user_name] || 0;
+          const weeklyGoal = dailyGoal * WorkDaysPerWeek;
+          const performanceTotal = ans + out;
+          const goalPercent = weeklyGoal > 0 ? performanceTotal / weeklyGoal : 0;
 
           percentOfGoalValues.push(goalPercent);
           individualTableRows.push([u.user_name || "", inb, out, ans, mis, ansRate, outRate, dailyGoal, weeklyGoal, goalPercent, dur / 60]);
 
           totInb += inb; totOut += out; totAns += ans; totMis += mis; totDur += dur * inb; totOutConnected += outConn;
-          totalGoal = dailyGoal;
-          totalWeekGoal = weeklyGoal;
+          totalGoal += dailyGoal;
+          totalWeekGoal += weeklyGoal;
           indIdx++;
         }
 
