@@ -437,10 +437,15 @@ export default function CallLogDashboard() {
       // ===== SHEET 1: CALL LOG EXECUTIVE REPORT =====
       const summary = wb.addWorksheet("Call Log Executive Report");
       summary.properties.tabColor = { argb: "FF1F3864" };
-      summary.columns = [{ width: 35 }, { width: 18 }];
+      // 10 columns: Label, Value, [spacer], Group, TotalCalls, Inbound, Outbound, Answered, Missed, AnsRate, OutRate, PctGoal
+      summary.columns = [
+        { width: 32 }, { width: 16 }, { width: 4 },
+        { width: 22 }, { width: 12 }, { width: 12 }, { width: 12 }, { width: 12 }, { width: 12 },
+        { width: 14 }, { width: 22 }, { width: 12 }
+      ];
 
-      // Row 1: Professional Header (Font size 18, Dark blue, Merged A-B)
-      summary.mergeCells("A1:B1");
+      // Row 1: Professional Header (Font size 18, Dark blue, Merged A-L)
+      summary.mergeCells("A1:L1");
       const headerCell = summary.getCell("A1");
       const now = new Date();
       const monthYear = now.toLocaleString('en-US', { month: 'long', year: 'numeric' });
@@ -451,7 +456,7 @@ export default function CallLogDashboard() {
       summary.getRow(1).height = 30;
 
       // Row 2: Timestamp (right-aligned, italic gray)
-      summary.mergeCells("A2:B2");
+      summary.mergeCells("A2:L2");
       const timestampCell = summary.getCell("A2");
       const formattedDate = now.toLocaleString('en-US', { 
         month: '2-digit', day: '2-digit', year: 'numeric',
@@ -536,7 +541,7 @@ export default function CallLogDashboard() {
 
       // ===== WEEKLY PERFORMANCE SECTION =====
       const weekStartRow = summary.rowCount + 1;
-      summary.mergeCells(`A${weekStartRow}:F${weekStartRow}`);
+      summary.mergeCells(`A${weekStartRow}:L${weekStartRow}`);
       const weekHeader = summary.getCell(`A${weekStartRow}`);
       weekHeader.value = "Weekly Performance";
       weekHeader.font = { name: "Calibri", size: 12, bold: true, color: { argb: WHITE } };
@@ -599,6 +604,209 @@ export default function CallLogDashboard() {
            totRow.getCell(i).alignment = { horizontal: "right" };
          }
        }
+
+      // ===== SECTION C: PERFORMANCE BY BENCHMARK GROUP =====
+      summary.addRow([]); // Spacer
+
+      const groupSectionStartRow = summary.rowCount + 1;
+      summary.mergeCells(`A${groupSectionStartRow}:L${groupSectionStartRow}`);
+      const groupSectionHeader = summary.getCell(`A${groupSectionStartRow}`);
+      groupSectionHeader.value = "Performance by Benchmark Group";
+      groupSectionHeader.font = { name: "Calibri", size: 12, bold: true, color: { argb: WHITE } };
+      groupSectionHeader.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F6A73" } };
+      groupSectionHeader.alignment = { horizontal: "left", vertical: "middle" };
+      summary.getRow(groupSectionStartRow).height = 22;
+
+      // Group totals sub-header
+      const groupColHdr = summary.addRow([
+        "Group", "Total Calls", "Inbound", "Outbound", "Answered", "Missed", "", "Answer Rate", "", "Outbound Contact Rate (30s+)", "", "% of Goal"
+      ]);
+      groupColHdr.eachCell((cell, colNum) => {
+        if (cell.value) {
+          cell.font = { name: "Calibri", size: 10, bold: true, color: { argb: WHITE } };
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_BG } };
+          cell.alignment = { horizontal: "center", vertical: "middle" };
+        }
+      });
+
+      // Pre-compute per-group outbound metrics using raw outbound records mapped through extToUser
+      const groupOutboundMap = { "Front Desk": { total: 0, connected: 0 }, "NP Coordinator": { total: 0, connected: 0 }, "Other": { total: 0, connected: 0 } };
+      outbound.forEach(call => {
+        const normalizedExt = String(call.extension || "").trim().replace(/[\s\-\(\)]/g, '').replace(/\D/g, '');
+        const userObj = extToUser[normalizedExt] || extToUser[call.extension];
+        const group = userObj ? (userObj.benchmark_group || "Other") : null;
+        const key = group === "Front Desk" ? "Front Desk" : group === "NP Coordinator" ? "NP Coordinator" : group ? "Other" : null;
+        if (key) {
+          groupOutboundMap[key].total++;
+          if ((call.duration_seconds || 0) >= 30) groupOutboundMap[key].connected++;
+        }
+      });
+
+      // Build per-group metrics
+      const buildGroupMetrics = (groupData, groupKey) => {
+        let inb = 0, out = 0, ans = 0, mis = 0, outConn = 0, weeklyGoalSum = 0;
+        groupData.forEach(u => {
+          inb += u.total_inbound || 0;
+          ans += u.total_answered || 0;
+          mis += u.total_missed || 0;
+          const dailyGoal = userGoalMap[u.user_name] || 0;
+          weeklyGoalSum += dailyGoal * WorkDaysPerWeek;
+        });
+        out = groupOutboundMap[groupKey].total;
+        outConn = groupOutboundMap[groupKey].connected;
+        const ansRate = inb > 0 ? ans / inb : 0;
+        const outRate = out > 0 ? outConn / out : 0;
+        const pctGoal = weeklyGoalSum > 0 ? (ans + out) / weeklyGoalSum : 0;
+        return { inb, out, ans, mis, outConn, ansRate, outRate, pctGoal, totalCalls: inb + out };
+      };
+
+      const fdMetrics = buildGroupMetrics(frontendData, "Front Desk");
+      const npcMetrics = buildGroupMetrics(npCoordinatorData, "NP Coordinator");
+      const otherMetrics = buildGroupMetrics(otherUsersData, "Other");
+
+      const groupRows = [
+        ["Front Desk", fdMetrics],
+        ["NP Coordinator", npcMetrics],
+        ["Other", otherMetrics]
+      ];
+
+      const LIGHT_GRAY = "FFF2F2F2";
+      const applyGroupCF = (cell, value, green, yellow) => {
+        if (value >= green) {
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFC6EFCE" } };
+          cell.font = { name: "Calibri", size: 11, color: { argb: "FF006100" } };
+        } else if (value >= yellow) {
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFEB9C" } };
+          cell.font = { name: "Calibri", size: 11, color: { argb: "FF9C6500" } };
+        } else {
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFC7CE" } };
+          cell.font = { name: "Calibri", size: 11, color: { argb: "FF9C0006" } };
+        }
+      };
+
+      groupRows.forEach(([label, m], gIdx) => {
+        const fillArgb = gIdx % 2 === 0 ? LIGHT_GRAY : "FFFFFFFF";
+        const gRow = summary.addRow([label, m.totalCalls, m.inb, m.out, m.ans, m.mis, "", m.ansRate, "", m.outRate, "", m.pctGoal]);
+        gRow.getCell(1).font = { name: "Calibri", size: 11, bold: true };
+        gRow.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: fillArgb } };
+        // Numeric cols 2-6
+        for (let i = 2; i <= 6; i++) {
+          gRow.getCell(i).numFmt = "#,##0";
+          gRow.getCell(i).alignment = { horizontal: "right" };
+          gRow.getCell(i).fill = { type: "pattern", pattern: "solid", fgColor: { argb: fillArgb } };
+        }
+        // Answer Rate (col 8), Outbound Contact Rate (col 10), % of Goal (col 12)
+        gRow.getCell(8).numFmt = "0.00%"; gRow.getCell(8).alignment = { horizontal: "right" };
+        gRow.getCell(10).numFmt = "0.00%"; gRow.getCell(10).alignment = { horizontal: "right" };
+        gRow.getCell(12).numFmt = "0.00%"; gRow.getCell(12).alignment = { horizontal: "right" };
+        applyGroupCF(gRow.getCell(8), m.ansRate, 0.50, 0.20);
+        applyGroupCF(gRow.getCell(10), m.outRate, 0.50, 0.20);
+        applyGroupCF(gRow.getCell(12), m.pctGoal, 1.00, 0.90);
+      });
+
+      // ===== SECTION D: GROUP COMPARISON TABLE =====
+      summary.addRow([]); // Spacer
+
+      const compStartRow = summary.rowCount + 1;
+      summary.mergeCells(`A${compStartRow}:L${compStartRow}`);
+      const compHeader = summary.getCell(`A${compStartRow}`);
+      compHeader.value = "Group Comparison Table";
+      compHeader.font = { name: "Calibri", size: 12, bold: true, color: { argb: WHITE } };
+      compHeader.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F6A73" } };
+      compHeader.alignment = { horizontal: "left", vertical: "middle" };
+      summary.getRow(compStartRow).height = 22;
+
+      const compColHdr = summary.addRow(["Group", "Answer Rate", "", "Outbound Contact Rate (30s+)", "", "% of Goal"]);
+      compColHdr.eachCell((cell) => {
+        if (cell.value) {
+          cell.font = { name: "Calibri", size: 10, bold: true, color: { argb: WHITE } };
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_BG } };
+          cell.alignment = { horizontal: "center", vertical: "middle" };
+        }
+      });
+
+      groupRows.forEach(([label, m], gIdx) => {
+        const fillArgb = gIdx % 2 === 0 ? LIGHT_GRAY : "FFFFFFFF";
+        const cRow = summary.addRow([label, m.ansRate, "", m.outRate, "", m.pctGoal]);
+        cRow.getCell(1).font = { name: "Calibri", size: 11, bold: true };
+        cRow.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: fillArgb } };
+        cRow.getCell(2).numFmt = "0.00%"; cRow.getCell(2).alignment = { horizontal: "right" };
+        cRow.getCell(4).numFmt = "0.00%"; cRow.getCell(4).alignment = { horizontal: "right" };
+        cRow.getCell(6).numFmt = "0.00%"; cRow.getCell(6).alignment = { horizontal: "right" };
+        applyGroupCF(cRow.getCell(2), m.ansRate, 0.50, 0.20);
+        applyGroupCF(cRow.getCell(4), m.outRate, 0.50, 0.20);
+        applyGroupCF(cRow.getCell(6), m.pctGoal, 1.00, 0.90);
+        // Fill empty cells with row background
+        [3, 5].forEach(i => {
+          cRow.getCell(i).fill = { type: "pattern", pattern: "solid", fgColor: { argb: fillArgb } };
+        });
+      });
+
+      // ===== SECTION E: KPI SUMMARY BY GROUP =====
+      summary.addRow([]); // Spacer
+
+      const kpiSummaryStartRow = summary.rowCount + 1;
+      summary.mergeCells(`A${kpiSummaryStartRow}:L${kpiSummaryStartRow}`);
+      const kpiSummaryHeader = summary.getCell(`A${kpiSummaryStartRow}`);
+      kpiSummaryHeader.value = "KPI Summary by Group";
+      kpiSummaryHeader.font = { name: "Calibri", size: 12, bold: true, color: { argb: WHITE } };
+      kpiSummaryHeader.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F6A73" } };
+      kpiSummaryHeader.alignment = { horizontal: "left", vertical: "middle" };
+      summary.getRow(kpiSummaryStartRow).height = 22;
+
+      // KPI sub-header row
+      const kpiSubHdr = summary.addRow(["Metric", "Front Desk", "", "NP Coordinator", "", "Other"]);
+      kpiSubHdr.eachCell((cell) => {
+        if (cell.value) {
+          cell.font = { name: "Calibri", size: 10, bold: true, color: { argb: WHITE } };
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_BG } };
+          cell.alignment = { horizontal: "center", vertical: "middle" };
+        }
+      });
+
+      // Avg % of Goal per group
+      const calcAvgGoalPct = (groupData) => {
+        if (groupData.length === 0) return 0;
+        let sum = 0;
+        groupData.forEach(u => {
+          const dg = userGoalMap[u.user_name] || 0;
+          const wg = dg * WorkDaysPerWeek;
+          const perf = (u.total_answered || 0) + (u.total_outbound || 0);
+          sum += wg > 0 ? perf / wg : 0;
+        });
+        return sum / groupData.length;
+      };
+
+      const kpiSummaryData = [
+        ["Total Answered", fdMetrics.ans, "", npcMetrics.ans, "", otherMetrics.ans],
+        ["Total Outbound", fdMetrics.out, "", npcMetrics.out, "", otherMetrics.out],
+        ["Avg % of Goal", calcAvgGoalPct(frontendData), "", calcAvgGoalPct(npCoordinatorData), "", calcAvgGoalPct(otherUsersData)]
+      ];
+
+      kpiSummaryData.forEach((rowData, rIdx) => {
+        const kRow = summary.addRow(rowData);
+        const fillArgb = rIdx % 2 === 0 ? LIGHT_GRAY : "FFFFFFFF";
+        kRow.getCell(1).font = { name: "Calibri", size: 11, bold: true };
+        kRow.getCell(1).alignment = { horizontal: "left" };
+        // Values in cols 2, 4, 6
+        [2, 4, 6].forEach(colIdx => {
+          const cell = kRow.getCell(colIdx);
+          cell.font = { name: "Calibri", size: 11, bold: true };
+          cell.alignment = { horizontal: "right" };
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: fillArgb } };
+          if (rIdx === 2) { // Avg % of Goal
+            cell.numFmt = "0.00%";
+          } else {
+            cell.numFmt = "#,##0";
+          }
+        });
+        // Fill empty cells
+        [3, 5].forEach(i => {
+          kRow.getCell(i).fill = { type: "pattern", pattern: "solid", fgColor: { argb: fillArgb } };
+        });
+      });
+
+      summary.addRow([]); // Bottom spacer
 
       summary.views = [{ state: "frozen", ySplit: weekStartRow + 2 }];
       autoFitColumns(summary);
