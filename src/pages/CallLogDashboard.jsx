@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle, Download, Loader2 } from 'lucide-react';
+import { AlertTriangle, Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCallMetrics, formatPercent, KPICard } from '@/components/calllog/CallLogMetrics';
 import { 
@@ -25,7 +25,6 @@ import UnmappedExtensionsAlert from '@/components/calllog/UnmappedExtensionsAler
 
 export default function CallLogDashboard() {
   const [selectedMetric, setSelectedMetric] = useState(null);
-  const [isExporting, setIsExporting] = useState(false);
   const [activeTab, setActiveTab] = useState('reporting');
   const queryClient = useQueryClient();
 
@@ -247,39 +246,6 @@ export default function CallLogDashboard() {
     return { type: filterType, title, data: filteredData };
   };
 
-  // Handle Excel export
-  const handleExport = async () => {
-    setIsExporting(true);
-    try {
-      const response = await base44.functions.invoke('exportCallLogExcel', {
-        monthlyData,
-        weeklyData,
-        monthlyOutboundData,
-        weeklyOutboundData,
-        frontendData,
-        individualData,
-        userDirectory: users,
-        rawInbound: inbound,
-        rawOutbound: outbound
-      });
-
-      // Download the file
-      const blob = new Blob([response.data], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `CallLog_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
-      link.click();
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      alert(`Export failed: ${error.message}`);
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="p-6 bg-slate-50 min-h-screen flex items-center justify-center">
@@ -314,17 +280,6 @@ export default function CallLogDashboard() {
 
           {/* Reporting Tab */}
           <TabsContent value="reporting" className="space-y-6">
-            <div className="flex justify-end">
-              <Button
-                onClick={handleExport}
-                disabled={isExporting || inbound.length === 0}
-                className="gap-2"
-              >
-                <Download className="w-4 h-4" />
-                {isExporting ? 'Exporting...' : 'Export to Excel'}
-              </Button>
-            </div>
-
             {/* Unmapped Extensions Alert */}
             <UnmappedExtensionsAlert />
 
