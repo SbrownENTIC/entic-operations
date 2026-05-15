@@ -61,8 +61,8 @@ const AuthenticatedApp = () => {
           }
         />
       ))}
-      <Route path="/CallLog" element={
-        <LayoutWrapper currentPageName="CallLog">
+      <Route path="/CallLogDashboard" element={
+        <LayoutWrapper currentPageName="CallLogDashboard">
           <CallLogDashboard />
         </LayoutWrapper>
       } />

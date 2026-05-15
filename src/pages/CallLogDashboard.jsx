@@ -352,23 +352,32 @@ export default function CallLogDashboard() {
         ["Answer Rate", "Red Threshold (Poor)", 0, "Decimal", "Answer rate < 20% shown in red"],
         ["Phone Role", "Call Center Expected AR", 0.85, "Decimal", "Expected inbound answer rate for Call Center extensions"],
         ["Phone Role", "Client Facing Expected AR", 0.65, "Decimal", "Expected inbound answer rate for Client Facing extensions"],
+        ["Phone Role", "Call Center Expected CPH", 8, "Number", "Expected calls per hour for Call Center role"],
+        ["Phone Role", "Client Facing Expected CPH", 6, "Number", "Expected calls per hour for Client Facing role"],
         ["Outbound Contact Rate", "Green Threshold (Good)", 0.4, "Decimal", "Outbound contact rate ≥ 40% shown in green"],
         ["Outbound Contact Rate", "Yellow Threshold (Warning)", 0.2, "Decimal", "Outbound contact rate ≥ 20% and < 40% shown in yellow"],
         ["Outbound Contact Rate", "Red Threshold (Poor)", 0, "Decimal", "Outbound contact rate < 20% shown in red"],
         ["Front-End", "Answer Rate Green", 0.6, "Decimal", "Front Desk expected answer rate threshold for green"],
         ["Front-End", "Answer Rate Yellow", 0.4, "Decimal", "Front Desk expected answer rate threshold for yellow"],
-        ["Calls Per Hour", "Call Center Expected", 8, "Number", "Expected calls per hour for Call Center role"],
-        ["Calls Per Hour", "Client Facing Expected", 6, "Number", "Expected calls per hour for Client Facing role"],
         ["Daily Goal", "Call Center Target", 160, "Number", "Daily call target for Call Center role"],
         ["Daily Goal", "Client Facing Target", 120, "Number", "Daily call target for Client Facing role"],
         ["Outbound Mix", "Call Center Expected %", 0.15, "Decimal", "Expected outbound as % of total calls"],
         ["Outbound Mix", "Client Facing Expected %", 0.1, "Decimal", "Expected outbound as % of total calls"],
-        ["Work Days", "Per Week", 5, "Number", "Standard work days per week for goal calculations"],
+        ["Performance", "Work Days Per Week", 5, "Number", "Standard work days per week for goal calculations"],
         ["Performance Tracking", "Green - % of Goal", 0.85, "Decimal", "Performance ≥ 85% of goal shown in green"],
         ["Performance Tracking", "Yellow - % of Goal", 0.7, "Decimal", "Performance ≥ 70% and < 85% of goal shown in yellow"],
         ["Performance Tracking", "Red - % of Goal", 0, "Decimal", "Performance < 70% of goal shown in red"],
         ["Executive Summary", "Overall Contact Rate Green", 0.65, "Decimal", "Overall contact rate ≥ 65% shown in green"],
-        ["Executive Summary", "Overall Contact Rate Yellow", 0.45, "Decimal", "Overall contact rate ≥ 45% and < 65% shown in yellow"]
+        ["Executive Summary", "Overall Contact Rate Yellow", 0.45, "Decimal", "Overall contact rate ≥ 45% and < 65% shown in yellow"],
+        ["Location Goal", "Bloomfield – Check In Daily", 35, "Number", "Daily call target for Bloomfield Check In"],
+        ["Location Goal", "Bloomfield – Check Out Daily", 30, "Number", "Daily call target for Bloomfield Check Out"],
+        ["Location Goal", "Manchester – Check In Daily", 40, "Number", "Daily call target for Manchester Check In"],
+        ["Location Goal", "Manchester – Check Out Daily", 35, "Number", "Daily call target for Manchester Check Out"],
+        ["Location Goal", "Glastonbury – Check In Daily", 38, "Number", "Daily call target for Glastonbury Check In"],
+        ["Location Goal", "Glastonbury – Check Out Daily", 32, "Number", "Daily call target for Glastonbury Check Out"],
+        ["Location Goal", "Farmington – Check In Daily", 36, "Number", "Daily call target for Farmington Check In"],
+        ["Location Goal", "Farmington – Check Out Daily", 31, "Number", "Daily call target for Farmington Check Out"],
+        ["Location Goal", "Farmington – Phone Only Daily", 40, "Number", "Daily call target for Farmington Phone Only"]
       ];
 
       benchmarks.forEach((row) => {
@@ -726,6 +735,90 @@ export default function CallLogDashboard() {
       rawData.autoFilter = { from: "A1", to: `G${rawData.rowCount}` };
       rawData.views = [{ state: "frozen", ySplit: 1 }];
       autoFitColumns(rawData);
+
+      // ===== SHEET 4: GOAL TRACKING (Formula-Driven) =====
+      const goalTracking = wb.addWorksheet("Goal Tracking");
+      goalTracking.properties.tabColor = { argb: "FF4472C4" };
+      goalTracking.columns = [
+        { header: "User Name", width: 30 },
+        { header: "Phone Role", width: 15 },
+        { header: "Location/Name", width: 30 },
+        { header: "Daily Goal", width: 12 },
+        { header: "Weekly Goal (×5)", width: 15 },
+        { header: "Calls This Week", width: 15 },
+        { header: "% of Goal", width: 12 },
+        { header: "Status", width: 12 }
+      ];
+
+      goalTracking.getRow(1).eachCell((cell) => {
+        cell.font = { ...baseFont, bold: true, color: { argb: WHITE } };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_BG } };
+        cell.alignment = { horizontal: "center", vertical: "middle" };
+      });
+
+      // Add instructions row
+      goalTracking.insertRows(2, 1);
+      const instructRow = goalTracking.getRow(2);
+      instructRow.getCell(1).value = "Formulas reference Config_Benchmarks for Phone Role & Location Goals. Edit Config_Benchmarks to update all calculations.";
+      instructRow.getCell(1).font = { italic: true, color: { argb: "FF666666" } };
+      goalTracking.mergeCells("A2:H2");
+
+      // Add sample user rows with formulas (placeholder data)
+      if (users && users.length > 0) {
+        users.slice(0, 10).forEach((user, idx) => {
+          const rowNum = 3 + idx;
+          const row = goalTracking.addRow([
+            user.name || "",
+            user.role || "Client Facing",
+            user.location || "",
+            0,  // Daily Goal - will reference Config_Benchmarks via VLOOKUP
+            0,  // Weekly Goal formula: =D{rowNum}*Config_Benchmarks!C18
+            0,  // Calls This Week (sample)
+            0,  // % of Goal formula: =F{rowNum}/E{rowNum}
+            ""  // Status
+          ]);
+
+          // Format columns
+          for (let i = 4; i <= 8; i++) {
+            if (i === 7) {
+              row.getCell(i).numFmt = "0.0%";
+            } else {
+              row.getCell(i).numFmt = "#,##0";
+            }
+            row.getCell(i).alignment = { horizontal: "right" };
+          }
+
+          // Set formula for Daily Goal (Column D) - VLOOKUP into Config_Benchmarks
+          const dailyGoalFormula = `=IFERROR(VLOOKUP(C${rowNum},Config_Benchmarks!$A:$C,3,0),0)`;
+          row.getCell(4).value = { formula: dailyGoalFormula };
+
+          // Set formula for Weekly Goal (Column E) - Daily Goal × WorkDaysPerWeek
+          const weeklyGoalFormula = `=D${rowNum}*VLOOKUP("Work Days Per Week",Config_Benchmarks!$B:$C,2,0)`;
+          row.getCell(5).value = { formula: weeklyGoalFormula };
+
+          // Column F stays with actual call counts (sample 0 for now)
+          row.getCell(6).value = 0;
+
+          // Set formula for % of Goal (Column G)
+          const percentFormula = `=IFERROR(F${rowNum}/E${rowNum},0)`;
+          row.getCell(7).value = { formula: percentFormula };
+
+          // Set formula for Status (Column H) - reference Performance thresholds
+          const statusFormula = `=IF(G${rowNum}>=VLOOKUP("Green - % of Goal",Config_Benchmarks!$B:$C,2,0),"GREEN",IF(G${rowNum}>=VLOOKUP("Yellow - % of Goal",Config_Benchmarks!$B:$C,2,0),"YELLOW","RED"))`;
+          row.getCell(8).value = { formula: statusFormula };
+
+          // Apply conditional coloring based on status (will be recalculated in Excel)
+          if (idx % 2 === 0) {
+            for (let i = 1; i <= 8; i++) {
+              row.getCell(i).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFAFAFA" } };
+            }
+          }
+        });
+      }
+
+      goalTracking.autoFilter = { from: "A1", to: `H${goalTracking.rowCount}` };
+      goalTracking.views = [{ state: "frozen", ySplit: 2 }];
+      autoFitColumns(goalTracking);
 
       // Write buffer and download
       const buffer = await wb.xlsx.writeBuffer();
