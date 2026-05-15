@@ -471,7 +471,7 @@ export default function CallLogDashboard() {
         cell.alignment = { horizontal: "center", vertical: "middle" };
       });
 
-      // Weekly data with goal calculation
+      // Weekly data with goal calculation (Answered + Outbound = goal activity)
       if (!Array.isArray(weeklyData)) throw new Error("weeklyData iteration failed");
       if (weeklyData.length > 0) {
         let wIdx = 0;
@@ -479,8 +479,9 @@ export default function CallLogDashboard() {
           const w = weeklyData[wIdx];
           const totalCalls = (w.total_inbound || 0) + (w.total_outbound || 0);
           const dailyGoal = getExpectedCallsPerHour("Call Center") * 7.5; // default to Call Center
-          const weeklyGoal = dailyGoal * 5; // 5 work days
-          const goalPercent = weeklyGoal > 0 ? totalCalls / weeklyGoal : 0;
+          const weeklyGoal = dailyGoal * 5; // 5 work days (hardcoded)
+          const goalActivity = (w.total_answered || 0) + (w.total_outbound || 0); // Answered + Outbound only
+          const goalPercent = weeklyGoal > 0 ? goalActivity / weeklyGoal : 0;
           
           const row = summary.addRow([
             w.week_start || "",
@@ -508,6 +509,10 @@ export default function CallLogDashboard() {
         }
 
         // Monthly total row
+        const monthlyGoalActivity = totalAnswered + totalOutbound;
+        const monthlyGoalPercent = (getExpectedCallsPerHour("Call Center") * 7.5 * 5) > 0 
+          ? monthlyGoalActivity / (getExpectedCallsPerHour("Call Center") * 7.5 * 5) 
+          : 0;
         const totRow = summary.addRow([
           "MONTHLY TOTAL",
           totalInbound + totalOutbound,
@@ -517,13 +522,17 @@ export default function CallLogDashboard() {
           totalMissed,
           getExpectedCallsPerHour("Call Center") * 7.5,
           getExpectedCallsPerHour("Call Center") * 7.5 * 5,
-          (totalInbound + totalOutbound) / (getExpectedCallsPerHour("Call Center") * 7.5 * 5)
+          monthlyGoalPercent
         ]);
         totRow.font = { name: "Calibri", size: 11, bold: true };
         totRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE7E6E6" } };
         for (let i = 2; i <= 9; i++) {
-          if (i === 9) totRow.getCell(i).numFmt = "0.00%";
-          else totRow.getCell(i).numFmt = "#,##0";
+          if (i === 9) {
+            totRow.getCell(i).numFmt = "0.00%";
+            applyConditionalColor(totRow.getCell(i), monthlyGoalPercent, 1.00, 0.90);
+          } else {
+            totRow.getCell(i).numFmt = "#,##0";
+          }
           totRow.getCell(i).alignment = { horizontal: "right" };
         }
       }
@@ -561,14 +570,17 @@ export default function CallLogDashboard() {
           const u = sorted[frontIdx];
           const rate = u.answer_rate || 0;
           const inbound = u.total_inbound || 0;
+          const answered = u.total_answered || 0;
+          const outbound = u.total_outbound || 0;
           const dailyGoal = getExpectedCallsPerHour("Call Center") * 7.5;
-          const weeklyGoal = dailyGoal * 5;
-          const goalPercent = weeklyGoal > 0 ? inbound / weeklyGoal : 0;
+          const weeklyGoal = dailyGoal * 5; // 5 workdays hardcoded
+          const goalActivity = answered + outbound; // Answered + Outbound only
+          const goalPercent = weeklyGoal > 0 ? goalActivity / weeklyGoal : 0;
           
           const row = frontEnd.addRow([
             u.user_name || "",
             inbound,
-            u.total_answered || 0,
+            answered,
             u.total_missed || 0,
             rate,
             dailyGoal,
@@ -591,7 +603,7 @@ export default function CallLogDashboard() {
           for (let i = 2; i <= 8; i++) row.getCell(i).alignment = { horizontal: "right" };
 
           totalInb += inbound;
-          totalAns += u.total_answered || 0;
+          totalAns += answered;
           totalMis += u.total_missed || 0;
           totalGoal = dailyGoal; // Last daily goal (same for all)
           totalWeekGoal = weeklyGoal;
@@ -599,7 +611,8 @@ export default function CallLogDashboard() {
         }
 
         const totalRate = totalInb > 0 ? totalAns / totalInb : 0;
-        const totalGoalPercent = totalWeekGoal > 0 ? totalInb / totalWeekGoal : 0;
+        const totalGoalActivity = totalAns + 0; // Front-end typically no outbound, but include for completeness
+        const totalGoalPercent = totalWeekGoal > 0 ? totalGoalActivity / totalWeekGoal : 0;
         const totalsRow = frontEnd.addRow(["TOTAL", totalInb, totalAns, totalMis, totalRate, totalGoal, totalWeekGoal, totalGoalPercent]);
         totalsRow.font = { name: "Calibri", size: 11, bold: true };
         totalsRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9E1F2" } };
@@ -610,6 +623,7 @@ export default function CallLogDashboard() {
         totalsRow.getCell(6).numFmt = "#,##0";
         totalsRow.getCell(7).numFmt = "#,##0";
         totalsRow.getCell(8).numFmt = "0.00%";
+        applyConditionalColor(totalsRow.getCell(8), totalGoalPercent, 1.00, 0.90);
         for (let i = 2; i <= 8; i++) totalsRow.getCell(i).alignment = { horizontal: "right" };
       }
 
@@ -657,8 +671,9 @@ export default function CallLogDashboard() {
           const ansRate = inb > 0 ? ans / inb : 0;
           const outRate = out > 0 ? outConn / out : 0;
           const dailyGoal = getExpectedCallsPerHour(u.role || "Call Center") * 7.5;
-          const weeklyGoal = dailyGoal * 5;
-          const goalPercent = weeklyGoal > 0 ? inb / weeklyGoal : 0;
+          const weeklyGoal = dailyGoal * 5; // 5 workdays hardcoded
+          const goalActivity = ans + out; // Answered + Outbound only
+          const goalPercent = weeklyGoal > 0 ? goalActivity / weeklyGoal : 0;
 
           const row = individual.addRow([
             u.user_name || "",
@@ -691,7 +706,8 @@ export default function CallLogDashboard() {
 
         const totAnsRate = totInb > 0 ? totAns / totInb : 0;
         const totOutRate = totOut > 0 ? totOutConnected / totOut : 0;
-        const totGoalPercent = totalWeekGoal > 0 ? totInb / totalWeekGoal : 0;
+        const totGoalActivity = totAns + totOut; // Answered + Outbound only
+        const totGoalPercent = totalWeekGoal > 0 ? totGoalActivity / totalWeekGoal : 0;
         const totalsRow = individual.addRow([
           "TOTAL", totInb, totOut, totAns, totMis,
           totAnsRate,
@@ -709,6 +725,9 @@ export default function CallLogDashboard() {
           else totalsRow.getCell(i).numFmt = "#,##0";
           totalsRow.getCell(i).alignment = { horizontal: "right" };
         }
+        applyConditionalColor(totalsRow.getCell(6), totAnsRate, 0.50, 0.20);
+        applyConditionalColor(totalsRow.getCell(7), totOutRate, 0.50, 0.20);
+        applyConditionalColor(totalsRow.getCell(10), totGoalPercent, 1.00, 0.90);
       }
 
       individual.autoFilter = { from: "A1", to: `K${individual.rowCount}` };
