@@ -304,12 +304,23 @@ export default function CallLogDashboard() {
           col.eachCell({ includeEmpty: true }, cell => {
             maxLength = Math.max(maxLength, cell.value ? cell.value.toString().length : 0);
           });
-          col.width = Math.min(maxLength + 2, 40);
+          col.width = Math.min(maxLength + 2, 50);
         });
       };
 
-      // ===== SHEET 1: EXECUTIVE SUMMARY =====
-      const summary = wb.addWorksheet("Executive Summary");
+      // Consistent conditional color formatting for rates
+      const applyRateColor = (cell, rate) => {
+        if (rate >= 0.5) {
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFC6EFCE" } };
+        } else if (rate >= 0.2) {
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFEB9C" } };
+        } else {
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFC7CE" } };
+        }
+      };
+
+      // ===== SHEET 1: CALL LOG EXECUTIVE REPORT =====
+      const summary = wb.addWorksheet("Call Log Executive Report");
       summary.properties.tabColor = { argb: "FF1F3864" };
       summary.columns = [{ width: 30 }, { width: 20 }];
 
@@ -320,7 +331,14 @@ export default function CallLogDashboard() {
       headerCell.font = { name: "Calibri", size: 14, bold: true, color: { argb: WHITE } };
       headerCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_BG } };
       headerCell.alignment = { horizontal: "left", vertical: "middle" };
-      summary.getRow(1).height = 28;
+      summary.getRow(1).height = 30;
+
+      // Timestamp
+      summary.mergeCells("A2:B2");
+      const timestampCell = summary.getCell("A2");
+      timestampCell.value = `Report Generated: ${new Date().toLocaleString()}`;
+      timestampCell.font = { name: "Calibri", size: 10, italic: true, color: { argb: "FF666666" } };
+      timestampCell.alignment = { horizontal: "right" };
 
       summary.addRow([]);
 
@@ -341,7 +359,7 @@ export default function CallLogDashboard() {
 
       summary.addRow([]);
 
-      // Metrics
+      // Metrics with conditional color formatting
       [
         ["Inbound Answer Rate", totalInbound > 0 ? totalAnswered / totalInbound : 0],
         ["Front-End Answer Rate", totalFrontEndInbound > 0 ? totalFrontEndAnswered / totalFrontEndInbound : 0],
@@ -350,33 +368,35 @@ export default function CallLogDashboard() {
         const row = summary.addRow([label, val]);
         row.getCell(1).font = { ...baseFont, bold: true };
         row.getCell(2).numFmt = "0.00%";
-        row.getCell(2).fill = { type: "pattern", pattern: "solid", fgColor: { argb: KPI_BG } };
         row.getCell(2).alignment = { horizontal: "right" };
+        applyRateColor(row.getCell(2), val);
       });
 
-      summary.views = [{ state: "frozen", ySplit: 3 }];
-      autoFitColumns(summary);
+      summary.addRow([]);
+      summary.addRow([]);
 
-      // ===== SHEET 2: WEEKLY PERFORMANCE =====
-      const weekly = wb.addWorksheet("Weekly Performance");
-      weekly.properties.tabColor = { argb: "FF00B0F0" };
-      weekly.columns = [
-        { header: "Week Starting", width: 15 },
-        { header: "Total Inbound", width: 15 },
-        { header: "Answered", width: 15 },
-        { header: "Missed", width: 15 },
-        { header: "Answer Rate", width: 15 }
-      ];
+      // Weekly Performance section header
+      const weekStartRow = summary.rowCount + 1;
+      summary.mergeCells(`A${weekStartRow}:E${weekStartRow}`);
+      const weekHeader = summary.getCell(`A${weekStartRow}`);
+      weekHeader.value = "Weekly Performance";
+      weekHeader.font = { name: "Calibri", size: 12, bold: true, color: { argb: WHITE } };
+      weekHeader.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F6A73" } };
+      weekHeader.alignment = { horizontal: "left", vertical: "middle" };
+      summary.getRow(weekStartRow).height = 22;
 
-      weekly.getRow(1).eachCell((cell) => {
+      // Weekly column headers
+      const weekColHeaderRow = summary.addRow(["Week Starting", "Total Inbound", "Answered", "Missed", "Answer Rate"]);
+      weekColHeaderRow.eachCell((cell) => {
         cell.font = { ...baseFont, bold: true, color: { argb: WHITE } };
         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_BG } };
         cell.alignment = { horizontal: "center", vertical: "middle" };
       });
 
+      // Weekly data
       if (weeklyData && weeklyData.length > 0) {
         weeklyData.forEach((w) => {
-          const row = weekly.addRow([
+          const row = summary.addRow([
             w.week_start || "",
             w.total_inbound || 0,
             w.total_answered || 0,
@@ -391,7 +411,7 @@ export default function CallLogDashboard() {
         });
 
         // Monthly total row
-        const totRow = weekly.addRow([
+        const totRow = summary.addRow([
           "MONTHLY TOTAL",
           totalInbound,
           totalAnswered,
@@ -407,11 +427,10 @@ export default function CallLogDashboard() {
         for (let i = 2; i <= 5; i++) totRow.getCell(i).alignment = { horizontal: "right" };
       }
 
-      weekly.autoFilter = { from: "A1", to: `E${weekly.rowCount}` };
-      weekly.views = [{ state: "frozen", ySplit: 1 }];
-      autoFitColumns(weekly);
+      summary.views = [{ state: "frozen", ySplit: weekStartRow + 2 }];
+      autoFitColumns(summary);
 
-      // ===== SHEET 3: FRONT-END PERFORMANCE =====
+      // ===== SHEET 2: FRONT-END PERFORMANCE =====
       const frontEnd = wb.addWorksheet("Front-End Performance");
       frontEnd.properties.tabColor = { argb: "FF0F6A73" };
       frontEnd.columns = [
@@ -442,20 +461,20 @@ export default function CallLogDashboard() {
             rate
           ]);
 
-          let fillColor = rate >= 0.5 ? "FFC6EFCE" : rate >= 0.2 ? "FFFFEB9C" : "FFFFC7CE";
-          row.getCell(5).fill = { type: "pattern", pattern: "solid", fgColor: { argb: fillColor } };
           row.getCell(2).numFmt = "#,##0";
           row.getCell(3).numFmt = "#,##0";
           row.getCell(4).numFmt = "#,##0";
           row.getCell(5).numFmt = "0.00%";
           for (let i = 2; i <= 5; i++) row.getCell(i).alignment = { horizontal: "right" };
+          applyRateColor(row.getCell(5), rate);
 
           totalInb += u.total_inbound || 0;
           totalAns += u.total_answered || 0;
           totalMis += u.total_missed || 0;
         });
 
-        const totalsRow = frontEnd.addRow(["TOTAL", totalInb, totalAns, totalMis, totalInb > 0 ? totalAns / totalInb : 0]);
+        const totalRate = totalInb > 0 ? totalAns / totalInb : 0;
+        const totalsRow = frontEnd.addRow(["TOTAL", totalInb, totalAns, totalMis, totalRate]);
         totalsRow.font = { ...baseFont, bold: true };
         totalsRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE7E6E6" } };
         totalsRow.getCell(2).numFmt = "#,##0";
@@ -463,13 +482,14 @@ export default function CallLogDashboard() {
         totalsRow.getCell(4).numFmt = "#,##0";
         totalsRow.getCell(5).numFmt = "0.00%";
         for (let i = 2; i <= 5; i++) totalsRow.getCell(i).alignment = { horizontal: "right" };
+        applyRateColor(totalsRow.getCell(5), totalRate);
       }
 
       frontEnd.autoFilter = { from: "A1", to: `E${frontEnd.rowCount}` };
       frontEnd.views = [{ state: "frozen", ySplit: 1 }];
       autoFitColumns(frontEnd);
 
-      // ===== SHEET 4: INDIVIDUAL PERFORMANCE =====
+      // ===== SHEET 3: INDIVIDUAL PERFORMANCE =====
       const individual = wb.addWorksheet("Individual Performance");
       individual.properties.tabColor = { argb: "FF7F7F7F" };
       individual.columns = [
@@ -517,14 +537,18 @@ export default function CallLogDashboard() {
             else row.getCell(i).numFmt = "#,##0";
             row.getCell(i).alignment = { horizontal: "right" };
           }
+          applyRateColor(row.getCell(6), ansRate);
+          applyRateColor(row.getCell(7), outRate);
 
           totInb += inb; totOut += out; totAns += ans; totMis += mis; totDur += dur * inb; totOutConnected += outConn;
         });
 
+        const totAnsRate = totInb > 0 ? totAns / totInb : 0;
+        const totOutRate = totOut > 0 ? totOutConnected / totOut : 0;
         const totalsRow = individual.addRow([
           "TOTAL", totInb, totOut, totAns, totMis,
-          totInb > 0 ? totAns / totInb : 0,
-          totOut > 0 ? totOutConnected / totOut : 0,
+          totAnsRate,
+          totOutRate,
           totInb > 0 ? totDur / totInb / 60 : 0
         ]);
         totalsRow.font = { ...baseFont, bold: true };
@@ -535,13 +559,15 @@ export default function CallLogDashboard() {
           else totalsRow.getCell(i).numFmt = "#,##0";
           totalsRow.getCell(i).alignment = { horizontal: "right" };
         }
+        applyRateColor(totalsRow.getCell(6), totAnsRate);
+        applyRateColor(totalsRow.getCell(7), totOutRate);
       }
 
       individual.autoFilter = { from: "A1", to: `H${individual.rowCount}` };
       individual.views = [{ state: "frozen", ySplit: 1 }];
       autoFitColumns(individual);
 
-      // ===== SHEET 5: RAW DATA =====
+      // ===== SHEET 4: RAW DATA =====
       const rawData = wb.addWorksheet("Raw Data");
       rawData.properties.tabColor = { argb: "FF595959" };
       rawData.columns = [
