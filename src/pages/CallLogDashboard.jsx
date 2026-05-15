@@ -330,8 +330,8 @@ export default function CallLogDashboard() {
       if (!Array.isArray(outbound)) throw new Error("outbound must be an array");
 
       // Debug logs for outbound data
-      console.log("Executive Outbound Total:", outbound.length);
-      console.log("Executive Outbound Connected:", outboundConnected);
+      console.log("Outbound total:", totalOutbound);
+      console.log("Outbound connected:", totalOutboundConnected);
 
       // ===== PHASE 1: MINIMAL STABLE EXPORT =====
       // Colors & Fonts
@@ -503,7 +503,7 @@ export default function CallLogDashboard() {
 
       // ===== WEEKLY PERFORMANCE SECTION =====
       const weekStartRow = summary.rowCount + 1;
-      summary.mergeCells(`A${weekStartRow}:I${weekStartRow}`);
+      summary.mergeCells(`A${weekStartRow}:F${weekStartRow}`);
       const weekHeader = summary.getCell(`A${weekStartRow}`);
       weekHeader.value = "Weekly Performance";
       weekHeader.font = { name: "Calibri", size: 12, bold: true, color: { argb: WHITE } };
@@ -513,79 +513,59 @@ export default function CallLogDashboard() {
 
       // Weekly column headers: Week Starting | Total Calls | Inbound | Outbound | Answered | Missed | Daily Goal | Weekly Goal | % of Goal
       const weekColHeaderRow = summary.addRow([
-        "Week Starting", "Total Calls", "Inbound", "Outbound", "Answered", "Missed", "Daily Goal", "Weekly Goal", "% of Goal"
-      ]);
+         "Week Starting", "Total Calls", "Inbound", "Outbound", "Answered", "Missed"
+       ]);
       weekColHeaderRow.eachCell((cell) => {
         cell.font = { ...baseFont, bold: true, color: { argb: WHITE } };
         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_BG } };
         cell.alignment = { horizontal: "center", vertical: "middle" };
       });
 
-      // Weekly data with goal calculation (Answered + Outbound = goal activity)
-      if (!Array.isArray(weeklyData)) throw new Error("weeklyData iteration failed");
-      if (weeklyData.length > 0) {
-        let wIdx = 0;
-        while (wIdx < weeklyData.length) {
-          const w = weeklyData[wIdx];
-          const totalCalls = (w.total_inbound || 0) + (w.total_outbound || 0);
-          const dailyGoal = getExpectedCallsPerHour("Call Center") * 7.5; // default to Call Center
-          const weeklyGoal = dailyGoal * 5; // 5 work days (hardcoded)
-          const goalActivity = (w.total_answered || 0) + (w.total_outbound || 0); // Answered + Outbound only
-          const goalPercent = weeklyGoal > 0 ? goalActivity / weeklyGoal : 0;
-          
-          const row = summary.addRow([
-            w.week_start || "",
-            totalCalls,
-            w.total_inbound || 0,
-            w.total_outbound || 0,
-            w.total_answered || 0,
-            w.total_missed || 0,
-            dailyGoal,
-            weeklyGoal,
-            goalPercent
-          ]);
-          
-          // Format columns
-          for (let i = 2; i <= 9; i++) {
-            if (i === 9) {
-              row.getCell(i).numFmt = "0.00%";
-              applyConditionalColor(row.getCell(i), goalPercent, 1.00, 0.90);
-            } else {
-              row.getCell(i).numFmt = "#,##0";
-            }
-            row.getCell(i).alignment = { horizontal: "right" };
-          }
-          wIdx++;
-        }
+      // Weekly data - no goal columns
+       if (!Array.isArray(weeklyData)) throw new Error("weeklyData iteration failed");
+       if (weeklyData.length > 0) {
+         let wIdx = 0;
+         while (wIdx < weeklyData.length) {
+           const w = weeklyData[wIdx];
+           const weeklyInbound = w.total_inbound || 0;
+           const weeklyOutbound = w.total_outbound || 0;
+           const totalCalls = weeklyInbound + weeklyOutbound;
 
-        // Monthly total row
-        const monthlyGoalActivity = totalAnswered + totalOutbound;
-        const monthlyGoalPercent = (getExpectedCallsPerHour("Call Center") * 7.5 * 5) > 0 
-          ? monthlyGoalActivity / (getExpectedCallsPerHour("Call Center") * 7.5 * 5) 
-          : 0;
-        const totRow = summary.addRow([
-          "MONTHLY TOTAL",
-          totalInbound + totalOutbound,
-          totalInbound,
-          totalOutbound,
-          totalAnswered,
-          totalMissed,
-          getExpectedCallsPerHour("Call Center") * 7.5,
-          getExpectedCallsPerHour("Call Center") * 7.5 * 5,
-          monthlyGoalPercent
-        ]);
-        totRow.font = { name: "Calibri", size: 11, bold: true };
-        totRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE7E6E6" } };
-        for (let i = 2; i <= 9; i++) {
-          if (i === 9) {
-            totRow.getCell(i).numFmt = "0.00%";
-            applyConditionalColor(totRow.getCell(i), monthlyGoalPercent, 1.00, 0.90);
-          } else {
-            totRow.getCell(i).numFmt = "#,##0";
-          }
-          totRow.getCell(i).alignment = { horizontal: "right" };
-        }
-      }
+           console.log("Weekly Outbound:", weeklyOutbound);
+
+           const row = summary.addRow([
+             w.week_start || "",
+             totalCalls,
+             weeklyInbound,
+             weeklyOutbound,
+             w.total_answered || 0,
+             w.total_missed || 0
+           ]);
+
+           // Format columns
+           for (let i = 2; i <= 6; i++) {
+             row.getCell(i).numFmt = "#,##0";
+             row.getCell(i).alignment = { horizontal: "right" };
+           }
+           wIdx++;
+         }
+
+         // Monthly total row - no goal columns, no formatting
+         const totRow = summary.addRow([
+           "MONTHLY TOTAL",
+           totalInbound + totalOutbound,
+           totalInbound,
+           totalOutbound,
+           totalAnswered,
+           totalMissed
+         ]);
+         totRow.font = { name: "Calibri", size: 11, bold: true };
+         totRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE7E6E6" } };
+         for (let i = 2; i <= 6; i++) {
+           totRow.getCell(i).numFmt = "#,##0";
+           totRow.getCell(i).alignment = { horizontal: "right" };
+         }
+       }
 
       summary.views = [{ state: "frozen", ySplit: weekStartRow + 2 }];
       autoFitColumns(summary);
@@ -673,7 +653,7 @@ export default function CallLogDashboard() {
 
         const totalAnsRate = totalInb > 0 ? totalAns / totalInb : 0;
         const totalOutRate = totalOut > 0 ? totalOutConn / totalOut : 0;
-        const totalGoalActivity = totalAns + totalOut; // Answered + Outbound only
+        const totalGoalActivity = totalAns + totalOut;
         const totalGoalPercent = totalWeekGoal > 0 ? totalGoalActivity / totalWeekGoal : 0;
         const totalsRow = frontEnd.addRow(["TOTAL", totalInb, totalOut, totalAns, totalMis, totalAnsRate, totalOutRate, totalGoal, totalWeekGoal, totalGoalPercent]);
         totalsRow.font = { name: "Calibri", size: 11, bold: true };
@@ -687,9 +667,6 @@ export default function CallLogDashboard() {
         totalsRow.getCell(8).numFmt = "#,##0";
         totalsRow.getCell(9).numFmt = "#,##0";
         totalsRow.getCell(10).numFmt = "0.00%";
-        applyConditionalColor(totalsRow.getCell(6), totalAnsRate, 0.50, 0.20);
-        applyConditionalColor(totalsRow.getCell(7), totalOutRate, 0.50, 0.20);
-        applyConditionalColor(totalsRow.getCell(10), totalGoalPercent, 1.00, 0.90);
         for (let i = 2; i <= 10; i++) totalsRow.getCell(i).alignment = { horizontal: "right" };
       }
 
@@ -772,7 +749,7 @@ export default function CallLogDashboard() {
 
         const totAnsRate = totInb > 0 ? totAns / totInb : 0;
         const totOutRate = totOut > 0 ? totOutConnected / totOut : 0;
-        const totGoalActivity = totAns + totOut; // Answered + Outbound only
+        const totGoalActivity = totAns + totOut;
         const totGoalPercent = totalWeekGoal > 0 ? totGoalActivity / totalWeekGoal : 0;
         const totalsRow = individual.addRow([
           "TOTAL", totInb, totOut, totAns, totMis,
@@ -791,9 +768,6 @@ export default function CallLogDashboard() {
           else totalsRow.getCell(i).numFmt = "#,##0";
           totalsRow.getCell(i).alignment = { horizontal: "right" };
         }
-        applyConditionalColor(totalsRow.getCell(6), totAnsRate, 0.50, 0.20);
-        applyConditionalColor(totalsRow.getCell(7), totOutRate, 0.50, 0.20);
-        applyConditionalColor(totalsRow.getCell(10), totGoalPercent, 1.00, 0.90);
       }
 
       individual.autoFilter = { from: "A1", to: `K${individual.rowCount}` };
