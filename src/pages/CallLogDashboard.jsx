@@ -250,6 +250,17 @@ export default function CallLogDashboard() {
   // Handle Excel export
   const handleExportExcel = async () => {
     try {
+      // Color constants
+      const HEADER_BG = "FF1F3864";
+      const WHITE = "FFFFFFFF";
+      const KPI_BG = "FFF2F2F2";
+      const ALT_ROW = "FFF7F9FC";
+      const TOTAL_BG = "FFD9E1F2";
+      const GREEN = "FFC6EFCE";
+      const YELLOW = "FFFFEB9C";
+      const RED = "FFFFC7CE";
+      const baseFont = { name: "Calibri", size: 11 };
+
       // Calculate metrics
       let totalInbound = 0, totalOutbound = 0, totalAnswered = 0, totalMissed = 0;
       let totalOutboundConnected = 0, totalFrontEndInbound = 0, totalFrontEndAnswered = 0;
@@ -284,38 +295,90 @@ export default function CallLogDashboard() {
       wb.creator = "ENTIC Operations Center";
       wb.created = new Date();
 
-      // Sheet 1: Executive Summary
+      // Helper to apply header styling
+      const applyHeaderStyle = (cell) => {
+        cell.font = { ...baseFont, bold: true, color: { argb: WHITE } };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_BG } };
+        cell.alignment = { horizontal: "center", vertical: "middle" };
+        cell.border = { bottom: { style: "medium" } };
+      };
+
+      // Helper to auto-fit columns
+      const autoFitColumns = (worksheet) => {
+        worksheet.columns.forEach(col => {
+          let maxLength = 12;
+          col.eachCell({ includeEmpty: true }, cell => {
+            maxLength = Math.max(maxLength, cell.value ? cell.value.toString().length : 0);
+          });
+          col.width = Math.min(maxLength + 2, 40);
+        });
+      };
+
+      // ===== SHEET 1: EXECUTIVE SUMMARY =====
       const summary = wb.addWorksheet("Executive Summary");
+      summary.properties.tabColor = { argb: "FF1F3864" };
       summary.columns = [{ width: 28 }, { width: 20 }];
 
+      // Title
       summary.mergeCells("A1:B1");
-      summary.getCell("A1").value = "Call Log Executive Summary";
-      summary.getCell("A1").font = { size: 16, bold: true };
-      summary.getCell("A1").alignment = { horizontal: "center" };
+      const titleCell = summary.getCell("A1");
+      titleCell.value = "Call Log Executive Summary";
+      titleCell.font = { name: "Calibri", size: 18, bold: true };
+      titleCell.alignment = { horizontal: "center" };
+      summary.getRow(1).height = 36;
 
       summary.addRow([]);
-      summary.addRow(["Total Calls", totalCalls]);
-      summary.addRow(["Inbound", totalInbound]);
-      summary.addRow(["Outbound", totalOutbound]);
-      summary.addRow(["Answered", totalAnswered]);
-      summary.addRow(["Missed", totalMissed]);
+
+      // KPI rows
+      const kpiRows = [
+        ["Total Calls", totalCalls],
+        ["Inbound", totalInbound],
+        ["Outbound", totalOutbound],
+        ["Answered", totalAnswered],
+        ["Missed", totalMissed]
+      ];
+
+      kpiRows.forEach(([label, value]) => {
+        const row = summary.addRow([label, value]);
+        row.getCell(1).font = { ...baseFont, bold: true };
+        row.getCell(2).fill = { type: "pattern", pattern: "solid", fgColor: { argb: KPI_BG } };
+        row.getCell(2).alignment = { horizontal: "right" };
+      });
+
       summary.addRow([]);
-      summary.addRow(["Inbound Answer Rate", inboundRate]);
-      summary.addRow(["Front-End Answer Rate", frontEndRate]);
-      summary.addRow(["Outbound Contact Rate (30s+)", outboundContactRate]);
-      summary.addRow(["Overall Contact Rate", overallContactRate]);
 
-      summary.getCell("B8").numFmt = "0.00%";
-      summary.getCell("B9").numFmt = "0.00%";
-      summary.getCell("B10").numFmt = "0.00%";
-      summary.getCell("B11").numFmt = "0.00%";
+      const metricRows = [
+        ["Inbound Answer Rate", inboundRate],
+        ["Front-End Answer Rate", frontEndRate],
+        ["Outbound Contact Rate (30s+)", outboundContactRate],
+        ["Overall Contact Rate", overallContactRate]
+      ];
 
-      for (let i = 3; i <= 11; i++) {
-        summary.getCell(`A${i}`).font = { bold: true };
+      metricRows.forEach(([label, value], idx) => {
+        const rowNum = 9 + idx;
+        const row = summary.addRow([label, value]);
+        row.getCell(1).font = { ...baseFont, bold: true };
+        row.getCell(2).numFmt = "0.00%";
+        row.getCell(2).fill = { type: "pattern", pattern: "solid", fgColor: { argb: KPI_BG } };
+        row.getCell(2).alignment = { horizontal: "right" };
+      });
+
+      // Border around KPI block
+      for (let i = 3; i <= 12; i++) {
+        summary.getCell(`A${i}`).border = { left: { style: "thin" } };
+        summary.getCell(`B${i}`).border = { right: { style: "thin" } };
+      }
+      for (let j = 1; j <= 2; j++) {
+        summary.getCell(3, j).border = { ...(summary.getCell(3, j).border || {}), top: { style: "thin" } };
+        summary.getCell(12, j).border = { ...(summary.getCell(12, j).border || {}), bottom: { style: "thin" } };
       }
 
-      // Sheet 2: Weekly Summary
+      summary.views = [{ state: "frozen", ySplit: 3 }];
+      autoFitColumns(summary);
+
+      // ===== SHEET 2: WEEKLY SUMMARY =====
       const weekly = wb.addWorksheet("Weekly Summary");
+      weekly.properties.tabColor = { argb: "FF00B0F0" };
       weekly.columns = [
         { header: "Week Starting", key: "week", width: 15 },
         { header: "Total Inbound", key: "inbound", width: 15 },
@@ -324,33 +387,47 @@ export default function CallLogDashboard() {
         { header: "Answer Rate", key: "rate", width: 15 }
       ];
 
-      weekly.getRow(1).font = { bold: true };
+      // Apply header styling
+      weekly.getRow(1).eachCell((cell) => {
+        applyHeaderStyle(cell);
+      });
 
+      let weeklyRowCount = 1;
       if (weeklyData && weeklyData.length > 0) {
-        weeklyData.forEach((w) => {
-          weekly.addRow({
+        weeklyData.forEach((w, idx) => {
+          const row = weekly.addRow({
             week: w.week_start || "",
             inbound: w.total_inbound || 0,
             answered: w.total_answered || 0,
             missed: w.total_missed || 0,
             rate: w.answer_rate || 0
           });
+
+          // Alternating row shading
+          if ((idx + 1) % 2 === 0) {
+            row.eachCell((cell) => {
+              cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: ALT_ROW } };
+            });
+          }
+
+          // Right align numeric columns
+          row.getCell(2).alignment = { horizontal: "right" };
+          row.getCell(3).alignment = { horizontal: "right" };
+          row.getCell(4).alignment = { horizontal: "right" };
+          row.getCell(5).numFmt = "0.00%";
+          row.getCell(5).alignment = { horizontal: "right" };
+
+          weeklyRowCount++;
         });
       }
 
-      weekly.eachRow((row, rowNumber) => {
-        if (rowNumber > 1) {
-          row.getCell(5).numFmt = "0.00%";
-        }
-      });
+      weekly.autoFilter = { from: "A1", to: `E${weekly.rowCount}` };
+      weekly.views = [{ state: "frozen", ySplit: 1 }];
+      autoFitColumns(weekly);
 
-      weekly.autoFilter = {
-        from: "A1",
-        to: `E${weekly.rowCount}`
-      };
-
-      // Sheet 3: Front-End Performance
+      // ===== SHEET 3: FRONT-END PERFORMANCE =====
       const frontEnd = wb.addWorksheet("Front-End Performance");
+      frontEnd.properties.tabColor = { argb: "FF7030A0" };
       frontEnd.columns = [
         { header: "User", key: "user", width: 30 },
         { header: "Inbound", key: "inbound", width: 15 },
@@ -359,17 +436,37 @@ export default function CallLogDashboard() {
         { header: "Answer Rate", key: "rate", width: 15 }
       ];
 
-      frontEnd.getRow(1).font = { bold: true };
+      // Apply header styling
+      frontEnd.getRow(1).eachCell((cell) => {
+        applyHeaderStyle(cell);
+      });
 
       if (frontendData && frontendData.length > 0) {
-        frontendData.forEach((u) => {
-          frontEnd.addRow({
+        // Sort by answer rate descending
+        const sortedFrontend = [...frontendData].sort((a, b) => (b.answer_rate || 0) - (a.answer_rate || 0));
+
+        sortedFrontend.forEach((u) => {
+          const rate = u.answer_rate || 0;
+          const row = frontEnd.addRow({
             user: u.user_name || "",
             inbound: u.total_inbound || 0,
             answered: u.total_answered || 0,
             missed: u.total_missed || 0,
-            rate: u.answer_rate || 0
+            rate: rate
           });
+
+          // Conditional coloring for answer rate
+          let fillColor;
+          if (rate >= 0.9) fillColor = GREEN;
+          else if (rate >= 0.75) fillColor = YELLOW;
+          else fillColor = RED;
+
+          row.getCell(5).fill = { type: "pattern", pattern: "solid", fgColor: { argb: fillColor } };
+          row.getCell(5).numFmt = "0.00%";
+          row.getCell(2).alignment = { horizontal: "right" };
+          row.getCell(3).alignment = { horizontal: "right" };
+          row.getCell(4).alignment = { horizontal: "right" };
+          row.getCell(5).alignment = { horizontal: "right" };
         });
 
         const frontEndTotalInbound = frontendData.reduce((sum, u) => sum + (u.total_inbound || 0), 0);
@@ -377,7 +474,7 @@ export default function CallLogDashboard() {
         const frontEndTotalMissed = frontendData.reduce((sum, u) => sum + (u.total_missed || 0), 0);
         const frontEndTotalRate = frontEndTotalInbound > 0 ? frontEndTotalAnswered / frontEndTotalInbound : 0;
 
-        frontEnd.addRow({
+        const totalsRow = frontEnd.addRow({
           user: "TOTAL",
           inbound: frontEndTotalInbound,
           answered: frontEndTotalAnswered,
@@ -385,23 +482,18 @@ export default function CallLogDashboard() {
           rate: frontEndTotalRate
         });
 
-        const lastFrontEndRow = frontEnd.lastRow.number;
-        frontEnd.getRow(lastFrontEndRow).font = { bold: true };
+        totalsRow.font = { ...baseFont, bold: true };
+        totalsRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: TOTAL_BG } };
+        totalsRow.getCell(5).numFmt = "0.00%";
       }
 
-      frontEnd.eachRow((row, rowNumber) => {
-        if (rowNumber > 1) {
-          row.getCell(5).numFmt = "0.00%";
-        }
-      });
+      frontEnd.autoFilter = { from: "A1", to: `E${frontEnd.rowCount}` };
+      frontEnd.views = [{ state: "frozen", ySplit: 1 }];
+      autoFitColumns(frontEnd);
 
-      frontEnd.autoFilter = {
-        from: "A1",
-        to: `E${frontEnd.rowCount}`
-      };
-
-      // Sheet 4: Individual Performance
+      // ===== SHEET 4: INDIVIDUAL PERFORMANCE =====
       const individual = wb.addWorksheet("Individual Performance");
+      individual.properties.tabColor = { argb: "FF7F7F7F" };
       individual.columns = [
         { header: "User", key: "user", width: 30 },
         { header: "Inbound", key: "inbound", width: 15 },
@@ -412,13 +504,19 @@ export default function CallLogDashboard() {
         { header: "Avg Duration (Minutes)", key: "avgMin", width: 20 }
       ];
 
-      individual.getRow(1).font = { bold: true };
+      // Apply header styling
+      individual.getRow(1).eachCell((cell) => {
+        applyHeaderStyle(cell);
+      });
 
       let indivTotalInbound = 0, indivTotalOutbound = 0, indivTotalAnswered = 0, indivTotalMissed = 0;
       let indivTotalDurationSeconds = 0;
 
       if (individualData && individualData.length > 0) {
-        individualData.forEach((u) => {
+        // Sort by answer rate descending
+        const sortedIndividual = [...individualData].sort((a, b) => (b.answer_rate || 0) - (a.answer_rate || 0));
+
+        sortedIndividual.forEach((u) => {
           const inbound = u.total_inbound || 0;
           const outbound = u.total_outbound || 0;
           const answered = u.total_answered || 0;
@@ -426,7 +524,7 @@ export default function CallLogDashboard() {
           const avgDurationSec = u.avg_duration_seconds || 0;
           const rate = inbound > 0 ? answered / inbound : 0;
 
-          individual.addRow({
+          const row = individual.addRow({
             user: u.user_name || "",
             inbound: inbound,
             outbound: outbound,
@@ -435,6 +533,12 @@ export default function CallLogDashboard() {
             rate: rate,
             avgMin: avgDurationSec / 60
           });
+
+          row.getCell(6).numFmt = "0.00%";
+          row.getCell(7).numFmt = "0.00";
+          for (let i = 2; i <= 7; i++) {
+            row.getCell(i).alignment = { horizontal: "right" };
+          }
 
           indivTotalInbound += inbound;
           indivTotalOutbound += outbound;
@@ -446,7 +550,7 @@ export default function CallLogDashboard() {
         const indivTotalRate = indivTotalInbound > 0 ? indivTotalAnswered / indivTotalInbound : 0;
         const indivAvgMinutes = indivTotalInbound > 0 ? indivTotalDurationSeconds / indivTotalInbound / 60 : 0;
 
-        individual.addRow({
+        const totalsRow = individual.addRow({
           user: "TOTAL",
           inbound: indivTotalInbound,
           outbound: indivTotalOutbound,
@@ -456,21 +560,18 @@ export default function CallLogDashboard() {
           avgMin: indivAvgMinutes
         });
 
-        const lastIndividualRow = individual.lastRow.number;
-        individual.getRow(lastIndividualRow).font = { bold: true };
+        totalsRow.font = { ...baseFont, bold: true };
+        totalsRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: TOTAL_BG } };
+        totalsRow.getCell(6).numFmt = "0.00%";
+        totalsRow.getCell(7).numFmt = "0.00";
+        for (let i = 2; i <= 7; i++) {
+          totalsRow.getCell(i).alignment = { horizontal: "right" };
+        }
       }
 
-      individual.eachRow((row, rowNumber) => {
-        if (rowNumber > 1) {
-          row.getCell(6).numFmt = "0.00%";
-          row.getCell(7).numFmt = "0.00";
-        }
-      });
-
-      individual.autoFilter = {
-        from: "A1",
-        to: `G${individual.rowCount}`
-      };
+      individual.autoFilter = { from: "A1", to: `G${individual.rowCount}` };
+      individual.views = [{ state: "frozen", ySplit: 1 }];
+      autoFitColumns(individual);
 
       // Write buffer and download
       const buffer = await wb.xlsx.writeBuffer();
