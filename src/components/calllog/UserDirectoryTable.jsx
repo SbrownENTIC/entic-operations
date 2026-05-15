@@ -22,15 +22,18 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 
 export default function UserDirectoryTable() {
-  const [search, setSearch] = useState('');
-  const [editingUser, setEditingUser] = useState(null);
-  const [formData, setFormData] = useState(null);
-  const [importing, setImporting] = useState(false);
-  const [importMessage, setImportMessage] = useState(null);
-  const [sortColumn, setSortColumn] = useState('name');
-  const [sortDirection, setSortDirection] = useState('asc');
-  const fileInputRef = useRef(null);
-  const queryClient = useQueryClient();
+   const [search, setSearch] = useState('');
+   const [editingUser, setEditingUser] = useState(null);
+   const [formData, setFormData] = useState(null);
+   const [importing, setImporting] = useState(false);
+   const [importMessage, setImportMessage] = useState(null);
+   const [sortColumn, setSortColumn] = useState('name');
+   const [sortDirection, setSortDirection] = useState('asc');
+   const [selectedUsers, setSelectedUsers] = useState([]);
+   const [bulkEditDailyGoal, setBulkEditDailyGoal] = useState('');
+   const [showBulkEdit, setShowBulkEdit] = useState(false);
+   const fileInputRef = useRef(null);
+   const queryClient = useQueryClient();
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['user-directory'],
@@ -180,6 +183,53 @@ export default function UserDirectoryTable() {
     }
   };
 
+  const handleToggleUserSelection = (userId) => {
+    setSelectedUsers(prev =>
+      prev.includes(userId)
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedUsers.length === filtered.length) {
+      setSelectedUsers([]);
+    } else {
+      setSelectedUsers(filtered.map(u => u.id));
+    }
+  };
+
+  const handleBulkUpdateDailyGoal = async () => {
+    if (!bulkEditDailyGoal || selectedUsers.length === 0) {
+      alert('Please select users and enter a daily goal');
+      return;
+    }
+
+    const goalValue = parseFloat(bulkEditDailyGoal);
+    if (isNaN(goalValue)) {
+      alert('Daily goal must be a number');
+      return;
+    }
+
+    try {
+      let updateIdx = 0;
+      while (updateIdx < selectedUsers.length) {
+        const userId = selectedUsers[updateIdx];
+        await base44.entities.UserDirectory.update(userId, {
+          daily_goal: goalValue
+        });
+        updateIdx++;
+      }
+      queryClient.invalidateQueries({ queryKey: ['user-directory'] });
+      setSelectedUsers([]);
+      setBulkEditDailyGoal('');
+      setShowBulkEdit(false);
+      alert(`Updated daily goal for ${selectedUsers.length} user(s)`);
+    } catch (error) {
+      alert(`Bulk update failed: ${error.message}`);
+    }
+  };
+
   const handleImport = async (file) => {
     if (!file) return;
 
@@ -271,45 +321,56 @@ export default function UserDirectoryTable() {
       )}
 
       <div className="flex gap-3">
-        <Input
-          placeholder="Search by name or role..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="flex-1"
-        />
-        <div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".csv,.xlsx"
-            className="hidden"
-            onChange={(e) => handleImport(e.target.files?.[0])}
-            disabled={importing}
-          />
-          <Button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={importing}
-            variant="outline"
-            className="gap-2"
-          >
-            {importing ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Upload className="w-4 h-4" />
-            )}
-            Import Directory
-          </Button>
-        </div>
-        <Button onClick={handleNew} className="gap-2">
-          <Plus className="w-4 h-4" />
-          Add User
-        </Button>
-      </div>
+         <Input
+           placeholder="Search by name or role..."
+           value={search}
+           onChange={(e) => setSearch(e.target.value)}
+           className="flex-1"
+         />
+         <div>
+           <input
+             ref={fileInputRef}
+             type="file"
+             accept=".csv,.xlsx"
+             className="hidden"
+             onChange={(e) => handleImport(e.target.files?.[0])}
+             disabled={importing}
+           />
+           <Button
+             onClick={() => fileInputRef.current?.click()}
+             disabled={importing}
+             variant="outline"
+             className="gap-2"
+           >
+             {importing ? (
+               <Loader2 className="w-4 h-4 animate-spin" />
+             ) : (
+               <Upload className="w-4 h-4" />
+             )}
+             Import Directory
+           </Button>
+         </div>
+         {selectedUsers.length > 0 && (
+           <Button onClick={() => setShowBulkEdit(true)} variant="secondary" className="gap-2">
+             Bulk Edit ({selectedUsers.length})
+           </Button>
+         )}
+         <Button onClick={handleNew} className="gap-2">
+           <Plus className="w-4 h-4" />
+           Add User
+         </Button>
+       </div>
 
       <div className="border rounded-lg overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-slate-100 border-b">
             <tr>
+              <th className="text-center px-4 py-3 font-semibold">
+                <Checkbox
+                  checked={selectedUsers.length === filtered.length && filtered.length > 0}
+                  onCheckedChange={handleSelectAll}
+                />
+              </th>
               <th 
                 className="text-left px-4 py-3 font-semibold cursor-pointer hover:bg-slate-200"
                 onClick={() => handleSort('name')}
@@ -370,6 +431,12 @@ export default function UserDirectoryTable() {
           <tbody>
             {filtered.map((user, i) => (
               <tr key={user.id} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                <td className="px-4 py-3 text-center">
+                  <Checkbox
+                    checked={selectedUsers.includes(user.id)}
+                    onCheckedChange={() => handleToggleUserSelection(user.id)}
+                  />
+                </td>
                 <td className="px-4 py-3">{user.name}</td>
                 <td className="px-4 py-3 text-slate-600">{user.role || '-'}</td>
                 <td className="px-4 py-3 text-slate-600 font-mono text-xs">
@@ -419,12 +486,47 @@ export default function UserDirectoryTable() {
         </table>
       </div>
 
-      {/* Edit/Create Dialog */}
-      <Dialog open={!!formData} onOpenChange={(open) => !open && setFormData(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingUser ? 'Edit User' : 'New User'}</DialogTitle>
-          </DialogHeader>
+      {/* Bulk Edit Dialog */}
+       <Dialog open={showBulkEdit} onOpenChange={setShowBulkEdit}>
+         <DialogContent>
+           <DialogHeader>
+             <DialogTitle>Bulk Update Daily Goal</DialogTitle>
+           </DialogHeader>
+           <div className="space-y-4">
+             <div>
+               <label className="text-sm font-medium">Selected Users: {selectedUsers.length}</label>
+               <div className="mt-2 p-3 bg-slate-50 rounded text-sm text-slate-600 max-h-40 overflow-y-auto">
+                 {filtered
+                   .filter(u => selectedUsers.includes(u.id))
+                   .map(u => <div key={u.id}>{u.name}</div>)}
+               </div>
+             </div>
+             <div>
+               <label className="text-sm font-medium">New Daily Goal</label>
+               <Input
+                 type="number"
+                 min="0"
+                 value={bulkEditDailyGoal}
+                 onChange={(e) => setBulkEditDailyGoal(e.target.value)}
+                 placeholder="Enter daily goal"
+               />
+             </div>
+           </div>
+           <DialogFooter>
+             <Button variant="outline" onClick={() => setShowBulkEdit(false)}>
+               Cancel
+             </Button>
+             <Button onClick={handleBulkUpdateDailyGoal}>Update {selectedUsers.length} User(s)</Button>
+           </DialogFooter>
+         </DialogContent>
+       </Dialog>
+
+       {/* Edit/Create Dialog */}
+       <Dialog open={!!formData} onOpenChange={(open) => !open && setFormData(null)}>
+         <DialogContent>
+           <DialogHeader>
+             <DialogTitle>{editingUser ? 'Edit User' : 'New User'}</DialogTitle>
+           </DialogHeader>
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium">Name *</label>
