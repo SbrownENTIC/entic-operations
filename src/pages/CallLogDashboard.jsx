@@ -250,15 +250,9 @@ export default function CallLogDashboard() {
   // Handle Excel export
   const handleExportExcel = async () => {
     try {
-      // Color constants
       const HEADER_BG = "FF1F3864";
       const WHITE = "FFFFFFFF";
       const KPI_BG = "FFF2F2F2";
-      const ALT_ROW = "FFF7F9FC";
-      const TOTAL_BG = "FFD9E1F2";
-      const GREEN = "FFC6EFCE";
-      const YELLOW = "FFFFEB9C";
-      const RED = "FFFFC7CE";
       const baseFont = { name: "Calibri", size: 11 };
 
       // Calculate metrics
@@ -317,281 +311,100 @@ export default function CallLogDashboard() {
       // ===== SHEET 1: EXECUTIVE SUMMARY =====
       const summary = wb.addWorksheet("Executive Summary");
       summary.properties.tabColor = { argb: "FF1F3864" };
-      summary.columns = [{ width: 28 }, { width: 20 }];
+      summary.columns = [{ width: 30 }, { width: 20 }];
 
-      // Title
+      // Header
       summary.mergeCells("A1:B1");
-      const titleCell = summary.getCell("A1");
-      titleCell.value = "Call Log Executive Summary";
-      titleCell.font = { name: "Calibri", size: 18, bold: true };
-      titleCell.alignment = { horizontal: "center" };
-      summary.getRow(1).height = 36;
+      const headerCell = summary.getCell("A1");
+      headerCell.value = "Call Log Executive Report – May 2026";
+      headerCell.font = { name: "Calibri", size: 14, bold: true, color: { argb: WHITE } };
+      headerCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_BG } };
+      headerCell.alignment = { horizontal: "left", vertical: "middle" };
+      summary.getRow(1).height = 28;
 
       summary.addRow([]);
 
-      // KPI rows
-      const kpiRows = [
-        ["Total Calls", totalCalls],
+      // KPI block
+      [
+        ["Total Calls", totalInbound + totalOutbound],
         ["Inbound", totalInbound],
         ["Outbound", totalOutbound],
         ["Answered", totalAnswered],
         ["Missed", totalMissed]
-      ];
-
-      kpiRows.forEach(([label, value]) => {
-        const row = summary.addRow([label, value]);
+      ].forEach(([label, val]) => {
+        const row = summary.addRow([label, val]);
         row.getCell(1).font = { ...baseFont, bold: true };
+        row.getCell(2).numFmt = "#,##0";
         row.getCell(2).fill = { type: "pattern", pattern: "solid", fgColor: { argb: KPI_BG } };
         row.getCell(2).alignment = { horizontal: "right" };
       });
 
       summary.addRow([]);
 
-      const metricRows = [
-        ["Inbound Answer Rate", inboundRate],
-        ["Front-End Answer Rate", frontEndRate],
-        ["Outbound Contact Rate (30s+)", outboundContactRate],
-        ["Overall Contact Rate", overallContactRate]
-      ];
-
-      metricRows.forEach(([label, value], idx) => {
-        const rowNum = 9 + idx;
-        const row = summary.addRow([label, value]);
+      // Metrics
+      [
+        ["Inbound Answer Rate", totalInbound > 0 ? totalAnswered / totalInbound : 0],
+        ["Front-End Answer Rate", totalFrontEndInbound > 0 ? totalFrontEndAnswered / totalFrontEndInbound : 0],
+        ["Outbound Contact Rate (30s+)", totalOutbound > 0 ? totalOutboundConnected / totalOutbound : 0]
+      ].forEach(([label, val]) => {
+        const row = summary.addRow([label, val]);
         row.getCell(1).font = { ...baseFont, bold: true };
         row.getCell(2).numFmt = "0.00%";
         row.getCell(2).fill = { type: "pattern", pattern: "solid", fgColor: { argb: KPI_BG } };
         row.getCell(2).alignment = { horizontal: "right" };
       });
 
-      // Border around KPI block
-      for (let i = 3; i <= 12; i++) {
-        summary.getCell(`A${i}`).border = { left: { style: "thin" } };
-        summary.getCell(`B${i}`).border = { right: { style: "thin" } };
-      }
-      for (let j = 1; j <= 2; j++) {
-        summary.getCell(3, j).border = { ...(summary.getCell(3, j).border || {}), top: { style: "thin" } };
-        summary.getCell(12, j).border = { ...(summary.getCell(12, j).border || {}), bottom: { style: "thin" } };
-      }
-
       summary.views = [{ state: "frozen", ySplit: 3 }];
       autoFitColumns(summary);
 
-      // ===== SHEET 2: INBOUND CDR =====
-      const inboundCDR = wb.addWorksheet("Inbound CDR");
-      inboundCDR.properties.tabColor = { argb: "FF5B9BD5" };
-      inboundCDR.columns = [
-        { header: "Call Date", width: 12 },
-        { header: "Call Time", width: 12 },
-        { header: "Extension", width: 12 },
-        { header: "Caller Number", width: 15 },
-        { header: "Duration (sec)", width: 15 },
-        { header: "Disposition", width: 15 },
-        { header: "Answered", width: 12 }
-      ];
-
-      inboundCDR.getRow(1).eachCell((cell) => applyHeaderStyle(cell));
-
-      if (inbound && inbound.length > 0) {
-        inbound.forEach((call) => {
-          inboundCDR.addRow([
-            call.call_date || "",
-            call.call_time || "",
-            call.extension || "",
-            call.caller_number || "",
-            call.duration_seconds || 0,
-            call.disposition || "",
-            call.answered ? "Yes" : "No"
-          ]);
-        });
-      }
-
-      inboundCDR.autoFilter = { from: "A1", to: `G${inboundCDR.rowCount}` };
-      inboundCDR.views = [{ state: "frozen", ySplit: 1 }];
-      autoFitColumns(inboundCDR);
-
-      // ===== SHEET 3: FRONT-END INBOUND ANSWER RATE =====
-      const feInboundRate = wb.addWorksheet("Front-End Inbound Answer Rate");
-      feInboundRate.properties.tabColor = { argb: "FF7030A0" };
-      feInboundRate.columns = [
-        { header: "User", width: 30 },
+      // ===== SHEET 2: WEEKLY PERFORMANCE =====
+      const weekly = wb.addWorksheet("Weekly Performance");
+      weekly.properties.tabColor = { argb: "FF00B0F0" };
+      weekly.columns = [
+        { header: "Week Starting", width: 15 },
         { header: "Total Inbound", width: 15 },
         { header: "Answered", width: 15 },
+        { header: "Missed", width: 15 },
         { header: "Answer Rate", width: 15 }
       ];
 
-      feInboundRate.getRow(1).eachCell((cell) => applyHeaderStyle(cell));
-
-      if (frontendData && frontendData.length > 0) {
-        frontendData.forEach((u) => {
-          feInboundRate.addRow([
-            u.user_name || "",
-            u.total_inbound || 0,
-            u.total_answered || 0,
-            u.answer_rate || 0
-          ]);
-        });
-      }
-
-      feInboundRate.autoFilter = { from: "A1", to: `D${feInboundRate.rowCount}` };
-      autoFitColumns(feInboundRate);
-
-      // ===== SHEET 4: CONFIG_BENCHMARKS =====
-      const configBench = wb.addWorksheet("Config_Benchmarks");
-      configBench.properties.tabColor = { argb: "FFC55A11" };
-      configBench.columns = [
-        { header: "Category", width: 20 },
-        { header: "Metric", width: 30 },
-        { header: "Target Value", width: 15 },
-        { header: "Unit", width: 15 },
-        { header: "Notes", width: 30 }
-      ];
-
-      configBench.getRow(1).eachCell((cell) => applyHeaderStyle(cell));
-
-      const benchData = [
-        ["Front Desk", "Inbound Answer Rate", 0.9, "Decimal", "90% target"],
-        ["Front Desk", "Outbound Contact Rate (30s+)", 0.7, "Decimal", "70% target"]
-      ];
-
-      benchData.forEach((row) => {
-        configBench.addRow(row);
-      });
-
-      configBench.state = "hidden";
-      configBench.protect("ENTIC_23!");
-      autoFitColumns(configBench);
-
-      // ===== SHEET 5: CONFIG_EXTENSIONS =====
-      const configExt = wb.addWorksheet("Config_Extensions");
-      configExt.properties.tabColor = { argb: "FF70AD47" };
-      configExt.columns = [
-        { header: "Extension", width: 15 },
-        { header: "User", width: 30 },
-        { header: "Location", width: 20 }
-      ];
-
-      configExt.getRow(1).eachCell((cell) => applyHeaderStyle(cell));
-
-      if (users && users.length > 0) {
-        users.forEach((u) => {
-          if (u.extensions && Array.isArray(u.extensions)) {
-            u.extensions.forEach((ext) => {
-              configExt.addRow([ext, u.name || "", u.location || ""]);
-            });
-          }
-        });
-      }
-
-      configExt.state = "hidden";
-      configExt.protect("ENTIC_23!");
-      autoFitColumns(configExt);
-
-      // ===== SHEET 6: FORMULA_REFERENCE =====
-      const formulaRef = wb.addWorksheet("Formula_Reference");
-      formulaRef.properties.tabColor = { argb: "FF002060" };
-      formulaRef.columns = [
-        { header: "Metric", width: 30 },
-        { header: "Formula", width: 40 },
-        { header: "Description", width: 40 }
-      ];
-
-      formulaRef.getRow(1).eachCell((cell) => applyHeaderStyle(cell));
-
-      const formulas = [
-        ["Answer Rate", "Answered / Total Inbound", "Percentage of inbound calls answered"],
-        ["Outbound Contact Rate", "Connected (30s+) / Total Outbound", "Percentage of outbound calls with 30+ sec duration"],
-        ["Overall Contact Rate", "(Inbound Answered + Outbound Connected) / Total Calls", "Combined contact rate"]
-      ];
-
-      formulas.forEach((row) => {
-        formulaRef.addRow(row);
-      });
-
-      formulaRef.state = "hidden";
-      formulaRef.protect("ENTIC_23!");
-      autoFitColumns(formulaRef);
-
-      // ===== SHEET 7: RAW_IMPORTED_DATA =====
-      const rawData = wb.addWorksheet("Raw_Imported_Data");
-      rawData.properties.tabColor = { argb: "FF595959" };
-      rawData.columns = [
-        { header: "Call Date", width: 12 },
-        { header: "Call Time", width: 12 },
-        { header: "Extension", width: 12 },
-        { header: "Direction", width: 12 },
-        { header: "Number", width: 15 },
-        { header: "Duration (sec)", width: 15 },
-        { header: "Result", width: 15 },
-        { header: "Location", width: 15 }
-      ];
-
-      rawData.getRow(1).eachCell((cell) => applyHeaderStyle(cell));
-
-      if (inbound && inbound.length > 0) {
-        inbound.forEach((call) => {
-          rawData.addRow([
-            call.call_date || "", call.call_time || "", call.extension || "", "Inbound",
-            call.caller_number || "", call.duration_seconds || 0, call.disposition || "", ""
-          ]);
-        });
-      }
-
-      if (outbound && outbound.length > 0) {
-        outbound.forEach((call) => {
-          rawData.addRow([
-            call.call_date || "", call.call_time || "", call.extension || "", "Outbound",
-            call.dialed_number || "", call.duration_seconds || 0, call.result || "", call.location || ""
-          ]);
-        });
-      }
-
-      rawData.autoFilter = { from: "A1", to: `H${rawData.rowCount}` };
-      rawData.views = [{ state: "frozen", ySplit: 1 }];
-      autoFitColumns(rawData);
-
-      // ===== SHEET 8: WEEKLY SUMMARY =====
-      const weekly = wb.addWorksheet("Weekly Summary");
-      weekly.properties.tabColor = { argb: "FF00B0F0" };
-      weekly.columns = [
-        { header: "Week Starting", key: "week", width: 15 },
-        { header: "Total Inbound", key: "inbound", width: 15 },
-        { header: "Answered", key: "answered", width: 15 },
-        { header: "Missed", key: "missed", width: 15 },
-        { header: "Answer Rate", key: "rate", width: 15 }
-      ];
-
-      // Apply header styling
       weekly.getRow(1).eachCell((cell) => {
-        applyHeaderStyle(cell);
+        cell.font = { ...baseFont, bold: true, color: { argb: WHITE } };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_BG } };
+        cell.alignment = { horizontal: "center", vertical: "middle" };
       });
 
-      let weeklyRowCount = 1;
       if (weeklyData && weeklyData.length > 0) {
-        weeklyData.forEach((w, idx) => {
-          const row = weekly.addRow({
-            week: w.week_start || "",
-            inbound: w.total_inbound || 0,
-            answered: w.total_answered || 0,
-            missed: w.total_missed || 0,
-            rate: w.answer_rate || 0
-          });
-
-          // Alternating row shading
-          if ((idx + 1) % 2 === 0) {
-            row.eachCell((cell) => {
-              cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: ALT_ROW } };
-            });
-          }
-
-          // Right align numeric columns
-          row.getCell(2).alignment = { horizontal: "right" };
-          row.getCell(3).alignment = { horizontal: "right" };
-          row.getCell(4).alignment = { horizontal: "right" };
+        weeklyData.forEach((w) => {
+          const row = weekly.addRow([
+            w.week_start || "",
+            w.total_inbound || 0,
+            w.total_answered || 0,
+            w.total_missed || 0,
+            w.answer_rate || 0
+          ]);
+          row.getCell(2).numFmt = "#,##0";
+          row.getCell(3).numFmt = "#,##0";
+          row.getCell(4).numFmt = "#,##0";
           row.getCell(5).numFmt = "0.00%";
-          row.getCell(5).alignment = { horizontal: "right" };
-
-          weeklyRowCount++;
+          for (let i = 2; i <= 5; i++) row.getCell(i).alignment = { horizontal: "right" };
         });
+
+        // Monthly total row
+        const totRow = weekly.addRow([
+          "MONTHLY TOTAL",
+          totalInbound,
+          totalAnswered,
+          totalMissed,
+          totalInbound > 0 ? totalAnswered / totalInbound : 0
+        ]);
+        totRow.font = { ...baseFont, bold: true };
+        totRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE7E6E6" } };
+        totRow.getCell(2).numFmt = "#,##0";
+        totRow.getCell(3).numFmt = "#,##0";
+        totRow.getCell(4).numFmt = "#,##0";
+        totRow.getCell(5).numFmt = "0.00%";
+        for (let i = 2; i <= 5; i++) totRow.getCell(i).alignment = { horizontal: "right" };
       }
 
       weekly.autoFilter = { from: "A1", to: `E${weekly.rowCount}` };
@@ -600,64 +413,56 @@ export default function CallLogDashboard() {
 
       // ===== SHEET 3: FRONT-END PERFORMANCE =====
       const frontEnd = wb.addWorksheet("Front-End Performance");
-      frontEnd.properties.tabColor = { argb: "FF7030A0" };
+      frontEnd.properties.tabColor = { argb: "FF0F6A73" };
       frontEnd.columns = [
-        { header: "User", key: "user", width: 30 },
-        { header: "Inbound", key: "inbound", width: 15 },
-        { header: "Answered", key: "answered", width: 15 },
-        { header: "Missed", key: "missed", width: 15 },
-        { header: "Answer Rate", key: "rate", width: 15 }
+        { header: "User", width: 30 },
+        { header: "Inbound", width: 12 },
+        { header: "Answered", width: 12 },
+        { header: "Missed", width: 12 },
+        { header: "Answer Rate", width: 15 }
       ];
 
-      // Apply header styling
       frontEnd.getRow(1).eachCell((cell) => {
-        applyHeaderStyle(cell);
+        cell.font = { ...baseFont, bold: true, color: { argb: WHITE } };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_BG } };
+        cell.alignment = { horizontal: "center", vertical: "middle" };
       });
 
       if (frontendData && frontendData.length > 0) {
-        // Sort by answer rate descending
-        const sortedFrontend = [...frontendData].sort((a, b) => (b.answer_rate || 0) - (a.answer_rate || 0));
+        const sorted = [...frontendData].sort((a, b) => (b.answer_rate || 0) - (a.answer_rate || 0));
+        let totalInb = 0, totalAns = 0, totalMis = 0;
 
-        sortedFrontend.forEach((u) => {
+        sorted.forEach((u) => {
           const rate = u.answer_rate || 0;
-          const row = frontEnd.addRow({
-            user: u.user_name || "",
-            inbound: u.total_inbound || 0,
-            answered: u.total_answered || 0,
-            missed: u.total_missed || 0,
-            rate: rate
-          });
+          const row = frontEnd.addRow([
+            u.user_name || "",
+            u.total_inbound || 0,
+            u.total_answered || 0,
+            u.total_missed || 0,
+            rate
+          ]);
 
-          // Conditional coloring for answer rate
-          let fillColor;
-          if (rate >= 0.9) fillColor = GREEN;
-          else if (rate >= 0.75) fillColor = YELLOW;
-          else fillColor = RED;
-
+          let fillColor = rate >= 0.5 ? "FFC6EFCE" : rate >= 0.2 ? "FFFFEB9C" : "FFFFC7CE";
           row.getCell(5).fill = { type: "pattern", pattern: "solid", fgColor: { argb: fillColor } };
+          row.getCell(2).numFmt = "#,##0";
+          row.getCell(3).numFmt = "#,##0";
+          row.getCell(4).numFmt = "#,##0";
           row.getCell(5).numFmt = "0.00%";
-          row.getCell(2).alignment = { horizontal: "right" };
-          row.getCell(3).alignment = { horizontal: "right" };
-          row.getCell(4).alignment = { horizontal: "right" };
-          row.getCell(5).alignment = { horizontal: "right" };
+          for (let i = 2; i <= 5; i++) row.getCell(i).alignment = { horizontal: "right" };
+
+          totalInb += u.total_inbound || 0;
+          totalAns += u.total_answered || 0;
+          totalMis += u.total_missed || 0;
         });
 
-        const frontEndTotalInbound = frontendData.reduce((sum, u) => sum + (u.total_inbound || 0), 0);
-        const frontEndTotalAnswered = frontendData.reduce((sum, u) => sum + (u.total_answered || 0), 0);
-        const frontEndTotalMissed = frontendData.reduce((sum, u) => sum + (u.total_missed || 0), 0);
-        const frontEndTotalRate = frontEndTotalInbound > 0 ? frontEndTotalAnswered / frontEndTotalInbound : 0;
-
-        const totalsRow = frontEnd.addRow({
-          user: "TOTAL",
-          inbound: frontEndTotalInbound,
-          answered: frontEndTotalAnswered,
-          missed: frontEndTotalMissed,
-          rate: frontEndTotalRate
-        });
-
+        const totalsRow = frontEnd.addRow(["TOTAL", totalInb, totalAns, totalMis, totalInb > 0 ? totalAns / totalInb : 0]);
         totalsRow.font = { ...baseFont, bold: true };
-        totalsRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: TOTAL_BG } };
+        totalsRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE7E6E6" } };
+        totalsRow.getCell(2).numFmt = "#,##0";
+        totalsRow.getCell(3).numFmt = "#,##0";
+        totalsRow.getCell(4).numFmt = "#,##0";
         totalsRow.getCell(5).numFmt = "0.00%";
+        for (let i = 2; i <= 5; i++) totalsRow.getCell(i).alignment = { horizontal: "right" };
       }
 
       frontEnd.autoFilter = { from: "A1", to: `E${frontEnd.rowCount}` };
@@ -668,83 +473,114 @@ export default function CallLogDashboard() {
       const individual = wb.addWorksheet("Individual Performance");
       individual.properties.tabColor = { argb: "FF7F7F7F" };
       individual.columns = [
-        { header: "User", key: "user", width: 30 },
-        { header: "Inbound", key: "inbound", width: 15 },
-        { header: "Outbound", key: "outbound", width: 15 },
-        { header: "Answered", key: "answered", width: 15 },
-        { header: "Missed", key: "missed", width: 15 },
-        { header: "Answer Rate", key: "rate", width: 15 },
-        { header: "Avg Duration (Minutes)", key: "avgMin", width: 20 }
+        { header: "User", width: 30 },
+        { header: "Inbound", width: 12 },
+        { header: "Outbound", width: 12 },
+        { header: "Answered", width: 12 },
+        { header: "Missed", width: 12 },
+        { header: "Answer Rate", width: 15 },
+        { header: "Outbound Contact Rate", width: 18 },
+        { header: "Avg Duration (min)", width: 16 }
       ];
 
-      // Apply header styling
       individual.getRow(1).eachCell((cell) => {
-        applyHeaderStyle(cell);
+        cell.font = { ...baseFont, bold: true, color: { argb: WHITE } };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_BG } };
+        cell.alignment = { horizontal: "center", vertical: "middle" };
       });
 
-      let indivTotalInbound = 0, indivTotalOutbound = 0, indivTotalAnswered = 0, indivTotalMissed = 0;
-      let indivTotalDurationSeconds = 0;
-
       if (individualData && individualData.length > 0) {
-        // Sort by answer rate descending
-        const sortedIndividual = [...individualData].sort((a, b) => (b.answer_rate || 0) - (a.answer_rate || 0));
+        const sorted = [...individualData].sort((a, b) => (b.answer_rate || 0) - (a.answer_rate || 0));
+        let totInb = 0, totOut = 0, totAns = 0, totMis = 0, totDur = 0, totOutConnected = 0;
 
-        sortedIndividual.forEach((u) => {
-          const inbound = u.total_inbound || 0;
-          const outbound = u.total_outbound || 0;
-          const answered = u.total_answered || 0;
-          const missed = u.total_missed || 0;
-          const avgDurationSec = u.avg_duration_seconds || 0;
-          const rate = inbound > 0 ? answered / inbound : 0;
+        sorted.forEach((u) => {
+          const inb = u.total_inbound || 0;
+          const out = u.total_outbound || 0;
+          const ans = u.total_answered || 0;
+          const mis = u.total_missed || 0;
+          const dur = u.avg_duration_seconds || 0;
+          const outConn = u.outbound_connected || 0;
+          const ansRate = inb > 0 ? ans / inb : 0;
+          const outRate = out > 0 ? outConn / out : 0;
 
-          const row = individual.addRow({
-            user: u.user_name || "",
-            inbound: inbound,
-            outbound: outbound,
-            answered: answered,
-            missed: missed,
-            rate: rate,
-            avgMin: avgDurationSec / 60
-          });
+          const row = individual.addRow([
+            u.user_name || "",
+            inb, out, ans, mis,
+            ansRate,
+            outRate,
+            dur / 60
+          ]);
 
-          row.getCell(6).numFmt = "0.00%";
-          row.getCell(7).numFmt = "0.00";
-          for (let i = 2; i <= 7; i++) {
+          for (let i = 2; i <= 8; i++) {
+            if (i === 6 || i === 7) row.getCell(i).numFmt = "0.00%";
+            else if (i === 8) row.getCell(i).numFmt = "0.00";
+            else row.getCell(i).numFmt = "#,##0";
             row.getCell(i).alignment = { horizontal: "right" };
           }
 
-          indivTotalInbound += inbound;
-          indivTotalOutbound += outbound;
-          indivTotalAnswered += answered;
-          indivTotalMissed += missed;
-          indivTotalDurationSeconds += avgDurationSec * inbound;
+          totInb += inb; totOut += out; totAns += ans; totMis += mis; totDur += dur * inb; totOutConnected += outConn;
         });
 
-        const indivTotalRate = indivTotalInbound > 0 ? indivTotalAnswered / indivTotalInbound : 0;
-        const indivAvgMinutes = indivTotalInbound > 0 ? indivTotalDurationSeconds / indivTotalInbound / 60 : 0;
-
-        const totalsRow = individual.addRow({
-          user: "TOTAL",
-          inbound: indivTotalInbound,
-          outbound: indivTotalOutbound,
-          answered: indivTotalAnswered,
-          missed: indivTotalMissed,
-          rate: indivTotalRate,
-          avgMin: indivAvgMinutes
-        });
-
+        const totalsRow = individual.addRow([
+          "TOTAL", totInb, totOut, totAns, totMis,
+          totInb > 0 ? totAns / totInb : 0,
+          totOut > 0 ? totOutConnected / totOut : 0,
+          totInb > 0 ? totDur / totInb / 60 : 0
+        ]);
         totalsRow.font = { ...baseFont, bold: true };
-        totalsRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: TOTAL_BG } };
-        totalsRow.getCell(6).numFmt = "0.00%";
-        totalsRow.getCell(7).numFmt = "0.00";
-        for (let i = 2; i <= 7; i++) {
+        totalsRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE7E6E6" } };
+        for (let i = 2; i <= 8; i++) {
+          if (i === 6 || i === 7) totalsRow.getCell(i).numFmt = "0.00%";
+          else if (i === 8) totalsRow.getCell(i).numFmt = "0.00";
+          else totalsRow.getCell(i).numFmt = "#,##0";
           totalsRow.getCell(i).alignment = { horizontal: "right" };
         }
       }
 
-      individual.autoFilter = { from: "A1", to: `G${individual.rowCount}` };
+      individual.autoFilter = { from: "A1", to: `H${individual.rowCount}` };
       individual.views = [{ state: "frozen", ySplit: 1 }];
       autoFitColumns(individual);
+
+      // ===== SHEET 5: RAW DATA =====
+      const rawData = wb.addWorksheet("Raw Data");
+      rawData.properties.tabColor = { argb: "FF595959" };
+      rawData.columns = [
+        { header: "Call Date", width: 12 },
+        { header: "Call Time", width: 12 },
+        { header: "Extension", width: 12 },
+        { header: "Direction", width: 12 },
+        { header: "Number", width: 15 },
+        { header: "Duration (sec)", width: 15 },
+        { header: "Result", width: 15 }
+      ];
+
+      rawData.getRow(1).eachCell((cell) => {
+        cell.font = { ...baseFont, bold: true, color: { argb: WHITE } };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_BG } };
+        cell.alignment = { horizontal: "center", vertical: "middle" };
+      });
+
+      if (inbound && inbound.length > 0) {
+        inbound.forEach((call) => {
+          rawData.addRow([
+            call.call_date || "", call.call_time || "", call.extension || "", "Inbound",
+            call.caller_number || "", call.duration_seconds || 0, call.disposition || ""
+          ]);
+        });
+      }
+
+      if (outbound && outbound.length > 0) {
+        outbound.forEach((call) => {
+          rawData.addRow([
+            call.call_date || "", call.call_time || "", call.extension || "", "Outbound",
+            call.dialed_number || "", call.duration_seconds || 0, call.result || ""
+          ]);
+        });
+      }
+
+      rawData.autoFilter = { from: "A1", to: `G${rawData.rowCount}` };
+      rawData.views = [{ state: "frozen", ySplit: 1 }];
+      autoFitColumns(rawData);
 
       // Write buffer and download
       const buffer = await wb.xlsx.writeBuffer();
