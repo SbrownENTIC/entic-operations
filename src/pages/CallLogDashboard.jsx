@@ -322,34 +322,40 @@ export default function CallLogDashboard() {
       console.log("outbound:", Array.isArray(outbound) ? `array (${outbound.length})` : "NOT ARRAY");
       
       // ===== STRICT VALIDATION =====
-      if (!Array.isArray(weeklyData)) throw new Error("weeklyData must be an array");
-      if (!Array.isArray(monthlyData)) throw new Error("monthlyData must be an array");
-      if (!Array.isArray(frontendData)) throw new Error("frontendData must be an array");
-      if (!Array.isArray(individualData)) throw new Error("individualData must be an array");
-      if (!Array.isArray(inbound)) throw new Error("inbound must be an array");
-      if (!Array.isArray(outbound)) throw new Error("outbound must be an array");
+       if (!Array.isArray(weeklyData)) throw new Error("weeklyData must be an array");
+       if (!Array.isArray(monthlyData)) throw new Error("monthlyData must be an array");
+       if (!Array.isArray(frontendData)) throw new Error("frontendData must be an array");
+       if (!Array.isArray(individualData)) throw new Error("individualData must be an array");
+       if (!Array.isArray(inbound)) throw new Error("inbound must be an array");
+       if (!Array.isArray(outbound)) throw new Error("outbound must be an array");
 
-      // Debug logs for outbound data
-      console.log("Outbound total:", totalOutbound);
-      console.log("Outbound connected:", totalOutboundConnected);
+       // ===== PHASE 1: MINIMAL STABLE EXPORT =====
+       // Colors & Fonts
+       const HEADER_BG = "FF1F3864";
+       const WHITE = "FFFFFFFF";
+       const GREEN_BG = "FFC6EFCE";
+       const YELLOW_BG = "FFFFEB9C";
+       const RED_BG = "FFFFC7CE";
+       const baseFont = { name: "Calibri", size: 11 };
 
-      // ===== PHASE 1: MINIMAL STABLE EXPORT =====
-      // Colors & Fonts
-      const HEADER_BG = "FF1F3864";
-      const WHITE = "FFFFFFFF";
-      const GREEN_BG = "FFC6EFCE";
-      const YELLOW_BG = "FFFFEB9C";
-      const RED_BG = "FFFFC7CE";
-      const baseFont = { name: "Calibri", size: 11 };
-      
-      // ===== CALCULATE METRICS (defensive) =====
-      let totalInbound = 0;
-      let totalOutbound = 0;
-      let totalAnswered = 0;
-      let totalMissed = 0;
-      let totalFrontEndInbound = 0;
-      let totalFrontEndAnswered = 0;
-      let totalOutboundConnected = 0;
+       // ===== CALCULATE METRICS (defensive) =====
+       let totalInbound = 0;
+       let totalAnswered = 0;
+       let totalMissed = 0;
+       let totalFrontEndInbound = 0;
+       let totalFrontEndAnswered = 0;
+
+       // ===== OUTBOUND AGGREGATION (CRITICAL: must happen early) =====
+       const totalOutbound = Array.isArray(outbound) ? outbound.length : 0;
+       const totalOutboundConnected = Array.isArray(outbound)
+         ? outbound.filter(call => {
+             const parsedDurationSeconds = call.duration_seconds || 0;
+             return parsedDurationSeconds >= 30;
+           }).length
+         : 0;
+
+       console.log("Outbound total:", totalOutbound);
+       console.log("Outbound connected:", totalOutboundConnected);
 
       // Extract latest monthly inbound metrics
       if (monthlyData.length > 0) {
