@@ -253,6 +253,9 @@ export default function CallLogDashboard() {
       const HEADER_BG = "FF1F3864";
       const WHITE = "FFFFFFFF";
       const KPI_BG = "FFF2F2F2";
+      const GREEN_BG = "FFC6EFCE";
+      const YELLOW_BG = "FFFFEB9C";
+      const RED_BG = "FFFFC7CE";
       const baseFont = { name: "Calibri", size: 11 };
 
       // Calculate metrics
@@ -308,77 +311,100 @@ export default function CallLogDashboard() {
         });
       };
 
-      // Conditional color formatting based on rate and formula reference to Config_Benchmarks
-      const applyRateColor = (cell, rate, benchmarkGreen = 0.5, benchmarkYellow = 0.2) => {
-        if (rate >= benchmarkGreen) {
-          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFC6EFCE" } };
-        } else if (rate >= benchmarkYellow) {
-          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFEB9C" } };
+      // Apply color based on benchmark thresholds
+      const applyConditionalColor = (cell, rate, greenThreshold, yellowThreshold) => {
+        if (rate >= greenThreshold) {
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_BG } };
+        } else if (rate >= yellowThreshold) {
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: YELLOW_BG } };
         } else {
-          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFC7CE" } };
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: RED_BG } };
         }
       };
 
-      // Benchmark values from Config_Benchmarks (row 2: Green=0.5, row 3: Yellow=0.2)
-      const BENCHMARK_GREEN_THRESHOLD = 0.5;
-      const BENCHMARK_YELLOW_THRESHOLD = 0.2;
-
       // ===== SHEET 0: CONFIG_BENCHMARKS (Protected & Hidden) =====
+      // Exact replication from Benchmarks.xlsx structure
       const configSheet = wb.addWorksheet("Config_Benchmarks");
       configSheet.properties.tabColor = { argb: "FF595959" };
-      configSheet.state = "hidden"; // Hidden but not veryHidden for admin access
-      configSheet.columns = [{ width: 30 }, { width: 20 }, { width: 40 }];
-
-      // Header
-      configSheet.mergeCells("A1:C1");
-      const configHeaderCell = configSheet.getCell("A1");
-      configHeaderCell.value = "Performance Benchmarks Configuration";
-      configHeaderCell.font = { ...baseFont, size: 12, bold: true, color: { argb: WHITE } };
-      configHeaderCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_BG } };
-      configHeaderCell.alignment = { horizontal: "left", vertical: "middle" };
-      configSheet.getRow(1).height = 22;
-
-      configSheet.addRow([]);
-
-      // Benchmark configuration data
-      const benchmarkData = [
-        ["Category", "Metric", "Value"],
-        ["Answer Rate", "Green Threshold (Good)", BENCHMARK_GREEN_THRESHOLD],
-        ["Answer Rate", "Yellow Threshold (Warning)", BENCHMARK_YELLOW_THRESHOLD],
-        ["Outbound Contact Rate", "Green Threshold (Good)", 0.40],
-        ["Outbound Contact Rate", "Yellow Threshold (Warning)", 0.20],
-        ["Front-End Answer Rate", "Green Threshold (Good)", 0.60],
-        ["Front-End Answer Rate", "Yellow Threshold (Warning)", 0.40],
-        ["Calls Per Hour", "Expected (Front Desk)", 8],
-        ["Calls Per Hour", "Expected (NP Coordinator)", 10],
-        ["Daily Goal", "Front Desk Target", 160],
-        ["Daily Goal", "NP Coordinator Target", 200],
-        ["Outbound Mix", "Expected %", 0.15]
+      configSheet.state = "hidden";
+      configSheet.columns = [
+        { width: 25 },
+        { width: 35 },
+        { width: 15 },
+        { width: 12 },
+        { width: 40 }
       ];
 
-      benchmarkData.forEach((row, idx) => {
+      // Header row
+      const headerRow = configSheet.addRow(["Category", "Metric", "Target Value", "Unit", "Notes"]);
+      headerRow.eachCell((cell) => {
+        cell.font = { ...baseFont, bold: true, color: { argb: WHITE } };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_BG } };
+        cell.alignment = { horizontal: "left", vertical: "middle" };
+      });
+      configSheet.getRow(1).height = 22;
+
+      // Benchmark data - exact replication from Benchmarks.xlsx
+      const benchmarks = [
+        ["Answer Rate", "Green Threshold (Good)", 0.5, "Decimal", "Answer rate ≥ 50% shown in green"],
+        ["Answer Rate", "Yellow Threshold (Warning)", 0.2, "Decimal", "Answer rate ≥ 20% and < 50% shown in yellow"],
+        ["Answer Rate", "Red Threshold (Poor)", 0, "Decimal", "Answer rate < 20% shown in red"],
+        ["Phone Role", "Call Center Expected AR", 0.85, "Decimal", "Expected inbound answer rate for Call Center extensions"],
+        ["Phone Role", "Client Facing Expected AR", 0.65, "Decimal", "Expected inbound answer rate for Client Facing extensions"],
+        ["Outbound Contact Rate", "Green Threshold (Good)", 0.4, "Decimal", "Outbound contact rate ≥ 40% shown in green"],
+        ["Outbound Contact Rate", "Yellow Threshold (Warning)", 0.2, "Decimal", "Outbound contact rate ≥ 20% and < 40% shown in yellow"],
+        ["Outbound Contact Rate", "Red Threshold (Poor)", 0, "Decimal", "Outbound contact rate < 20% shown in red"],
+        ["Front-End", "Answer Rate Green", 0.6, "Decimal", "Front Desk expected answer rate threshold for green"],
+        ["Front-End", "Answer Rate Yellow", 0.4, "Decimal", "Front Desk expected answer rate threshold for yellow"],
+        ["Calls Per Hour", "Call Center Expected", 8, "Number", "Expected calls per hour for Call Center role"],
+        ["Calls Per Hour", "Client Facing Expected", 6, "Number", "Expected calls per hour for Client Facing role"],
+        ["Daily Goal", "Call Center Target", 160, "Number", "Daily call target for Call Center role"],
+        ["Daily Goal", "Client Facing Target", 120, "Number", "Daily call target for Client Facing role"],
+        ["Outbound Mix", "Call Center Expected %", 0.15, "Decimal", "Expected outbound as % of total calls"],
+        ["Outbound Mix", "Client Facing Expected %", 0.1, "Decimal", "Expected outbound as % of total calls"],
+        ["Work Days", "Per Week", 5, "Number", "Standard work days per week for goal calculations"],
+        ["Performance Tracking", "Green - % of Goal", 0.85, "Decimal", "Performance ≥ 85% of goal shown in green"],
+        ["Performance Tracking", "Yellow - % of Goal", 0.7, "Decimal", "Performance ≥ 70% and < 85% of goal shown in yellow"],
+        ["Performance Tracking", "Red - % of Goal", 0, "Decimal", "Performance < 70% of goal shown in red"],
+        ["Executive Summary", "Overall Contact Rate Green", 0.65, "Decimal", "Overall contact rate ≥ 65% shown in green"],
+        ["Executive Summary", "Overall Contact Rate Yellow", 0.45, "Decimal", "Overall contact rate ≥ 45% and < 65% shown in yellow"]
+      ];
+
+      benchmarks.forEach((row) => {
         const dataRow = configSheet.addRow(row);
-        if (idx === 0) {
-          // Header row
-          dataRow.eachCell((cell) => {
-            cell.font = { ...baseFont, bold: true, color: { argb: WHITE } };
-            cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_BG } };
-            cell.alignment = { horizontal: "center", vertical: "middle" };
-          });
-        } else {
-          // Data rows
-          if (dataRow.getCell(3).dataType === 'n' || typeof row[2] === 'number') {
-            if (row[2] < 1) {
-              dataRow.getCell(3).numFmt = "0.00%";
-            } else {
-              dataRow.getCell(3).numFmt = "#,##0";
-            }
-          }
-          dataRow.getCell(3).alignment = { horizontal: "right" };
+        // Format Target Value column as percentage if < 1, otherwise as number
+        const cell = dataRow.getCell(3);
+        if (row[2] < 1 && row[2] > 0) {
+          cell.numFmt = "0.00%";
+        } else if (typeof row[2] === 'number') {
+          cell.numFmt = "#,##0";
         }
+        cell.alignment = { horizontal: "right" };
       });
 
-      // Protect the sheet with password
+      // Define named ranges for formula references
+      wb.definedNames.add("AnswerRate_Green", "Config_Benchmarks!$C$2");
+      wb.definedNames.add("AnswerRate_Yellow", "Config_Benchmarks!$C$3");
+      wb.definedNames.add("AnswerRate_Red", "Config_Benchmarks!$C$4");
+      wb.definedNames.add("CallCenter_Expected_AR", "Config_Benchmarks!$C$5");
+      wb.definedNames.add("ClientFacing_Expected_AR", "Config_Benchmarks!$C$6");
+      wb.definedNames.add("Outbound_Green", "Config_Benchmarks!$C$7");
+      wb.definedNames.add("Outbound_Yellow", "Config_Benchmarks!$C$8");
+      wb.definedNames.add("FrontEnd_AR_Green", "Config_Benchmarks!$C$10");
+      wb.definedNames.add("FrontEnd_AR_Yellow", "Config_Benchmarks!$C$11");
+      wb.definedNames.add("CallCenter_Expected_CPH", "Config_Benchmarks!$C$12");
+      wb.definedNames.add("ClientFacing_Expected_CPH", "Config_Benchmarks!$C$13");
+      wb.definedNames.add("CallCenter_Daily_Goal", "Config_Benchmarks!$C$14");
+      wb.definedNames.add("ClientFacing_Daily_Goal", "Config_Benchmarks!$C$15");
+      wb.definedNames.add("CallCenter_Outbound_Mix", "Config_Benchmarks!$C$16");
+      wb.definedNames.add("ClientFacing_Outbound_Mix", "Config_Benchmarks!$C$17");
+      wb.definedNames.add("WorkDays_Per_Week", "Config_Benchmarks!$C$18");
+      wb.definedNames.add("Performance_Green", "Config_Benchmarks!$C$19");
+      wb.definedNames.add("Performance_Yellow", "Config_Benchmarks!$C$20");
+      wb.definedNames.add("Overall_ContactRate_Green", "Config_Benchmarks!$C$21");
+      wb.definedNames.add("Overall_ContactRate_Yellow", "Config_Benchmarks!$C$22");
+
+      // Protect the sheet
       configSheet.protect("ENTIC_23!", {
         sheet: true,
         content: true,
@@ -441,18 +467,28 @@ export default function CallLogDashboard() {
 
       summary.addRow([]);
 
-      // Metrics with conditional color formatting (using benchmark thresholds)
-      [
-        ["Inbound Answer Rate", totalInbound > 0 ? totalAnswered / totalInbound : 0],
-        ["Front-End Answer Rate", totalFrontEndInbound > 0 ? totalFrontEndAnswered / totalFrontEndInbound : 0],
-        ["Outbound Contact Rate (30s+)", totalOutbound > 0 ? totalOutboundConnected / totalOutbound : 0]
-      ].forEach(([label, val]) => {
+      // Metrics with conditional color formatting - reference Config_Benchmarks via named ranges
+      const metricsData = [
+        ["Inbound Answer Rate", inboundRate, "AnswerRate_Green", "AnswerRate_Yellow"],
+        ["Front-End Answer Rate", frontEndRate, "FrontEnd_AR_Green", "FrontEnd_AR_Yellow"],
+        ["Outbound Contact Rate (30s+)", outboundContactRate, "Outbound_Green", "Outbound_Yellow"],
+        ["Overall Contact Rate", overallContactRate, "Overall_ContactRate_Green", "Overall_ContactRate_Yellow"]
+      ];
+
+      metricsData.forEach(([label, val, greenRef, yellowRef]) => {
         const row = summary.addRow([label, val]);
         row.getCell(1).font = { ...baseFont, bold: true };
         row.getCell(2).numFmt = "0.00%";
         row.getCell(2).alignment = { horizontal: "right" };
-        // Apply benchmark-driven coloring (green if >= 0.5, yellow if >= 0.2, else red)
-        applyRateColor(row.getCell(2), val, BENCHMARK_GREEN_THRESHOLD, BENCHMARK_YELLOW_THRESHOLD);
+        
+        // Apply conditional formatting based on Config_Benchmarks thresholds
+        // For now, use hardcoded values; in Excel formulas will reference named ranges
+        let greenThreshold = 0.5, yellowThreshold = 0.2;
+        if (greenRef === "FrontEnd_AR_Green") { greenThreshold = 0.6; yellowThreshold = 0.4; }
+        if (greenRef === "Outbound_Green") { greenThreshold = 0.4; yellowThreshold = 0.2; }
+        if (greenRef === "Overall_ContactRate_Green") { greenThreshold = 0.65; yellowThreshold = 0.45; }
+        
+        applyConditionalColor(row.getCell(2), val, greenThreshold, yellowThreshold);
       });
 
       summary.addRow([]);
@@ -533,11 +569,9 @@ export default function CallLogDashboard() {
       if (frontendData && frontendData.length > 0) {
         const sorted = [...frontendData].sort((a, b) => (b.answer_rate || 0) - (a.answer_rate || 0));
         let totalInb = 0, totalAns = 0, totalMis = 0;
-        const startRow = frontEnd.rowCount + 1;
 
-        sorted.forEach((u, idx) => {
+        sorted.forEach((u) => {
           const rate = u.answer_rate || 0;
-          const currentRow = startRow + idx;
           const row = frontEnd.addRow([
             u.user_name || "",
             u.total_inbound || 0,
@@ -551,15 +585,10 @@ export default function CallLogDashboard() {
           row.getCell(4).numFmt = "#,##0";
           row.getCell(5).numFmt = "0.00%";
           
-          // Add conditional formatting formula that references Config_Benchmarks
-          // Formula: IF(E{row} >= Config_Benchmarks$C$3, Green, IF(E{row} >= Config_Benchmarks$C$4, Yellow, Red))
-          const rateCell = row.getCell(5);
-          rateCell.value = rate;
-          
           for (let i = 2; i <= 5; i++) row.getCell(i).alignment = { horizontal: "right" };
           
-          // Apply color based on threshold lookup from Config_Benchmarks
-          applyRateColor(rateCell, rate, BENCHMARK_GREEN_THRESHOLD, BENCHMARK_YELLOW_THRESHOLD);
+          // Apply color based on FrontEnd_AR thresholds from Config_Benchmarks
+          applyConditionalColor(row.getCell(5), rate, 0.6, 0.4);
 
           totalInb += u.total_inbound || 0;
           totalAns += u.total_answered || 0;
@@ -575,7 +604,7 @@ export default function CallLogDashboard() {
         totalsRow.getCell(4).numFmt = "#,##0";
         totalsRow.getCell(5).numFmt = "0.00%";
         for (let i = 2; i <= 5; i++) totalsRow.getCell(i).alignment = { horizontal: "right" };
-        applyRateColor(totalsRow.getCell(5), totalRate, BENCHMARK_GREEN_THRESHOLD, BENCHMARK_YELLOW_THRESHOLD);
+        applyConditionalColor(totalsRow.getCell(5), totalRate, 0.6, 0.4);
       }
 
       frontEnd.autoFilter = { from: "A1", to: `E${frontEnd.rowCount}` };
@@ -630,9 +659,9 @@ export default function CallLogDashboard() {
             else row.getCell(i).numFmt = "#,##0";
             row.getCell(i).alignment = { horizontal: "right" };
           }
-          // Apply benchmark-driven conditional coloring
-          applyRateColor(row.getCell(6), ansRate, BENCHMARK_GREEN_THRESHOLD, BENCHMARK_YELLOW_THRESHOLD);
-          applyRateColor(row.getCell(7), ansRate, 0.4, 0.2); // Outbound Contact Rate thresholds
+          // Apply benchmark-driven conditional coloring - reference Config_Benchmarks thresholds
+          applyConditionalColor(row.getCell(6), ansRate, 0.5, 0.2); // Answer Rate from Config_Benchmarks
+          applyConditionalColor(row.getCell(7), outRate, 0.4, 0.2); // Outbound Contact Rate from Config_Benchmarks
 
           totInb += inb; totOut += out; totAns += ans; totMis += mis; totDur += dur * inb; totOutConnected += outConn;
         });
@@ -653,15 +682,15 @@ export default function CallLogDashboard() {
           else totalsRow.getCell(i).numFmt = "#,##0";
           totalsRow.getCell(i).alignment = { horizontal: "right" };
         }
-        applyRateColor(totalsRow.getCell(6), totAnsRate, BENCHMARK_GREEN_THRESHOLD, BENCHMARK_YELLOW_THRESHOLD);
-        applyRateColor(totalsRow.getCell(7), totOutRate, 0.4, 0.2);
+        applyConditionalColor(totalsRow.getCell(6), totAnsRate, 0.5, 0.2);
+        applyConditionalColor(totalsRow.getCell(7), totOutRate, 0.4, 0.2);
       }
 
       individual.autoFilter = { from: "A1", to: `H${individual.rowCount}` };
       individual.views = [{ state: "frozen", ySplit: 1 }];
       autoFitColumns(individual);
 
-      // ===== SHEET 4: RAW DATA =====
+      // ===== SHEET 5: RAW DATA =====
       const rawData = wb.addWorksheet("Raw Data");
       rawData.properties.tabColor = { argb: "FF595959" };
       rawData.columns = [
