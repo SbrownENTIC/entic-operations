@@ -855,7 +855,7 @@ export default function CallLogDashboard() {
           const weeklyGoal = dailyGoal * WorkDaysPerWeek;
           const performanceTotal = answered + outbound;
           const goalPercent = weeklyGoal > 0 ? performanceTotal / weeklyGoal : 0;
-          const avgCallsPerDay = (inbound + outbound) / WorkDaysPerWeek;
+          const avgCallsPerDay = (answered + outConn) / WorkDaysPerWeek;
 
           avgCallsPerDayValues.push(avgCallsPerDay);
           percentOfGoalValues.push(goalPercent);
@@ -1000,7 +1000,7 @@ export default function CallLogDashboard() {
           const weeklyGoal = dailyGoal * WorkDaysPerWeek;
           const performanceTotal = ans + out;
           const goalPercent = weeklyGoal > 0 ? performanceTotal / weeklyGoal : 0;
-          const avgCallsPerDay = (inb + out) / WorkDaysPerWeek;
+          const avgCallsPerDay = (ans + outConn) / WorkDaysPerWeek;
 
           npcAvgCallsPerDayValues.push(avgCallsPerDay);
           npcPctOfGoalValues.push(goalPercent);
@@ -1130,7 +1130,7 @@ export default function CallLogDashboard() {
           const weeklyGoal = dailyGoal * WorkDaysPerWeek;
           const performanceTotal = ans + out;
           const goalPercent = weeklyGoal > 0 ? performanceTotal / weeklyGoal : 0;
-          const avgCallsPerDay = (inb + out) / WorkDaysPerWeek;
+          const avgCallsPerDay = (ans + outConn) / WorkDaysPerWeek;
 
           indAvgCallsPerDayValues.push(avgCallsPerDay);
           percentOfGoalValues.push(goalPercent);
