@@ -246,60 +246,33 @@ export default function CallLogDashboard() {
     return { type: filterType, title, data: filteredData };
   };
 
-  // Handle CSV export
-  const handleExportCSV = () => {
-    const rows = [];
-    
-    // Inbound calls header
-    rows.push(['INBOUND CALLS']);
-    rows.push(['Call Date', 'Call Time', 'Extension', 'Caller Number', 'Duration (sec)', 'Disposition', 'Answered']);
-    
-    inbound.forEach(call => {
-      rows.push([
-        call.call_date || '',
-        call.call_time || '',
-        call.extension || '',
-        call.caller_number || '',
-        call.duration_seconds || 0,
-        call.disposition || '',
-        call.answered ? 'Yes' : 'No'
-      ]);
-    });
-    
-    rows.push([]);
-    
-    // Outbound calls header
-    rows.push(['OUTBOUND CALLS']);
-    rows.push(['Call Date', 'Call Time', 'Extension', 'Dialed Number', 'Duration (sec)', 'Result', 'Location']);
-    
-    outbound.forEach(call => {
-      rows.push([
-        call.call_date || '',
-        call.call_time || '',
-        call.extension || '',
-        call.dialed_number || '',
-        call.duration_seconds || 0,
-        call.result || '',
-        call.location || ''
-      ]);
-    });
-    
-    // Convert to CSV
-    const csv = rows.map(row => 
-      row.map(cell => {
-        const str = String(cell);
-        return str.includes(',') || str.includes('"') ? `"${str.replace(/"/g, '""')}"` : str;
-      }).join(',')
-    ).join('\n');
-    
-    // Download
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `CallLog_Data_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+  // Handle Excel export
+  const handleExportExcel = async () => {
+    try {
+      const response = await base44.functions.invoke('exportCallLogExcel', {
+        monthlyData,
+        weeklyData,
+        monthlyOutboundData,
+        weeklyOutboundData,
+        frontendData,
+        individualData,
+        userDirectory: users,
+        rawInbound: inbound,
+        rawOutbound: outbound
+      });
+
+      const blob = new Blob([new Uint8Array(response.data)], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `CallLog_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      alert(`Export failed: ${error.message}`);
+    }
   };
 
   if (isLoading) {
@@ -338,12 +311,12 @@ export default function CallLogDashboard() {
           <TabsContent value="reporting" className="space-y-6">
             <div className="flex justify-end">
               <Button
-                onClick={handleExportCSV}
+                onClick={handleExportExcel}
                 disabled={inbound.length === 0 && outbound.length === 0}
                 className="gap-2"
               >
                 <Download className="w-4 h-4" />
-                Export to CSV
+                Export to Excel
               </Button>
             </div>
 
