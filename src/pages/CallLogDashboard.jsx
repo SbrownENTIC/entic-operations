@@ -604,6 +604,7 @@ export default function CallLogDashboard() {
         let totalInb = 0, totalOut = 0, totalAns = 0, totalMis = 0, totalOutConn = 0, totalGoal = 0, totalWeekGoal = 0;
         let frontIdx = 0;
         const percentOfGoalValues = [];
+        const frontendTableRows = [];
 
         while (frontIdx < sorted.length) {
           const u = sorted[frontIdx];
@@ -614,51 +615,43 @@ export default function CallLogDashboard() {
           const outConn = u.outbound_connected || 0;
           const outRate = outbound > 0 ? outConn / outbound : 0;
           const dailyGoal = getExpectedCallsPerHour("Call Center") * 7.5;
-          const weeklyGoal = dailyGoal * 5; // 5 workdays hardcoded
-          const goalActivity = answered + outbound; // Answered + Outbound only
+          const weeklyGoal = dailyGoal * 5;
+          const goalActivity = answered + outbound;
           const goalPercent = weeklyGoal > 0 ? goalActivity / weeklyGoal : 0;
 
           percentOfGoalValues.push(goalPercent);
-
-          const row = frontEnd.addRow([
-            u.user_name || "",
-            inbound,
-            outbound,
-            answered,
-            u.total_missed || 0,
-            ansRate,
-            outRate,
-            dailyGoal,
-            weeklyGoal,
-            goalPercent
-          ]);
-
-          row.getCell(2).numFmt = "#,##0";
-          row.getCell(3).numFmt = "#,##0";
-          row.getCell(4).numFmt = "#,##0";
-          row.getCell(5).numFmt = "#,##0";
-          row.getCell(6).numFmt = "0.00%";
-          row.getCell(7).numFmt = "0.00%";
-          row.getCell(8).numFmt = "#,##0";
-          row.getCell(9).numFmt = "#,##0";
-          row.getCell(10).numFmt = "0.00%";
-
-          // Conditional formatting for Answer Rate (col 6), Outbound Contact Rate (col 7), and Goal % (col 10)
-          applyConditionalColor(row.getCell(6), ansRate, 0.50, 0.20);
-          applyConditionalColor(row.getCell(7), outRate, 0.50, 0.20);
-          applyConditionalColor(row.getCell(10), goalPercent, 1.00, 0.90);
-
-          for (let i = 2; i <= 10; i++) row.getCell(i).alignment = { horizontal: "right" };
+          frontendTableRows.push([u.user_name || "", inbound, outbound, answered, u.total_missed || 0, ansRate, outRate, dailyGoal, weeklyGoal, goalPercent]);
 
           totalInb += inbound;
           totalOut += outbound;
           totalAns += answered;
           totalMis += u.total_missed || 0;
           totalOutConn += outConn;
-          totalGoal = dailyGoal; // Last daily goal (same for all)
+          totalGoal = dailyGoal;
           totalWeekGoal = weeklyGoal;
           frontIdx++;
         }
+
+        frontEnd.addTable({
+          name: "FrontEndPerformanceTable",
+          ref: "A1",
+          headerRow: true,
+          totalsRow: false,
+          style: { theme: "TableStyleMedium2", showRowStripes: true },
+          columns: [
+            { name: "User" },
+            { name: "Inbound" },
+            { name: "Outbound" },
+            { name: "Answered" },
+            { name: "Missed" },
+            { name: "Answer Rate" },
+            { name: "Outbound Contact Rate" },
+            { name: "Daily Goal" },
+            { name: "Weekly Goal" },
+            { name: "% of Goal" }
+          ],
+          rows: frontendTableRows
+        });
 
         const totalAnsRate = totalInb > 0 ? totalAns / totalInb : 0;
         const totalOutRate = totalOut > 0 ? totalOutConn / totalOut : 0;
@@ -668,19 +661,13 @@ export default function CallLogDashboard() {
         const totalsRow = frontEnd.addRow(["TOTAL", totalInb, totalOut, totalAns, totalMis, totalAnsRate, totalOutRate, totalGoal, totalWeekGoal, avgPercentOfGoal]);
         totalsRow.font = { name: "Calibri", size: 11, bold: true };
         totalsRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9E1F2" } };
-        totalsRow.getCell(2).numFmt = "#,##0";
-        totalsRow.getCell(3).numFmt = "#,##0";
-        totalsRow.getCell(4).numFmt = "#,##0";
-        totalsRow.getCell(5).numFmt = "#,##0";
-        totalsRow.getCell(6).numFmt = "0.00%";
-        totalsRow.getCell(7).numFmt = "0.00%";
-        totalsRow.getCell(8).numFmt = "#,##0";
-        totalsRow.getCell(9).numFmt = "#,##0";
-        totalsRow.getCell(10).numFmt = "0.00%";
-        for (let i = 2; i <= 10; i++) totalsRow.getCell(i).alignment = { horizontal: "right" };
+        for (let i = 2; i <= 10; i++) {
+          if (i === 6 || i === 7 || i === 10) totalsRow.getCell(i).numFmt = "0.00%";
+          else totalsRow.getCell(i).numFmt = "#,##0";
+          totalsRow.getCell(i).alignment = { horizontal: "right" };
+        }
       }
 
-      frontEnd.autoFilter = { from: "A1", to: `J${frontEnd.rowCount}` };
       frontEnd.views = [{ state: "frozen", ySplit: 1 }];
       autoFitColumns(frontEnd);
 
@@ -713,6 +700,7 @@ export default function CallLogDashboard() {
         let totInb = 0, totOut = 0, totAns = 0, totMis = 0, totDur = 0, totOutConnected = 0, totalGoal = 0, totalWeekGoal = 0;
         let indIdx = 0;
         const percentOfGoalValues = [];
+        const individualTableRows = [];
 
         while (indIdx < sorted.length) {
           const u = sorted[indIdx];
@@ -725,40 +713,40 @@ export default function CallLogDashboard() {
           const ansRate = inb > 0 ? ans / inb : 0;
           const outRate = out > 0 ? outConn / out : 0;
           const dailyGoal = getExpectedCallsPerHour(u.role || "Call Center") * 7.5;
-          const weeklyGoal = dailyGoal * 5; // 5 workdays hardcoded
-          const goalActivity = ans + out; // Answered + Outbound only
+          const weeklyGoal = dailyGoal * 5;
+          const goalActivity = ans + out;
           const goalPercent = weeklyGoal > 0 ? goalActivity / weeklyGoal : 0;
 
           percentOfGoalValues.push(goalPercent);
-
-          const row = individual.addRow([
-            u.user_name || "",
-            inb, out, ans, mis,
-            ansRate,
-            outRate,
-            dailyGoal,
-            weeklyGoal,
-            goalPercent,
-            dur / 60
-          ]);
-
-          for (let i = 2; i <= 11; i++) {
-            if (i === 6 || i === 7 || i === 10) row.getCell(i).numFmt = "0.00%";
-            else if (i === 11) row.getCell(i).numFmt = "0.00";
-            else row.getCell(i).numFmt = "#,##0";
-            row.getCell(i).alignment = { horizontal: "right" };
-          }
-
-          // Conditional formatting for Answer Rate (6), Outbound Rate (7), and Goal % (10)
-          applyConditionalColor(row.getCell(6), ansRate, 0.50, 0.20);
-          applyConditionalColor(row.getCell(7), outRate, 0.50, 0.20);
-          applyConditionalColor(row.getCell(10), goalPercent, 1.00, 0.90);
+          individualTableRows.push([u.user_name || "", inb, out, ans, mis, ansRate, outRate, dailyGoal, weeklyGoal, goalPercent, dur / 60]);
 
           totInb += inb; totOut += out; totAns += ans; totMis += mis; totDur += dur * inb; totOutConnected += outConn;
           totalGoal = dailyGoal;
           totalWeekGoal = weeklyGoal;
           indIdx++;
         }
+
+        individual.addTable({
+          name: "IndividualPerformanceTable",
+          ref: "A1",
+          headerRow: true,
+          totalsRow: false,
+          style: { theme: "TableStyleMedium9", showRowStripes: true },
+          columns: [
+            { name: "User" },
+            { name: "Inbound" },
+            { name: "Outbound" },
+            { name: "Answered" },
+            { name: "Missed" },
+            { name: "Answer Rate" },
+            { name: "Outbound Contact Rate" },
+            { name: "Daily Goal" },
+            { name: "Weekly Goal" },
+            { name: "% of Goal" },
+            { name: "Avg Duration (min)" }
+          ],
+          rows: individualTableRows
+        });
 
         const totAnsRate = totInb > 0 ? totAns / totInb : 0;
         const totOutRate = totOut > 0 ? totOutConnected / totOut : 0;
@@ -784,9 +772,8 @@ export default function CallLogDashboard() {
         }
       }
 
-      individual.autoFilter = { from: "A1", to: `K${individual.rowCount}` };
-       individual.views = [{ state: "frozen", ySplit: 1 }];
-       autoFitColumns(individual);
+      individual.views = [{ state: "frozen", ySplit: 1 }];
+      autoFitColumns(individual);
 
        // ===== PHASE 3: ADD CONFIG, FORMULA, AND RAW DATA SHEETS =====
 
