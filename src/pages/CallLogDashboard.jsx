@@ -562,9 +562,10 @@ export default function CallLogDashboard() {
       // Weekly data - no goal columns
        if (!Array.isArray(weeklyData)) throw new Error("weeklyData iteration failed");
        if (weeklyData.length > 0) {
+         const sortedWeeklyData = [...weeklyData].sort((a, b) => (b.week_start || "").localeCompare(a.week_start || ""));
          let wIdx = 0;
-         while (wIdx < weeklyData.length) {
-           const w = weeklyData[wIdx];
+         while (wIdx < sortedWeeklyData.length) {
+           const w = sortedWeeklyData[wIdx];
            const weeklyInbound = w.total_inbound || 0;
            const weeklyOutbound = w.total_outbound || 0;
            const totalCalls = weeklyInbound + weeklyOutbound;
