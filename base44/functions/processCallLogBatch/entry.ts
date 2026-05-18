@@ -44,18 +44,24 @@ function parseDuration(durationStr) {
 }
 
 /**
- * Parse date/time from format like "5/8/26 23:55"
+ * Parse date/time from:
+ *  - "5/8/26 23:55"           (M/D/YY 24h)
+ *  - "05/16/2026 10:22:50 PM" (MM/DD/YYYY 12h with AM/PM)
  */
 function parseDateTime(dateTimeStr) {
   try {
-    const [datePart, timePart] = dateTimeStr.split(' ');
+    const parts = dateTimeStr.trim().split(' ');
+    const datePart = parts[0];
+    const timePart = parts.slice(1).join(' ');
     const [m, d, y] = datePart.split('/');
-    const year = 2000 + parseInt(y, 10);
+    const yInt = parseInt(y, 10);
+    const year = yInt > 999 ? yInt : 2000 + yInt;
     const month = String(parseInt(m, 10)).padStart(2, '0');
     const day = String(parseInt(d, 10)).padStart(2, '0');
+    const timeClean = timePart.replace(/\s*(AM|PM)$/i, '').trim().substring(0, 5);
     return {
       date: `${year}-${month}-${day}`,
-      time: timePart || '00:00'
+      time: timeClean || '00:00'
     };
   } catch {
     return { date: '2026-05-01', time: '00:00' };
