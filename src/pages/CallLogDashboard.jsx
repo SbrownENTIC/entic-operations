@@ -726,7 +726,7 @@ export default function CallLogDashboard() {
         cRow.getCell(6).numFmt = "0.00%"; cRow.getCell(6).alignment = { horizontal: "right" };
         applyGroupCF(cRow.getCell(2), m.ansRate, 0.50, 0.20);
         applyGroupCF(cRow.getCell(4), m.outRate, 0.50, 0.20);
-        applyGroupCF(cRow.getCell(6), m.pctGoal, 1.00, 0.90);
+        applyGroupCF(cRow.getCell(6), m.pctGoal, 0.50, 0.20);
         // Fill empty cells with row background
         [3, 5].forEach(i => {
           cRow.getCell(i).fill = { type: "pattern", pattern: "solid", fgColor: { argb: fillArgb } };
