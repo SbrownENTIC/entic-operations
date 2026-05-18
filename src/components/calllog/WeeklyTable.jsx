@@ -18,7 +18,7 @@ export default function WeeklyTable({ data = [] }) {
         </thead>
         <tbody>
           {data.length > 0 ? (
-            data.map((row, i) => (
+            [...data].sort((a, b) => b.week_start.localeCompare(a.week_start)).map((row, i) => (
               <tr key={i} className={`border-b border-slate-100 ${i % 2 === 0 ? '' : 'bg-slate-50'}`}>
                 <td className="p-3 text-slate-700">{row.week_start}</td>
                 <td className="p-3 text-right text-slate-700">{row.total_inbound}</td>
