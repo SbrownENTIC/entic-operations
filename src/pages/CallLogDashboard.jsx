@@ -241,9 +241,10 @@ export default function CallLogDashboard() {
     return individualData.filter(u => u.benchmark_group === 'NP Coordinator');
   }, [individualData]);
 
-  const otherUsersData = useMemo(() => {
+  // Individual Performance = Front Desk + NP Coordinator only (no "Other")
+  const individualPerformanceData = useMemo(() => {
     if (!Array.isArray(individualData)) return [];
-    return individualData.filter(u => u.benchmark_group !== 'Front Desk' && u.benchmark_group !== 'NP Coordinator');
+    return individualData.filter(u => u.benchmark_group === 'Front Desk' || u.benchmark_group === 'NP Coordinator');
   }, [individualData]);
 
   // Build filtered datasets for KPI detail modals
@@ -325,7 +326,7 @@ export default function CallLogDashboard() {
       console.log("monthlyData:", Array.isArray(monthlyData) ? `array (${monthlyData.length})` : "NOT ARRAY");
       console.log("frontendData:", Array.isArray(frontendData) ? `array (${frontendData.length})` : "NOT ARRAY");
       console.log("npCoordinatorData:", Array.isArray(npCoordinatorData) ? `array (${npCoordinatorData.length})` : "NOT ARRAY");
-      console.log("otherUsersData:", Array.isArray(otherUsersData) ? `array (${otherUsersData.length})` : "NOT ARRAY");
+      console.log("individualPerformanceData (FD+NPC):", Array.isArray(individualPerformanceData) ? `array (${individualPerformanceData.length})` : "NOT ARRAY");
       console.log("inbound:", Array.isArray(inbound) ? `array (${inbound.length})` : "NOT ARRAY");
       console.log("outbound:", Array.isArray(outbound) ? `array (${outbound.length})` : "NOT ARRAY");
       
@@ -485,19 +486,10 @@ export default function CallLogDashboard() {
       });
       const npcRate = totalNPCInbound > 0 ? totalNPCAnswered / totalNPCInbound : 0;
 
-      // Other users group totals
-      let totalOtherInbound = 0, totalOtherAnswered = 0;
-      otherUsersData.forEach(u => {
-        totalOtherInbound += u.total_inbound || 0;
-        totalOtherAnswered += u.total_answered || 0;
-      });
-      const otherRate = totalOtherInbound > 0 ? totalOtherAnswered / totalOtherInbound : 0;
-
       const rateMetricsData = [
         ["Inbound Answer Rate (All)", inboundRate, true],
         ["Front Desk Answer Rate", frontEndRate, true],
         ["NP Coordinator Answer Rate", npcRate, true],
-        ["Other Users Answer Rate", otherRate, true],
         ["Outbound Contact Rate (30s+)", outboundContactRate, true],
         ["Overall Contact Rate", overallContactRate, true]
       ];
@@ -631,12 +623,12 @@ export default function CallLogDashboard() {
       });
 
       // Pre-compute per-group outbound metrics using raw outbound records mapped through extToUser
-      const groupOutboundMap = { "Front Desk": { total: 0, connected: 0 }, "NP Coordinator": { total: 0, connected: 0 }, "Other": { total: 0, connected: 0 } };
+      const groupOutboundMap = { "Front Desk": { total: 0, connected: 0 }, "NP Coordinator": { total: 0, connected: 0 } };
       outbound.forEach(call => {
         const normalizedExt = String(call.extension || "").trim().replace(/[\s\-\(\)]/g, '').replace(/\D/g, '');
         const userObj = extToUser[normalizedExt] || extToUser[call.extension];
-        const group = userObj ? (userObj.benchmark_group || "Other") : null;
-        const key = group === "Front Desk" ? "Front Desk" : group === "NP Coordinator" ? "NP Coordinator" : group ? "Other" : null;
+        const group = userObj ? userObj.benchmark_group : null;
+        const key = group === "Front Desk" ? "Front Desk" : group === "NP Coordinator" ? "NP Coordinator" : null;
         if (key) {
           groupOutboundMap[key].total++;
           if ((call.duration_seconds || 0) >= 30) groupOutboundMap[key].connected++;
@@ -663,12 +655,10 @@ export default function CallLogDashboard() {
 
       const fdMetrics = buildGroupMetrics(frontendData, "Front Desk");
       const npcMetrics = buildGroupMetrics(npCoordinatorData, "NP Coordinator");
-      const otherMetrics = buildGroupMetrics(otherUsersData, "Other");
 
       const groupRows = [
         ["Front Desk", fdMetrics],
-        ["NP Coordinator", npcMetrics],
-        ["Other", otherMetrics]
+        ["NP Coordinator", npcMetrics]
       ];
 
       const LIGHT_GRAY = "FFF2F2F2";
@@ -756,7 +746,7 @@ export default function CallLogDashboard() {
       summary.getRow(kpiSummaryStartRow).height = 22;
 
       // KPI sub-header row
-      const kpiSubHdr = summary.addRow(["Metric", "Front Desk", "", "NP Coordinator", "", "Other"]);
+      const kpiSubHdr = summary.addRow(["Metric", "Front Desk", "", "NP Coordinator"]);
       kpiSubHdr.eachCell((cell) => {
         if (cell.value) {
           cell.font = { name: "Calibri", size: 10, bold: true, color: { argb: WHITE } };
@@ -779,9 +769,9 @@ export default function CallLogDashboard() {
       };
 
       const kpiSummaryData = [
-        ["Total Answered", fdMetrics.ans, "", npcMetrics.ans, "", otherMetrics.ans],
-        ["Total Outbound", fdMetrics.out, "", npcMetrics.out, "", otherMetrics.out],
-        ["Avg % of Goal", calcAvgGoalPct(frontendData), "", calcAvgGoalPct(npCoordinatorData), "", calcAvgGoalPct(otherUsersData)]
+        ["Total Answered", fdMetrics.ans, "", npcMetrics.ans],
+        ["Total Outbound", fdMetrics.out, "", npcMetrics.out],
+        ["Avg % of Goal", calcAvgGoalPct(frontendData), "", calcAvgGoalPct(npCoordinatorData)]
       ];
 
       kpiSummaryData.forEach((rowData, rIdx) => {
@@ -789,8 +779,8 @@ export default function CallLogDashboard() {
         const fillArgb = rIdx % 2 === 0 ? LIGHT_GRAY : "FFFFFFFF";
         kRow.getCell(1).font = { name: "Calibri", size: 11, bold: true };
         kRow.getCell(1).alignment = { horizontal: "left" };
-        // Values in cols 2, 4, 6
-        [2, 4, 6].forEach(colIdx => {
+        // Values in cols 2, 4
+        [2, 4].forEach(colIdx => {
           const cell = kRow.getCell(colIdx);
           cell.font = { name: "Calibri", size: 11, bold: true };
           cell.alignment = { horizontal: "right" };
@@ -801,10 +791,8 @@ export default function CallLogDashboard() {
             cell.numFmt = "#,##0";
           }
         });
-        // Fill empty cells
-        [3, 5].forEach(i => {
-          kRow.getCell(i).fill = { type: "pattern", pattern: "solid", fgColor: { argb: fillArgb } };
-        });
+        // Fill empty cell col 3
+        kRow.getCell(3).fill = { type: "pattern", pattern: "solid", fgColor: { argb: fillArgb } };
       });
 
       summary.addRow([]); // Bottom spacer
@@ -1128,9 +1116,9 @@ export default function CallLogDashboard() {
       // Row 2: Blank spacer
       individual.addRow([]);
 
-      if (!Array.isArray(otherUsersData)) throw new Error("otherUsersData is not an array");
-      if (otherUsersData.length > 0) {
-        const sorted = [...otherUsersData].sort((a, b) => (b.answer_rate || 0) - (a.answer_rate || 0));
+      if (!Array.isArray(individualPerformanceData)) throw new Error("individualPerformanceData is not an array");
+      if (individualPerformanceData.length > 0) {
+        const sorted = [...individualPerformanceData].sort((a, b) => (b.answer_rate || 0) - (a.answer_rate || 0));
         let totInb = 0, totOut = 0, totAns = 0, totMis = 0, totDur = 0, totOutConnected = 0, totalGoal = 0, totalWeekGoal = 0;
         let indIdx = 0;
         const percentOfGoalValues = [];
@@ -1628,10 +1616,10 @@ export default function CallLogDashboard() {
             {/* Individual Performance */}
             <Card className="border-slate-200 shadow-sm">
               <CardHeader>
-                <CardTitle>Individual Performance (Other Users)</CardTitle>
+                <CardTitle>Individual Performance (Front Desk &amp; NP Coordinator)</CardTitle>
               </CardHeader>
               <CardContent>
-                <IndividualPerformanceTable data={otherUsersData} showOutbound={true} defaultSort="overall_contact_rate" />
+                <IndividualPerformanceTable data={individualPerformanceData} showOutbound={true} defaultSort="overall_contact_rate" />
               </CardContent>
             </Card>
 
