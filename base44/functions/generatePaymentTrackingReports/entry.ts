@@ -711,6 +711,10 @@ Deno.serve(async (req) => {
             zip.file(`${filename}.xlsx`, buffer);
         }
 
+        // Add Master workbook to ZIP
+        const masterBuffer = await finalMasterWorkbook.xlsx.writeBuffer();
+        zip.file(`Outside_Income_Payment_Tracking_MASTER.xlsx`, masterBuffer);
+
         const zipContent = await zip.generateAsync({ type: "base64" });
 
         return Response.json({ zipContent });
