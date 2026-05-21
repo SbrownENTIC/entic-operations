@@ -528,13 +528,19 @@ Deno.serve(async (req) => {
                     if (parts.length === 3) formattedDate = `${parts[1]}/${parts[2]}/${parts[0]}`;
                 }
 
+                // Aggregate allocation notes
+                const allocationNotes = (p.allocations || [])
+                    .map(a => a.notes || '')
+                    .filter(Boolean)
+                    .join('; ');
+
                 const rowData = [
                     p.reference_number || '',
                     formattedDate,
                     p.payment_month || '',
                     paymentQuarter,
                     p.total_amount || 0,
-                    p.notes || '',
+                    allocationNotes,
                 ];
 
                 const row = ws.addRow(rowData);
