@@ -24,6 +24,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
+import { auditCreate, auditUpdate, auditDelete } from '@/lib/auditLogger';
 
 export default function Providers() {
   // Force rebuild timestamp: 2026-01-16
@@ -122,13 +123,12 @@ export default function Providers() {
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Provider.create(data),
-    onSuccess: (newProvider) => {
+    onSuccess: (newProvider, data) => {
       queryClient.invalidateQueries({ queryKey: ['providers'] });
       setShowForm(false);
-      toast({
-        title: "Success",
-        description: "Provider added successfully.",
-      });
+      toast({ title: "Success", description: "Provider added successfully." });
+      // Non-blocking audit log
+      auditCreate('Provider', data).catch(e => console.error('[Audit]', e));
       return newProvider;
     },
     onError: (error) => {
@@ -150,14 +150,13 @@ export default function Providers() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Provider.update(id, data),
-    onSuccess: () => {
+    onSuccess: (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['providers'] });
       setShowForm(false);
       setEditingProvider(null);
-      toast({
-        title: "Success",
-        description: "Provider updated successfully.",
-      });
+      toast({ title: "Success", description: "Provider updated successfully." });
+      // Non-blocking audit log — pass editingProvider as the old record snapshot
+      auditUpdate('Provider', variables.id, variables.data, editingProvider).catch(e => console.error('[Audit]', e));
     },
     onError: (error) => {
       if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
@@ -178,13 +177,13 @@ export default function Providers() {
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.Provider.delete(id),
-    onSuccess: () => {
+    onSuccess: (result, id) => {
+      const snapshot = deleteConfirm;
       queryClient.invalidateQueries({ queryKey: ['providers'] });
       setDeleteConfirm(null);
-      toast({
-        title: "Success",
-        description: "Provider deleted successfully.",
-      });
+      toast({ title: "Success", description: "Provider deleted successfully." });
+      // Non-blocking audit log
+      auditDelete('Provider', id, snapshot).catch(e => console.error('[Audit]', e));
     },
     onError: (error) => {
       if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {

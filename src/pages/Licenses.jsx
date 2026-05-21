@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { differenceInDays, format, parseISO } from "date-fns";
 import { useLocation } from "react-router-dom";
 import LicenseForm from "../components/licenses/LicenseForm";
+import { auditCreate, auditUpdate, auditDelete } from '@/lib/auditLogger';
 import EmptyState from "@/components/ui/EmptyState";
 import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
 
@@ -73,25 +74,25 @@ export default function Licenses() {
       const sameLicenseType = licenses.filter(l => l.license_type === data.license_type);
       const nextId = sameLicenseType.length + 1;
       const internalNumber = `${data.license_type}-${String(nextId).padStart(3, '0')}`;
-      
-      return base44.entities.License.create({
-        ...data,
-        internal_license_number: internalNumber
-      });
+      const payload = Object.assign({}, data, { internal_license_number: internalNumber });
+      return base44.entities.License.create(payload);
     },
-    onSuccess: () => {
+    onSuccess: (newLicense, data) => {
       queryClient.invalidateQueries({ queryKey: ['licenses'] });
       setShowForm(false);
       setEditingLicense(null);
+      auditCreate('License', data).catch(e => console.error('[Audit]', e));
     }
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.License.update(id, data),
-    onSuccess: () => {
+    onSuccess: (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['licenses'] });
       setShowForm(false);
+      const oldRecord = editingLicense;
       setEditingLicense(null);
+      auditUpdate('License', variables.id, variables.data, oldRecord).catch(e => console.error('[Audit]', e));
     }
   });
 
@@ -99,9 +100,14 @@ export default function Licenses() {
     mutationFn: async (ids) => {
       await Promise.all(ids.map(id => base44.entities.License.delete(id)));
     },
-    onSuccess: () => {
+    onSuccess: (result, ids) => {
       queryClient.invalidateQueries({ queryKey: ['licenses'] });
+      // Capture snapshots before clearing selection
+      const deletedSnapshots = licenses.filter(l => ids.includes(l.id));
       setSelectedIds(new Set());
+      deletedSnapshots.forEach(snap => {
+        auditDelete('License', snap.id, snap).catch(e => console.error('[Audit]', e));
+      });
     }
   });
 

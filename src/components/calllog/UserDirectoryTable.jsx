@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { auditCreate, auditUpdate, auditDelete } from '@/lib/auditLogger';
 
 export default function UserDirectoryTable() {
    const [search, setSearch] = useState('');
@@ -139,9 +140,12 @@ export default function UserDirectoryTable() {
 
     try {
       if (editingUser) {
+        const oldRecord = users.find(u => u.id === editingUser) || null;
         await base44.entities.UserDirectory.update(editingUser, formData);
+        auditUpdate('UserDirectory', editingUser, formData, oldRecord).catch(e => console.error('[Audit]', e));
       } else {
-        await base44.entities.UserDirectory.create(formData);
+        const newRecord = await base44.entities.UserDirectory.create(formData);
+        auditCreate('UserDirectory', formData).catch(e => console.error('[Audit]', e));
       }
       queryClient.invalidateQueries({ queryKey: ['user-directory'] });
       setFormData(null);
@@ -154,7 +158,9 @@ export default function UserDirectoryTable() {
   const handleDelete = async (id) => {
     if (!confirm('Delete this user?')) return;
     try {
+      const snapshot = users.find(u => u.id === id) || null;
       await base44.entities.UserDirectory.delete(id);
+      auditDelete('UserDirectory', id, snapshot).catch(e => console.error('[Audit]', e));
       queryClient.invalidateQueries({ queryKey: ['user-directory'] });
     } catch (error) {
       alert(`Delete failed: ${error.message}`);
@@ -163,9 +169,9 @@ export default function UserDirectoryTable() {
 
   const handleToggleActive = async (user) => {
     try {
-      await base44.entities.UserDirectory.update(user.id, {
-        active: !user.active,
-      });
+      const changes = { active: !user.active };
+      await base44.entities.UserDirectory.update(user.id, changes);
+      auditUpdate('UserDirectory', user.id, changes, user).catch(e => console.error('[Audit]', e));
       queryClient.invalidateQueries({ queryKey: ['user-directory'] });
     } catch (error) {
       alert(`Update failed: ${error.message}`);
@@ -174,9 +180,9 @@ export default function UserDirectoryTable() {
 
   const handleToggleBenchmark = async (user) => {
     try {
-      await base44.entities.UserDirectory.update(user.id, {
-        include_in_benchmark: !user.include_in_benchmark,
-      });
+      const changes = { include_in_benchmark: !user.include_in_benchmark };
+      await base44.entities.UserDirectory.update(user.id, changes);
+      auditUpdate('UserDirectory', user.id, changes, user).catch(e => console.error('[Audit]', e));
       queryClient.invalidateQueries({ queryKey: ['user-directory'] });
     } catch (error) {
       alert(`Update failed: ${error.message}`);
@@ -215,9 +221,9 @@ export default function UserDirectoryTable() {
       let updateIdx = 0;
       while (updateIdx < selectedUsers.length) {
         const userId = selectedUsers[updateIdx];
-        await base44.entities.UserDirectory.update(userId, {
-          daily_goal: goalValue
-        });
+        const oldRecord = users.find(u => u.id === userId) || null;
+        await base44.entities.UserDirectory.update(userId, { daily_goal: goalValue });
+        auditUpdate('UserDirectory', userId, { daily_goal: goalValue }, oldRecord).catch(e => console.error('[Audit]', e));
         updateIdx++;
       }
       queryClient.invalidateQueries({ queryKey: ['user-directory'] });

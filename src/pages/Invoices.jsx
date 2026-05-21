@@ -12,6 +12,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { formatDateToEST } from "@/components/DateUtils";
 import InvoiceForm from "../components/invoices/InvoiceForm";
+import { auditCreate, auditUpdate, auditDelete } from '@/lib/auditLogger';
 import EmptyState from "@/components/ui/EmptyState";
 import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
 import { useToast } from "@/components/ui/use-toast";
@@ -369,12 +370,13 @@ export default function Invoices() {
       
       return invoice;
     },
-    onSuccess: (invoice) => {
+    onSuccess: (invoice, data) => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['outside-income'] });
       setShowForm(false);
       setEditingInvoice(null);
       setPreselectedIncomes([]);
+      auditCreate('Invoice', data).catch(e => console.error('[Audit]', e));
     },
     onError: (error) => {
       if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
@@ -433,11 +435,13 @@ export default function Invoices() {
       
       return invoice;
     },
-    onSuccess: (invoice) => {
+    onSuccess: (invoice, variables) => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['outside-income'] });
       setShowForm(false);
+      const oldRecord = editingInvoice;
       setEditingInvoice(null);
+      auditUpdate('Invoice', variables.id, variables.data, oldRecord).catch(e => console.error('[Audit]', e));
     },
     onError: (error) => {
       if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
@@ -476,10 +480,12 @@ export default function Invoices() {
       
       await base44.entities.Invoice.delete(invoice.id);
     },
-    onSuccess: () => {
+    onSuccess: (result, invoice) => {
+      const snapshot = deleteConfirm;
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['outside-income'] });
       setDeleteConfirm(null);
+      auditDelete('Invoice', invoice.id, snapshot).catch(e => console.error('[Audit]', e));
     },
     onError: (error) => {
       if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
@@ -509,8 +515,13 @@ export default function Invoices() {
       );
       return Promise.all(updates);
     },
-    onSuccess: () => {
+    onSuccess: (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      // Non-blocking bulk audit log
+      variables.ids.forEach(id => {
+        const old = invoices.find(inv => inv.id === id) || null;
+        auditUpdate('Invoice', id, variables.updateData, old).catch(e => console.error('[Audit]', e));
+      });
       setSelectedInvoices([]);
       setBulkDateProviderPaid('');
       setBulkProviderPaid(false);
