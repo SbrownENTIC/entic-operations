@@ -566,11 +566,7 @@ Deno.serve(async (req) => {
             reorderedMaster.creator = masterWorkbook.creator;
             reorderedMaster.created = masterWorkbook.created;
 
-            // 1) Hartford Payment Summary (index 0, active)
-            buildHartfordPaymentSummary(reorderedMaster, payments);
-            reorderedMaster.views = [{ activeTab: 0 }];
-
-            // 2) Copy all sheets from masterWorkbook into reorderedMaster
+            // Copy all sheets from masterWorkbook into reorderedMaster
             for (const srcSheet of masterWorkbook.worksheets) {
                 const dstSheet = reorderedMaster.addWorksheet(srcSheet.name, {
                     properties: srcSheet.properties
@@ -603,6 +599,54 @@ Deno.serve(async (req) => {
                 if (srcSheet.views && srcSheet.views.length > 0) dstSheet.views = srcSheet.views;
             }
 
+            // Now insert Hartford Payment Summary after Provider Revenue Summary
+            // Find the index of Provider Revenue Summary sheet
+            let provRevIdx = reorderedMaster.worksheets.findIndex(ws => ws.name === 'Provider Revenue Summary');
+            if (provRevIdx === -1) provRevIdx = 1; // Fallback: insert after first sheet
+
+            // Build the Hartford Payment Summary sheet and insert it
+            const hpsSheet = new ExcelJS.Workbook();
+            buildHartfordPaymentSummary(hpsSheet, payments);
+            const hpsOriginal = hpsSheet.getWorksheet('Hartford Payment Summary');
+
+            // Create a new worksheet in reorderedMaster at the right position
+            const newHpsSheet = reorderedMaster.addWorksheet('Hartford Payment Summary', {
+                properties: hpsOriginal.properties
+            });
+
+            // Copy the content
+            hpsOriginal.columns.forEach((col, i) => {
+                try {
+                    const dstCol = newHpsSheet.getColumn(i + 1);
+                    if (dstCol && col.width) dstCol.width = col.width;
+                } catch (_) {}
+            });
+
+            hpsOriginal.eachRow({ includeEmpty: true }, (row, rowNum) => {
+                const newRow = newHpsSheet.getRow(rowNum);
+                newRow.height = row.height;
+                row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+                    const newCell = newRow.getCell(colNum);
+                    newCell.value = cell.value;
+                    if (cell.style) newCell.style = JSON.parse(JSON.stringify(cell.style));
+                });
+                newRow.commit();
+            });
+
+            if (hpsOriginal.autoFilter) newHpsSheet.autoFilter = hpsOriginal.autoFilter;
+            if (hpsOriginal.views && hpsOriginal.views.length > 0) newHpsSheet.views = hpsOriginal.views;
+
+            // Move the newly added sheet to the correct position (after Provider Revenue Summary)
+            const sheets = reorderedMaster.worksheets;
+            const hpsIdx = sheets.length - 1; // Last sheet (just added)
+            const insertPos = provRevIdx + 1;
+
+            if (hpsIdx !== insertPos) {
+                sheets.splice(hpsIdx, 1); // Remove from end
+                sheets.splice(insertPos, 0, newHpsSheet); // Insert at correct position
+            }
+
+            reorderedMaster.views = [{ activeTab: 0 }];
             finalMasterWorkbook = reorderedMaster;
         }
 
