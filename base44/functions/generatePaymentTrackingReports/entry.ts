@@ -590,9 +590,12 @@ Deno.serve(async (req) => {
                 });
                 dstSheet.state = srcSheet.state;
 
-                // Copy columns widths
+                // Copy column widths
                 srcSheet.columns.forEach((col, i) => {
-                    if (dstSheet.columns[i]) dstSheet.columns[i].width = col.width;
+                    try {
+                        const dstCol = dstSheet.getColumn(i + 1);
+                        if (dstCol && col.width) dstCol.width = col.width;
+                    } catch (_) {}
                 });
 
                 // Copy rows
