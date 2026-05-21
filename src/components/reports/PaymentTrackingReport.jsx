@@ -122,11 +122,18 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
       const exportDate = format(new Date(), 'MMMM dd, yyyy');
       const paymentQuarterRows = buildPaymentQuarterRows(payments, invoices, providers, outsideIncome, programLocations);
       
+      // Tag Hartford Hospital payments so backend can build the Payment Summary sheet
+      const taggedPayments = (payments || []).map(p => {
+        const isHartford = (p.payer || '').toLowerCase().includes('hartford') ||
+          (p.allocations || []).some(a => (a.notes || '').toLowerCase().includes('hartford'));
+        return isHartford ? { ...p, _isHartford: true } : p;
+      });
+
       const response = await base44.functions.invoke('generatePaymentTrackingReports', {
         sections,
         exportDate,
         paymentQuarterRows,
-        payments: payments || [],
+        payments: taggedPayments,
       });
 
       if (response.data.error) throw new Error(response.data.error);

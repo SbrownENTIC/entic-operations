@@ -464,106 +464,93 @@ Deno.serve(async (req) => {
              column.width = maxLength < 10 ? 10 : (maxLength > 50 ? 50 : maxLength + 2);
          });
 
-        // ── HELPER: Build Hartford Voucher Summary worksheet ─────────────────
-        const buildHartfordVoucherSummary = (wb, sections, payments) => {
-            const dirSection = sections.find(s => s.title.includes('Hartford Hospital') && s.title.includes('DIRECTORSHIP'));
-            const onCallSection = sections.find(s => s.title.includes('Hartford Hospital') && s.title.includes('ON-CALL'));
-            if (!dirSection && !onCallSection) return null;
+        // ── HELPER: Build Hartford Payment Summary worksheet ─────────────────
+        const buildHartfordPaymentSummary = (wb, payments) => {
+            // Filter payments linked to Hartford Hospital
+            const hartfordPayments = (payments || []).filter(p =>
+                (p.payer || '').toLowerCase().includes('hartford') ||
+                (p.allocations || []).some(a => (a.notes || '').toLowerCase().includes('hartford'))
+            );
 
-            const VOUCHER_IDX = 7;
-            const PAYMENT_DATE_IDX = 5;
-            const PAYMENT_QUARTER_IDX = 6;
-            const EXPECTED_IDX = 3;
-
-            const voucherMap = new Map();
-            const accumulateSection = (sec, key) => {
-                if (!sec) return;
-                sec.rows.forEach(row => {
-                    const voucher = row[VOUCHER_IDX] || '';
-                    const expected = typeof row[EXPECTED_IDX] === 'number' ? row[EXPECTED_IDX] : 0;
-                    const paymentDate = row[PAYMENT_DATE_IDX] || '';
-                    const paymentQuarter = row[PAYMENT_QUARTER_IDX] || '';
-                    const mapKey = voucher || `__no_voucher_${key}_${row[1]}`;
-                    if (!voucherMap.has(mapKey)) {
-                        voucherMap.set(mapKey, { voucher, paymentDate, paymentQuarter, dirTotal: 0, onCallTotal: 0 });
-                    }
-                    const entry = voucherMap.get(mapKey);
-                    entry[key] += expected;
-                    if (paymentDate && (!entry.paymentDate || paymentDate < entry.paymentDate)) {
-                        entry.paymentDate = paymentDate;
-                        entry.paymentQuarter = paymentQuarter;
-                    }
-                });
-            };
-            accumulateSection(dirSection, 'dirTotal');
-            accumulateSection(onCallSection, 'onCallTotal');
-
-            const paymentByVoucher = {};
-            (payments || []).forEach(p => {
-                const ref = p.reference_number || '';
-                if (!ref) return;
-                const amt = (p.allocations || []).reduce((sum, a) => sum + (a.amount || 0), 0);
-                paymentByVoucher[ref] = (paymentByVoucher[ref] || 0) + amt;
-            });
-
-            const summaryRows = [];
-            voucherMap.forEach(entry => {
-                const combined = entry.dirTotal + entry.onCallTotal;
-                const actualPayment = entry.voucher ? (paymentByVoucher[entry.voucher] || 0) : 0;
-                const rawDisc = actualPayment - combined;
-                const discrepancy = Math.abs(rawDisc) < 0.01 ? 0 : rawDisc;
-                const status = discrepancy === 0 ? 'Matched' : 'Mismatch';
-                summaryRows.push({ voucher: entry.voucher, paymentDate: entry.paymentDate, paymentQuarter: entry.paymentQuarter, dirTotal: entry.dirTotal, onCallTotal: entry.onCallTotal, combined, actualPayment, discrepancy, status });
-            });
-
-            summaryRows.sort((a, b) => {
-                const toSortable = (d) => {
-                    if (!d) return '';
-                    const parts = d.split('/');
-                    return parts.length === 3 ? `${parts[2]}${parts[0]}${parts[1]}` : d;
-                };
-                return toSortable(b.paymentDate).localeCompare(toSortable(a.paymentDate));
-            });
-
-            const ws = wb.addWorksheet('Hartford Voucher Summary');
-            ws.properties.tabColor = { argb: 'FF1F497D' };
-            ws.columns = [
-                { width: 20 }, { width: 14 }, { width: 16 }, { width: 20 }, { width: 16 },
-                { width: 22 }, { width: 22 }, { width: 18 }, { width: 22 }
-            ];
+            // Also include payments passed with hartfordPayments flag directly
+            const allHartfordPayments = (payments || []).filter(p => p._isHartford === true);
+            const finalPayments = allHartfordPayments.length > 0 ? allHartfordPayments : hartfordPayments;
 
             const DARK_BLUE = 'FF1F497D';
             const WHITE_FONT = 'FFFFFFFF';
-            const GREEN_FILL = 'FFC6EFCE';
-            const RED_FILL = 'FFFFC7CE';
             const CURRENCY_FMT = '$#,##0.00';
-            const vsBorder = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+            const psBorder = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
 
-            const headers = ['Voucher Number', 'Payment Date', 'Payment Quarter', 'Directorship Total', 'On-Call Total', 'Combined Voucher Total', 'Actual Payment Amount', 'Discrepancy', 'Reconciliation Status'];
+            const ws = wb.addWorksheet('Hartford Payment Summary');
+            ws.properties.tabColor = { argb: 'FF1F497D' };
+            ws.columns = [
+                { width: 22 }, // Voucher Number
+                { width: 16 }, // Payment Date
+                { width: 22 }, // Payment Month
+                { width: 16 }, // Payment Quarter
+                { width: 22 }, // Total Payment Amount
+                { width: 50 }, // Allocations / Note
+            ];
+
+            const headers = ['Voucher Number', 'Payment Date', 'Payment Month', 'Payment Quarter', 'Total Payment Amount', 'Allocations / Note'];
             const headerRow = ws.addRow(headers);
             headerRow.height = 18;
             headerRow.eachCell(cell => {
                 cell.font = { bold: true, color: { argb: WHITE_FONT } };
                 cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DARK_BLUE } };
-                cell.alignment = { horizontal: 'center', vertical: 'middle' };
-                cell.border = vsBorder;
+                cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+                cell.border = psBorder;
             });
 
-            const tableDataRows = summaryRows.map(r => [r.voucher, r.paymentDate, r.paymentQuarter, r.dirTotal, r.onCallTotal, r.combined, r.actualPayment, r.discrepancy, r.status]);
+            // Sort by payment_date descending
+            const sorted = [...finalPayments].sort((a, b) => {
+                if (!a.payment_date) return 1;
+                if (!b.payment_date) return -1;
+                return b.payment_date.localeCompare(a.payment_date);
+            });
 
-            tableDataRows.forEach(rowData => {
+            const lightBand = 'FFF2F7FB';
+            const whiteBand = 'FFFFFFFF';
+
+            sorted.forEach((p, idx) => {
+                // Derive Payment Quarter from payment_date
+                let paymentQuarter = '';
+                if (p.payment_date) {
+                    const d = new Date(p.payment_date);
+                    const q = Math.floor(d.getMonth() / 3) + 1;
+                    paymentQuarter = `Q${q} ${d.getFullYear()}`;
+                }
+
+                // Format payment_date as MM/DD/YYYY
+                let formattedDate = p.payment_date || '';
+                if (formattedDate && formattedDate.includes('-')) {
+                    const parts = formattedDate.split('-');
+                    if (parts.length === 3) formattedDate = `${parts[1]}/${parts[2]}/${parts[0]}`;
+                }
+
+                const rowData = [
+                    p.reference_number || '',
+                    formattedDate,
+                    p.payment_month || '',
+                    paymentQuarter,
+                    p.total_amount || 0,
+                    p.notes || '',
+                ];
+
                 const row = ws.addRow(rowData);
-                const fillColor = rowData[8] === 'Matched' ? GREEN_FILL : RED_FILL;
+                const bandColor = idx % 2 === 0 ? lightBand : whiteBand;
                 row.eachCell({ includeEmpty: true }, (cell, colNum) => {
-                    cell.border = vsBorder;
-                    cell.alignment = { vertical: 'middle' };
-                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } };
-                    if ([4, 5, 6, 7, 8].includes(colNum)) cell.numFmt = CURRENCY_FMT;
-                    if (colNum === 6 || colNum === 8) cell.font = { bold: true };
+                    cell.border = psBorder;
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bandColor } };
+                    cell.alignment = { vertical: 'middle', wrapText: colNum === 6 };
+                    if (colNum === 5) {
+                        cell.numFmt = CURRENCY_FMT;
+                        cell.font = { bold: true };
+                    }
                 });
             });
 
-            ws.autoFilter = { from: 'A1', to: 'I1' };
+            ws.autoFilter = { from: 'A1', to: 'F1' };
             ws.views = [{ state: 'frozen', ySplit: 1 }];
             return ws;
         };
@@ -579,8 +566,8 @@ Deno.serve(async (req) => {
             reorderedMaster.creator = masterWorkbook.creator;
             reorderedMaster.created = masterWorkbook.created;
 
-            // 1) Hartford Voucher Summary (index 0, active)
-            buildHartfordVoucherSummary(reorderedMaster, sections, payments);
+            // 1) Hartford Payment Summary (index 0, active)
+            buildHartfordPaymentSummary(reorderedMaster, payments);
             reorderedMaster.views = [{ activeTab: 0 }];
 
             // 2) Copy all sheets from masterWorkbook into reorderedMaster
@@ -635,7 +622,7 @@ Deno.serve(async (req) => {
             // For Hartford Hospital workbook: add Voucher Summary as the FIRST sheet
             const isHartford = filename.includes('Hartford_Hospital');
             if (isHartford) {
-                buildHartfordVoucherSummary(wb, sections, payments);
+                buildHartfordPaymentSummary(wb, payments);
                 wb.views = [{ activeTab: 0 }];
             }
 
