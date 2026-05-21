@@ -603,7 +603,10 @@ Deno.serve(async (req) => {
             const detailColors = ['FFFFC000', 'FF92D050', 'FF00B050', 'FF0070C0', 'FF7030A0'];
             let detailColorIdx = 0;
 
-            // Build in order: Summary, Provider Revenue Summary, Hartford Payment Summary, then all detail sheets
+            // Collect sheets to add at the end
+            const lastSheets = [];
+
+            // Build in order: Summary, Provider Revenue Summary, Hartford Payment Summary, then detail sheets (with last two at the end)
             for (let i = 0; i < masterWorkbook.worksheets.length; i++) {
                 const srcSheet = masterWorkbook.worksheets[i];
                 
@@ -617,12 +620,25 @@ Deno.serve(async (req) => {
                     const hpsOriginal = hpsSheet.getWorksheet('Hartford Payment Summary');
                     copySheet(hpsOriginal, reorderedMaster, 'Hartford Payment Summary', tabColors['Hartford Payment Summary']);
                     
-                    // Now add the detail sheet with cycling color
-                    copySheet(srcSheet, reorderedMaster, srcSheet.name, detailColors[detailColorIdx++ % detailColors.length]);
+                    // Now add the detail sheet with cycling color (unless it's one of the last two)
+                    if (srcSheet.name === 'Quinnipiac University' || srcSheet.name === 'Nations Hearing') {
+                        lastSheets.push(srcSheet);
+                    } else {
+                        copySheet(srcSheet, reorderedMaster, srcSheet.name, detailColors[detailColorIdx++ % detailColors.length]);
+                    }
                 } else {
-                    // All other sheets with cycling color
-                    copySheet(srcSheet, reorderedMaster, srcSheet.name, detailColors[detailColorIdx++ % detailColors.length]);
+                    // Collect detail sheets to add last, or add them now if not in the last two
+                    if (srcSheet.name === 'Quinnipiac University' || srcSheet.name === 'Nations Hearing') {
+                        lastSheets.push(srcSheet);
+                    } else {
+                        copySheet(srcSheet, reorderedMaster, srcSheet.name, detailColors[detailColorIdx++ % detailColors.length]);
+                    }
                 }
+            }
+
+            // Add the last two sheets at the end
+            for (const srcSheet of lastSheets) {
+                copySheet(srcSheet, reorderedMaster, srcSheet.name, detailColors[detailColorIdx++ % detailColors.length]);
             }
 
             reorderedMaster.views = [{ activeTab: 0 }];
