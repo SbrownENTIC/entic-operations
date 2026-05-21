@@ -1,0 +1,69 @@
+{
+  "name": "AuditLog",
+  "type": "object",
+  "properties": {
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the action occurred"
+    },
+    "userId": {
+      "type": "string",
+      "description": "ID of the user who performed the action"
+    },
+    "userEmail": {
+      "type": "string",
+      "description": "Email of the user who performed the action"
+    },
+    "entityName": {
+      "type": "string",
+      "description": "Name of the entity that was modified"
+    },
+    "recordId": {
+      "type": "string",
+      "description": "ID of the record that was modified"
+    },
+    "actionType": {
+      "type": "string",
+      "enum": [
+        "CREATE",
+        "UPDATE",
+        "DELETE"
+      ],
+      "description": "Type of action performed"
+    },
+    "fieldName": {
+      "type": "string",
+      "description": "Name of the field that changed (null for CREATE/DELETE snapshots)"
+    },
+    "oldValue": {
+      "type": "string",
+      "description": "Previous value (stringified)"
+    },
+    "newValue": {
+      "type": "string",
+      "description": "New value (stringified)"
+    },
+    "ipAddress": {
+      "type": "string",
+      "description": "IP address of the client if available"
+    }
+  },
+  "required": [
+    "timestamp",
+    "userEmail",
+    "entityName",
+    "recordId",
+    "actionType"
+  ],
+  "rls": {
+    "admin": [
+      "list",
+      "read",
+      "create"
+    ],
+    "user": [
+      "create"
+    ]
+  }
+}

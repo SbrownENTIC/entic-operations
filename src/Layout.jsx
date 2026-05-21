@@ -36,7 +36,8 @@ import {
         HelpCircle,
         Settings,
         LogOut,
-        Loader2
+        Loader2,
+        ClipboardList
       } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -152,6 +153,11 @@ const moreMenuItems = [
     title: "System Documentation",
     url: createPageUrl("SystemDocumentation"),
     icon: HelpCircle,
+  },
+  {
+    title: "Audit Log",
+    url: "/AuditLog",
+    icon: ClipboardList,
   },
 ];
 
