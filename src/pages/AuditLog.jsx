@@ -100,6 +100,7 @@ export default function AuditLogPage() {
                 <SelectItem value="CREATE">CREATE</SelectItem>
                 <SelectItem value="UPDATE">UPDATE</SelectItem>
                 <SelectItem value="DELETE">DELETE</SelectItem>
+                <SelectItem value="AUTH_EVENT">AUTH_EVENT</SelectItem>
               </SelectContent>
             </Select>
             <Input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} placeholder="From date" />

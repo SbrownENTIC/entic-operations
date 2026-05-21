@@ -17,7 +17,7 @@
     },
     "entityName": {
       "type": "string",
-      "description": "Name of the entity that was modified"
+      "description": "Name of the entity that was modified (or AUTH for auth events)"
     },
     "recordId": {
       "type": "string",
@@ -28,7 +28,8 @@
       "enum": [
         "CREATE",
         "UPDATE",
-        "DELETE"
+        "DELETE",
+        "AUTH_EVENT"
       ],
       "description": "Type of action performed"
     },
