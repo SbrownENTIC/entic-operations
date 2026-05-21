@@ -566,22 +566,16 @@ Deno.serve(async (req) => {
             reorderedMaster.creator = masterWorkbook.creator;
             reorderedMaster.created = masterWorkbook.created;
 
-            // Copy all sheets from masterWorkbook into reorderedMaster
-            for (const srcSheet of masterWorkbook.worksheets) {
-                const dstSheet = reorderedMaster.addWorksheet(srcSheet.name, {
-                    properties: srcSheet.properties
-                });
+            // Helper to copy a sheet
+            const copySheet = (srcSheet, dstWb, name) => {
+                const dstSheet = dstWb.addWorksheet(name, { properties: srcSheet.properties });
                 dstSheet.state = srcSheet.state;
-
-                // Copy column widths
                 srcSheet.columns.forEach((col, i) => {
                     try {
                         const dstCol = dstSheet.getColumn(i + 1);
                         if (dstCol && col.width) dstCol.width = col.width;
                     } catch (_) {}
                 });
-
-                // Copy rows
                 srcSheet.eachRow({ includeEmpty: true }, (row, rowNum) => {
                     const newRow = dstSheet.getRow(rowNum);
                     newRow.height = row.height;
@@ -592,58 +586,31 @@ Deno.serve(async (req) => {
                     });
                     newRow.commit();
                 });
-
-                // Copy auto filter
                 if (srcSheet.autoFilter) dstSheet.autoFilter = srcSheet.autoFilter;
-                // Copy views
                 if (srcSheet.views && srcSheet.views.length > 0) dstSheet.views = srcSheet.views;
-            }
+                return dstSheet;
+            };
 
-            // Now insert Hartford Payment Summary after Provider Revenue Summary
-            // Find the index of Provider Revenue Summary sheet
-            let provRevIdx = reorderedMaster.worksheets.findIndex(ws => ws.name === 'Provider Revenue Summary');
-            if (provRevIdx === -1) provRevIdx = 1; // Fallback: insert after first sheet
-
-            // Build the Hartford Payment Summary sheet and insert it
-            const hpsSheet = new ExcelJS.Workbook();
-            buildHartfordPaymentSummary(hpsSheet, payments);
-            const hpsOriginal = hpsSheet.getWorksheet('Hartford Payment Summary');
-
-            // Create a new worksheet in reorderedMaster at the right position
-            const newHpsSheet = reorderedMaster.addWorksheet('Hartford Payment Summary', {
-                properties: hpsOriginal.properties
-            });
-
-            // Copy the content
-            hpsOriginal.columns.forEach((col, i) => {
-                try {
-                    const dstCol = newHpsSheet.getColumn(i + 1);
-                    if (dstCol && col.width) dstCol.width = col.width;
-                } catch (_) {}
-            });
-
-            hpsOriginal.eachRow({ includeEmpty: true }, (row, rowNum) => {
-                const newRow = newHpsSheet.getRow(rowNum);
-                newRow.height = row.height;
-                row.eachCell({ includeEmpty: true }, (cell, colNum) => {
-                    const newCell = newRow.getCell(colNum);
-                    newCell.value = cell.value;
-                    if (cell.style) newCell.style = JSON.parse(JSON.stringify(cell.style));
-                });
-                newRow.commit();
-            });
-
-            if (hpsOriginal.autoFilter) newHpsSheet.autoFilter = hpsOriginal.autoFilter;
-            if (hpsOriginal.views && hpsOriginal.views.length > 0) newHpsSheet.views = hpsOriginal.views;
-
-            // Move the newly added sheet to the correct position (after Provider Revenue Summary)
-            const sheets = reorderedMaster.worksheets;
-            const hpsIdx = sheets.length - 1; // Last sheet (just added)
-            const insertPos = provRevIdx + 1;
-
-            if (hpsIdx !== insertPos) {
-                sheets.splice(hpsIdx, 1); // Remove from end
-                sheets.splice(insertPos, 0, newHpsSheet); // Insert at correct position
+            // Build in order: Summary, Provider Revenue Summary, Hartford Payment Summary, then all detail sheets
+            for (let i = 0; i < masterWorkbook.worksheets.length; i++) {
+                const srcSheet = masterWorkbook.worksheets[i];
+                
+                // Add Summary and Provider Revenue Summary as-is
+                if (i < 2) {
+                    copySheet(srcSheet, reorderedMaster, srcSheet.name);
+                } else if (i === 2) {
+                    // At index 2, insert Hartford Payment Summary first, then add the detail sheet
+                    const hpsSheet = new ExcelJS.Workbook();
+                    buildHartfordPaymentSummary(hpsSheet, payments);
+                    const hpsOriginal = hpsSheet.getWorksheet('Hartford Payment Summary');
+                    copySheet(hpsOriginal, reorderedMaster, 'Hartford Payment Summary');
+                    
+                    // Now add the detail sheet
+                    copySheet(srcSheet, reorderedMaster, srcSheet.name);
+                } else {
+                    // All other sheets
+                    copySheet(srcSheet, reorderedMaster, srcSheet.name);
+                }
             }
 
             reorderedMaster.views = [{ activeTab: 0 }];
