@@ -122,6 +122,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
         sections,
         exportDate,
         paymentQuarterRows,
+        payments: payments || [],
       });
 
       if (response.data.error) throw new Error(response.data.error);

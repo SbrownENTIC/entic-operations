@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
         }
 
         const body = await req.json().catch(() => ({}));
-        const { sections, exportDate = new Date().toISOString().split('T')[0], paymentQuarterRows = [] } = body;
+        const { sections, exportDate = new Date().toISOString().split('T')[0], paymentQuarterRows = [], payments = [] } = body;
 
         if (!sections || !Array.isArray(sections)) {
             return Response.json({ error: "Missing or invalid 'sections' in payload. It must be an array." }, { status: 400 });
@@ -55,6 +55,8 @@ Deno.serve(async (req) => {
         const zip = new JSZip();
 
         // 1. Generate Master Workbook
+        // We defer adding Hartford Voucher Summary until after sections are fully built,
+        // then we construct a fresh workbook in the correct sheet order.
         const masterWorkbook = new ExcelJS.Workbook();
         const summarySheet = masterWorkbook.addWorksheet('Summary');
         // Provider Revenue Summary sheet — slot 2, immediately after Summary
@@ -462,9 +464,157 @@ Deno.serve(async (req) => {
              column.width = maxLength < 10 ? 10 : (maxLength > 50 ? 50 : maxLength + 2);
          });
 
-        const masterBuffer = await masterWorkbook.xlsx.writeBuffer();
-        zip.file("Outside_Income_Payment_Tracking_Master.xlsx", masterBuffer);
+        // ── HELPER: Build Hartford Voucher Summary worksheet ─────────────────
+        const buildHartfordVoucherSummary = (wb, sections, payments) => {
+            const dirSection = sections.find(s => s.title.includes('Hartford Hospital') && s.title.includes('DIRECTORSHIP'));
+            const onCallSection = sections.find(s => s.title.includes('Hartford Hospital') && s.title.includes('ON-CALL'));
+            if (!dirSection && !onCallSection) return null;
 
+            const VOUCHER_IDX = 7;
+            const PAYMENT_DATE_IDX = 5;
+            const PAYMENT_QUARTER_IDX = 6;
+            const EXPECTED_IDX = 3;
+
+            const voucherMap = new Map();
+            const accumulateSection = (sec, key) => {
+                if (!sec) return;
+                sec.rows.forEach(row => {
+                    const voucher = row[VOUCHER_IDX] || '';
+                    const expected = typeof row[EXPECTED_IDX] === 'number' ? row[EXPECTED_IDX] : 0;
+                    const paymentDate = row[PAYMENT_DATE_IDX] || '';
+                    const paymentQuarter = row[PAYMENT_QUARTER_IDX] || '';
+                    const mapKey = voucher || `__no_voucher_${key}_${row[1]}`;
+                    if (!voucherMap.has(mapKey)) {
+                        voucherMap.set(mapKey, { voucher, paymentDate, paymentQuarter, dirTotal: 0, onCallTotal: 0 });
+                    }
+                    const entry = voucherMap.get(mapKey);
+                    entry[key] += expected;
+                    if (paymentDate && (!entry.paymentDate || paymentDate < entry.paymentDate)) {
+                        entry.paymentDate = paymentDate;
+                        entry.paymentQuarter = paymentQuarter;
+                    }
+                });
+            };
+            accumulateSection(dirSection, 'dirTotal');
+            accumulateSection(onCallSection, 'onCallTotal');
+
+            const paymentByVoucher = {};
+            (payments || []).forEach(p => {
+                const ref = p.reference_number || '';
+                if (!ref) return;
+                const amt = (p.allocations || []).reduce((sum, a) => sum + (a.amount || 0), 0);
+                paymentByVoucher[ref] = (paymentByVoucher[ref] || 0) + amt;
+            });
+
+            const summaryRows = [];
+            voucherMap.forEach(entry => {
+                const combined = entry.dirTotal + entry.onCallTotal;
+                const actualPayment = entry.voucher ? (paymentByVoucher[entry.voucher] || 0) : 0;
+                const rawDisc = actualPayment - combined;
+                const discrepancy = Math.abs(rawDisc) < 0.01 ? 0 : rawDisc;
+                const status = discrepancy === 0 ? 'Matched' : 'Mismatch';
+                summaryRows.push({ voucher: entry.voucher, paymentDate: entry.paymentDate, paymentQuarter: entry.paymentQuarter, dirTotal: entry.dirTotal, onCallTotal: entry.onCallTotal, combined, actualPayment, discrepancy, status });
+            });
+
+            summaryRows.sort((a, b) => {
+                const toSortable = (d) => {
+                    if (!d) return '';
+                    const parts = d.split('/');
+                    return parts.length === 3 ? `${parts[2]}${parts[0]}${parts[1]}` : d;
+                };
+                return toSortable(b.paymentDate).localeCompare(toSortable(a.paymentDate));
+            });
+
+            const ws = wb.addWorksheet('Hartford Voucher Summary');
+            ws.properties.tabColor = { argb: 'FF1F497D' };
+            ws.columns = [
+                { width: 20 }, { width: 14 }, { width: 16 }, { width: 20 }, { width: 16 },
+                { width: 22 }, { width: 22 }, { width: 18 }, { width: 22 }
+            ];
+
+            const DARK_BLUE = 'FF1F497D';
+            const WHITE_FONT = 'FFFFFFFF';
+            const GREEN_FILL = 'FFC6EFCE';
+            const RED_FILL = 'FFFFC7CE';
+            const CURRENCY_FMT = '$#,##0.00';
+            const vsBorder = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+
+            const headers = ['Voucher Number', 'Payment Date', 'Payment Quarter', 'Directorship Total', 'On-Call Total', 'Combined Voucher Total', 'Actual Payment Amount', 'Discrepancy', 'Reconciliation Status'];
+            const headerRow = ws.addRow(headers);
+            headerRow.height = 18;
+            headerRow.eachCell(cell => {
+                cell.font = { bold: true, color: { argb: WHITE_FONT } };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DARK_BLUE } };
+                cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                cell.border = vsBorder;
+            });
+
+            const tableDataRows = summaryRows.map(r => [r.voucher, r.paymentDate, r.paymentQuarter, r.dirTotal, r.onCallTotal, r.combined, r.actualPayment, r.discrepancy, r.status]);
+
+            tableDataRows.forEach(rowData => {
+                const row = ws.addRow(rowData);
+                const fillColor = rowData[8] === 'Matched' ? GREEN_FILL : RED_FILL;
+                row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+                    cell.border = vsBorder;
+                    cell.alignment = { vertical: 'middle' };
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } };
+                    if ([4, 5, 6, 7, 8].includes(colNum)) cell.numFmt = CURRENCY_FMT;
+                    if (colNum === 6 || colNum === 8) cell.font = { bold: true };
+                });
+            });
+
+            ws.autoFilter = { from: 'A1', to: 'I1' };
+            ws.views = [{ state: 'frozen', ySplit: 1 }];
+            return ws;
+        };
+
+        // ── ADD HARTFORD VOUCHER SUMMARY TO MASTER WORKBOOK ─────────────────────
+        // ExcelJS doesn't support inserting at index 0 after creation, so we rebuild
+        // the master workbook with Hartford Voucher Summary as the first sheet.
+        const hasHartfordSections = sections.some(s => s.title.includes('Hartford Hospital'));
+        let finalMasterWorkbook = masterWorkbook;
+
+        if (hasHartfordSections) {
+            const reorderedMaster = new ExcelJS.Workbook();
+            reorderedMaster.creator = masterWorkbook.creator;
+            reorderedMaster.created = masterWorkbook.created;
+
+            // 1) Hartford Voucher Summary (index 0, active)
+            buildHartfordVoucherSummary(reorderedMaster, sections, payments);
+            reorderedMaster.views = [{ activeTab: 0 }];
+
+            // 2) Copy all sheets from masterWorkbook into reorderedMaster
+            for (const srcSheet of masterWorkbook.worksheets) {
+                const dstSheet = reorderedMaster.addWorksheet(srcSheet.name, {
+                    properties: srcSheet.properties
+                });
+                dstSheet.state = srcSheet.state;
+
+                // Copy columns widths
+                srcSheet.columns.forEach((col, i) => {
+                    if (dstSheet.columns[i]) dstSheet.columns[i].width = col.width;
+                });
+
+                // Copy rows
+                srcSheet.eachRow({ includeEmpty: true }, (row, rowNum) => {
+                    const newRow = dstSheet.getRow(rowNum);
+                    newRow.height = row.height;
+                    row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+                        const newCell = newRow.getCell(colNum);
+                        newCell.value = cell.value;
+                        if (cell.style) newCell.style = JSON.parse(JSON.stringify(cell.style));
+                    });
+                    newRow.commit();
+                });
+
+                // Copy auto filter
+                if (srcSheet.autoFilter) dstSheet.autoFilter = srcSheet.autoFilter;
+                // Copy views
+                if (srcSheet.views && srcSheet.views.length > 0) dstSheet.views = srcSheet.views;
+            }
+
+            finalMasterWorkbook = reorderedMaster;
+        }
 
         // 2. Generate Individual Workbooks
         // Group sections by filename
@@ -478,7 +628,14 @@ Deno.serve(async (req) => {
 
         for (const [filename, items] of Object.entries(workbooksMap)) {
             const wb = new ExcelJS.Workbook();
-            
+
+            // For Hartford Hospital workbook: add Voucher Summary as the FIRST sheet
+            const isHartford = filename.includes('Hartford_Hospital');
+            if (isHartford) {
+                buildHartfordVoucherSummary(wb, sections, payments);
+                wb.views = [{ activeTab: 0 }];
+            }
+
             for (const { sheetname, section } of items) {
                 let uniqueSheetName = sheetname;
                 let counter = 1;
