@@ -102,8 +102,12 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
 
     return invoices.sort((a, b) => {
       if (!a.month || !b.month) return 0;
-      const [aMonth, aYear] = a.month.split(' ');
-      const [bMonth, bYear] = b.month.split(' ');
+      const aParts = (a.month || '').split(' ');
+      const bParts = (b.month || '').split(' ');
+      const aMonth = aParts[0] || '';
+      const aYear = aParts[1] || '0';
+      const bMonth = bParts[0] || '';
+      const bYear = bParts[1] || '0';
 
       const yearDiff = (parseInt(bYear) || 0) - (parseInt(aYear) || 0);
       if (yearDiff !== 0) return yearDiff;
@@ -155,7 +159,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
 
   const generateReport = () => {
     const filteredInvoices = invoices.filter(inv => {
-      if (!inv.invoice_date) return false;
+      if (!inv.invoice_date || typeof inv.invoice_date !== 'string') return false;
       const invDate = parseISO(inv.invoice_date);
       const start = dateRange.start ? parseISO(dateRange.start) : null;
       const end = dateRange.end ? parseISO(dateRange.end) : null;
@@ -173,8 +177,8 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
     const filteredDirectIncome = outsideIncome.filter(inc => {
       if (!directPayers.includes(inc.facility_name)) return false;
       
-      const dateStr = inc.work_dates?.[0] || inc.created_date; 
-      if (!dateStr) return false;
+      const dateStr = Array.isArray(inc.work_dates) && inc.work_dates[0] ? inc.work_dates[0] : inc.created_date;
+      if (!dateStr || typeof dateStr !== 'string') return false;
       
       const incDate = parseISO(dateStr);
       const start = dateRange.start ? parseISO(dateRange.start) : null;
@@ -232,8 +236,8 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
 
         // Process Direct Income Items
         const processedItems = groupDirectIncome.map(item => {
-           const dateStr = item.work_dates?.[0] || item.created_date;
-           const dateObj = parseISO(dateStr);
+           const dateStr = Array.isArray(item.work_dates) && item.work_dates[0] ? item.work_dates[0] : item.created_date;
+           const dateObj = dateStr ? parseISO(dateStr) : new Date();
            const monthStr = format(dateObj, 'MMMM yyyy');
            return { ...item, month: monthStr };
         });
