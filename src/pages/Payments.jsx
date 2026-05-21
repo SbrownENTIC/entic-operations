@@ -26,6 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { auditCreate, auditUpdate, auditDelete } from '@/lib/auditLogger';
 
 export default function Payments() {
   const [showForm, setShowForm] = useState(false);
@@ -262,11 +263,12 @@ export default function Payments() {
 
       return payment;
     },
-    onSuccess: () => {
+    onSuccess: (payment, data) => {
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       setShowForm(false);
       setEditingPayment(null);
+      auditCreate('Payment', data, payment?.id).catch(e => console.error('[Audit]', e));
     },
     onError: (error) => {
       if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
@@ -319,11 +321,13 @@ export default function Payments() {
 
       return payment;
     },
-    onSuccess: () => {
+    onSuccess: (payment, variables) => {
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      const oldRecord = editingPayment;
       setShowForm(false);
       setEditingPayment(null);
+      auditUpdate('Payment', variables.id, variables.data, oldRecord).catch(e => console.error('[Audit]', e));
     },
     onError: (error) => {
       if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
@@ -340,10 +344,12 @@ export default function Payments() {
 
       await updateInvoiceStatuses();
     },
-    onSuccess: () => {
+    onSuccess: (result, payment) => {
+      const snapshot = deleteConfirm;
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       setDeleteConfirm(null);
+      auditDelete('Payment', payment.id, snapshot).catch(e => console.error('[Audit]', e));
     },
     onError: (error) => {
       if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
@@ -396,9 +402,10 @@ export default function Payments() {
 
       await updateInvoiceStatuses();
     },
-    onSuccess: () => {
+    onSuccess: (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      auditUpdate('Payment', variables.payment.id, { allocations: 'allocation_removed' }, variables.payment).catch(e => console.error('[Audit]', e));
       setViewingPayment(null);
     },
     onError: (error) => {
@@ -459,14 +466,17 @@ export default function Payments() {
   const handleBulkStatusUpdate = async () => {
     if (!bulkStatus || selectedPaymentIds.size === 0) return;
     setBulkUpdating(true);
-    for (const id of selectedPaymentIds) {
+    const idsToUpdate = [...selectedPaymentIds];
+    for (const id of idsToUpdate) {
+      const old = payments.find(p => p.id === id) || null;
       await base44.entities.Payment.update(id, { status: bulkStatus });
+      auditUpdate('Payment', id, { status: bulkStatus }, old).catch(e => console.error('[Audit]', e));
     }
     queryClient.invalidateQueries({ queryKey: ['payments'] });
     setSelectedPaymentIds(new Set());
     setBulkStatus("");
     setBulkUpdating(false);
-    toast({ title: "Success", description: `Updated ${selectedPaymentIds.size} payment(s) to "${bulkStatus}".` });
+    toast({ title: "Success", description: `Updated ${idsToUpdate.length} payment(s) to "${bulkStatus}".` });
   };
 
   const toggleSelectPayment = (id) => {

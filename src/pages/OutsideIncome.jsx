@@ -31,6 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { auditCreate, auditUpdate, auditDelete } from '@/lib/auditLogger';
 
 export default function OutsideIncome() {
   const [showForm, setShowForm] = useState(false);
@@ -172,10 +173,11 @@ export default function OutsideIncome() {
       
       return income;
     },
-    onSuccess: () => {
+    onSuccess: (income, data) => {
       queryClient.invalidateQueries({ queryKey: ['outside-income'] });
       setShowForm(false);
       setEditingIncome(null);
+      auditCreate('OutsideIncome', data, income?.id).catch(e => console.error('[Audit]', e));
     },
     onError: (error) => {
       if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
@@ -188,10 +190,12 @@ export default function OutsideIncome() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.OutsideIncome.update(id, data),
-    onSuccess: () => {
+    onSuccess: (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['outside-income'] });
       setShowForm(false);
+      const oldRecord = editingIncome;
       setEditingIncome(null);
+      auditUpdate('OutsideIncome', variables.id, variables.data, oldRecord).catch(e => console.error('[Audit]', e));
     },
     onError: (error) => {
       if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
@@ -204,9 +208,11 @@ export default function OutsideIncome() {
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.OutsideIncome.delete(id),
-    onSuccess: () => {
+    onSuccess: (result, id) => {
+      const snapshot = deleteConfirm;
       queryClient.invalidateQueries({ queryKey: ['outside-income'] });
       setDeleteConfirm(null);
+      auditDelete('OutsideIncome', id, snapshot).catch(e => console.error('[Audit]', e));
     },
     onError: (error) => {
       if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
@@ -224,8 +230,12 @@ export default function OutsideIncome() {
       );
       return Promise.all(updates);
     },
-    onSuccess: () => {
+    onSuccess: (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['outside-income'] });
+      variables.ids.forEach(id => {
+        const old = incomes.find(inc => inc.id === id) || null;
+        auditUpdate('OutsideIncome', id, { provider_id: variables.providerId }, old).catch(e => console.error('[Audit]', e));
+      });
       setSelectedIncomes([]);
       setBulkProviderId("");
     },
@@ -243,8 +253,12 @@ export default function OutsideIncome() {
       const deletions = ids.map(id => base44.entities.OutsideIncome.delete(id));
       return Promise.all(deletions);
     },
-    onSuccess: () => {
+    onSuccess: (result, ids) => {
+      const snapshots = incomes.filter(inc => ids.includes(inc.id));
       queryClient.invalidateQueries({ queryKey: ['outside-income'] });
+      snapshots.forEach(snap => {
+        auditDelete('OutsideIncome', snap.id, snap).catch(e => console.error('[Audit]', e));
+      });
       setSelectedIncomes([]);
       setShowBulkDeleteConfirm(false);
     },

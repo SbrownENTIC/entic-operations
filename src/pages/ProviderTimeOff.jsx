@@ -25,6 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { auditCreate, auditUpdate, auditDelete } from '@/lib/auditLogger';
 import {
   Dialog,
   DialogContent,
@@ -71,10 +72,11 @@ export default function ProviderTimeOff() {
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.ProviderTimeOff.create(data),
-    onSuccess: () => {
+    onSuccess: (record, data) => {
       queryClient.invalidateQueries({ queryKey: ['provider-timeoff'] });
       setShowForm(false);
       setEditingTimeOff(null);
+      auditCreate('ProviderTimeOff', data, record?.id).catch(e => console.error('[Audit]', e));
     },
     onError: (error) => {
       if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
@@ -87,10 +89,12 @@ export default function ProviderTimeOff() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.ProviderTimeOff.update(id, data),
-    onSuccess: () => {
+    onSuccess: (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['provider-timeoff'] });
       setShowForm(false);
+      const oldRecord = editingTimeOff;
       setEditingTimeOff(null);
+      auditUpdate('ProviderTimeOff', variables.id, variables.data, oldRecord).catch(e => console.error('[Audit]', e));
     },
     onError: (error) => {
       if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
@@ -103,9 +107,11 @@ export default function ProviderTimeOff() {
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.ProviderTimeOff.delete(id),
-    onSuccess: () => {
+    onSuccess: (result, id) => {
+      const snapshot = deleteConfirm;
       queryClient.invalidateQueries({ queryKey: ['provider-timeoff'] });
       setDeleteConfirm(null);
+      auditDelete('ProviderTimeOff', id, snapshot).catch(e => console.error('[Audit]', e));
     },
     onError: (error) => {
       if (error?.status === 403 || error?.response?.status === 403 || error?.message?.includes('403')) {
@@ -123,8 +129,12 @@ export default function ProviderTimeOff() {
       );
       return Promise.all(updates);
     },
-    onSuccess: () => {
+    onSuccess: (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['provider-timeoff'] });
+      variables.ids.forEach(id => {
+        const old = timeOffEntries.find(e => e.id === id) || null;
+        auditUpdate('ProviderTimeOff', id, variables.updateData, old).catch(e => console.error('[Audit]', e));
+      });
       setSelectedEntries([]);
       setBulkStatus('');
       setBulkProvider('');
@@ -221,7 +231,10 @@ export default function ProviderTimeOff() {
     }));
 
     try {
-      await Promise.all(finalEntries.map(entry => base44.entities.ProviderTimeOff.create(entry)));
+      const created = await Promise.all(finalEntries.map(entry => base44.entities.ProviderTimeOff.create(entry)));
+      created.forEach((record, i) => {
+        auditCreate('ProviderTimeOff', finalEntries[i], record?.id).catch(e => console.error('[Audit]', e));
+      });
       queryClient.invalidateQueries({ queryKey: ['provider-timeoff'] });
       setShowForm(false);
       setEditingTimeOff(null);
