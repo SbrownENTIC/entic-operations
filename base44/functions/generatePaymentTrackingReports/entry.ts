@@ -492,7 +492,7 @@ Deno.serve(async (req) => {
                 { width: 50 }, // Allocations / Note
             ];
 
-            const headers = ['Voucher Number', 'Payment Date', 'Payment Month', 'Payment Quarter', 'Total Payment Amount', 'Allocations / Note'];
+            const headers = ['Voucher Number', 'Payment Date', 'Payment Month', 'Payment Quarter', 'Total Payment Amount', 'Allocation/Notes'];
             const headerRow = ws.addRow(headers);
             headerRow.height = 18;
             headerRow.eachCell(cell => {
