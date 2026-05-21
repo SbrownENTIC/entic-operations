@@ -566,10 +566,18 @@ Deno.serve(async (req) => {
             reorderedMaster.creator = masterWorkbook.creator;
             reorderedMaster.created = masterWorkbook.created;
 
-            // Helper to copy a sheet
-            const copySheet = (srcSheet, dstWb, name) => {
+            // Color palette for worksheet tabs
+            const tabColors = {
+                'Summary': 'FF4472C4',           // Blue
+                'Provider Revenue Summary': 'FF70AD47', // Green
+                'Hartford Payment Summary': 'FFC5504B', // Red
+            };
+
+            // Helper to copy a sheet with optional tab color
+            const copySheet = (srcSheet, dstWb, name, tabColor) => {
                 const dstSheet = dstWb.addWorksheet(name, { properties: srcSheet.properties });
                 dstSheet.state = srcSheet.state;
+                if (tabColor) dstSheet.properties.tabColor = { argb: tabColor };
                 srcSheet.columns.forEach((col, i) => {
                     try {
                         const dstCol = dstSheet.getColumn(i + 1);
@@ -591,25 +599,29 @@ Deno.serve(async (req) => {
                 return dstSheet;
             };
 
+            // Color palette for detail sheets (cycle through colors)
+            const detailColors = ['FFFFC000', 'FF92D050', 'FF00B050', 'FF0070C0', 'FF7030A0'];
+            let detailColorIdx = 0;
+
             // Build in order: Summary, Provider Revenue Summary, Hartford Payment Summary, then all detail sheets
             for (let i = 0; i < masterWorkbook.worksheets.length; i++) {
                 const srcSheet = masterWorkbook.worksheets[i];
                 
                 // Add Summary and Provider Revenue Summary as-is
                 if (i < 2) {
-                    copySheet(srcSheet, reorderedMaster, srcSheet.name);
+                    copySheet(srcSheet, reorderedMaster, srcSheet.name, tabColors[srcSheet.name]);
                 } else if (i === 2) {
                     // At index 2, insert Hartford Payment Summary first, then add the detail sheet
                     const hpsSheet = new ExcelJS.Workbook();
                     buildHartfordPaymentSummary(hpsSheet, payments);
                     const hpsOriginal = hpsSheet.getWorksheet('Hartford Payment Summary');
-                    copySheet(hpsOriginal, reorderedMaster, 'Hartford Payment Summary');
+                    copySheet(hpsOriginal, reorderedMaster, 'Hartford Payment Summary', tabColors['Hartford Payment Summary']);
                     
-                    // Now add the detail sheet
-                    copySheet(srcSheet, reorderedMaster, srcSheet.name);
+                    // Now add the detail sheet with cycling color
+                    copySheet(srcSheet, reorderedMaster, srcSheet.name, detailColors[detailColorIdx++ % detailColors.length]);
                 } else {
-                    // All other sheets
-                    copySheet(srcSheet, reorderedMaster, srcSheet.name);
+                    // All other sheets with cycling color
+                    copySheet(srcSheet, reorderedMaster, srcSheet.name, detailColors[detailColorIdx++ % detailColors.length]);
                 }
             }
 
