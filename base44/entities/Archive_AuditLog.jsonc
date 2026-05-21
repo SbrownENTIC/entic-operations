@@ -1,11 +1,11 @@
 {
-  "name": "AuditLog",
+  "name": "Archive_AuditLog",
   "type": "object",
   "properties": {
     "timestamp": {
       "type": "string",
       "format": "date-time",
-      "description": "When the action occurred"
+      "description": "When the original action occurred"
     },
     "userId": {
       "type": "string",
@@ -17,7 +17,7 @@
     },
     "entityName": {
       "type": "string",
-      "description": "Name of the entity that was modified (or AUTH/SYSTEM for system events)"
+      "description": "Name of the entity that was modified"
     },
     "recordId": {
       "type": "string",
@@ -25,21 +25,11 @@
     },
     "actionType": {
       "type": "string",
-      "enum": [
-        "CREATE",
-        "UPDATE",
-        "DELETE",
-        "VIEW",
-        "EXPORT",
-        "AUTH_EVENT",
-        "SECURITY_ALERT",
-        "INTEGRITY_ALERT"
-      ],
       "description": "Type of action performed"
     },
     "fieldName": {
       "type": "string",
-      "description": "Name of the field that changed, or event subtype"
+      "description": "Name of the field that changed"
     },
     "oldValue": {
       "type": "string",
@@ -52,6 +42,15 @@
     "ipAddress": {
       "type": "string",
       "description": "IP address of the client if available"
+    },
+    "archived_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this record was moved to the archive"
+    },
+    "original_id": {
+      "type": "string",
+      "description": "Original AuditLog record ID"
     }
   },
   "required": [
@@ -64,11 +63,7 @@
   "rls": {
     "admin": [
       "list",
-      "read",
-      "create"
-    ],
-    "user": [
-      "create"
+      "read"
     ]
   }
 }

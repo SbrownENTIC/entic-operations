@@ -216,3 +216,41 @@ export async function auditAuthEvent(eventType, userEmail, detail = '') {
   };
   await writeLog([entry]);
 }
+
+/**
+ * Log a VIEW event on a detail page (not list views).
+ * Call once on page load for a specific record.
+ * @param {string} entityName
+ * @param {string} recordId
+ */
+export async function auditView(entityName, recordId) {
+  if (isBlocked(entityName)) return;
+  if (!recordId) return;
+  const user = await getCurrentUser();
+  const entry = buildBaseEntry(user, entityName, recordId, 'VIEW');
+  entry.fieldName = null;
+  entry.oldValue = '';
+  entry.newValue = '';
+  await writeLog([entry]);
+}
+
+/**
+ * Log an EXPORT event when audit logs are exported.
+ * Fire-and-forget — never blocks the download.
+ * @param {object} meta - { dateRange, filters, recordCount }
+ */
+export async function auditExport(meta) {
+  const user = await getCurrentUser();
+  const entry = {
+    timestamp: new Date().toISOString(),
+    userId: user ? user.id : '',
+    userEmail: user ? user.email : 'unknown',
+    entityName: 'AuditLog',
+    recordId: '',
+    actionType: 'EXPORT',
+    fieldName: 'EXPORT_RANGE',
+    oldValue: '',
+    newValue: safeStringify(meta),
+  };
+  await writeLog([entry]);
+}

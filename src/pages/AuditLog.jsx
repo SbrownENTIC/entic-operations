@@ -7,11 +7,17 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Download, ShieldCheck, Loader2 } from 'lucide-react';
+import { auditExport } from '@/lib/auditLogger';
 
 const ACTION_COLORS = {
   CREATE: 'bg-green-100 text-green-800',
   UPDATE: 'bg-blue-100 text-blue-800',
   DELETE: 'bg-red-100 text-red-800',
+  VIEW: 'bg-slate-100 text-slate-700',
+  EXPORT: 'bg-purple-100 text-purple-800',
+  AUTH_EVENT: 'bg-yellow-100 text-yellow-800',
+  SECURITY_ALERT: 'bg-orange-100 text-orange-800',
+  INTEGRITY_ALERT: 'bg-rose-100 text-rose-800',
 };
 
 export default function AuditLogPage() {
@@ -60,6 +66,13 @@ export default function AuditLogPage() {
     a.href = URL.createObjectURL(blob);
     a.download = `audit_log_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
+
+    // Fire-and-forget export audit log — never blocks the download
+    auditExport({
+      dateRange: { from: filterDateFrom || null, to: filterDateTo || null },
+      filters: { user: filterUser || null, entity: filterEntity !== 'all' ? filterEntity : null, action: filterAction !== 'all' ? filterAction : null },
+      recordCount: filtered.length,
+    }).catch(function(e) { console.error('[Audit]', e); });
   };
 
   return (
@@ -101,6 +114,10 @@ export default function AuditLogPage() {
                 <SelectItem value="UPDATE">UPDATE</SelectItem>
                 <SelectItem value="DELETE">DELETE</SelectItem>
                 <SelectItem value="AUTH_EVENT">AUTH_EVENT</SelectItem>
+                <SelectItem value="VIEW">VIEW</SelectItem>
+                <SelectItem value="EXPORT">EXPORT</SelectItem>
+                <SelectItem value="SECURITY_ALERT">SECURITY_ALERT</SelectItem>
+                <SelectItem value="INTEGRITY_ALERT">INTEGRITY_ALERT</SelectItem>
               </SelectContent>
             </Select>
             <Input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} placeholder="From date" />

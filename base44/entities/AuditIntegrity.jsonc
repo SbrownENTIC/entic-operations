@@ -1,0 +1,36 @@
+{
+  "name": "AuditIntegrity",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "The date whose audit records were hashed (YYYY-MM-DD)"
+    },
+    "hash": {
+      "type": "string",
+      "description": "SHA-256 hex hash of all AuditLog entries for that date"
+    },
+    "record_count": {
+      "type": "number",
+      "description": "Number of AuditLog records included in the hash"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this integrity record was created"
+    }
+  },
+  "required": [
+    "date",
+    "hash",
+    "created_at"
+  ],
+  "rls": {
+    "admin": [
+      "list",
+      "read",
+      "create"
+    ]
+  }
+}
