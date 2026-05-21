@@ -198,6 +198,7 @@ Deno.serve(async (req) => {
         const monthlyHeaderRow = providerRevSheet.addRow(monthlyHeaders);
         monthlyHeaderRow.eachCell(cell => { cell.style = headerStyle; });
         providerRevSheet.autoFilter = { from: { row: monthlyHeaderRow.number, column: 1 }, to: { row: monthlyHeaderRow.number, column: 7 } };
+        // Freeze only header row (not export date or spacer rows) for better data scrolling
         providerRevSheet.views = [{ state: 'frozen', ySplit: monthlyHeaderRow.number }];
 
         const mCurrCols = [3, 4, 5, 6, 7];

@@ -129,6 +129,9 @@ Deno.serve(async (req) => {
       to: `E${weekly.rowCount}`
     };
 
+    // Freeze header row only for better scrolling through weeks of data
+    weekly.views = [{ state: 'frozen', ySplit: 1 }];
+
     // ===== SHEET 3: FRONT-END PERFORMANCE =====
     const frontEnd = wb.addWorksheet("Front-End Performance");
     frontEnd.columns = [
@@ -181,6 +184,9 @@ Deno.serve(async (req) => {
       from: "A1",
       to: `E${frontEnd.rowCount}`
     };
+
+    // Freeze header row only for better scrolling through weeks of data
+    frontEnd.views = [{ state: 'frozen', ySplit: 1 }];
 
     // ===== SHEET 4: INDIVIDUAL PERFORMANCE =====
     const individual = wb.addWorksheet("Individual Performance");
@@ -255,6 +261,9 @@ Deno.serve(async (req) => {
       from: "A1",
       to: `G${individual.rowCount}`
     };
+
+    // Freeze header row only for better scrolling through weeks of data
+    individual.views = [{ state: 'frozen', ySplit: 1 }];
 
     // ===== FINAL EXPORT =====
     const buffer = await wb.xlsx.writeBuffer();
