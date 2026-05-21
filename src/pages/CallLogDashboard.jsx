@@ -797,7 +797,6 @@ export default function CallLogDashboard() {
 
       summary.addRow([]); // Bottom spacer
 
-      summary.views = [{ state: "frozen", ySplit: weekStartRow + 2 }];
       autoFitColumns(summary);
 
       // ===== SHEET 2: FRONT-END PERFORMANCE =====
@@ -949,8 +948,6 @@ export default function CallLogDashboard() {
         }
       }
 
-      // Freeze below KPI strip + table header (row 5)
-      frontEnd.views = [{ state: "frozen", ySplit: 4 }];
       frontEnd.state = "visible";
 
       // ===== SHEET 3: NP COORDINATOR PERFORMANCE =====
@@ -1092,7 +1089,6 @@ export default function CallLogDashboard() {
         }
       }
 
-      npCoord.views = [{ state: "frozen", ySplit: 4 }];
       npCoord.state = "visible";
 
       // ===== SHEET 4: INDIVIDUAL PERFORMANCE =====
@@ -1238,7 +1234,6 @@ export default function CallLogDashboard() {
         }
       }
 
-      individual.views = [{ state: "frozen", ySplit: 4 }];
       individual.state = "visible";
 
        // ===== PHASE 3: ADD CONFIG, FORMULA, AND RAW DATA SHEETS =====
