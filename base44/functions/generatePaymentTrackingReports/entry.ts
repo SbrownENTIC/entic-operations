@@ -84,11 +84,19 @@ Deno.serve(async (req) => {
         };
         const yellowFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
 
+        // Fills / fonts for Short/Overpaid column
+        const shortFill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } }; // light red
+        const overFill   = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } }; // light green
+        const shortFont  = { bold: true, color: { argb: 'FF9C0006' } }; // dark red
+        const overFont   = { color: { argb: 'FF276221' } }; // dark green
+        const diffNumFmt = '$#,##0.00;[Red]-$#,##0.00';
+
         // Apply special column formatting by header name (not index)
-        // "Payment Received" -> bold; "Payment Date" -> yellow fill
-        const applyColumnFormatting = (addedRow, headers, existingNumFmt) => {
-            const receivedIdx = headers.indexOf('Payment Received') + 1;
-            const dateIdx = headers.indexOf('Payment Date') + 1;
+        // "Payment Received" -> bold; "Payment Date" -> yellow fill; "Short / Overpaid" -> color coding
+        const applyColumnFormatting = (addedRow, headers) => {
+            const receivedIdx  = headers.indexOf('Payment Received') + 1;
+            const dateIdx      = headers.indexOf('Payment Date') + 1;
+            const diffIdx      = headers.indexOf('Short / Overpaid') + 1;
             if (receivedIdx > 0) {
                 const cell = addedRow.getCell(receivedIdx);
                 cell.font = { ...(cell.font || {}), bold: true };
@@ -97,6 +105,35 @@ Deno.serve(async (req) => {
                 const cell = addedRow.getCell(dateIdx);
                 cell.fill = yellowFill;
             }
+            if (diffIdx > 0) {
+                const cell = addedRow.getCell(diffIdx);
+                cell.numFmt = diffNumFmt;
+                const val = typeof cell.value === 'number' ? cell.value : 0;
+                if (val < 0) {
+                    cell.fill = shortFill;
+                    cell.font = shortFont;
+                } else if (val > 0) {
+                    cell.fill = overFill;
+                    cell.font = overFont;
+                }
+            }
+        };
+
+        // Inject "Short / Overpaid" column into a section's headers + rows (mutates in place)
+        const injectDiffColumn = (section) => {
+            const expIdx = section.headers.indexOf('Expected Payment');
+            const recIdx = section.headers.indexOf('Payment Received');
+            if (expIdx === -1 || recIdx === -1) return; // not applicable
+            if (section.headers.includes('Short / Overpaid')) return; // already injected
+            // Insert header immediately after Payment Received
+            const insertAt = recIdx + 1;
+            section.headers.splice(insertAt, 0, 'Short / Overpaid');
+            // Insert calculated value into each data row
+            section.rows.forEach(row => {
+                const expected = typeof row[expIdx] === 'number' ? row[expIdx] : 0;
+                const received = typeof row[recIdx] === 'number' ? row[recIdx] : 0;
+                row.splice(insertAt, 0, received - expected);
+            });
         };
 
         // Add export date to Summary
@@ -289,6 +326,9 @@ Deno.serve(async (req) => {
 
         // Process each section for Master Summary and Detail Sheets
         for (const section of sections) {
+            // Inject Short / Overpaid column before any rendering
+            injectDiffColumn(section);
+
             // --- Add to Summary Sheet ---
             summarySheet.addRow([]); // Spacer
             const titleRow = summarySheet.addRow([section.title]);
@@ -309,6 +349,7 @@ Deno.serve(async (req) => {
 
             const expectedIdx = section.headers.indexOf('Expected Payment') + 1;
             const receivedIdx = section.headers.indexOf('Payment Received') + 1;
+            const diffIdx     = section.headers.indexOf('Short / Overpaid') + 1;
 
             section.rows.forEach(row => {
                 const addedRow = summarySheet.addRow(row);
@@ -342,6 +383,12 @@ Deno.serve(async (req) => {
                 const cell = totalRow.getCell(receivedIdx);
                 cell.value = sectionReceived;
                 cell.numFmt = '$#,##0.00';
+                cell.font = { bold: true };
+            }
+            if (diffIdx > 0) {
+                const cell = totalRow.getCell(diffIdx);
+                cell.value = sectionReceived - sectionExpected;
+                cell.numFmt = diffNumFmt;
                 cell.font = { bold: true };
             }
 
@@ -394,7 +441,6 @@ Deno.serve(async (req) => {
             // Enable AutoFilter on the header row (detail sheets have one section each)
             const numCols = section.headers.length;
             const headerRowNum = detHeaderRow.number;
-            const lastCol = String.fromCharCode(64 + numCols); // A=1, B=2 ... up to Z
             detailSheet.autoFilter = {
                 from: { row: headerRowNum, column: 1 },
                 to: { row: headerRowNum, column: numCols }
@@ -422,6 +468,12 @@ Deno.serve(async (req) => {
                 const cell = detTotalRow.getCell(receivedIdx);
                 cell.value = sectionReceived;
                 cell.numFmt = '$#,##0.00';
+                cell.font = { bold: true };
+            }
+            if (diffIdx > 0) {
+                const cell = detTotalRow.getCell(diffIdx);
+                cell.value = sectionReceived - sectionExpected;
+                cell.numFmt = diffNumFmt;
                 cell.font = { bold: true };
             }
             
@@ -687,8 +739,9 @@ Deno.serve(async (req) => {
                     to: { row: headerRow.number, column: section.headers.length }
                 };
 
-                const expIdx = section.headers.indexOf('Expected Payment') + 1;
-                const recIdx = section.headers.indexOf('Payment Received') + 1;
+                const expIdx  = section.headers.indexOf('Expected Payment') + 1;
+                const recIdx  = section.headers.indexOf('Payment Received') + 1;
+                const dIdx    = section.headers.indexOf('Short / Overpaid') + 1;
                 let sectionExpected = 0;
                 let sectionReceived = 0;
 
@@ -720,6 +773,12 @@ Deno.serve(async (req) => {
                     const cell = totalRow.getCell(recIdx);
                     cell.value = sectionReceived;
                     cell.numFmt = '$#,##0.00';
+                    cell.font = { bold: true };
+                }
+                if (dIdx > 0) {
+                    const cell = totalRow.getCell(dIdx);
+                    cell.value = sectionReceived - sectionExpected;
+                    cell.numFmt = diffNumFmt;
                     cell.font = { bold: true };
                 }
 
