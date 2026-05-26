@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
         };
 
         // Facilities tracked in the summary columns (in display order)
-        const SUMMARY_FACILITIES = ['Hartford Hospital', 'St. Francis', 'UConn', 'HH - Manchester / ECHN'];
+        const SUMMARY_FACILITIES = ['Hartford Hospital', 'St. Francis - On-Call', 'St. Francis - Directorship', 'UConn', 'HH - Manchester / ECHN'];
 
         // ── BUILD PROVIDER MONTHLY SUMMARY from paymentQuarterRows ──────────
         // Map: provider → month-label → facility → total
@@ -144,11 +144,12 @@ Deno.serve(async (req) => {
             months.forEach(month => {
                 const byFac = monthlyMap[provider][month];
                 const hh = byFac['Hartford Hospital'] || 0;
-                const sf = byFac['St. Francis'] || 0;
+                const sfOC = byFac['St. Francis - On-Call'] || byFac['St. Francis'] || 0;
+                const sfDir = byFac['St. Francis - Directorship'] || 0;
                 const uc = byFac['UConn'] || 0;
                 const manc = byFac['HH - Manchester / ECHN'] || 0;
                 const total = Object.values(byFac).reduce((s, v) => s + v, 0);
-                monthlyRows.push([provider, month, hh, sf, uc, manc, total]);
+                monthlyRows.push([provider, month, hh, sfOC, sfDir, uc, manc, total]);
             });
         });
 
@@ -194,14 +195,14 @@ Deno.serve(async (req) => {
             font: { bold: true, size: 12, color: { argb: 'FFFFFFFF' } },
             fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F497D' } },
         };
-        providerRevSheet.mergeCells(`A${ms1Title.number}:G${ms1Title.number}`);
+        providerRevSheet.mergeCells(`A${ms1Title.number}:H${ms1Title.number}`);
 
-        const monthlyHeaders = ['Provider', 'Month', 'Hartford Hospital', 'St. Francis', 'UConn', 'HH - Manchester / ECHN', 'Total'];
+        const monthlyHeaders = ['Provider', 'Month', 'Hartford Hospital', 'St. Francis - On-Call', 'St. Francis - Directorship', 'UConn', 'HH - Manchester / ECHN', 'Total'];
         const monthlyHeaderRow = providerRevSheet.addRow(monthlyHeaders);
         monthlyHeaderRow.eachCell(cell => { cell.style = headerStyle; });
-        providerRevSheet.autoFilter = { from: { row: monthlyHeaderRow.number, column: 1 }, to: { row: monthlyHeaderRow.number, column: 7 } };
+        providerRevSheet.autoFilter = { from: { row: monthlyHeaderRow.number, column: 1 }, to: { row: monthlyHeaderRow.number, column: 8 } };
 
-        const mCurrCols = [3, 4, 5, 6, 7];
+        const mCurrCols = [3, 4, 5, 6, 7, 8];
         const mLightBand = 'FFF2F7FB';
         const mWhiteBand = 'FFFFFFFF';
         monthlyRows.forEach((row, idx) => {
@@ -212,7 +213,7 @@ Deno.serve(async (req) => {
                 cell.border = borderStyle;
                 if (mCurrCols.includes(colNum)) cell.numFmt = '$#,##0.00';
             });
-            addedRow.getCell(7).font = { bold: true };
+            addedRow.getCell(8).font = { bold: true };
         });
 
         const mTotals = [
@@ -222,6 +223,7 @@ Deno.serve(async (req) => {
             monthlyRows.reduce((s, r) => s + r[4], 0),
             monthlyRows.reduce((s, r) => s + r[5], 0),
             monthlyRows.reduce((s, r) => s + r[6], 0),
+            monthlyRows.reduce((s, r) => s + r[7], 0),
         ];
         const mTotalRow = providerRevSheet.addRow(mTotals);
         mTotalRow.eachCell((cell, colNum) => {
@@ -273,7 +275,7 @@ Deno.serve(async (req) => {
         });
 
         // Auto-size Provider Revenue Summary columns
-        const prsMinWidths = [24, 14, 18, 16, 14, 24, 16];
+        const prsMinWidths = [24, 14, 18, 22, 24, 14, 24, 16];
         providerRevSheet.columns.forEach((col, i) => {
             let max = prsMinWidths[i] || 14;
             col.eachCell({ includeEmpty: false }, cell => {
