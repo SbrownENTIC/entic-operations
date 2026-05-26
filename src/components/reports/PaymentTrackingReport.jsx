@@ -7,30 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { format, parseISO } from "date-fns";
 
 // ── Payment Quarter View helpers (mirrors PaymentQuarterView.jsx logic) ──────
-const QUARTER_ALLOWED_GROUPS = ['Hartford Hospital', 'UConn', 'HH - Manchester / ECHN', 'St. Francis', 'St. Francis - On-Call', 'St. Francis - Directorship'];
+const QUARTER_ALLOWED_GROUPS = ['Hartford Hospital', 'UConn', 'HH - Manchester / ECHN', 'St. Francis'];
 
 const normalizeQGroup = (name) => {
   if (!name) return '';
   const lower = name.toLowerCase();
   if (lower.includes('manchester') || lower.includes('echn')) return 'HH - Manchester / ECHN';
   return name;
-};
-
-// Determine if a St. Francis invoice is Directorship
-const isSFDirectorship = (invoice, outsideIncome = [], programLocations = []) => {
-  if (!invoice) return false;
-  if (invoice.invoice_number?.includes('(Directorship)')) return true;
-  const linkedIncomes = (invoice.outside_income_ids || []).map(id =>
-    outsideIncome.find(inc => inc.id === id)
-  ).filter(Boolean);
-  return linkedIncomes.some(inc => {
-    if (inc.facility_name?.toLowerCase().includes('directorship')) return true;
-    if (inc.program_location_id) {
-      const loc = programLocations.find(pl => pl.id === inc.program_location_id);
-      if (loc?.program_type === 'Directorship') return true;
-    }
-    return false;
-  });
 };
 
 const getQuarter = (dateStr) => {
@@ -70,18 +53,11 @@ const buildPaymentQuarterRows = (payments, invoices, providers, outsideIncome = 
     if (!payment.payment_date) return;
     (payment.allocations || []).forEach(allocation => {
       const invoice = invoices.find(inv => inv.id === allocation.invoice_id);
-      let group = normalizeQGroup(invoice?.program_group || '');
+      const group = normalizeQGroup(invoice?.program_group || '');
       if (!QUARTER_ALLOWED_GROUPS.includes(group)) return;
       const provider = providers.find(p => p.id === allocation.provider_id);
       const isDirectorship = isDirectorshipInvoice(invoice, outsideIncome, programLocations);
       const invoiceNum = invoice?.invoice_number || '-';
-
-      // For St. Francis, split into distinct sub-groups for the quarter view
-      if (group === 'St. Francis') {
-        const sfDir = isSFDirectorship(invoice, outsideIncome, programLocations);
-        group = sfDir ? 'St. Francis - Directorship' : 'St. Francis - On-Call';
-      }
-
       rows.push({
         quarter: getQuarter(payment.payment_date),
         paymentDate: payment.payment_date,
@@ -382,26 +358,15 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
 
       } else if (needsSeparation) {
         // Separate by program type
-        // Check if invoices exist for each type (don't require ProgramLocation to exist)
-        const directorshipInvoicesCheck = groupInvoices.filter(inv => {
-          if (inv.invoice_number?.includes('(Directorship)')) return true;
-          const linkedIncomes = (inv.outside_income_ids || []).map(id => outsideIncome.find(inc => inc.id === id)).filter(Boolean);
-          return linkedIncomes.some(income => {
-            if (income.facility_name?.toLowerCase().includes('directorship')) return true;
-            if (income.program_location_id) {
-              const loc = programLocations.find(pl => pl.id === income.program_location_id);
-              return loc?.program_type === 'Directorship';
-            }
-            return false;
-          });
-        });
-        const hasDirectorship = directorshipInvoicesCheck.length > 0 ||
-          programLocations.some(pl => pl.program_group === programGroup && pl.program_type === 'Directorship');
-        const hasOnCall = (groupInvoices.length - directorshipInvoicesCheck.length) > 0 ||
-          programLocations.some(pl => pl.program_group === programGroup && pl.program_type === 'On-Call');
+        const directorshipLocation = programLocations.find(pl => 
+          pl.program_group === programGroup && pl.program_type === 'Directorship'
+        );
+        const onCallLocation = programLocations.find(pl => 
+          pl.program_group === programGroup && pl.program_type === 'On-Call'
+        );
 
         // DIRECTORSHIP SECTION
-        if (hasDirectorship) {
+        if (directorshipLocation) {
           const section = {
             title: `${programGroup} - DIRECTORSHIP TRACKING`,
             headers: ['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Payment Quarter', 'Voucher Number', 'Date Paid Provider', 'Allocation/Notes'],
@@ -484,7 +449,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
         }
 
         // ON-CALL SECTION
-        if (hasOnCall) {
+        if (onCallLocation) {
           const section = {
             title: `${programGroup} - ON-CALL TRACKING`,
             headers: ['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Payment Quarter', 'Voucher Number', 'Date Paid Provider', 'Allocation/Notes'],
