@@ -799,6 +799,214 @@ export default function CallLogDashboard() {
 
       autoFitColumns(summary);
 
+      // ===== WEEKLY PER-USER AGGREGATION HELPER =====
+      // Builds: { weekStart -> { userId -> { user_name, total_inbound, total_answered, total_missed, total_outbound, outbound_connected, answer_rate, outbound_contact_rate, daily_goal, benchmark_group } } }
+      const buildWeeklyUserMap = (filterGroup) => {
+        const weekMap = {}; // weekStart -> userId -> metrics
+
+        // Helper: get/init week bucket
+        const getBucket = (weekStart, userId, userName, dailyGoal, bGroup) => {
+          if (!weekMap[weekStart]) weekMap[weekStart] = {};
+          if (!weekMap[weekStart][userId]) {
+            weekMap[weekStart][userId] = {
+              user_name: userName, daily_goal: dailyGoal, benchmark_group: bGroup,
+              total_inbound: 0, total_answered: 0, total_missed: 0,
+              total_outbound: 0, outbound_connected: 0
+            };
+          }
+          return weekMap[weekStart][userId];
+        };
+
+        // Get Monday of week for a date string "YYYY-MM-DD"
+        const getWeekStart = (dateStr) => {
+          if (!dateStr) return null;
+          const d = new Date(dateStr + 'T00:00:00');
+          const day = d.getDay(); // 0=Sun
+          const diff = day === 0 ? -6 : 1 - day; // adjust to Monday
+          d.setDate(d.getDate() + diff);
+          return d.toISOString().split('T')[0];
+        };
+
+        inbound.forEach(call => {
+          const normalizedExt = String(call.extension || '').trim().replace(/[\s\-\(\)]/g, '').replace(/\D/g, '');
+          const userObj = extToUser[normalizedExt] || extToUser[call.extension];
+          if (!userObj) return;
+          if (filterGroup && userObj.benchmark_group !== filterGroup && !(Array.isArray(filterGroup) && filterGroup.includes(userObj.benchmark_group))) return;
+          const weekStart = getWeekStart(call.call_date);
+          if (!weekStart) return;
+          const dg = userGoalMap[userObj.name] || 0;
+          const b = getBucket(weekStart, userObj.id, userObj.name, dg, userObj.benchmark_group);
+          b.total_inbound++;
+          if (call.answered) b.total_answered++;
+          if (call.missed) b.total_missed++;
+        });
+
+        outbound.forEach(call => {
+          const normalizedExt = String(call.extension || '').trim().replace(/[\s\-\(\)]/g, '').replace(/\D/g, '');
+          const userObj = extToUser[normalizedExt] || extToUser[call.extension];
+          if (!userObj) return;
+          if (filterGroup && userObj.benchmark_group !== filterGroup && !(Array.isArray(filterGroup) && filterGroup.includes(userObj.benchmark_group))) return;
+          const weekStart = getWeekStart(call.call_date);
+          if (!weekStart) return;
+          const dg = userGoalMap[userObj.name] || 0;
+          const b = getBucket(weekStart, userObj.id, userObj.name, dg, userObj.benchmark_group);
+          b.total_outbound++;
+          if ((call.duration_seconds || 0) >= 30) b.outbound_connected++;
+        });
+
+        // Compute derived rates
+        Object.values(weekMap).forEach(users => {
+          Object.values(users).forEach(u => {
+            u.answer_rate = u.total_inbound > 0 ? u.total_answered / u.total_inbound : 0;
+            u.outbound_contact_rate = u.total_outbound > 0 ? u.outbound_connected / u.total_outbound : 0;
+            u.weekly_goal = u.daily_goal * WorkDaysPerWeek;
+            u.goal_percent = u.weekly_goal > 0 ? (u.total_answered + u.total_outbound) / u.weekly_goal : 0;
+            u.avg_calls_per_day = (u.total_answered + u.outbound_connected) / WorkDaysPerWeek;
+          });
+        });
+
+        return weekMap;
+      };
+
+      // Helper: write a weekly-sectioned performance sheet (no addTable, styled ranges)
+      const writeWeeklyPerformanceSheet = (ws, weeklyUserMap, sheetTitle, includeGoals, sortByGoal, numColsTotal, monthYear) => {
+        const WEEK_HDR_BG = "FF0F4C5C"; // dark teal
+        const COL_HDR_BG  = "FF1F3864";
+        const TOTAL_FILL   = "FFF2F2F2";
+        const WHITE_FONT   = "FFFFFFFF";
+        const numCols = numColsTotal;
+
+        // Title row
+        ws.mergeCells(`A1:${String.fromCharCode(64 + numCols)}1`);
+        const titleCell = ws.getCell("A1");
+        titleCell.value = `${sheetTitle} – ${monthYear}`;
+        titleCell.font = { name: "Calibri", size: 16, bold: true, color: { argb: "FF1F3864" } };
+        titleCell.alignment = { horizontal: "left", vertical: "middle" };
+        titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFFFF" } };
+        ws.getRow(1).height = 28;
+        ws.addRow([]); // spacer row 2
+
+        // Column headers definition
+        const headers = includeGoals
+          ? ["User", "Inbound", "Outbound", "Avg Calls/Day", "Answered", "Missed", "Answer Rate", "Outbound Contact Rate", "Daily Goal", "Weekly Goal", "% of Goal"]
+          : ["User", "Inbound", "Outbound", "Avg Calls/Day", "Answered", "Missed", "Answer Rate", "Outbound Contact Rate"];
+
+        const applySoftCF = (cell, value, green, yellow) => {
+          if (value >= green) {
+            cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFC6EFCE" } };
+            cell.font = { name: "Calibri", size: 11, color: { argb: "FF006100" } };
+          } else if (value >= yellow) {
+            cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFE699" } };
+            cell.font = { name: "Calibri", size: 11, color: { argb: "FF9C6500" } };
+          } else {
+            cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFCCCC" } };
+            cell.font = { name: "Calibri", size: 11, color: { argb: "FF9C0006" } };
+          }
+        };
+
+        const formatDateMMDDYYYY = (dateStr) => {
+          if (!dateStr) return '';
+          const parts = dateStr.split('-');
+          if (parts.length === 3) return `${parts[1]}/${parts[2]}/${parts[0]}`;
+          return dateStr;
+        };
+
+        // Sort weeks descending (newest first)
+        const sortedWeeks = Object.keys(weeklyUserMap).sort((a, b) => b.localeCompare(a));
+
+        sortedWeeks.forEach((weekStart) => {
+          const usersInWeek = Object.values(weeklyUserMap[weekStart]);
+          // Sort users within week
+          const sortedUsers = [...usersInWeek].sort((a, b) => {
+            if (sortByGoal) return (b.goal_percent || 0) - (a.goal_percent || 0);
+            return (b.answer_rate || 0) - (a.answer_rate || 0);
+          });
+
+          // Week section header
+          const weekRowNum = ws.rowCount + 1;
+          ws.mergeCells(`A${weekRowNum}:${String.fromCharCode(64 + numCols)}${weekRowNum}`);
+          const weekCell = ws.getCell(`A${weekRowNum}`);
+          weekCell.value = `Week Starting: ${formatDateMMDDYYYY(weekStart)}`;
+          weekCell.font = { name: "Calibri", size: 11, bold: true, color: { argb: WHITE_FONT } };
+          weekCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: WEEK_HDR_BG } };
+          weekCell.alignment = { horizontal: "left", vertical: "middle" };
+          ws.getRow(weekRowNum).height = 22;
+
+          // Column headers
+          const colHdrRow = ws.addRow(headers);
+          colHdrRow.height = 18;
+          colHdrRow.eachCell((cell, colNum) => {
+            if (colNum <= headers.length) {
+              cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: WHITE_FONT } };
+              cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COL_HDR_BG } };
+              cell.alignment = { horizontal: colNum === 1 ? "left" : "center", vertical: "middle" };
+            }
+          });
+
+          // Weekly totals accumulators
+          let wTotInb = 0, wTotOut = 0, wTotAns = 0, wTotMis = 0, wTotGoal = 0, wTotWeekGoal = 0;
+          let wGoalPcts = [], wAvgCPD = [], wAnsRates = [], wOutRates = [];
+
+          // Data rows
+          sortedUsers.forEach(u => {
+            const rowValues = includeGoals
+              ? [u.user_name, u.total_inbound, u.total_outbound, u.avg_calls_per_day, u.total_answered, u.total_missed, u.answer_rate, u.outbound_contact_rate, u.daily_goal, u.weekly_goal, u.goal_percent]
+              : [u.user_name, u.total_inbound, u.total_outbound, u.avg_calls_per_day, u.total_answered, u.total_missed, u.answer_rate, u.outbound_contact_rate];
+
+            const dataRow = ws.addRow(rowValues);
+            dataRow.getCell(1).alignment = { horizontal: "left", vertical: "middle" };
+            dataRow.getCell(4).numFmt = "0.00"; // Avg Calls/Day
+            dataRow.getCell(7).numFmt = "0.00%"; // Answer Rate
+            dataRow.getCell(8).numFmt = "0.00%"; // Outbound Contact Rate
+            if (includeGoals) dataRow.getCell(11).numFmt = "0.00%"; // % of Goal
+            for (let c = 2; c <= headers.length; c++) {
+              dataRow.getCell(c).alignment = { horizontal: "center", vertical: "middle" };
+            }
+            // Conditional formatting on rate cols (data rows only)
+            applySoftCF(dataRow.getCell(7), u.answer_rate, 0.50, 0.20);
+            applySoftCF(dataRow.getCell(8), u.outbound_contact_rate, 0.50, 0.20);
+            if (includeGoals) applySoftCF(dataRow.getCell(11), u.goal_percent, 1.00, 0.90);
+
+            // Accumulate totals
+            wTotInb += u.total_inbound; wTotOut += u.total_outbound;
+            wTotAns += u.total_answered; wTotMis += u.total_missed;
+            wTotGoal += u.daily_goal; wTotWeekGoal += u.weekly_goal;
+            wGoalPcts.push(u.goal_percent); wAvgCPD.push(u.avg_calls_per_day);
+            wAnsRates.push(u.answer_rate); wOutRates.push(u.outbound_contact_rate);
+          });
+
+          // Weekly TOTAL row
+          const avg = arr => arr.length > 0 ? arr.reduce((s, v) => s + v, 0) / arr.length : 0;
+          const wTotAnsRate = wTotInb > 0 ? wTotAns / wTotInb : 0;
+          const wTotOutRate = wTotOut > 0 ? (sortedUsers.reduce((s, u) => s + u.outbound_connected, 0) / wTotOut) : 0;
+          const wAvgGoalPct = avg(wGoalPcts);
+          const wAvgCPDVal = avg(wAvgCPD);
+
+          const totalValues = includeGoals
+            ? ["TOTAL", wTotInb, wTotOut, wAvgCPDVal, wTotAns, wTotMis, wTotAnsRate, wTotOutRate, wTotGoal, wTotWeekGoal, wAvgGoalPct]
+            : ["TOTAL", wTotInb, wTotOut, wAvgCPDVal, wTotAns, wTotMis, wTotAnsRate, wTotOutRate];
+
+          const totRow = ws.addRow(totalValues);
+          totRow.font = { name: "Calibri", size: 11, bold: true };
+          totRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: TOTAL_FILL } };
+          totRow.getCell(1).alignment = { horizontal: "left" };
+          totRow.getCell(1).border = { top: { style: "medium" } };
+          totRow.getCell(4).numFmt = "0.00";
+          totRow.getCell(7).numFmt = "0.00%";
+          totRow.getCell(8).numFmt = "0.00%";
+          if (includeGoals) totRow.getCell(11).numFmt = "0.00%";
+          for (let c = 2; c <= headers.length; c++) {
+            const tc = totRow.getCell(c);
+            tc.border = { top: { style: "medium" } };
+            tc.alignment = { horizontal: "center", vertical: "middle" };
+            if (c !== 4 && c !== 7 && c !== 8 && c !== 11) tc.numFmt = "#,##0";
+          }
+
+          // Blank spacer row between weeks
+          ws.addRow([]);
+        });
+      };
+
       // ===== SHEET 2: FRONT-END PERFORMANCE =====
       const frontEnd = wb.addWorksheet("Front-End Performance");
       frontEnd.properties.tabColor = { argb: "FF70AD47" };
@@ -809,145 +1017,10 @@ export default function CallLogDashboard() {
         { width: 14 }, { width: 14 }, { width: 14 }
       ];
 
-      // Row 1: Title header
-      const feTitle = `Front-End Performance – ${monthYear}`;
-      frontEnd.mergeCells("A1:K1");
-      const feTitleCell = frontEnd.getCell("A1");
-      feTitleCell.value = feTitle;
-      feTitleCell.font = { name: "Calibri", size: 16, bold: true, color: { argb: "FF1F3864" } };
-      feTitleCell.alignment = { horizontal: "left", vertical: "middle" };
-      feTitleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFFFF" } };
-      frontEnd.getRow(1).height = 28;
-
-      // Row 2: Blank spacer
-      frontEnd.addRow([]);
-
-      if (!Array.isArray(frontendData)) throw new Error("frontendData is not an array");
-      if (frontendData.length > 0) {
-        const sorted = [...frontendData].sort((a, b) => (b.answer_rate || 0) - (a.answer_rate || 0));
-        let totalInb = 0, totalOut = 0, totalAns = 0, totalMis = 0, totalOutConn = 0, totalGoal = 0, totalWeekGoal = 0;
-        let frontIdx = 0;
-        const percentOfGoalValues = [];
-        const avgCallsPerDayValues = [];
-        const frontendTableRows = [];
-
-        while (frontIdx < sorted.length) {
-          const u = sorted[frontIdx];
-          const ansRate = u.answer_rate || 0;
-          const inbound = u.total_inbound || 0;
-          const answered = u.total_answered || 0;
-          const outbound = u.total_outbound || 0;
-          const outConn = u.outbound_connected || 0;
-          const outRate = outbound > 0 ? outConn / outbound : 0;
-          const dailyGoal = userGoalMap[u.user_name] || 0;
-          const weeklyGoal = dailyGoal * WorkDaysPerWeek;
-          const performanceTotal = answered + outbound;
-          const goalPercent = weeklyGoal > 0 ? performanceTotal / weeklyGoal : 0;
-          const avgCallsPerDay = (answered + outConn) / WorkDaysPerWeek;
-
-          avgCallsPerDayValues.push(avgCallsPerDay);
-          percentOfGoalValues.push(goalPercent);
-          frontendTableRows.push([u.user_name || "", inbound, outbound, avgCallsPerDay, answered, u.total_missed || 0, ansRate, outRate, dailyGoal, weeklyGoal, goalPercent]);
-
-          totalInb += inbound; totalOut += outbound; totalAns += answered;
-          totalMis += u.total_missed || 0; totalOutConn += outConn;
-          totalGoal += dailyGoal; totalWeekGoal += weeklyGoal;
-          frontIdx++;
-        }
-
-        // Row 3: KPI strip
-        const totalAnsRate = totalInb > 0 ? totalAns / totalInb : 0;
-        const totalOutRate = totalOut > 0 ? totalOutConn / totalOut : 0;
-        const avgOfAvgCallsPerDay = avgCallsPerDayValues.length > 0
-          ? avgCallsPerDayValues.reduce((sum, v) => sum + v, 0) / avgCallsPerDayValues.length : 0;
-        const avgPercentOfGoal = percentOfGoalValues.length > 0
-          ? percentOfGoalValues.reduce((sum, v) => sum + v, 0) / percentOfGoalValues.length : 0;
-
-        const feKpiRow = frontEnd.getRow(3);
-        feKpiRow.values = ["Total Productive Calls", totalAns + totalOutConn, "Avg Calls/Day", avgOfAvgCallsPerDay, "Avg Answer Rate", totalAnsRate, "Avg OB Contact Rate", totalOutRate];
-        feKpiRow.height = 20;
-        feKpiRow.eachCell({ includeEmpty: false }, (cell, colNum) => {
-          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFF99" } };
-          cell.font = { name: "Calibri", size: 10, bold: true, color: { argb: "FF1F3864" } };
-          cell.alignment = { horizontal: "center", vertical: "middle" };
-          if (colNum === 4) cell.numFmt = "0.00";
-          if (colNum === 6 || colNum === 8) cell.numFmt = "0.00%";
-          if (colNum === 2) cell.numFmt = "#,##0";
-        });
-
-        // Table starts at row 4
-        frontEnd.addTable({
-          name: "FrontEndPerformanceTable",
-          ref: "A4",
-          headerRow: true,
-          totalsRow: false,
-          style: { theme: "TableStyleMedium9", showRowStripes: true },
-          columns: [
-            { name: "User" }, { name: "Inbound" }, { name: "Outbound" }, { name: "Average Calls/Day" },
-            { name: "Answered" }, { name: "Missed" }, { name: "Answer Rate" },
-            { name: "Outbound Contact Rate" }, { name: "Daily Goal" }, { name: "Weekly Goal" }, { name: "% of Goal" }
-          ],
-          rows: frontendTableRows
-        });
-
-        // Header row (row 4) styling
-        frontEnd.getRow(4).eachCell((cell) => {
-          cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: WHITE } };
-          cell.alignment = { horizontal: "center", vertical: "middle" };
-        });
-        frontEnd.getRow(4).height = 18;
-
-        // Format data rows (rows 5 onward)
-        const feDataStart = 5;
-        const feDataEnd = 4 + frontendTableRows.length;
-        for (let r = feDataStart; r <= feDataEnd; r++) {
-          const rowIdx = r - feDataStart;
-          // Col D (4) = AvgCalls/Day, G (7) = AnsRate, H (8) = OutRate, K (11) = %Goal
-          frontEnd.getCell(`A${r}`).alignment = { horizontal: "left", vertical: "middle" };
-          for (let c = 2; c <= 11; c++) {
-            frontEnd.getCell(r, c).alignment = { horizontal: "center", vertical: "middle" };
-          }
-          frontEnd.getCell(`D${r}`).numFmt = "0.00";
-          frontEnd.getCell(`G${r}`).numFmt = "0.00%";
-          frontEnd.getCell(`H${r}`).numFmt = "0.00%";
-          frontEnd.getCell(`K${r}`).numFmt = "0.00%";
-
-          // Soft conditional formatting
-          const applySoftCF = (cell, value, green, yellow) => {
-            if (value >= green) {
-              cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFC6EFCE" } };
-              cell.font = { name: "Calibri", size: 11, color: { argb: "FF006100" } };
-            } else if (value >= yellow) {
-              cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFE699" } };
-              cell.font = { name: "Calibri", size: 11, color: { argb: "FF9C6500" } };
-            } else {
-              cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFCCCC" } };
-              cell.font = { name: "Calibri", size: 11, color: { argb: "FF9C0006" } };
-            }
-          };
-          applySoftCF(frontEnd.getCell(`G${r}`), frontendTableRows[rowIdx][6], 0.50, 0.20);
-          applySoftCF(frontEnd.getCell(`H${r}`), frontendTableRows[rowIdx][7], 0.50, 0.20);
-          applySoftCF(frontEnd.getCell(`K${r}`), frontendTableRows[rowIdx][10], 1.00, 0.90);
-        }
-
-        // TOTAL row
-        const feTotalsRowNum = feDataEnd + 1;
-        const feTotalsRow = frontEnd.getRow(feTotalsRowNum);
-        feTotalsRow.values = ["TOTAL", totalInb, totalOut, avgOfAvgCallsPerDay, totalAns, totalMis, totalAnsRate, totalOutRate, totalGoal, totalWeekGoal, avgPercentOfGoal];
-        feTotalsRow.font = { name: "Calibri", size: 11, bold: true };
-        feTotalsRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF2F2F2" } };
-        feTotalsRow.getCell(1).border = { top: { style: "medium" } };
-        feTotalsRow.getCell(1).alignment = { horizontal: "left" };
-        for (let i = 2; i <= 11; i++) {
-          const c = feTotalsRow.getCell(i);
-          c.border = { top: { style: "medium" } };
-          c.alignment = { horizontal: "center" };
-          if (i === 4) c.numFmt = "0.00";
-          else if (i === 7 || i === 8 || i === 11) c.numFmt = "0.00%";
-          else c.numFmt = "#,##0";
-        }
+      {
+        const feWeeklyMap = buildWeeklyUserMap("Front Desk");
+        writeWeeklyPerformanceSheet(frontEnd, feWeeklyMap, "Front-End Performance", true, true, 11, monthYear);
       }
-
       frontEnd.state = "visible";
 
       // ===== SHEET 3: NP COORDINATOR PERFORMANCE =====
@@ -958,137 +1031,10 @@ export default function CallLogDashboard() {
         { width: 12 }, { width: 12 }, { width: 14 }, { width: 14 },
         { width: 14 }, { width: 14 }, { width: 14 }
       ];
-
-      // Row 1: Title header
-      npCoord.mergeCells("A1:K1");
-      const npcTitleCell = npCoord.getCell("A1");
-      npcTitleCell.value = `NP Coordinator Performance – ${monthYear}`;
-      npcTitleCell.font = { name: "Calibri", size: 16, bold: true, color: { argb: "FF1F3864" } };
-      npcTitleCell.alignment = { horizontal: "left", vertical: "middle" };
-      npcTitleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFFFF" } };
-      npCoord.getRow(1).height = 28;
-
-      // Row 2: Blank spacer
-      npCoord.addRow([]);
-
-      if (npCoordinatorData.length > 0) {
-        const npcSorted = [...npCoordinatorData].sort((a, b) => (b.answer_rate || 0) - (a.answer_rate || 0));
-        let npcTotalInb = 0, npcTotalOut = 0, npcTotalAns = 0, npcTotalMis = 0, npcTotalOutConn = 0, npcTotalGoal = 0, npcTotalWeekGoal = 0;
-        const npcPctOfGoalValues = [];
-        const npcAvgCallsPerDayValues = [];
-        const npcTableRows = [];
-
-        let npcIdx = 0;
-        while (npcIdx < npcSorted.length) {
-          const u = npcSorted[npcIdx];
-          const ansRate = u.answer_rate || 0;
-          const inb = u.total_inbound || 0;
-          const ans = u.total_answered || 0;
-          const out = u.total_outbound || 0;
-          const outConn = u.outbound_connected || 0;
-          const outRate = out > 0 ? outConn / out : 0;
-          const dailyGoal = userGoalMap[u.user_name] || 0;
-          const weeklyGoal = dailyGoal * WorkDaysPerWeek;
-          const performanceTotal = ans + out;
-          const goalPercent = weeklyGoal > 0 ? performanceTotal / weeklyGoal : 0;
-          const avgCallsPerDay = (ans + outConn) / WorkDaysPerWeek;
-
-          npcAvgCallsPerDayValues.push(avgCallsPerDay);
-          npcPctOfGoalValues.push(goalPercent);
-          npcTableRows.push([u.user_name || "", inb, out, avgCallsPerDay, ans, u.total_missed || 0, ansRate, outRate, dailyGoal, weeklyGoal, goalPercent]);
-
-          npcTotalInb += inb; npcTotalOut += out; npcTotalAns += ans; npcTotalMis += u.total_missed || 0; npcTotalOutConn += outConn;
-          npcTotalGoal += dailyGoal; npcTotalWeekGoal += weeklyGoal;
-          npcIdx++;
-        }
-
-        const npcAnsRate = npcTotalInb > 0 ? npcTotalAns / npcTotalInb : 0;
-        const npcOutRate = npcTotalOut > 0 ? npcTotalOutConn / npcTotalOut : 0;
-        const npcAvgGoalPct = npcPctOfGoalValues.length > 0
-          ? npcPctOfGoalValues.reduce((s, v) => s + v, 0) / npcPctOfGoalValues.length : 0;
-        const npcAvgOfAvgCallsPerDay = npcAvgCallsPerDayValues.length > 0
-          ? npcAvgCallsPerDayValues.reduce((s, v) => s + v, 0) / npcAvgCallsPerDayValues.length : 0;
-
-        // Row 3: KPI strip
-        const npcKpiRow = npCoord.getRow(3);
-        npcKpiRow.values = ["Total Productive Calls", npcTotalAns + npcTotalOutConn, "Avg Calls/Day", npcAvgOfAvgCallsPerDay, "Avg Answer Rate", npcAnsRate, "Avg OB Contact Rate", npcOutRate];
-        npcKpiRow.height = 20;
-        npcKpiRow.eachCell({ includeEmpty: false }, (cell, colNum) => {
-          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFF99" } };
-          cell.font = { name: "Calibri", size: 10, bold: true, color: { argb: "FF1F3864" } };
-          cell.alignment = { horizontal: "center", vertical: "middle" };
-          if (colNum === 4) cell.numFmt = "0.00";
-          if (colNum === 6 || colNum === 8) cell.numFmt = "0.00%";
-          if (colNum === 2) cell.numFmt = "#,##0";
-        });
-
-        // Table at row 4
-        npCoord.addTable({
-          name: "NPCoordinatorPerformanceTable",
-          ref: "A4",
-          headerRow: true,
-          totalsRow: false,
-          style: { theme: "TableStyleMedium4", showRowStripes: true },
-          columns: [
-            { name: "User" }, { name: "Inbound" }, { name: "Outbound" }, { name: "Average Calls/Day" },
-            { name: "Answered" }, { name: "Missed" }, { name: "Answer Rate" }, { name: "Outbound Contact Rate" },
-            { name: "Daily Goal" }, { name: "Weekly Goal" }, { name: "% of Goal" }
-          ],
-          rows: npcTableRows
-        });
-
-        npCoord.getRow(4).eachCell((cell) => {
-          cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: WHITE } };
-          cell.alignment = { horizontal: "center", vertical: "middle" };
-        });
-        npCoord.getRow(4).height = 18;
-
-        const npcDataStart = 5;
-        const npcDataEnd = 4 + npcTableRows.length;
-        for (let r = npcDataStart; r <= npcDataEnd; r++) {
-          const rowIdx = r - npcDataStart;
-          npCoord.getCell(`A${r}`).alignment = { horizontal: "left", vertical: "middle" };
-          for (let c = 2; c <= 11; c++) npCoord.getCell(r, c).alignment = { horizontal: "center", vertical: "middle" };
-          npCoord.getCell(`D${r}`).numFmt = "0.00";
-          npCoord.getCell(`G${r}`).numFmt = "0.00%";
-          npCoord.getCell(`H${r}`).numFmt = "0.00%";
-          npCoord.getCell(`K${r}`).numFmt = "0.00%";
-
-          const applySoftCF = (cell, value, green, yellow) => {
-            if (value >= green) {
-              cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFC6EFCE" } };
-              cell.font = { name: "Calibri", size: 11, color: { argb: "FF006100" } };
-            } else if (value >= yellow) {
-              cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFE699" } };
-              cell.font = { name: "Calibri", size: 11, color: { argb: "FF9C6500" } };
-            } else {
-              cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFCCCC" } };
-              cell.font = { name: "Calibri", size: 11, color: { argb: "FF9C0006" } };
-            }
-          };
-          applySoftCF(npCoord.getCell(`G${r}`), npcTableRows[rowIdx][6], 0.50, 0.20);
-          applySoftCF(npCoord.getCell(`H${r}`), npcTableRows[rowIdx][7], 0.50, 0.20);
-          applySoftCF(npCoord.getCell(`K${r}`), npcTableRows[rowIdx][10], 1.00, 0.90);
-        }
-
-        // TOTAL row
-        const npcTotRowNum = npcDataEnd + 1;
-        const npcTotRow = npCoord.getRow(npcTotRowNum);
-        npcTotRow.values = ["TOTAL", npcTotalInb, npcTotalOut, npcAvgOfAvgCallsPerDay, npcTotalAns, npcTotalMis, npcAnsRate, npcOutRate, npcTotalGoal, npcTotalWeekGoal, npcAvgGoalPct];
-        npcTotRow.font = { name: "Calibri", size: 11, bold: true };
-        npcTotRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF2F2F2" } };
-        npcTotRow.getCell(1).border = { top: { style: "medium" } };
-        npcTotRow.getCell(1).alignment = { horizontal: "left" };
-        for (let i = 2; i <= 11; i++) {
-          const c = npcTotRow.getCell(i);
-          c.border = { top: { style: "medium" } };
-          c.alignment = { horizontal: "center" };
-          if (i === 4) c.numFmt = "0.00";
-          else if (i === 7 || i === 8 || i === 11) c.numFmt = "0.00%";
-          else c.numFmt = "#,##0";
-        }
+      {
+        const npcWeeklyMap = buildWeeklyUserMap("NP Coordinator");
+        writeWeeklyPerformanceSheet(npCoord, npcWeeklyMap, "NP Coordinator Performance", true, true, 11, monthYear);
       }
-
       npCoord.state = "visible";
 
       // ===== SHEET 4: INDIVIDUAL PERFORMANCE =====
@@ -1096,144 +1042,12 @@ export default function CallLogDashboard() {
       individual.properties.tabColor = { argb: "FFED7D31" };
       individual.columns = [
         { width: 22 }, { width: 12 }, { width: 12 }, { width: 16 },
-        { width: 12 }, { width: 12 }, { width: 14 }, { width: 14 },
-        { width: 14 }, { width: 14 }, { width: 14 }, { width: 16 }
+        { width: 12 }, { width: 12 }, { width: 14 }, { width: 14 }
       ];
-
-      // Row 1: Title header
-      individual.mergeCells("A1:L1");
-      const indTitleCell = individual.getCell("A1");
-      indTitleCell.value = `Individual Performance – ${monthYear}`;
-      indTitleCell.font = { name: "Calibri", size: 16, bold: true, color: { argb: "FF1F3864" } };
-      indTitleCell.alignment = { horizontal: "left", vertical: "middle" };
-      indTitleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFFFF" } };
-      individual.getRow(1).height = 28;
-
-      // Row 2: Blank spacer
-      individual.addRow([]);
-
-      if (!Array.isArray(individualPerformanceData)) throw new Error("individualPerformanceData is not an array");
-      if (individualPerformanceData.length > 0) {
-        const sorted = [...individualPerformanceData].sort((a, b) => (b.answer_rate || 0) - (a.answer_rate || 0));
-        let totInb = 0, totOut = 0, totAns = 0, totMis = 0, totDur = 0, totOutConnected = 0, totalGoal = 0, totalWeekGoal = 0;
-        let indIdx = 0;
-        const percentOfGoalValues = [];
-        const indAvgCallsPerDayValues = [];
-        const individualTableRows = [];
-
-        while (indIdx < sorted.length) {
-          const u = sorted[indIdx];
-          const inb = u.total_inbound || 0;
-          const out = u.total_outbound || 0;
-          const ans = u.total_answered || 0;
-          const mis = u.total_missed || 0;
-          const dur = u.avg_duration_seconds || 0;
-          const outConn = u.outbound_connected || 0;
-          const ansRate = inb > 0 ? ans / inb : 0;
-          const outRate = out > 0 ? outConn / out : 0;
-          const dailyGoal = userGoalMap[u.user_name] || 0;
-          const weeklyGoal = dailyGoal * WorkDaysPerWeek;
-          const performanceTotal = ans + out;
-          const goalPercent = weeklyGoal > 0 ? performanceTotal / weeklyGoal : 0;
-          const avgCallsPerDay = (ans + outConn) / WorkDaysPerWeek;
-
-          indAvgCallsPerDayValues.push(avgCallsPerDay);
-          percentOfGoalValues.push(goalPercent);
-          individualTableRows.push([u.user_name || "", inb, out, avgCallsPerDay, ans, mis, ansRate, outRate, dailyGoal, weeklyGoal, goalPercent, dur / 60]);
-
-          totInb += inb; totOut += out; totAns += ans; totMis += mis; totDur += dur * inb; totOutConnected += outConn;
-          totalGoal += dailyGoal; totalWeekGoal += weeklyGoal;
-          indIdx++;
-        }
-
-        const totAnsRate = totInb > 0 ? totAns / totInb : 0;
-        const totOutRate = totOut > 0 ? totOutConnected / totOut : 0;
-        const avgPercentOfGoal = percentOfGoalValues.length > 0
-          ? percentOfGoalValues.reduce((sum, v) => sum + v, 0) / percentOfGoalValues.length : 0;
-        const indAvgOfAvgCallsPerDay = indAvgCallsPerDayValues.length > 0
-          ? indAvgCallsPerDayValues.reduce((sum, v) => sum + v, 0) / indAvgCallsPerDayValues.length : 0;
-
-        // Row 3: KPI strip
-        const indKpiRow = individual.getRow(3);
-        indKpiRow.values = ["Total Productive Calls", totAns + totOutConnected, "Avg Calls/Day", indAvgOfAvgCallsPerDay, "Avg Answer Rate", totAnsRate, "Avg OB Contact Rate", totOutRate];
-        indKpiRow.height = 20;
-        indKpiRow.eachCell({ includeEmpty: false }, (cell, colNum) => {
-          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFF99" } };
-          cell.font = { name: "Calibri", size: 10, bold: true, color: { argb: "FF1F3864" } };
-          cell.alignment = { horizontal: "center", vertical: "middle" };
-          if (colNum === 4) cell.numFmt = "0.00";
-          if (colNum === 6 || colNum === 8) cell.numFmt = "0.00%";
-          if (colNum === 2) cell.numFmt = "#,##0";
-        });
-
-        // Table at row 4
-        individual.addTable({
-          name: "IndividualPerformanceTable",
-          ref: "A4",
-          headerRow: true,
-          totalsRow: false,
-          style: { theme: "TableStyleMedium2", showRowStripes: true },
-          columns: [
-            { name: "User" }, { name: "Inbound" }, { name: "Outbound" }, { name: "Average Calls/Day" },
-            { name: "Answered" }, { name: "Missed" }, { name: "Answer Rate" }, { name: "Outbound Contact Rate" },
-            { name: "Daily Goal" }, { name: "Weekly Goal" }, { name: "% of Goal" }, { name: "Avg Duration (min)" }
-          ],
-          rows: individualTableRows
-        });
-
-        individual.getRow(4).eachCell((cell) => {
-          cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: WHITE } };
-          cell.alignment = { horizontal: "center", vertical: "middle" };
-        });
-        individual.getRow(4).height = 18;
-
-        const indDataStart = 5;
-        const indDataEnd = 4 + individualTableRows.length;
-        for (let r = indDataStart; r <= indDataEnd; r++) {
-          const rowIdx = r - indDataStart;
-          individual.getCell(`A${r}`).alignment = { horizontal: "left", vertical: "middle" };
-          for (let c = 2; c <= 12; c++) individual.getCell(r, c).alignment = { horizontal: "center", vertical: "middle" };
-          individual.getCell(`D${r}`).numFmt = "0.00";
-          individual.getCell(`G${r}`).numFmt = "0.00%";
-          individual.getCell(`H${r}`).numFmt = "0.00%";
-          individual.getCell(`K${r}`).numFmt = "0.00%";
-          individual.getCell(`L${r}`).numFmt = "0.00";
-
-          const applySoftCF = (cell, value, green, yellow) => {
-            if (value >= green) {
-              cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFC6EFCE" } };
-              cell.font = { name: "Calibri", size: 11, color: { argb: "FF006100" } };
-            } else if (value >= yellow) {
-              cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFE699" } };
-              cell.font = { name: "Calibri", size: 11, color: { argb: "FF9C6500" } };
-            } else {
-              cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFCCCC" } };
-              cell.font = { name: "Calibri", size: 11, color: { argb: "FF9C0006" } };
-            }
-          };
-          applySoftCF(individual.getCell(`G${r}`), individualTableRows[rowIdx][6], 0.50, 0.20);
-          applySoftCF(individual.getCell(`H${r}`), individualTableRows[rowIdx][7], 0.50, 0.20);
-          applySoftCF(individual.getCell(`K${r}`), individualTableRows[rowIdx][10], 1.00, 0.90);
-        }
-
-        // TOTAL row
-        const indTotRowNum = indDataEnd + 1;
-        const indTotRow = individual.getRow(indTotRowNum);
-        indTotRow.values = ["TOTAL", totInb, totOut, indAvgOfAvgCallsPerDay, totAns, totMis, totAnsRate, totOutRate, totalGoal, totalWeekGoal, avgPercentOfGoal, totInb > 0 ? totDur / totInb / 60 : 0];
-        indTotRow.font = { name: "Calibri", size: 11, bold: true };
-        indTotRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF2F2F2" } };
-        indTotRow.getCell(1).border = { top: { style: "medium" } };
-        indTotRow.getCell(1).alignment = { horizontal: "left" };
-        for (let i = 2; i <= 12; i++) {
-          const c = indTotRow.getCell(i);
-          c.border = { top: { style: "medium" } };
-          c.alignment = { horizontal: "center" };
-          if (i === 4 || i === 12) c.numFmt = "0.00";
-          else if (i === 7 || i === 8 || i === 11) c.numFmt = "0.00%";
-          else c.numFmt = "#,##0";
-        }
+      {
+        const indWeeklyMap = buildWeeklyUserMap(["Front Desk", "NP Coordinator"]);
+        writeWeeklyPerformanceSheet(individual, indWeeklyMap, "Individual Performance", false, false, 8, monthYear);
       }
-
       individual.state = "visible";
 
        // ===== PHASE 3: ADD CONFIG, FORMULA, AND RAW DATA SHEETS =====
