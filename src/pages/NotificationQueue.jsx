@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Trash2, RefreshCw, Eye, CheckCircle, XCircle, Clock, Send, AlertCircle, UploadCloud } from "lucide-react";
+import { Search, Trash2, RefreshCw, Eye, CheckCircle, XCircle, Clock, Send, AlertCircle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -48,30 +48,8 @@ export default function NotificationQueuePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [viewRecord, setViewRecord] = useState(null);
-  const [syncingId, setSyncingId] = useState(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-
-  const handleSyncToAirtable = async (notificationId) => {
-    setSyncingId(notificationId);
-    try {
-      const resp = await base44.functions.invoke('syncNotificationQueueToAirtable', {
-        notification_id: notificationId
-      });
-      const data = resp?.data;
-      if (data?.synced > 0) {
-        toast({ title: "Synced to Airtable", description: "Record pushed to Airtable — automation will send at 8 AM Eastern." });
-      } else if (data?.skipped > 0) {
-        toast({ title: "Already in Airtable", description: "This record already exists in Airtable with status Ready to Send or Sent." });
-      } else {
-        toast({ title: "Sync result", description: data?.message || "Done.", variant: "default" });
-      }
-    } catch (err) {
-      toast({ title: "Sync failed", description: err.message, variant: "destructive" });
-    } finally {
-      setSyncingId(null);
-    }
-  };
 
   const { data: queue = [], isLoading } = useQuery({
     queryKey: ["notification-queue"],
@@ -146,12 +124,12 @@ export default function NotificationQueuePage() {
           ))}
         </div>
 
-        {/* Airtable info banner */}
+        {/* Power Automate info banner */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
           <Send className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
           <div>
-            <p className="font-semibold text-blue-900 text-sm">Airtable / Outlook Automation</p>
-            <p className="text-blue-700 text-sm">When you queue a notification, it is automatically pushed to the <strong>Airtable "Notification Queue"</strong> table. The Airtable automation triggers at <strong>8:00 AM Eastern</strong> for records where Status = Ready to Send. Email is sent from <strong>Steve.brown@enticmd.com</strong> with all CC recipients on the same email. Use the <UploadCloud className="inline w-3 h-3" /> button to manually re-sync a failed record to Airtable.</p>
+            <p className="font-semibold text-blue-900 text-sm">Power Automate Integration</p>
+            <p className="text-blue-700 text-sm">Records with <strong>Status = Ready to Send</strong> are retrieved by Power Automate via the <code className="bg-blue-100 px-1 rounded text-xs">getReadyNotifications</code> function. Power Automate sends one Outlook email per record (all CC recipients on the same email) from <strong>Steve.brown@enticmd.com</strong>, then calls <code className="bg-blue-100 px-1 rounded text-xs">markNotificationSent</code> or <code className="bg-blue-100 px-1 rounded text-xs">markNotificationFailed</code> to update the status here.</p>
           </div>
         </div>
 
@@ -265,21 +243,7 @@ export default function NotificationQueuePage() {
                                 <RefreshCw className="w-4 h-4" />
                               </Button>
                             )}
-                            {r.status === "Ready to Send" && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                title="Sync to Airtable now"
-                                className="text-green-600 hover:text-green-700"
-                                disabled={syncingId === r.id}
-                                onClick={() => handleSyncToAirtable(r.id)}
-                              >
-                                {syncingId === r.id
-                                  ? <RefreshCw className="w-4 h-4 animate-spin" />
-                                  : <UploadCloud className="w-4 h-4" />
-                                }
-                              </Button>
-                            )}
+
                             <Button
                               variant="ghost"
                               size="sm"

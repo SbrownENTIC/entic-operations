@@ -116,27 +116,12 @@ Deno.serve(async (req) => {
     error_message: null
   });
 
-  // ── AUTO-SYNC TO AIRTABLE ────────────────────────────────────────────────
-  // Fire-and-forget: sync this record to Airtable immediately so the
-  // Airtable automation can pick it up and send the email at 8 AM Eastern.
-  let airtableSync = null;
-  try {
-    const syncResp = await base44.functions.invoke('syncNotificationQueueToAirtable', {
-      notification_id: record.id
-    });
-    airtableSync = syncResp?.data || null;
-  } catch (_syncErr) {
-    // Non-fatal: Base44 record was created successfully; Airtable sync can be retried manually.
-    airtableSync = { error: 'Airtable sync failed — retry from Notification Queue page.' };
-  }
-
   return Response.json({
     success: true,
-    message: `${notificationType} notification queued successfully.`,
+    message: `${notificationType} notification queued successfully. Power Automate will retrieve and send this at the next scheduled run.`,
     notification_id: record.id,
     to: toField,
     cc: ccField,
-    recipient_count: recipients.length,
-    airtable_sync: airtableSync
+    recipient_count: recipients.length
   });
 });
