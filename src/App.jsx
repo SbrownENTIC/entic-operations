@@ -11,6 +11,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import CallLogDashboard from '@/pages/CallLogDashboard';
 import AuditLogPage from '@/pages/AuditLog';
+import NotificationQueuePage from '@/pages/NotificationQueue';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -70,6 +71,11 @@ const AuthenticatedApp = () => {
       <Route path="/AuditLog" element={
         <LayoutWrapper currentPageName="AuditLog">
           <AuditLogPage />
+        </LayoutWrapper>
+      } />
+      <Route path="/NotificationQueue" element={
+        <LayoutWrapper currentPageName="NotificationQueue">
+          <NotificationQueuePage />
         </LayoutWrapper>
       } />
       <Route path="*" element={<PageNotFound />} />

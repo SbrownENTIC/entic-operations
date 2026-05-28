@@ -1,0 +1,99 @@
+{
+  "name": "NotificationQueue",
+  "type": "object",
+  "properties": {
+    "notification_type": {
+      "type": "string",
+      "enum": [
+        "Office Closure",
+        "Holiday Closure",
+        "License Expiration",
+        "Invoice",
+        "Custom"
+      ],
+      "description": "Type of notification"
+    },
+    "related_entity": {
+      "type": "string",
+      "description": "Entity name the notification relates to (e.g. Reminder)"
+    },
+    "related_record_id": {
+      "type": "string",
+      "description": "ID of the related entity record"
+    },
+    "closure_type": {
+      "type": "string",
+      "description": "The closure name (e.g. Christmas, Memorial Day, Office Closure)"
+    },
+    "location": {
+      "type": "string",
+      "description": "Office location if applicable"
+    },
+    "closure_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the closure"
+    },
+    "to": {
+      "type": "string",
+      "description": "Primary recipient email address(es), comma-separated"
+    },
+    "cc": {
+      "type": "string",
+      "description": "CC recipient email address(es), comma-separated"
+    },
+    "bcc": {
+      "type": "string",
+      "description": "BCC recipient email address(es), comma-separated"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Email subject line"
+    },
+    "body": {
+      "type": "string",
+      "description": "Email body content"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Draft",
+        "Ready to Send",
+        "Sending",
+        "Sent",
+        "Failed",
+        "Cancelled"
+      ],
+      "default": "Draft",
+      "description": "Current status of the notification"
+    },
+    "ready_to_send": {
+      "type": "boolean",
+      "default": false,
+      "description": "Flag for Power Automate trigger \u2014 true when ready to dispatch"
+    },
+    "sent_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when email was successfully sent"
+    },
+    "sent_by": {
+      "type": "string",
+      "description": "Name or email of sender (set by Power Automate after send)"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Error details if sending failed"
+    },
+    "email_provider_message_id": {
+      "type": "string",
+      "description": "Message ID returned by the email provider after successful send"
+    }
+  },
+  "required": [
+    "notification_type",
+    "subject",
+    "body",
+    "status"
+  ]
+}

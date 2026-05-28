@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Pencil, Trash2, Send, Clock, Mail, ArrowUpDown, ArrowUp, ArrowDown, RotateCcw, CheckCircle, AlertCircle, CloudUpload, RefreshCw } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Send, Clock, Mail, ArrowUpDown, ArrowUp, ArrowDown, RotateCcw, CheckCircle, AlertCircle, CloudUpload, RefreshCw, BellRing, ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import ReminderForm from "../components/reminders/ReminderForm";
 import EmptyState from "@/components/ui/EmptyState";
@@ -33,6 +34,7 @@ export default function Reminders() {
   const [statusMessage, setStatusMessage] = useState(null);
   const [testingReminders, setTestingReminders] = useState(false);
   const [airtableSyncing, setAirtableSyncing] = useState(false);
+  const [queuingId, setQueuingId] = useState(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const location = useLocation();
@@ -232,6 +234,35 @@ The Operations Team`;
     }
   };
 
+  const handleQueueNotification = async (reminder) => {
+    const isClosureType = ['Office Closure', 'Holiday', 'Inclement Weather'].includes(reminder.reminder_type);
+    if (!isClosureType) {
+      toast({ variant: "destructive", title: "Not supported", description: "Only Office Closure and Holiday types can be queued in Phase 1." });
+      return;
+    }
+    if (!reminder.email_subject || !reminder.email_body) {
+      toast({ variant: "destructive", title: "Incomplete", description: "Reminder must have a subject and body before queuing." });
+      return;
+    }
+    if (!reminder.recipients || reminder.recipients.length === 0) {
+      toast({ variant: "destructive", title: "No recipients", description: "Add at least one recipient before queuing." });
+      return;
+    }
+    setQueuingId(reminder.id);
+    try {
+      const res = await base44.functions.invoke('queueClosureNotification', { reminder_id: reminder.id });
+      if (res.data.duplicate) {
+        toast({ variant: "destructive", title: "Duplicate prevented", description: res.data.message });
+      } else {
+        toast({ title: "✅ Notification queued!", description: `Queued for ${res.data.recipient_count} recipient(s). Power Automate will send it shortly.` });
+      }
+    } catch (error) {
+      toast({ variant: "destructive", title: "Queue failed", description: error.message });
+    } finally {
+      setQueuingId(null);
+    }
+  };
+
   const handleSyncToAirtable = async () => {
     setAirtableSyncing(true);
     setStatusMessage(null); // Use statusMessage for airtable feedback too
@@ -317,6 +348,13 @@ The Operations Team`;
           <div className="flex gap-2">
             {user?.role === 'admin' && (
               <>
+                <Button asChild variant="outline" className="border-indigo-300 text-indigo-700 hover:bg-indigo-50 gap-2">
+                  <Link to="/NotificationQueue">
+                    <BellRing className="w-4 h-4" />
+                    Notification Queue
+                    <ExternalLink className="w-3 h-3" />
+                  </Link>
+                </Button>
                 <Button
                   onClick={handleSyncToAirtable}
                   disabled={airtableSyncing}
@@ -525,6 +563,20 @@ The Operations Team`;
                       <td className="p-4 text-right">
                         {user?.role === 'admin' && (
                           <div className="flex gap-2 justify-end">
+                            {['Office Closure', 'Holiday', 'Inclement Weather'].includes(reminder.reminder_type) && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleQueueNotification(reminder)}
+                                disabled={queuingId === reminder.id}
+                                title="Queue email notification for Power Automate"
+                                className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                              >
+                                {queuingId === reminder.id
+                                  ? <RefreshCw className="w-4 h-4 animate-spin" />
+                                  : <BellRing className="w-4 h-4" />}
+                              </Button>
+                            )}
                             <Button 
                               variant="ghost" 
                               size="sm"
