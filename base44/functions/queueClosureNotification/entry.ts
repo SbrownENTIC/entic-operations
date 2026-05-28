@@ -123,11 +123,25 @@ Deno.serve(async (req) => {
 
   ${oncallProvider ? `<p style="margin: 0 0 12px 0;"><strong>On-call provider:</strong> ${oncallProvider}${oncallPhone ? `<br><strong>Contact:</strong> ${oncallPhone}` : ''}</p>` : ''}
 
-  <p style="margin: 0 0 12px 0;">If you have any urgent needs during this time, please contact our on-call provider listed above.</p>
+  ${oncallProvider ? `<p style="margin: 0 0 12px 0;">If you have any urgent needs during this time, please contact our on-call provider listed above.</p>` : ''}
 
-  <p style="margin: 0 0 4px 0;">Thank you,</p>
-  <p style="margin: 0; font-weight: bold;">The Operations Team</p>
-  <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 13px;">ENTIC – Ear, Nose &amp; Throat Institute of Connecticut</p>
+  <p style="margin: 0 0 20px 0;">Thank you,</p>
+
+  <table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, sans-serif;">
+    <tr>
+      <td>
+        <p style="margin: 0 0 2px 0; font-weight: bold; color: #1f4e78; font-size: 15px;">Steve Brown</p>
+        <p style="margin: 0 0 10px 0; color: #1f2937; font-size: 13px;">Operations Manager</p>
+        <img src="https://enticmd.com/wp-content/uploads/2024/07/ENT-CT-logo-1.png" alt="ENTIC Logo" style="max-width: 260px; height: auto; display: block; margin-bottom: 8px;">
+        <p style="margin: 0 0 2px 0; color: #1f2937; font-size: 13px;">Ear, Nose &amp; Throat Institute of CT</p>
+        <p style="margin: 0 0 2px 0; color: #1f2937; font-size: 13px;">599 Farmington Ave., Suite 102</p>
+        <p style="margin: 0 0 2px 0; color: #1f2937; font-size: 13px;">Farmington, CT 06032</p>
+        <p style="margin: 0 0 2px 0; color: #1f2937; font-size: 13px;">(860) 284-4950</p>
+        <p style="margin: 0 0 8px 0; font-size: 13px;"><a href="https://www.enticmd.com" style="color: #1f4e78; text-decoration: underline;">www.enticmd.com</a></p>
+        <p style="margin: 0; color: #f97316; font-weight: bold; font-size: 15px;">ENT Express &#8211; Now Open in Farmington!</p>
+      </td>
+    </tr>
+  </table>
 </div>`;
 
   // ── CREATE NotificationQueue RECORD ─────────────────────────────────────
