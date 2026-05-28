@@ -163,6 +163,7 @@ export default function NotificationQueuePage() {
                     <th className="text-left p-4 font-semibold text-slate-700">Type</th>
                     <th className="text-left p-4 font-semibold text-slate-700">Subject</th>
                     <th className="text-left p-4 font-semibold text-slate-700">To</th>
+                    <th className="text-left p-4 font-semibold text-slate-700">Send Date</th>
                     <th className="text-left p-4 font-semibold text-slate-700">Closure Date</th>
                     <th className="text-left p-4 font-semibold text-slate-700">Status</th>
                     <th className="text-left p-4 font-semibold text-slate-700">Sent Date</th>
@@ -173,7 +174,7 @@ export default function NotificationQueuePage() {
                 <tbody>
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="p-12 text-center text-slate-500">
+                      <td colSpan={9} className="p-12 text-center text-slate-500">
                         No notifications in queue
                       </td>
                     </tr>
@@ -195,6 +196,13 @@ export default function NotificationQueuePage() {
                         <td className="p-4 text-slate-600 max-w-xs">
                           <div className="truncate">{r.to}</div>
                           {r.cc && <div className="text-xs text-slate-400 truncate">CC: {r.cc}</div>}
+                        </td>
+                        <td className="p-4 text-slate-600">
+                          {r.send_date ? (
+                            <span className={r.send_date === new Date().toLocaleDateString('en-CA') ? 'font-semibold text-blue-700' : ''}>
+                              {format(parseISO(r.send_date), 'MMM d, yyyy')}
+                            </span>
+                          ) : '—'}
                         </td>
                         <td className="p-4 text-slate-600">
                           {r.closure_date ? format(parseISO(r.closure_date), 'MMM d, yyyy') : '—'}
@@ -277,6 +285,7 @@ export default function NotificationQueuePage() {
                 <div><span className="font-semibold text-slate-600">Type:</span> {viewRecord.notification_type}</div>
                 <div><span className="font-semibold text-slate-600">Status:</span> <Badge className={STATUS_COLORS[viewRecord.status]}>{viewRecord.status}</Badge></div>
                 <div><span className="font-semibold text-slate-600">Closure Type:</span> {viewRecord.closure_type || '—'}</div>
+                <div><span className="font-semibold text-slate-600">Send Date:</span> {viewRecord.send_date ? format(parseISO(viewRecord.send_date), 'MMM d, yyyy') : '—'}</div>
                 <div><span className="font-semibold text-slate-600">Closure Date:</span> {viewRecord.closure_date ? format(parseISO(viewRecord.closure_date), 'MMM d, yyyy') : '—'}</div>
                 <div><span className="font-semibold text-slate-600">Sent Date:</span> {viewRecord.sent_date ? format(parseISO(viewRecord.sent_date), 'MMM d, yyyy h:mm a') : '—'}</div>
                 <div><span className="font-semibold text-slate-600">Sent By:</span> {viewRecord.sent_by || '—'}</div>

@@ -22,11 +22,15 @@ Deno.serve(async (req) => {
     // Fetch all NotificationQueue records as service role
     const allRecords = await base44.asServiceRole.entities.NotificationQueue.list();
 
-    // Filter: status = "Ready to Send", ready_to_send = true, sent_date blank
+    // Get today's date in Eastern Time (YYYY-MM-DD)
+    const todayET = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+
+    // Filter: status = Ready to Send, ready_to_send = true, sent_date blank, send_date = today
     const ready = (allRecords || []).filter(n =>
       n.status === 'Ready to Send' &&
       n.ready_to_send === true &&
-      (!n.sent_date || n.sent_date === '' || n.sent_date === null)
+      (!n.sent_date || n.sent_date === '' || n.sent_date === null) &&
+      n.send_date === todayET
     );
 
     return Response.json({
@@ -37,6 +41,7 @@ Deno.serve(async (req) => {
         notification_type:    n.notification_type,
         closure_type:         n.closure_type || '',
         location:             n.location || '',
+        send_date:            n.send_date || '',
         closure_date:         n.closure_date || '',
         subject:              n.subject,
         body:                 n.body,

@@ -137,6 +137,7 @@ Deno.serve(async (req) => {
     related_record_id: reminder_id,
     closure_type: reminder.closure_name || reminder.reminder_name || '',
     location: reminder.location || '',
+    send_date: reminder.send_date || null,
     closure_date: closureDate,
     to: toField,
     cc: ccField,

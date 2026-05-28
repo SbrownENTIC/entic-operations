@@ -29,22 +29,27 @@
       "type": "string",
       "description": "Office location if applicable"
     },
+    "send_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the email should be sent (from Reminder send_date)"
+    },
     "closure_date": {
       "type": "string",
       "format": "date",
-      "description": "Date of the closure"
+      "description": "Date of the actual office closure"
     },
     "to": {
       "type": "string",
-      "description": "Primary recipient email address(es), comma-separated"
+      "description": "Primary recipient email address(es)"
     },
     "cc": {
       "type": "string",
-      "description": "CC recipient email address(es), comma-separated"
+      "description": "CC recipient email address(es), semicolon-separated"
     },
     "bcc": {
       "type": "string",
-      "description": "BCC recipient email address(es), comma-separated"
+      "description": "BCC recipient email address(es), semicolon-separated"
     },
     "subject": {
       "type": "string",
@@ -52,7 +57,7 @@
     },
     "body": {
       "type": "string",
-      "description": "Email body content"
+      "description": "Email body content (HTML)"
     },
     "status": {
       "type": "string",
