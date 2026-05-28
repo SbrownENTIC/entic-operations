@@ -109,6 +109,20 @@ Deno.serve(async (req) => {
   const oncallProvider = reminder.oncall_provider_list || '';
   const oncallPhone = reminder.oncall_phone_list || '';
 
+  const signature = `
+<hr style="border: none; border-top: 1px solid #d1d5db; margin: 24px 0 16px 0;">
+<div style="font-family: Arial, sans-serif; color: #111827; line-height: 1.35;">
+  <p style="margin: 0; font-size: 16px; font-weight: bold; color: #003B5C;">Steve Brown</p>
+  <p style="margin: 0 0 14px 0; font-size: 15px; color: #111827;">Operations Manager</p>
+  <img src="https://enticmd.com/wp-content/uploads/2024/07/ENT-CT-logo-1.png" alt="Ear, Nose &amp; Throat Institute of Connecticut" style="max-width: 360px; height: auto; margin: 6px 0 10px 0; display: block;">
+  <p style="margin: 0; font-size: 15px; color: #111827;">Ear, Nose &amp; Throat Institute of CT</p>
+  <p style="margin: 0; font-size: 15px; color: #111827;">599 Farmington Ave., Suite 102</p>
+  <p style="margin: 0; font-size: 15px; color: #111827;">Farmington, CT 06032</p>
+  <p style="margin: 0; font-size: 15px; color: #111827;">(860) 284-4950</p>
+  <p style="margin: 4px 0 0 0;"><a href="https://www.enticmd.com" style="font-size: 15px; color: #00A86B; text-decoration: underline;">www.enticmd.com</a></p>
+  <p style="margin: 10px 0 0 0; font-size: 22px; font-weight: bold; color: #F58220; font-family: Georgia, 'Times New Roman', serif;">ENT Express – Now Open in Farmington!</p>
+</div>`;
+
   const htmlBody = `<div style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.6; max-width: 600px;">
   <div style="border-bottom: 3px solid #1f4e78; padding-bottom: 12px; margin-bottom: 20px;">
     <h2 style="margin: 0; color: #1f4e78; font-size: 20px;">${notificationType === 'Holiday Closure' ? 'Holiday' : 'Office'} Closure Notification</h2>
@@ -126,8 +140,8 @@ Deno.serve(async (req) => {
   <p style="margin: 0 0 12px 0;">If you have any urgent needs during this time, please contact our on-call provider listed above.</p>
 
   <p style="margin: 0 0 4px 0;">Thank you,</p>
-  <p style="margin: 0; font-weight: bold;">The Operations Team</p>
-  <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 13px;">ENTIC – Ear, Nose &amp; Throat Institute of Connecticut</p>
+
+  ${signature}
 </div>`;
 
   // ── CREATE NotificationQueue RECORD ─────────────────────────────────────
