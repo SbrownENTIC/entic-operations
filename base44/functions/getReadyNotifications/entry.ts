@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
         subject:              n.subject,
         body:                 n.body,
         to:                   n.to,
-        cc:                   n.cc || '',
+        cc:                   (n.cc || '').split(',').map(e => e.trim()).filter(Boolean).join('; '),
         bcc:                  n.bcc || '',
         related_record_id:    n.related_record_id || '',
         created_date:         n.created_date,

@@ -88,13 +88,47 @@ Deno.serve(async (req) => {
   const bccField = bcc || '';
 
   if (!toField && recipients.length > 0) {
-    toField = recipients[0];
-    ccField = recipients.slice(1).join(', ');
+    toField = recipients[0].trim();
+    ccField = recipients.slice(1).map(e => e.trim()).filter(Boolean).join('; ');
   }
 
   if (!toField) {
     return Response.json({ error: 'No recipients configured on this reminder.' }, { status: 400 });
   }
+
+  // ── BUILD HTML EMAIL BODY ────────────────────────────────────────────────
+  const closureName = reminder.closure_name || reminder.reminder_name || 'Office Closure';
+  const closureDateFormatted = closureDate
+    ? new Date(closureDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+    : '';
+  const reopenDateFormatted = reminder.reopen_date
+    ? new Date(reminder.reopen_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+    : '';
+  const reopenTime = reminder.reopen_time || '8:00 AM';
+  const closureTime = reminder.closure_time ? ` at ${reminder.closure_time}` : '';
+  const oncallProvider = reminder.oncall_provider_list || '';
+  const oncallPhone = reminder.oncall_phone_list || '';
+
+  const htmlBody = `<div style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.6; max-width: 600px;">
+  <div style="border-bottom: 3px solid #1f4e78; padding-bottom: 12px; margin-bottom: 20px;">
+    <h2 style="margin: 0; color: #1f4e78; font-size: 20px;">${notificationType === 'Holiday Closure' ? 'Holiday' : 'Office'} Closure Notification</h2>
+    <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 14px;">Ear, Nose &amp; Throat Institute of Connecticut</p>
+  </div>
+
+  <p style="margin: 0 0 12px 0;">Good Morning,</p>
+
+  <p style="margin: 0 0 12px 0;">This email is to notify you that our office will be closed${closureTime ? ` ${closureTime}` : ''} on <strong>${closureDateFormatted}${closureName && closureName !== 'Office Closure' ? ` in observance of ${closureName}` : ''}</strong>.</p>
+
+  ${reopenDateFormatted ? `<p style="margin: 0 0 12px 0;">The office will re-open on <strong>${reopenDateFormatted} at ${reopenTime}</strong>.</p>` : ''}
+
+  ${oncallProvider ? `<p style="margin: 0 0 12px 0;"><strong>On-call provider:</strong> ${oncallProvider}${oncallPhone ? `<br><strong>Contact:</strong> ${oncallPhone}` : ''}</p>` : ''}
+
+  <p style="margin: 0 0 12px 0;">If you have any urgent needs during this time, please contact our on-call provider listed above.</p>
+
+  <p style="margin: 0 0 4px 0;">Thank you,</p>
+  <p style="margin: 0; font-weight: bold;">The Operations Team</p>
+  <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 13px;">ENTIC – Ear, Nose &amp; Throat Institute of Connecticut</p>
+</div>`;
 
   // ── CREATE NotificationQueue RECORD ─────────────────────────────────────
   const record = await base44.entities.NotificationQueue.create({
@@ -108,7 +142,7 @@ Deno.serve(async (req) => {
     cc: ccField,
     bcc: bccField,
     subject: reminder.email_subject || '',
-    body: reminder.email_body || '',
+    body: htmlBody,
     status: 'Ready to Send',
     ready_to_send: true,
     sent_date: null,

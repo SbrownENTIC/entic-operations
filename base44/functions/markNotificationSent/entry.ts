@@ -6,7 +6,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
  *
  * Power Automate HTTP action:
  *   Method: POST
- *   URI:    https://api.base44.com/api/apps/{app_id}/functions/markNotificationSent
+ *   URI:    https://base44.app/api/apps/691521cbabed77e5043c7037/functions/markNotificationSent
  *   Headers: { "Content-Type": "application/json" }
  *   Body:
  *   {
