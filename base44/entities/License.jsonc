@@ -1,42 +1,56 @@
 {
-  "name": "ClinicalPrivilege",
+  "name": "License",
   "type": "object",
   "properties": {
     "provider_id": {
       "type": "string",
       "description": "Reference to Provider"
     },
-    "facility_name": {
+    "license_type": {
       "type": "string",
-      "enum": [
-        "Bloomfield",
-        "Hartford Hospital",
-        "St. Francis",
-        "UConn",
-        "HH - Manchester/ECHN",
-        "CCMC",
-        "CTSC- CT Surgery Center"
-      ],
-      "description": "Name of the facility"
+      "description": "Type of license (e.g. Medical License, DEA License, etc.)"
     },
-    "granted_date": {
+    "internal_license_number": {
+      "type": "string",
+      "description": "Auto-generated internal license number (e.g., MED-001)"
+    },
+    "issue_date": {
       "type": "string",
       "format": "date",
-      "description": "Date privileges were granted"
+      "description": "Date license was issued"
     },
     "expiration_date": {
       "type": "string",
       "format": "date",
-      "description": "Date privileges expire"
+      "description": "Date license expires"
     },
     "status": {
       "type": "string",
       "enum": [
         "active",
         "expired",
-        "pending"
+        "pending_renewal"
       ],
       "default": "active"
+    },
+    "document_url": {
+      "type": "string",
+      "description": "URL to license document"
+    },
+    "reminder_30_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether 30-day reminder was sent"
+    },
+    "reminder_14_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether 14-day reminder was sent"
+    },
+    "reminder_7_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether 7-day reminder was sent"
     },
     "notes": {
       "type": "string"
@@ -44,8 +58,7 @@
   },
   "required": [
     "provider_id",
-    "facility_name",
-    "granted_date",
+    "license_type",
     "expiration_date"
   ],
   "rls": {

@@ -1,18 +1,33 @@
 {
-  "name": "UserExtensions",
+  "name": "ExternalContact",
   "type": "object",
   "properties": {
-    "extension": {
+    "name": {
       "type": "string",
-      "description": "Phone extension number"
+      "description": "Name of the contact"
     },
-    "user_id": {
+    "email": {
       "type": "string",
-      "description": "Reference to UserDirectory"
+      "format": "email",
+      "description": "Email address"
+    },
+    "organization": {
+      "type": "string",
+      "description": "Organization or company name"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "general",
+        "closure_notification",
+        "vendor"
+      ],
+      "default": "general"
     }
   },
   "required": [
-    "extension"
+    "name",
+    "email"
   ],
   "rls": {
     "create": {

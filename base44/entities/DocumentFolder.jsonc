@@ -1,18 +1,31 @@
 {
-  "name": "UserExtensions",
+  "name": "DocumentFolder",
   "type": "object",
   "properties": {
-    "extension": {
+    "name": {
       "type": "string",
-      "description": "Phone extension number"
+      "description": "Name of the folder"
     },
-    "user_id": {
+    "description": {
       "type": "string",
-      "description": "Reference to UserDirectory"
+      "description": "Description of the folder content"
+    },
+    "color": {
+      "type": "string",
+      "enum": [
+        "blue",
+        "red",
+        "green",
+        "yellow",
+        "purple",
+        "indigo",
+        "pink"
+      ],
+      "default": "blue"
     }
   },
   "required": [
-    "extension"
+    "name"
   ],
   "rls": {
     "create": {

@@ -1,0 +1,50 @@
+{
+  "name": "InvoiceWaiver",
+  "type": "object",
+  "properties": {
+    "provider_id": {
+      "type": "string",
+      "description": "Reference to Provider"
+    },
+    "month": {
+      "type": "string",
+      "description": "The month the invoice is waived for (e.g. November 2025)"
+    },
+    "program_group": {
+      "type": "string",
+      "description": "Specific program group to waive (e.g. UConn). If null/omitted, waives all.",
+      "nullable": true
+    },
+    "reason": {
+      "type": "string",
+      "description": "Reason for waiving the invoice",
+      "default": "No On Call Time to Record"
+    }
+  },
+  "required": [
+    "provider_id",
+    "month"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

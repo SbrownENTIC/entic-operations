@@ -1,0 +1,57 @@
+{
+  "name": "ProgramLocation",
+  "type": "object",
+  "properties": {
+    "program_location": {
+      "type": "string",
+      "description": "Full program/location name"
+    },
+    "program_group": {
+      "type": "string",
+      "description": "Program group name"
+    },
+    "program_type": {
+      "type": "string",
+      "enum": [
+        "On-Call",
+        "Directorship",
+        "Other"
+      ],
+      "description": "Type of program"
+    },
+    "daily_rate": {
+      "type": "number",
+      "description": "Daily rate in dollars"
+    },
+    "invoice_counter": {
+      "type": "number",
+      "default": 0,
+      "description": "Counter for auto-generating invoice numbers"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "program_location",
+    "program_group"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
