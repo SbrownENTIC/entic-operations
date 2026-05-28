@@ -125,10 +125,21 @@ Deno.serve(async (req) => {
 
   <p style="margin: 0 0 12px 0;">If you have any urgent needs during this time, please contact our on-call provider listed above.</p>
 
-  <p style="margin: 0 0 4px 0;">Thank you,</p>
-  <p style="margin: 0; font-weight: bold;">The Operations Team</p>
-  <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 13px;">ENTIC – Ear, Nose &amp; Throat Institute of Connecticut</p>
-</div>`;
+  <p style="margin: 16px 0 12px 0;">Thank you,</p>
+
+  <p style="margin: 0 0 4px 0; font-weight: bold; color: #003366; font-size: 16px;">Steve Brown</p>
+  <p style="margin: 0 0 12px 0; color: #1f2937; font-size: 14px;">Operations Manager</p>
+
+  <div style="margin: 16px 0 12px 0;">
+    <img src="https://enticmd.com/wp-content/uploads/2024/07/ENT-CT-logo-1.png" alt="ENTIC Logo" style="max-width: 220px; height: auto; display: block;">
+  </div>
+
+  <p style="margin: 0 0 4px 0; font-size: 13px; color: #1f2937;"><strong>Ear, Nose &amp; Throat Institute of CT</strong></p>
+  <p style="margin: 0; font-size: 12px; color: #6b7280;">599 Farmington Ave., Suite 102<br>Farmington, CT 06032</p>
+  <p style="margin: 4px 0 0 0; font-size: 12px; color: #6b7280;"><a href="tel:860-284-4950">(860) 284-4950</a><br><a href="http://www.enticmd.com" style="color: #1f4e78; text-decoration: none;">www.enticmd.com</a></p>
+
+  <p style="margin: 12px 0 0 0; font-weight: bold; color: #ff6b35; font-size: 15px;">ENT Express – Now Open in Farmington!</p>
+  </div>`;
 
   // ── CREATE NotificationQueue RECORD ─────────────────────────────────────
   const record = await base44.entities.NotificationQueue.create({
