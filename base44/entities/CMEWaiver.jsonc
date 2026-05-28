@@ -1,18 +1,24 @@
 {
-  "name": "UserExtensions",
+  "name": "CMEWaiver",
   "type": "object",
   "properties": {
-    "extension": {
+    "provider_id": {
       "type": "string",
-      "description": "Phone extension number"
+      "description": "Reference to Provider"
     },
-    "user_id": {
+    "year": {
+      "type": "number",
+      "description": "The year the CME requirement is waived for (e.g. 2025)"
+    },
+    "reason": {
       "type": "string",
-      "description": "Reference to UserDirectory"
+      "description": "Reason for waiving the CME requirement",
+      "default": "Not Required"
     }
   },
   "required": [
-    "extension"
+    "provider_id",
+    "year"
   ],
   "rls": {
     "create": {

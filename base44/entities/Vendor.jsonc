@@ -1,0 +1,60 @@
+{
+  "name": "Vendor",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name of the vendor"
+    },
+    "account_number": {
+      "type": "string",
+      "description": "Our account number with this vendor"
+    },
+    "address": {
+      "type": "string",
+      "description": "Billing/Mailing address"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Contact phone number"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "Contact email"
+    },
+    "website": {
+      "type": "string",
+      "description": "Vendor website"
+    },
+    "default_payment_terms": {
+      "type": "string",
+      "description": "Default payment terms (e.g. Net 30)"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Internal notes about this vendor"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

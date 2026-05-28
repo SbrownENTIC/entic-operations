@@ -1,42 +1,36 @@
 {
-  "name": "ClinicalPrivilege",
+  "name": "OnCallSchedule",
   "type": "object",
   "properties": {
     "provider_id": {
       "type": "string",
       "description": "Reference to Provider"
     },
-    "facility_name": {
-      "type": "string",
-      "enum": [
-        "Bloomfield",
-        "Hartford Hospital",
-        "St. Francis",
-        "UConn",
-        "HH - Manchester/ECHN",
-        "CCMC",
-        "CTSC- CT Surgery Center"
-      ],
-      "description": "Name of the facility"
-    },
-    "granted_date": {
+    "start_date": {
       "type": "string",
       "format": "date",
-      "description": "Date privileges were granted"
+      "description": "Start date of on-call shift"
     },
-    "expiration_date": {
+    "end_date": {
       "type": "string",
       "format": "date",
-      "description": "Date privileges expire"
+      "description": "End date of on-call shift"
     },
-    "status": {
+    "start_time": {
       "type": "string",
-      "enum": [
-        "active",
-        "expired",
-        "pending"
-      ],
-      "default": "active"
+      "description": "Start time"
+    },
+    "end_time": {
+      "type": "string",
+      "description": "End time"
+    },
+    "location": {
+      "type": "string",
+      "description": "On-call location or facility"
+    },
+    "airtable_record_id": {
+      "type": "string",
+      "description": "ID of the corresponding record in Airtable"
     },
     "notes": {
       "type": "string"
@@ -44,9 +38,8 @@
   },
   "required": [
     "provider_id",
-    "facility_name",
-    "granted_date",
-    "expiration_date"
+    "start_date",
+    "end_date"
   ],
   "rls": {
     "create": {

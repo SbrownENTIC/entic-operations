@@ -1,0 +1,86 @@
+{
+  "name": "Supply",
+  "type": "object",
+  "properties": {
+    "item_number": {
+      "type": "string",
+      "description": "Item/SKU number"
+    },
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "codes": {
+      "type": "string",
+      "description": "Additional codes for the item"
+    },
+    "vendor": {
+      "type": "string",
+      "description": "Vendor/supplier name"
+    },
+    "unit_price": {
+      "type": "number",
+      "description": "Price per unit"
+    },
+    "units": {
+      "type": "string",
+      "description": "Unit of measurement (box, each, case, etc.)"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "URL to product image"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "office",
+        "clinical",
+        "audiology"
+      ],
+      "default": "office",
+      "description": "Category of the supply item"
+    }
+  },
+  "required": [
+    "product_name",
+    "unit_price"
+  ],
+  "acl": {
+    "public": [
+      "list",
+      "read"
+    ],
+    "user": [
+      "list",
+      "read",
+      "create",
+      "update",
+      "delete"
+    ],
+    "admin": [
+      "list",
+      "read",
+      "create",
+      "update",
+      "delete"
+    ]
+  },
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

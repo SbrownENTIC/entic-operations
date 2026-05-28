@@ -1,5 +1,5 @@
 {
-  "name": "SupplyOrder",
+  "name": "AudiologySupplyOrder",
   "type": "object",
   "properties": {
     "order_number": {
@@ -16,8 +16,7 @@
         "Glastonbury",
         "Manchester",
         "Bloomfield",
-        "Farmington",
-        "Waterside"
+        "Farmington"
       ],
       "description": "Office location"
     },
@@ -29,15 +28,13 @@
     "status": {
       "type": "string",
       "enum": [
-        "open",
         "pending_review",
         "pending_fulfillment",
         "approved",
         "rejected",
         "order_placed",
         "partially_received",
-        "received",
-        "merged"
+        "received"
       ],
       "default": "order_placed"
     },
@@ -49,24 +46,6 @@
       ],
       "default": "order",
       "description": "Type of order"
-    },
-    "category": {
-      "type": "string",
-      "enum": [
-        "office",
-        "clinical"
-      ],
-      "default": "office",
-      "description": "Category of the order"
-    },
-    "submission_source": {
-      "type": "string",
-      "enum": [
-        "public_form",
-        "system"
-      ],
-      "default": "system",
-      "description": "Source of the order submission"
     },
     "items": {
       "type": "array",
@@ -95,10 +74,6 @@
             "type": "boolean",
             "default": false,
             "description": "Whether this item has been received"
-          },
-          "lot_number": {
-            "type": "string",
-            "description": "Lot number or batch number of the item"
           }
         }
       },
@@ -154,10 +129,6 @@
       "type": "boolean",
       "default": false,
       "description": "Flag indicating order was updated after initial submission"
-    },
-    "merged_into_id": {
-      "type": "string",
-      "description": "ID of the primary order this was merged into"
     }
   },
   "required": [

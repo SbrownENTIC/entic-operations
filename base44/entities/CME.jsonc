@@ -1,42 +1,27 @@
 {
-  "name": "ClinicalPrivilege",
+  "name": "CME",
   "type": "object",
   "properties": {
     "provider_id": {
       "type": "string",
       "description": "Reference to Provider"
     },
-    "facility_name": {
+    "course_name": {
       "type": "string",
-      "enum": [
-        "Bloomfield",
-        "Hartford Hospital",
-        "St. Francis",
-        "UConn",
-        "HH - Manchester/ECHN",
-        "CCMC",
-        "CTSC- CT Surgery Center"
-      ],
-      "description": "Name of the facility"
+      "description": "Name of the CME course"
     },
-    "granted_date": {
+    "credits": {
+      "type": "number",
+      "description": "Number of CME credits earned"
+    },
+    "completion_date": {
       "type": "string",
       "format": "date",
-      "description": "Date privileges were granted"
+      "description": "Date completed"
     },
-    "expiration_date": {
+    "certificate_url": {
       "type": "string",
-      "format": "date",
-      "description": "Date privileges expire"
-    },
-    "status": {
-      "type": "string",
-      "enum": [
-        "active",
-        "expired",
-        "pending"
-      ],
-      "default": "active"
+      "description": "URL to certificate document"
     },
     "notes": {
       "type": "string"
@@ -44,9 +29,9 @@
   },
   "required": [
     "provider_id",
-    "facility_name",
-    "granted_date",
-    "expiration_date"
+    "course_name",
+    "credits",
+    "completion_date"
   ],
   "rls": {
     "create": {

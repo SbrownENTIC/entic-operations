@@ -1,0 +1,50 @@
+{
+  "name": "ExternalContact",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name of the contact"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "Email address"
+    },
+    "organization": {
+      "type": "string",
+      "description": "Organization or company name"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "general",
+        "closure_notification",
+        "vendor"
+      ],
+      "default": "general"
+    }
+  },
+  "required": [
+    "name",
+    "email"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
