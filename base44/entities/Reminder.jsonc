@@ -22,6 +22,11 @@
       "default": "Custom",
       "description": "Type of reminder"
     },
+    "email_notification_eligible": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this Reminder Notification is eligible to be queued for email delivery"
+    },
     "email_subject": {
       "type": "string",
       "description": "Email subject line"
@@ -36,6 +41,10 @@
         "type": "string"
       },
       "description": "Email addresses of recipients"
+    },
+    "bcc": {
+      "type": "string",
+      "description": "BCC recipient email address(es), semicolon-separated"
     },
     "send_date": {
       "type": "string",

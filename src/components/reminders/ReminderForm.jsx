@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
 import { DatePicker } from "@/components/ui/date-picker";
 import { TimePicker } from "@/components/ui/time-picker";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useFormState } from "@/components/FormContext";
 
 export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }) {
@@ -19,9 +20,11 @@ export default function ReminderForm({ reminder, onSubmit, onCancel, isLoading }
   const [formData, setFormData] = useState({
     reminder_name: '',
     reminder_type: 'Custom',
+    email_notification_eligible: false,
     email_subject: '',
     email_body: '',
     recipients: [],
+    bcc: '',
     send_date: '',
     closure_date: '',
     reopen_date: '',
@@ -454,6 +457,19 @@ The Operations Team
               )}
             </div>
 
+            {formData.reminder_type === 'Reminder Notification' && (
+              <div className="md:col-span-2 flex items-center gap-3 rounded-lg border border-cyan-200 bg-cyan-50 p-3">
+                <Checkbox
+                  id="email_notification_eligible"
+                  checked={formData.email_notification_eligible === true}
+                  onCheckedChange={(checked) => handleChange('email_notification_eligible', checked === true)}
+                />
+                <Label htmlFor="email_notification_eligible" className="text-sm font-medium text-cyan-900">
+                  Eligible for email notification queue
+                </Label>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <Select 
@@ -750,6 +766,15 @@ The Operations Team
                   </Button>
                 </div>
               </div>
+            </div>
+
+            <div>
+              <Label className="text-xs text-slate-600">BCC (Optional)</Label>
+              <Input
+                value={formData.bcc || ''}
+                onChange={(e) => handleChange('bcc', e.target.value)}
+                placeholder="bcc@example.com"
+              />
             </div>
 
             {formData.recipients.length > 0 && (

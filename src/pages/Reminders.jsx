@@ -35,6 +35,7 @@ export default function Reminders() {
   const [testingReminders, setTestingReminders] = useState(false);
   const [airtableSyncing, setAirtableSyncing] = useState(false);
   const [queuingId, setQueuingId] = useState(null);
+  const [bulkQueueing, setBulkQueueing] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const location = useLocation();
@@ -47,6 +48,12 @@ export default function Reminders() {
   const { data: reminders = [], isLoading } = useQuery({
     queryKey: ['reminders'],
     queryFn: () => base44.entities.Reminder.list('send_date')
+  });
+
+  const { data: notificationQueue = [] } = useQuery({
+    queryKey: ['notification-queue'],
+    queryFn: () => base44.entities.NotificationQueue.list('-created_date'),
+    refetchInterval: 15000
   });
 
   // Close form when navigating to root URL
@@ -235,31 +242,32 @@ The Operations Team`;
   };
 
   const handleQueueNotification = async (reminder) => {
-    const isClosureType = ['Office Closure', 'Holiday', 'Inclement Weather'].includes(reminder.reminder_type);
-    if (!isClosureType) {
-      toast({ variant: "destructive", title: "Not supported", description: "Only Office Closure and Holiday types can be queued in Phase 1." });
-      return;
-    }
-    if (!reminder.email_subject || !reminder.email_body) {
-      toast({ variant: "destructive", title: "Incomplete", description: "Reminder must have a subject and body before queuing." });
-      return;
-    }
-    if (!reminder.recipients || reminder.recipients.length === 0) {
-      toast({ variant: "destructive", title: "No recipients", description: "Add at least one recipient before queuing." });
-      return;
-    }
     setQueuingId(reminder.id);
     try {
       const res = await base44.functions.invoke('queueClosureNotification', { reminder_id: reminder.id });
       if (res.data.duplicate) {
-        toast({ variant: "destructive", title: "Duplicate prevented", description: res.data.message });
+        toast({ variant: "destructive", title: "Already queued", description: res.data.message });
       } else {
-        toast({ title: "✅ Notification queued!", description: `Queued for ${res.data.recipient_count} recipient(s). Power Automate will send it shortly.` });
+        toast({ title: "✅ Notification queued!", description: `Queued for ${res.data.recipient_count} recipient(s). Power Automate will send it on the send date.` });
       }
+      queryClient.invalidateQueries({ queryKey: ['notification-queue'] });
     } catch (error) {
-      toast({ variant: "destructive", title: "Queue failed", description: error.message });
+      toast({ variant: "destructive", title: "Queue failed", description: error.response?.data?.error || error.message });
     } finally {
       setQueuingId(null);
+    }
+  };
+
+  const handleBulkQueueClosures = async () => {
+    setBulkQueueing(true);
+    try {
+      const res = await base44.functions.invoke('queueBulkClosureNotifications', {});
+      toast({ title: "Closure notifications queued", description: res.data.message });
+      queryClient.invalidateQueries({ queryKey: ['notification-queue'] });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Bulk queue failed", description: error.response?.data?.error || error.message });
+    } finally {
+      setBulkQueueing(false);
     }
   };
 
@@ -326,6 +334,38 @@ The Operations Team`;
     completed: "bg-blue-100 text-blue-800"
   };
 
+  const getNotificationType = (reminder) => {
+    if (reminder.reminder_type === 'Holiday') return 'Holiday Closure';
+    if (reminder.reminder_type === 'Office Closure' || reminder.reminder_type === 'Inclement Weather') return 'Office Closure';
+    if (reminder.reminder_type === 'Reminder Notification') return 'Reminder Notification';
+    return null;
+  };
+
+  const getQueueRecord = (reminder) => {
+    const notificationType = getNotificationType(reminder);
+    if (!notificationType) return null;
+    return notificationQueue.find(n =>
+      n.notification_type === notificationType &&
+      n.related_record_id === reminder.id &&
+      (n.send_date || '') === (reminder.send_date || '') &&
+      (n.closure_date || '') === (reminder.closure_date || '')
+    ) || null;
+  };
+
+  const queueStatusColors = {
+    "Not Queued": "bg-gray-100 text-gray-700",
+    "Queued": "bg-blue-100 text-blue-800",
+    "Sent": "bg-green-100 text-green-800",
+    "Failed": "bg-red-100 text-red-800",
+    "Cancelled": "bg-slate-100 text-slate-700"
+  };
+
+  const getQueueLabel = (record) => {
+    if (!record) return 'Not Queued';
+    if (record.status === 'Ready to Send') return 'Queued';
+    return record.status || 'Not Queued';
+  };
+
   const typeColors = {
     "License Expiration": "bg-red-100 text-red-800",
     "Privilege Expiration": "bg-orange-100 text-orange-800",
@@ -366,6 +406,15 @@ The Operations Team`;
                 >
                   {airtableSyncing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CloudUpload className="w-4 h-4" />}
                   Sync to Airtable
+                </Button>
+                <Button
+                  onClick={handleBulkQueueClosures}
+                  disabled={bulkQueueing}
+                  variant="outline"
+                  className="border-indigo-300 text-indigo-700 hover:bg-indigo-50 gap-2"
+                >
+                  {bulkQueueing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <BellRing className="w-4 h-4" />}
+                  Queue Closure Notifications
                 </Button>
                 <Button
                   onClick={async () => {
@@ -482,6 +531,9 @@ The Operations Team`;
                     >
                       Send Date <SortIcon field="send_date" />
                     </th>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700 bg-slate-50">
+                      Queue Status
+                    </th>
                     <th 
                       className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 bg-slate-50"
                       onClick={() => handleSort('frequency')}
@@ -535,6 +587,23 @@ The Operations Team`;
                       <td className="p-4 text-slate-600">
                         {reminder.send_date ? format(parseISO(reminder.send_date), 'MMM d, yyyy') : '-'}
                       </td>
+                      <td className="p-4">
+                        {(() => {
+                          const queueRecord = getQueueRecord(reminder);
+                          const label = getQueueLabel(queueRecord);
+                          return (
+                            <div className="space-y-1">
+                              <Badge className={queueStatusColors[label]}>{label}</Badge>
+                              {reminder.closure_date && (
+                                <div className="text-xs text-slate-500">Closure: {format(parseISO(reminder.closure_date), 'MMM d, yyyy')}</div>
+                              )}
+                              {queueRecord?.sent_date && (
+                                <div className="text-xs text-slate-500">Sent: {format(parseISO(queueRecord.sent_date), 'MMM d, yyyy h:mm a')}</div>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </td>
                       <td className="p-4 text-slate-600">
                         <div className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
@@ -566,7 +635,7 @@ The Operations Team`;
                       <td className="p-4 text-right">
                         {user?.role === 'admin' && (
                           <div className="flex gap-2 justify-end">
-                            {['Office Closure', 'Holiday', 'Inclement Weather'].includes(reminder.reminder_type) && (
+                            {(['Office Closure', 'Holiday', 'Inclement Weather'].includes(reminder.reminder_type) || (reminder.reminder_type === 'Reminder Notification' && reminder.email_notification_eligible === true)) && (
                               <Button
                                 variant="ghost"
                                 size="sm"

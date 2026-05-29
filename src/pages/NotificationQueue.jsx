@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Trash2, RefreshCw, Eye, CheckCircle, XCircle, Clock, Send, AlertCircle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
@@ -46,6 +47,10 @@ const STATUS_ICON = {
 
 export default function NotificationQueuePage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sendDateFilter, setSendDateFilter] = useState("");
+  const [closureDateFilter, setClosureDateFilter] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [viewRecord, setViewRecord] = useState(null);
   const { toast } = useToast();
@@ -84,12 +89,24 @@ export default function NotificationQueuePage() {
 
   if (isLoading) return <ListPageSkeleton />;
 
-  const filtered = queue.filter(r =>
-    r.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    r.notification_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    r.closure_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    r.to?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filtered = queue.filter(r => {
+    const matchesSearch =
+      r.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.notification_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.closure_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.to?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = typeFilter === "all" || r.notification_type === typeFilter;
+    const matchesStatus = statusFilter === "all" || r.status === statusFilter;
+    const matchesSendDate = !sendDateFilter || r.send_date === sendDateFilter;
+    const matchesClosureDate = !closureDateFilter || r.closure_date === closureDateFilter;
+    return matchesSearch && matchesType && matchesStatus && matchesSendDate && matchesClosureDate;
+  });
+
+  const typeColors = {
+    "Office Closure": "bg-indigo-100 text-indigo-800",
+    "Holiday Closure": "bg-green-100 text-green-800",
+    "Reminder Notification": "bg-cyan-100 text-cyan-800"
+  };
 
   const stats = {
     ready: queue.filter(r => r.status === "Ready to Send").length,
@@ -136,14 +153,39 @@ export default function NotificationQueuePage() {
         {/* Table */}
         <Card className="border-slate-200 shadow-sm bg-white/80">
           <CardHeader className="border-b border-slate-100">
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-3">
               <Search className="w-5 h-5 text-slate-400" />
               <Input
                 placeholder="Search notifications..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-md"
+                className="max-w-xs"
               />
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Notification Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="Office Closure">Office Closure</SelectItem>
+                  <SelectItem value="Holiday Closure">Holiday Closure</SelectItem>
+                  <SelectItem value="Reminder Notification">Reminder Notification</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-44">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="Ready to Send">Ready to Send</SelectItem>
+                  <SelectItem value="Sent">Sent</SelectItem>
+                  <SelectItem value="Failed">Failed</SelectItem>
+                  <SelectItem value="Cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input type="date" value={sendDateFilter} onChange={(e) => setSendDateFilter(e.target.value)} className="w-40" title="Send Date" />
+              <Input type="date" value={closureDateFilter} onChange={(e) => setClosureDateFilter(e.target.value)} className="w-40" title="Closure Date" />
               <Button
                 variant="outline"
                 size="sm"
@@ -182,7 +224,7 @@ export default function NotificationQueuePage() {
                     filtered.map((r) => (
                       <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50">
                         <td className="p-4">
-                          <Badge className="bg-indigo-100 text-indigo-800">{r.notification_type}</Badge>
+                          <Badge className={typeColors[r.notification_type] || "bg-indigo-100 text-indigo-800"}>{r.notification_type}</Badge>
                           {r.closure_type && (
                             <div className="text-xs text-slate-500 mt-1">{r.closure_type}</div>
                           )}

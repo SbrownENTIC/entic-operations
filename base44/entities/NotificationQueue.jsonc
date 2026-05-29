@@ -7,6 +7,7 @@
       "enum": [
         "Office Closure",
         "Holiday Closure",
+        "Reminder Notification",
         "License Expiration",
         "Invoice",
         "Custom"
