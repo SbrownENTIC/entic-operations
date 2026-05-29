@@ -5,11 +5,12 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, AlertTriangle, Pencil, ArrowUpDown, ArrowUp, ArrowDown, CloudUpload, RefreshCw, TestTube, Trash2 } from "lucide-react";
+import { Plus, Search, AlertTriangle, Pencil, ArrowUpDown, ArrowUp, ArrowDown, CloudUpload, RefreshCw, Trash2, BellRing } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { differenceInDays, format, parseISO } from "date-fns";
 import { useLocation } from "react-router-dom";
 import LicenseForm from "../components/licenses/LicenseForm";
+import LicenseReminderStatus from "../components/licenses/LicenseReminderStatus";
 import { auditCreate, auditUpdate, auditDelete } from '@/lib/auditLogger';
 import EmptyState from "@/components/ui/EmptyState";
 import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
@@ -23,6 +24,8 @@ export default function Licenses() {
   const [sortDirection, setSortDirection] = useState('asc');
   const [airtableSyncing, setAirtableSyncing] = useState(false);
   const [airtableMessage, setAirtableMessage] = useState('');
+  const [licenseQueueing, setLicenseQueueing] = useState(false);
+  const [queueingLicenseId, setQueueingLicenseId] = useState(null);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const queryClient = useQueryClient();
   const location = useLocation();
@@ -50,6 +53,12 @@ export default function Licenses() {
   const { data: providers = [], isLoading: providersLoading } = useQuery({
     queryKey: ['providers'],
     queryFn: () => base44.entities.Provider.list()
+  });
+
+  const { data: notificationQueue = [] } = useQuery({
+    queryKey: ['notification-queue'],
+    queryFn: () => base44.entities.NotificationQueue.list('-created_date'),
+    refetchInterval: 15000
   });
 
   useEffect(() => {
@@ -142,6 +151,34 @@ export default function Licenses() {
       updateMutation.mutate({ id: editingLicense.id, data });
     } else {
       createMutation.mutate(data);
+    }
+  };
+
+  const handleQueueLicenseReminders = async () => {
+    setLicenseQueueing(true);
+    setAirtableMessage('');
+    try {
+      const response = await base44.functions.invoke('queueLicenseExpirationReminders', {});
+      setAirtableMessage(response.data.message);
+      queryClient.invalidateQueries({ queryKey: ['notification-queue'] });
+    } catch (error) {
+      setAirtableMessage('Error queueing license reminders: ' + (error.response?.data?.error || error.message));
+    } finally {
+      setLicenseQueueing(false);
+    }
+  };
+
+  const handleQueueSingleLicense = async (license) => {
+    setQueueingLicenseId(license.id);
+    setAirtableMessage('');
+    try {
+      const response = await base44.functions.invoke('queueLicenseExpirationReminders', { license_id: license.id, manual: true });
+      setAirtableMessage(response.data.message);
+      queryClient.invalidateQueries({ queryKey: ['notification-queue'] });
+    } catch (error) {
+      setAirtableMessage('Error queueing license reminder: ' + (error.response?.data?.error || error.message));
+    } finally {
+      setQueueingLicenseId(null);
     }
   };
 
@@ -271,6 +308,15 @@ export default function Licenses() {
                   </Button>
                 )}
                 <Button
+                  onClick={handleQueueLicenseReminders}
+                  disabled={licenseQueueing}
+                  variant="outline"
+                  className="border-indigo-300 text-indigo-700 hover:bg-indigo-50 gap-2"
+                >
+                  {licenseQueueing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <BellRing className="w-4 h-4" />}
+                  Queue License Expiration Reminders
+                </Button>
+                <Button
                   onClick={handleSyncToAirtable}
                   disabled={airtableSyncing}
                   variant="outline"
@@ -382,6 +428,8 @@ export default function Licenses() {
                     >
                       Status <SortIcon field="status" />
                     </th>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Provider Work Email</th>
+                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Reminder Status</th>
                     <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th>
                   </tr>
                 </thead>
@@ -432,6 +480,18 @@ export default function Licenses() {
                           >
                             {isExpired ? 'Expired' : isExpiringSoon ? 'Expiring Soon' : 'Active'}
                           </Badge>
+                        </td>
+                        <td className="p-4 text-slate-600 max-w-xs">
+                          <div className="truncate">{license.provider?.work_email || license.provider?.email || 'Missing'}</div>
+                        </td>
+                        <td className="p-4">
+                          <LicenseReminderStatus
+                            license={license}
+                            notificationQueue={notificationQueue}
+                            onQueue={handleQueueSingleLicense}
+                            isQueueing={queueingLicenseId === license.id}
+                            isAdmin={user?.role === 'admin'}
+                          />
                         </td>
                         <td className="p-4 text-right">
                           {user?.role === 'admin' && (

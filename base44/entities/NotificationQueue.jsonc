@@ -8,6 +8,7 @@
         "Office Closure",
         "Holiday Closure",
         "Reminder Notification",
+        "License Expiration Reminder",
         "License Expiration",
         "Invoice",
         "Custom"
@@ -22,6 +23,28 @@
       "type": "string",
       "description": "ID of the related entity record"
     },
+    "reminder_stage": {
+      "type": "string",
+      "enum": [
+        "30 Day",
+        "14 Day",
+        "7 Day"
+      ],
+      "description": "Reminder stage for license expiration reminders"
+    },
+    "license_type": {
+      "type": "string",
+      "description": "License type for license expiration reminders"
+    },
+    "expiration_date": {
+      "type": "string",
+      "format": "date",
+      "description": "License expiration date"
+    },
+    "provider_name": {
+      "type": "string",
+      "description": "Provider name for license expiration reminders"
+    },
     "closure_type": {
       "type": "string",
       "description": "The closure name (e.g. Christmas, Memorial Day, Office Closure)"
@@ -33,7 +56,7 @@
     "send_date": {
       "type": "string",
       "format": "date",
-      "description": "Date the email should be sent (from Reminder send_date)"
+      "description": "Date the email should be sent"
     },
     "closure_date": {
       "type": "string",

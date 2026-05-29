@@ -51,6 +51,9 @@ export default function NotificationQueuePage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [sendDateFilter, setSendDateFilter] = useState("");
   const [closureDateFilter, setClosureDateFilter] = useState("");
+  const [stageFilter, setStageFilter] = useState("all");
+  const [providerFilter, setProviderFilter] = useState("");
+  const [licenseTypeFilter, setLicenseTypeFilter] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [viewRecord, setViewRecord] = useState(null);
   const { toast } = useToast();
@@ -94,18 +97,24 @@ export default function NotificationQueuePage() {
       r.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.notification_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.closure_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.provider_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.license_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.to?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = typeFilter === "all" || r.notification_type === typeFilter;
     const matchesStatus = statusFilter === "all" || r.status === statusFilter;
     const matchesSendDate = !sendDateFilter || r.send_date === sendDateFilter;
     const matchesClosureDate = !closureDateFilter || r.closure_date === closureDateFilter;
-    return matchesSearch && matchesType && matchesStatus && matchesSendDate && matchesClosureDate;
+    const matchesStage = stageFilter === "all" || r.reminder_stage === stageFilter;
+    const matchesProvider = !providerFilter || r.provider_name?.toLowerCase().includes(providerFilter.toLowerCase());
+    const matchesLicenseType = !licenseTypeFilter || r.license_type?.toLowerCase().includes(licenseTypeFilter.toLowerCase());
+    return matchesSearch && matchesType && matchesStatus && matchesSendDate && matchesClosureDate && matchesStage && matchesProvider && matchesLicenseType;
   });
 
   const typeColors = {
     "Office Closure": "bg-indigo-100 text-indigo-800",
     "Holiday Closure": "bg-green-100 text-green-800",
-    "Reminder Notification": "bg-cyan-100 text-cyan-800"
+    "Reminder Notification": "bg-cyan-100 text-cyan-800",
+    "License Expiration Reminder": "bg-orange-100 text-orange-800"
   };
 
   const stats = {
@@ -170,6 +179,18 @@ export default function NotificationQueuePage() {
                   <SelectItem value="Office Closure">Office Closure</SelectItem>
                   <SelectItem value="Holiday Closure">Holiday Closure</SelectItem>
                   <SelectItem value="Reminder Notification">Reminder Notification</SelectItem>
+                  <SelectItem value="License Expiration Reminder">License Expiration Reminder</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={stageFilter} onValueChange={setStageFilter}>
+                <SelectTrigger className="w-36">
+                  <SelectValue placeholder="Stage" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Stages</SelectItem>
+                  <SelectItem value="30 Day">30 Day</SelectItem>
+                  <SelectItem value="14 Day">14 Day</SelectItem>
+                  <SelectItem value="7 Day">7 Day</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -186,6 +207,8 @@ export default function NotificationQueuePage() {
               </Select>
               <Input type="date" value={sendDateFilter} onChange={(e) => setSendDateFilter(e.target.value)} className="w-40" title="Send Date" />
               <Input type="date" value={closureDateFilter} onChange={(e) => setClosureDateFilter(e.target.value)} className="w-40" title="Closure Date" />
+              <Input placeholder="Provider" value={providerFilter} onChange={(e) => setProviderFilter(e.target.value)} className="w-40" />
+              <Input placeholder="License Type" value={licenseTypeFilter} onChange={(e) => setLicenseTypeFilter(e.target.value)} className="w-44" />
               <Button
                 variant="outline"
                 size="sm"
@@ -227,6 +250,15 @@ export default function NotificationQueuePage() {
                           <Badge className={typeColors[r.notification_type] || "bg-indigo-100 text-indigo-800"}>{r.notification_type}</Badge>
                           {r.closure_type && (
                             <div className="text-xs text-slate-500 mt-1">{r.closure_type}</div>
+                          )}
+                          {r.reminder_stage && (
+                            <div className="text-xs text-orange-700 mt-1 font-medium">{r.reminder_stage}</div>
+                          )}
+                          {r.provider_name && (
+                            <div className="text-xs text-slate-500 mt-1">{r.provider_name}</div>
+                          )}
+                          {r.license_type && (
+                            <div className="text-xs text-slate-500 mt-1">{r.license_type}</div>
                           )}
                         </td>
                         <td className="p-4 max-w-xs">
@@ -327,8 +359,12 @@ export default function NotificationQueuePage() {
                 <div><span className="font-semibold text-slate-600">Type:</span> {viewRecord.notification_type}</div>
                 <div><span className="font-semibold text-slate-600">Status:</span> <Badge className={STATUS_COLORS[viewRecord.status]}>{viewRecord.status}</Badge></div>
                 <div><span className="font-semibold text-slate-600">Closure Type:</span> {viewRecord.closure_type || '—'}</div>
+                <div><span className="font-semibold text-slate-600">Reminder Stage:</span> {viewRecord.reminder_stage || '—'}</div>
+                <div><span className="font-semibold text-slate-600">Provider:</span> {viewRecord.provider_name || '—'}</div>
+                <div><span className="font-semibold text-slate-600">License Type:</span> {viewRecord.license_type || '—'}</div>
                 <div><span className="font-semibold text-slate-600">Send Date:</span> {viewRecord.send_date ? format(parseISO(viewRecord.send_date), 'MMM d, yyyy') : '—'}</div>
                 <div><span className="font-semibold text-slate-600">Closure Date:</span> {viewRecord.closure_date ? format(parseISO(viewRecord.closure_date), 'MMM d, yyyy') : '—'}</div>
+                <div><span className="font-semibold text-slate-600">Expiration Date:</span> {viewRecord.expiration_date ? format(parseISO(viewRecord.expiration_date), 'MMM d, yyyy') : '—'}</div>
                 <div><span className="font-semibold text-slate-600">Sent Date:</span> {viewRecord.sent_date ? format(parseISO(viewRecord.sent_date), 'MMM d, yyyy h:mm a') : '—'}</div>
                 <div><span className="font-semibold text-slate-600">Sent By:</span> {viewRecord.sent_by || '—'}</div>
               </div>
