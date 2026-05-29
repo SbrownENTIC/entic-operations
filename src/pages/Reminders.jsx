@@ -330,6 +330,9 @@ The Operations Team`;
     "License Expiration": "bg-red-100 text-red-800",
     "Privilege Expiration": "bg-orange-100 text-orange-800",
     "Holiday": "bg-green-100 text-green-800",
+    "Office Closure": "bg-indigo-100 text-indigo-800",
+    "Inclement Weather": "bg-slate-100 text-slate-800",
+    "Reminder Notification": "bg-cyan-100 text-cyan-800",
     "CME Due": "bg-purple-100 text-purple-800",
     "Invoice Due": "bg-yellow-100 text-yellow-800",
     "Custom": "bg-blue-100 text-blue-800"

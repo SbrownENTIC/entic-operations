@@ -413,6 +413,7 @@ The Operations Team
                   <SelectItem value="Holiday">Holiday</SelectItem>
                   <SelectItem value="Office Closure">Office Closure</SelectItem>
                   <SelectItem value="Inclement Weather">Inclement Weather</SelectItem>
+                  <SelectItem value="Reminder Notification">Reminder Notification</SelectItem>
                   <SelectItem value="CME Due">CME Due</SelectItem>
                   <SelectItem value="Invoice Due">Invoice Due</SelectItem>
                   <SelectItem value="Custom">Custom</SelectItem>
