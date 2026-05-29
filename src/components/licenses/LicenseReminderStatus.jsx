@@ -11,8 +11,23 @@ const STATUS_COLORS = {
   "Queued": "bg-blue-100 text-blue-800",
   "Sent": "bg-green-100 text-green-800",
   "Failed": "bg-red-100 text-red-800",
-  "Cancelled": "bg-slate-100 text-slate-700"
+  "Cancelled": "bg-slate-100 text-slate-700",
+  "Skipped": "bg-amber-100 text-amber-800"
 };
+
+function addDays(dateString, days) {
+  const date = new Date(`${dateString}T12:00:00`);
+  date.setDate(date.getDate() + days);
+  return date.toLocaleDateString('en-CA');
+}
+
+function subtractDays(dateString, days) {
+  return addDays(dateString, -days);
+}
+
+function todayET() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+}
 
 function getStageRecord(queue, license, stage) {
   return queue.find(record =>
@@ -24,10 +39,16 @@ function getStageRecord(queue, license, stage) {
   );
 }
 
-function getLabel(record) {
-  if (!record) return "Not Queued";
-  if (record.status === "Ready to Send") return "Queued";
-  return record.status || "Not Queued";
+function getLabel(record, license, stage) {
+  if (record) {
+    if (record.status === "Ready to Send") return "Queued";
+    return record.status || "Not Queued";
+  }
+
+  const stageDays = stage === "30 Day" ? 30 : stage === "14 Day" ? 14 : 7;
+  const sendDate = license.expiration_date ? subtractDays(license.expiration_date, stageDays) : null;
+  if (sendDate && sendDate < todayET()) return "Skipped";
+  return "Not Queued";
 }
 
 export default function LicenseReminderStatus({ license, notificationQueue, onQueue, isQueueing, isAdmin }) {
@@ -41,7 +62,7 @@ export default function LicenseReminderStatus({ license, notificationQueue, onQu
     <div className="space-y-1 text-xs">
       {STAGES.map(stage => {
         const record = getStageRecord(notificationQueue, license, stage);
-        const label = getLabel(record);
+        const label = getLabel(record, license, stage);
         const shortStage = stage === "30 Day" ? "30d" : stage === "14 Day" ? "14d" : "7d";
         return (
           <div key={stage} className="flex items-center justify-between gap-2">

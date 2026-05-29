@@ -1,12 +1,13 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 const STAGES = [
-  { days: 30, label: '30 Day' },
-  { days: 14, label: '14 Day' },
-  { days: 7, label: '7 Day' }
+  { days: 30, label: '30 Day', key: '30-day' },
+  { days: 14, label: '14 Day', key: '14-day' },
+  { days: 7, label: '7 Day', key: '7-day' }
 ];
 
 const CC_RECIPIENTS = 'HEldridge@enticmd.com;Steve.brown@enticmd.com';
+const EXPIRATION_UPDATE_CANCEL_MESSAGE = 'Cancelled because license expiration date was updated';
 
 function escapeHtml(value) {
   return String(value || '')
@@ -18,7 +19,7 @@ function escapeHtml(value) {
 }
 
 function addDays(dateString, days) {
-  const date = new Date(`${dateString}T12:00:00-04:00`);
+  const date = new Date(`${dateString}T12:00:00`);
   date.setDate(date.getDate() + days);
   return date.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 }
@@ -29,6 +30,10 @@ function subtractDays(dateString, days) {
 
 function todayET() {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+}
+
+function isPastDate(dateString, today) {
+  return dateString < today;
 }
 
 function formatLongDate(dateString) {
@@ -113,44 +118,130 @@ function providerEmail(provider) {
   return provider?.work_email || provider?.email || '';
 }
 
-function isActiveLicense(license, provider) {
-  return license.status !== 'expired' && provider?.status === 'active';
+function isActiveLicense(license) {
+  return license.status === 'active';
 }
 
-async function createForLicense(base44, license, provider, existingQueue, requestedStage = null, manual = false) {
-  const results = [];
+function emptySummary() {
+  return {
+    createdByStage: { '30-day': 0, '14-day': 0, '7-day': 0 },
+    skippedReasons: {
+      alreadyQueuedOrSent: 0,
+      missingProviderEmail: 0,
+      missingExpirationDate: 0,
+      inactiveLicense: 0,
+      reminderDateAlreadyPassed: 0,
+      failedOrCancelledExists: 0,
+      cancelledReplacedDueToUpdatedExpirationDate: 0
+    }
+  };
+}
+
+function addSkip(summary, reason) {
+  summary.skippedReasons[reason] = (summary.skippedReasons[reason] || 0) + 1;
+}
+
+function addCreated(summary, stageKey) {
+  summary.createdByStage[stageKey] = (summary.createdByStage[stageKey] || 0) + 1;
+}
+
+function buildMessage(created, skipped, summary) {
+  return `Created:\n30-day: ${summary.createdByStage['30-day']}\n14-day: ${summary.createdByStage['14-day']}\n7-day: ${summary.createdByStage['7-day']}\n\nSkipped:\nAlready Queued/Sent for Current Expiration Date: ${summary.skippedReasons.alreadyQueuedOrSent}\nMissing Provider Email: ${summary.skippedReasons.missingProviderEmail}\nMissing Expiration Date: ${summary.skippedReasons.missingExpirationDate}\nInactive License: ${summary.skippedReasons.inactiveLicense}\nReminder Date Already Passed: ${summary.skippedReasons.reminderDateAlreadyPassed}\nFailed/Cancelled Already Exists: ${summary.skippedReasons.failedOrCancelledExists}\nCancelled/Replaced Due to Updated Expiration Date: ${summary.skippedReasons.cancelledReplacedDueToUpdatedExpirationDate}\n\nTotal Created: ${created}\nTotal Skipped: ${skipped}`;
+}
+
+function matchingRecords(queue, license) {
+  return (queue || []).filter(record =>
+    record.notification_type === 'License Expiration Reminder' &&
+    record.related_entity === 'License' &&
+    record.related_record_id === license.id
+  );
+}
+
+async function cancelOldUnsentRecords(base44, records, license, summary, details) {
+  const oldUnsent = records.filter(record =>
+    record.expiration_date !== license.expiration_date &&
+    ['Ready to Send', 'Failed', 'Cancelled'].includes(record.status) &&
+    (!record.sent_date || record.sent_date === '')
+  );
+
+  for (const record of oldUnsent) {
+    await base44.asServiceRole.entities.NotificationQueue.update(record.id, {
+      status: 'Cancelled',
+      ready_to_send: false,
+      error_message: EXPIRATION_UPDATE_CANCEL_MESSAGE
+    });
+    addSkip(summary, 'cancelledReplacedDueToUpdatedExpirationDate');
+    details.push({ license_id: license.id, reminder_stage: record.reminder_stage, status: 'cancelled', reason: EXPIRATION_UPDATE_CANCEL_MESSAGE, notification_id: record.id });
+  }
+}
+
+async function createForLicense(base44, license, provider, allQueue, options, summary, pendingCreates) {
+  const details = [];
   const email = providerEmail(provider).trim();
   const providerName = provider?.full_name || '';
+  const currentDate = todayET();
+  const existingForLicense = matchingRecords(allQueue, license);
 
-  if (!providerName || !email || !license.expiration_date || !isActiveLicense(license, provider)) {
-    return [{ license_id: license.id, provider_name: providerName, status: 'skipped', reason: !email ? 'Missing provider work email' : !license.expiration_date ? 'Missing expiration date' : 'License or provider is inactive' }];
+  if (!license.expiration_date) {
+    STAGES.forEach(stage => {
+      addSkip(summary, 'missingExpirationDate');
+      details.push({ license_id: license.id, provider_name: providerName, reminder_stage: stage.label, status: 'skipped', reason: 'Missing Expiration Date' });
+    });
+    return details;
   }
 
-  const currentDate = todayET();
+  if (!isActiveLicense(license)) {
+    STAGES.forEach(stage => {
+      addSkip(summary, 'inactiveLicense');
+      details.push({ license_id: license.id, provider_name: providerName, reminder_stage: stage.label, status: 'skipped', reason: 'Inactive License' });
+    });
+    return details;
+  }
+
+  if (!email) {
+    STAGES.forEach(stage => {
+      addSkip(summary, 'missingProviderEmail');
+      details.push({ license_id: license.id, provider_name: providerName, reminder_stage: stage.label, status: 'skipped', reason: 'Missing Provider Email' });
+    });
+    return details;
+  }
+
+  if (options.expiration_updated) {
+    await cancelOldUnsentRecords(base44, existingForLicense, license, summary, details);
+  }
+
   const expirationDateFormatted = formatLongDate(license.expiration_date);
 
   for (const stage of STAGES) {
-    if (requestedStage && requestedStage !== stage.label) continue;
+    if (options.requestedStage && options.requestedStage !== stage.label) continue;
 
     const sendDate = subtractDays(license.expiration_date, stage.days);
-    if (!manual && sendDate !== currentDate) continue;
+    if (isPastDate(sendDate, currentDate)) {
+      addSkip(summary, 'reminderDateAlreadyPassed');
+      details.push({ license_id: license.id, provider_name: providerName, reminder_stage: stage.label, status: 'skipped', reason: 'Reminder Date Already Passed', send_date: sendDate });
+      continue;
+    }
 
-    const duplicate = existingQueue.find(record =>
-      record.notification_type === 'License Expiration Reminder' &&
-      record.related_entity === 'License' &&
-      record.related_record_id === license.id &&
+    const sameReminder = existingForLicense.find(record =>
       record.reminder_stage === stage.label &&
       record.send_date === sendDate &&
       record.expiration_date === license.expiration_date
     );
 
-    if (duplicate) {
-      results.push({ license_id: license.id, provider_name: providerName, reminder_stage: stage.label, status: 'skipped', reason: `Already ${duplicate.status}` });
+    if (sameReminder && ['Ready to Send', 'Sent'].includes(sameReminder.status)) {
+      addSkip(summary, 'alreadyQueuedOrSent');
+      details.push({ license_id: license.id, provider_name: providerName, reminder_stage: stage.label, status: 'skipped', reason: `Already ${sameReminder.status}`, notification_id: sameReminder.id, send_date: sendDate });
+      continue;
+    }
+
+    if (sameReminder && ['Failed', 'Cancelled'].includes(sameReminder.status) && !options.expiration_updated) {
+      addSkip(summary, 'failedOrCancelledExists');
+      details.push({ license_id: license.id, provider_name: providerName, reminder_stage: stage.label, status: 'skipped', reason: `Existing ${sameReminder.status} record`, notification_id: sameReminder.id, send_date: sendDate });
       continue;
     }
 
     const subject = getSubject(stage.label, license.license_type, expirationDateFormatted);
-    const record = await base44.asServiceRole.entities.NotificationQueue.create({
+    pendingCreates.push({
       notification_type: 'License Expiration Reminder',
       related_entity: 'License',
       related_record_id: license.id,
@@ -171,14 +262,11 @@ async function createForLicense(base44, license, provider, existingQueue, reques
       error_message: null
     });
 
-    results.push({ license_id: license.id, provider_name: providerName, reminder_stage: stage.label, status: 'created', notification_id: record.id, send_date: sendDate });
+    addCreated(summary, stage.key);
+    details.push({ license_id: license.id, provider_name: providerName, reminder_stage: stage.label, status: 'created', send_date: sendDate });
   }
 
-  if (results.length === 0) {
-    results.push({ license_id: license.id, provider_name: providerName, status: 'skipped', reason: 'No reminder stage is due today' });
-  }
-
-  return results;
+  return details;
 }
 
 Deno.serve(async (req) => {
@@ -192,32 +280,41 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const { license_id, reminder_stage, manual } = body;
+    const { license_id, reminder_stage, expiration_updated } = body;
 
     const licenses = await base44.asServiceRole.entities.License.list();
     const providers = await base44.asServiceRole.entities.Provider.list();
     const queue = await base44.asServiceRole.entities.NotificationQueue.list();
     const targets = license_id ? licenses.filter(license => license.id === license_id) : licenses;
-
     const providerById = new Map((providers || []).map(provider => [provider.id, provider]));
+    const summary = emptySummary();
     const details = [];
+    const pendingCreates = [];
 
     for (const license of targets) {
       const provider = providerById.get(license.provider_id);
-      const result = await createForLicense(base44, license, provider, queue, reminder_stage || null, !!manual || !!license_id);
+      const result = await createForLicense(base44, license, provider, queue, {
+        requestedStage: reminder_stage || null,
+        expiration_updated: !!expiration_updated
+      }, summary, pendingCreates);
       details.push(...result);
     }
 
-    const created = details.filter(d => d.status === 'created').length;
-    const skipped = details.length - created;
+    for (let i = 0; i < pendingCreates.length; i += 25) {
+      await base44.asServiceRole.entities.NotificationQueue.bulkCreate(pendingCreates.slice(i, i + 25));
+    }
+
+    const created = Object.values(summary.createdByStage).reduce((sum, value) => sum + value, 0);
+    const skipped = Object.values(summary.skippedReasons).reduce((sum, value) => sum + value, 0);
 
     return Response.json({
       success: true,
       scanned: targets.length,
       created,
       skipped,
+      summary,
       details,
-      message: `Created ${created} license reminder queue record(s). Skipped ${skipped}.`
+      message: buildMessage(created, skipped, summary)
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

@@ -229,7 +229,7 @@ export default function NotificationQueuePage() {
                     <th className="text-left p-4 font-semibold text-slate-700">Subject</th>
                     <th className="text-left p-4 font-semibold text-slate-700">To</th>
                     <th className="text-left p-4 font-semibold text-slate-700">Send Date</th>
-                    <th className="text-left p-4 font-semibold text-slate-700">Closure Date</th>
+                    <th className="text-left p-4 font-semibold text-slate-700">Closure / Expiration</th>
                     <th className="text-left p-4 font-semibold text-slate-700">Status</th>
                     <th className="text-left p-4 font-semibold text-slate-700">Sent Date</th>
                     <th className="text-left p-4 font-semibold text-slate-700">Sent By</th>
@@ -279,7 +279,9 @@ export default function NotificationQueuePage() {
                           ) : '—'}
                         </td>
                         <td className="p-4 text-slate-600">
-                          {r.closure_date ? format(parseISO(r.closure_date), 'MMM d, yyyy') : '—'}
+                          {r.notification_type === 'License Expiration Reminder'
+                            ? (r.expiration_date ? format(parseISO(r.expiration_date), 'MMM d, yyyy') : '—')
+                            : (r.closure_date ? format(parseISO(r.closure_date), 'MMM d, yyyy') : '—')}
                         </td>
                         <td className="p-4">
                           <Badge className={STATUS_COLORS[r.status] + " gap-1"}>

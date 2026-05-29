@@ -95,9 +95,16 @@ export default function Licenses() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.License.update(id, data),
+    mutationFn: async ({ id, data, oldRecord }) => {
+      const updated = await base44.entities.License.update(id, data);
+      if (data.expiration_date && oldRecord?.expiration_date !== data.expiration_date) {
+        await base44.functions.invoke('queueLicenseExpirationReminders', { license_id: id, expiration_updated: true });
+      }
+      return updated;
+    },
     onSuccess: (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['licenses'] });
+      queryClient.invalidateQueries({ queryKey: ['notification-queue'] });
       setShowForm(false);
       const oldRecord = editingLicense;
       setEditingLicense(null);
@@ -148,7 +155,7 @@ export default function Licenses() {
 
   const handleSubmit = (data) => {
     if (editingLicense) {
-      updateMutation.mutate({ id: editingLicense.id, data });
+      updateMutation.mutate({ id: editingLicense.id, data, oldRecord: editingLicense });
     } else {
       createMutation.mutate(data);
     }
@@ -161,6 +168,7 @@ export default function Licenses() {
       const response = await base44.functions.invoke('queueLicenseExpirationReminders', {});
       setAirtableMessage(response.data.message);
       queryClient.invalidateQueries({ queryKey: ['notification-queue'] });
+      queryClient.invalidateQueries({ queryKey: ['licenses'] });
     } catch (error) {
       setAirtableMessage('Error queueing license reminders: ' + (error.response?.data?.error || error.message));
     } finally {
@@ -172,9 +180,10 @@ export default function Licenses() {
     setQueueingLicenseId(license.id);
     setAirtableMessage('');
     try {
-      const response = await base44.functions.invoke('queueLicenseExpirationReminders', { license_id: license.id, manual: true });
+      const response = await base44.functions.invoke('queueLicenseExpirationReminders', { license_id: license.id });
       setAirtableMessage(response.data.message);
       queryClient.invalidateQueries({ queryKey: ['notification-queue'] });
+      queryClient.invalidateQueries({ queryKey: ['licenses'] });
     } catch (error) {
       setAirtableMessage('Error queueing license reminder: ' + (error.response?.data?.error || error.message));
     } finally {
@@ -343,7 +352,7 @@ export default function Licenses() {
         {airtableMessage && (
           <Card className="border-green-200 bg-green-50">
             <CardContent className="p-4">
-              <p className="text-sm text-green-900">{airtableMessage}</p>
+              <pre className="text-sm text-green-900 whitespace-pre-wrap font-sans">{airtableMessage}</pre>
             </CardContent>
           </Card>
         )}
