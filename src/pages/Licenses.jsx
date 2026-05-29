@@ -286,8 +286,8 @@ export default function Licenses() {
 
   return (
     <div className={`flex flex-col bg-slate-50 ${showForm ? 'min-h-[calc(100vh-9rem)]' : 'h-[calc(100vh-9rem)] overflow-hidden'}`}>
-      <div className="flex-shrink-0 p-2 md:p-3">
-        <div className="max-w-7xl mx-auto space-y-2">
+    <div className="flex-shrink-0 p-2 md:p-4">
+      <div className="mx-auto space-y-2">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">License Management</h1>
@@ -364,8 +364,8 @@ export default function Licenses() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden px-4 md:px-6 pb-4">
-        <div className="max-w-7xl mx-auto h-full">
+      <div className="flex-1 overflow-hidden px-2 md:px-4 pb-4">
+        <div className="h-full">
         <Card className="border-slate-200 shadow-sm h-full flex flex-col">
           <CardHeader className="border-b border-slate-100 flex-shrink-0">
             <div className="flex items-center gap-4">
@@ -384,7 +384,7 @@ export default function Licenses() {
                 <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                   <tr>
                     {user?.role === 'admin' && (
-                      <th className="w-12 p-4">
+                      <th className="w-12 p-2">
                         <Checkbox 
                           checked={filteredLicenses.length > 0 && selectedIds.size === filteredLicenses.length}
                           onCheckedChange={toggleSelectAll}
@@ -393,44 +393,44 @@ export default function Licenses() {
                       </th>
                     )}
                     <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      className="text-left p-2 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                       onClick={() => handleSort('providerName')}
                     >
                       Provider <SortIcon field="providerName" />
                     </th>
                     <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      className="text-left p-2 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                       onClick={() => handleSort('license_type')}
                     >
                       License Type <SortIcon field="license_type" />
                     </th>
                     <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      className="text-left p-2 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                       onClick={() => handleSort('internal_license_number')}
                     >
                       Internal # <SortIcon field="internal_license_number" />
                     </th>
                     <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      className="text-left p-2 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                       onClick={() => handleSort('expiration_date')}
                     >
                       Expiration <SortIcon field="expiration_date" />
                     </th>
                     <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      className="text-left p-2 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                       onClick={() => handleSort('daysUntilExpiration')}
                     >
-                      Days Until <SortIcon field="daysUntilExpiration" />
+                      Days <SortIcon field="daysUntilExpiration" />
                     </th>
                     <th 
-                      className="text-left p-4 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
+                      className="text-left p-2 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100"
                       onClick={() => handleSort('status')}
                     >
                       Status <SortIcon field="status" />
                     </th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Provider Work Email</th>
-                    <th className="text-left p-4 text-sm font-semibold text-slate-700">Reminder Status</th>
-                    <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th>
+                    <th className="text-left p-2 text-xs font-semibold text-slate-700">Email</th>
+                    <th className="text-left p-2 text-xs font-semibold text-slate-700">Reminder Status</th>
+                    <th className="text-right p-2 text-xs font-semibold text-slate-700">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -439,61 +439,55 @@ export default function Licenses() {
                     const isExpiringSoon = license.daysUntilExpiration > 0 && license.daysUntilExpiration <= 30;
 
                     return (
-                      <tr key={license.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                        {user?.role === 'admin' && (
-                          <td className="p-4">
-                            <Checkbox 
-                              checked={selectedIds.has(license.id)}
-                              onCheckedChange={(checked) => toggleSelectOne(license.id, checked)}
-                              aria-label={`Select license for ${license.provider?.full_name}`}
-                            />
-                          </td>
-                        )}
-                        <td className="p-4">
-                          <p className="font-medium text-slate-900">{license.provider?.full_name}</p>
-                        </td>
-                        <td className="p-4">
-                          <Badge variant="outline" className="font-mono">
-                            {license.license_type}
-                          </Badge>
-                        </td>
-                        <td className="p-4 text-slate-600 font-mono text-sm">{license.internal_license_number}</td>
-                        <td className="p-4 text-slate-600">
-                          {format(parseISO(license.expiration_date), 'MMM d, yyyy')}
-                        </td>
-                        <td className="p-4">
-                          {isExpired ? (
-                            <span className="text-red-600 font-medium flex items-center gap-1">
-                              <AlertTriangle className="w-4 h-4" />
-                              Expired
-                            </span>
-                          ) : isExpiringSoon ? (
-                            <span className="text-orange-600 font-semibold">{license.daysUntilExpiration} days</span>
-                          ) : (
-                            <span className="text-slate-600 font-medium">{license.daysUntilExpiration} days</span>
-                          )}
-                        </td>
-                        <td className="p-4">
-                          <Badge 
-                            variant={isExpired ? "destructive" : isExpiringSoon ? "outline" : "secondary"}
-                            className={isExpiringSoon && !isExpired ? "border-orange-300 text-orange-700" : ""}
-                          >
-                            {isExpired ? 'Expired' : isExpiringSoon ? 'Expiring Soon' : 'Active'}
-                          </Badge>
-                        </td>
-                        <td className="p-4 text-slate-600 max-w-xs">
-                          <div className="truncate">{license.provider?.work_email || license.provider?.email || 'Missing'}</div>
-                        </td>
-                        <td className="p-4">
-                          <LicenseReminderStatus
-                            license={license}
-                            notificationQueue={notificationQueue}
-                            onQueue={handleQueueSingleLicense}
-                            isQueueing={queueingLicenseId === license.id}
-                            isAdmin={user?.role === 'admin'}
-                          />
-                        </td>
-                        <td className="p-4 text-right">
+                      <tr key={license.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors text-sm">
+                         {user?.role === 'admin' && (
+                           <td className="p-2">
+                             <Checkbox 
+                               checked={selectedIds.has(license.id)}
+                               onCheckedChange={(checked) => toggleSelectOne(license.id, checked)}
+                               aria-label={`Select license for ${license.provider?.full_name}`}
+                             />
+                           </td>
+                         )}
+                         <td className="p-2 font-medium text-slate-900 whitespace-nowrap">{license.provider?.full_name}</td>
+                         <td className="p-2">
+                           <Badge variant="outline" className="font-mono text-xs">{license.license_type}</Badge>
+                         </td>
+                         <td className="p-2 text-slate-600 font-mono text-xs">{license.internal_license_number}</td>
+                         <td className="p-2 text-slate-600 whitespace-nowrap">{format(parseISO(license.expiration_date), 'MMM d')}</td>
+                         <td className="p-2">
+                           {isExpired ? (
+                             <span className="text-red-600 font-medium flex items-center gap-1 whitespace-nowrap">
+                               <AlertTriangle className="w-3 h-3" />
+                               Expired
+                             </span>
+                           ) : isExpiringSoon ? (
+                             <span className="text-orange-600 font-semibold whitespace-nowrap">{license.daysUntilExpiration}d</span>
+                           ) : (
+                             <span className="text-slate-600 font-medium whitespace-nowrap">{license.daysUntilExpiration}d</span>
+                           )}
+                         </td>
+                         <td className="p-2">
+                           <Badge 
+                             variant={isExpired ? "destructive" : isExpiringSoon ? "outline" : "secondary"}
+                             className={isExpiringSoon && !isExpired ? "border-orange-300 text-orange-700" : ""}
+                           >
+                             {isExpired ? 'Expired' : isExpiringSoon ? 'Soon' : 'Active'}
+                           </Badge>
+                         </td>
+                         <td className="p-2 text-slate-600 text-xs max-w-[150px]">
+                           <div className="truncate">{license.provider?.work_email || license.provider?.email || '—'}</div>
+                         </td>
+                         <td className="p-2 min-w-[180px]">
+                           <LicenseReminderStatus
+                             license={license}
+                             notificationQueue={notificationQueue}
+                             onQueue={handleQueueSingleLicense}
+                             isQueueing={queueingLicenseId === license.id}
+                             isAdmin={user?.role === 'admin'}
+                           />
+                         </td>
+                         <td className="p-2 text-right">
                           {user?.role === 'admin' && (
                             <Button 
                               variant="ghost" 

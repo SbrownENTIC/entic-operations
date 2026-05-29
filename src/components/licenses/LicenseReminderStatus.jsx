@@ -38,32 +38,28 @@ export default function LicenseReminderStatus({ license, notificationQueue, onQu
   const lastSentDate = sentDates.length ? sentDates[sentDates.length - 1] : null;
 
   return (
-    <div className="space-y-2 min-w-[220px]">
+    <div className="space-y-1 text-xs">
       {STAGES.map(stage => {
         const record = getStageRecord(notificationQueue, license, stage);
         const label = getLabel(record);
+        const shortStage = stage === "30 Day" ? "30d" : stage === "14 Day" ? "14d" : "7d";
         return (
           <div key={stage} className="flex items-center justify-between gap-2">
-            <span className="text-xs text-slate-600">{stage}:</span>
-            <Badge className={STATUS_COLORS[label]}>{label}</Badge>
+            <span className="text-slate-600">{shortStage}:</span>
+            <Badge className={`${STATUS_COLORS[label]} text-xs px-1.5 py-0.5`}>{label}</Badge>
           </div>
         );
       })}
-      {lastSentDate && (
-        <div className="text-xs text-slate-500">
-          Last sent: {format(parseISO(lastSentDate), "MMM d, yyyy h:mm a")}
-        </div>
-      )}
       {isAdmin && (
         <Button
           variant="outline"
           size="sm"
           onClick={() => onQueue(license)}
           disabled={isQueueing}
-          className="w-full gap-2 text-xs"
+          className="w-full gap-1 h-7 text-xs mt-1"
         >
-          {isQueueing ? <RefreshCw className="w-3 h-3 animate-spin" /> : <BellRing className="w-3 h-3" />}
-          Queue Reminder
+          {isQueueing ? <RefreshCw className="w-2.5 h-2.5 animate-spin" /> : <BellRing className="w-2.5 h-2.5" />}
+          Queue
         </Button>
       )}
     </div>
