@@ -335,8 +335,16 @@ export default function OnCallSchedule() {
   // Assign consistent colors to providers
   const providerColorMap = useMemo(() => {
     const map = {};
-    providers.forEach((provider, index) => {
-      map[provider.id] = PROVIDER_COLORS[index % PROVIDER_COLORS.length];
+    let colorIndex = 0;
+    
+    providers.forEach((provider) => {
+      // Assign dark blue to Dr. Seth Brown
+      if (provider.full_name?.toLowerCase().includes('seth brown')) {
+        map[provider.id] = 'bg-blue-900';
+      } else {
+        map[provider.id] = PROVIDER_COLORS[colorIndex % PROVIDER_COLORS.length];
+        colorIndex++;
+      }
     });
     return map;
   }, [providers]);
