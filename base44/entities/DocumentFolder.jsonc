@@ -1,0 +1,30 @@
+{
+  "name": "DocumentFolder",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name of the folder"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the folder content"
+    },
+    "color": {
+      "type": "string",
+      "enum": [
+        "blue",
+        "red",
+        "green",
+        "yellow",
+        "purple",
+        "indigo",
+        "pink"
+      ],
+      "default": "blue"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

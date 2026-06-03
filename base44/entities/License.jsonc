@@ -1,0 +1,64 @@
+{
+  "name": "License",
+  "type": "object",
+  "properties": {
+    "provider_id": {
+      "type": "string",
+      "description": "Reference to Provider"
+    },
+    "license_type": {
+      "type": "string",
+      "description": "Type of license (e.g. Medical License, DEA License, etc.)"
+    },
+    "internal_license_number": {
+      "type": "string",
+      "description": "Auto-generated internal license number (e.g., MED-001)"
+    },
+    "issue_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date license was issued"
+    },
+    "expiration_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date license expires"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "expired",
+        "pending_renewal"
+      ],
+      "default": "active"
+    },
+    "document_url": {
+      "type": "string",
+      "description": "URL to license document"
+    },
+    "reminder_30_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether 30-day reminder was sent"
+    },
+    "reminder_14_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether 14-day reminder was sent"
+    },
+    "reminder_7_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether 7-day reminder was sent"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "provider_id",
+    "license_type",
+    "expiration_date"
+  ]
+}

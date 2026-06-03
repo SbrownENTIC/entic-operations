@@ -1,0 +1,36 @@
+{
+  "name": "CME",
+  "type": "object",
+  "properties": {
+    "provider_id": {
+      "type": "string",
+      "description": "Reference to Provider"
+    },
+    "course_name": {
+      "type": "string",
+      "description": "Name of the CME course"
+    },
+    "credits": {
+      "type": "number",
+      "description": "Number of CME credits earned"
+    },
+    "completion_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date completed"
+    },
+    "certificate_url": {
+      "type": "string",
+      "description": "URL to certificate document"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "provider_id",
+    "course_name",
+    "credits",
+    "completion_date"
+  ]
+}

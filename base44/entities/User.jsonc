@@ -1,0 +1,13 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "dashboard_config": {
+      "type": "string",
+      "description": "JSON string of dashboard configuration (order and visibility)"
+    }
+  },
+  "required": [
+    "dashboard_config"
+  ]
+}

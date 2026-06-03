@@ -685,7 +685,7 @@ export default function Dashboard() {
       }
     } else if (type === 'owedToProviders') {
       filteredInvoices = processedFinancialItems.filter(inv => 
-        (inv.amount_received > 0) && !inv.provider_paid
+        (inv.amount_received > 0) && !inv.provider_paid && !programsExcludedFromProviderPay.includes(inv.program_group)
       );
       if (programGroup) {
         filteredInvoices = filteredInvoices.filter(inv => inv.program_group === programGroup);
