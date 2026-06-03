@@ -348,9 +348,15 @@ export default function OnCallSchedule() {
     const sortedProviders = [...providers].sort((a, b) => a.full_name.localeCompare(b.full_name));
     
     sortedProviders.forEach((provider, index) => {
-      // Assign dark blue to Dr. Seth Brown
-      if (provider.full_name?.toLowerCase().includes('seth brown')) {
+      const nameLower = provider.full_name?.toLowerCase() || '';
+      
+      // Specific color assignments
+      if (nameLower.includes('seth brown')) {
         map[provider.id] = 'bg-blue-900';
+      } else if (nameLower.includes('benjamin wycherly')) {
+        map[provider.id] = 'bg-red-600';
+      } else if (nameLower.includes('stephen wolfe')) {
+        map[provider.id] = 'bg-teal-600';
       } else {
         map[provider.id] = PROVIDER_COLORS[index % PROVIDER_COLORS.length];
       }
