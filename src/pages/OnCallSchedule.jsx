@@ -36,7 +36,17 @@ const PROVIDER_COLORS = [
   "bg-teal-500",
   "bg-red-500",
   "bg-indigo-500",
-  "bg-cyan-500"
+  "bg-cyan-500",
+  "bg-lime-500",
+  "bg-amber-500",
+  "bg-rose-500",
+  "bg-violet-500",
+  "bg-emerald-500",
+  "bg-sky-500",
+  "bg-fuchsia-500",
+  "bg-green-600",
+  "bg-orange-600",
+  "bg-pink-600"
 ];
 
 export default function OnCallSchedule() {
@@ -335,15 +345,14 @@ export default function OnCallSchedule() {
   // Assign consistent colors to providers
   const providerColorMap = useMemo(() => {
     const map = {};
-    let colorIndex = 0;
+    const sortedProviders = [...providers].sort((a, b) => a.full_name.localeCompare(b.full_name));
     
-    providers.forEach((provider) => {
+    sortedProviders.forEach((provider, index) => {
       // Assign dark blue to Dr. Seth Brown
       if (provider.full_name?.toLowerCase().includes('seth brown')) {
         map[provider.id] = 'bg-blue-900';
       } else {
-        map[provider.id] = PROVIDER_COLORS[colorIndex % PROVIDER_COLORS.length];
-        colorIndex++;
+        map[provider.id] = PROVIDER_COLORS[index % PROVIDER_COLORS.length];
       }
     });
     return map;
