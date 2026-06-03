@@ -51,22 +51,22 @@ export default function CallLogDashboard() {
     return allRows;
   };
 
-  const { data: inbound = [], isLoading: inboundLoading, isFetching: inboundFetching } = useQuery({
+  const { data: inbound = [], isLoading: inboundLoading } = useQuery({
     queryKey: ['inbound-calls'],
     queryFn: () => fetchAllRecords(base44.entities.InboundCallRaw)
   });
 
-  const { data: outbound = [], isLoading: outboundLoading, isFetching: outboundFetching } = useQuery({
+  const { data: outbound = [], isLoading: outboundLoading } = useQuery({
     queryKey: ['outbound-calls'],
     queryFn: () => fetchAllRecords(base44.entities.OutboundCallRaw)
   });
 
-  const { data: users = [], isLoading: usersLoading, isFetching: usersFetching } = useQuery({
+  const { data: users = [], isLoading: usersLoading } = useQuery({
     queryKey: ['users'],
     queryFn: () => base44.entities.UserDirectory.list()
   });
 
-  const isLoading = inboundLoading || outboundLoading || usersLoading || inboundFetching || outboundFetching || usersFetching;
+  const isLoading = inboundLoading || outboundLoading || usersLoading;
 
   // Helper to normalize extension
   const normalizeExtension = (ext) => {

@@ -6,17 +6,17 @@ import { BarChart3 } from 'lucide-react';
 
 export default function CallLogTabTrigger() {
   const { data: inbound = [] } = useQuery({
-    queryKey: ['call-log-tab-inbound-calls'],
+    queryKey: ['inbound-calls'],
     queryFn: () => base44.entities.InboundCallRaw.list(),
   });
 
   const { data: outbound = [] } = useQuery({
-    queryKey: ['call-log-tab-outbound-calls'],
+    queryKey: ['outbound-calls'],
     queryFn: () => base44.entities.OutboundCallRaw.list(),
   });
 
   const { data: users = [] } = useQuery({
-    queryKey: ['call-log-tab-user-directory'],
+    queryKey: ['user-directory'],
     queryFn: () => base44.entities.UserDirectory.list(),
   });
 
