@@ -153,7 +153,8 @@ export default function CallLogDashboard() {
   }, [inbound, outbound, extToUser, benchmarkUserIds]);
 
   const monthlyData = useMemo(() => {
-    return aggregateInboundByMonth(inbound, extToUser, benchmarkUserIds);
+    const data = aggregateInboundByMonth(inbound, extToUser, benchmarkUserIds);
+    return Array.isArray(data) ? [...data].sort((a, b) => (b.month || "").localeCompare(a.month || "")) : data;
   }, [inbound, extToUser, benchmarkUserIds]);
 
   const weeklyOutboundData = useMemo(() => {
