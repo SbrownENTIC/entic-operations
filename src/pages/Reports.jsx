@@ -82,6 +82,11 @@ export default function Reports() {
     return '$' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
+  const normalizeVendorName = (vendorName) => {
+    const cleaned = (vendorName || 'Unknown').trim().replace(/\.+$/, '');
+    return cleaned.toLowerCase().replace(/\s+/g, '') === 'staplesbusiness' ? 'Staples Business' : cleaned;
+  };
+
   const getAgingCategory = (invoice) => {
     const days = differenceInDays(new Date(), parseISO(invoice.invoice_date));
     if (days > 90) return '90plus';
@@ -612,7 +617,7 @@ export default function Reports() {
 
     filteredInvoices.forEach(inv => {
       rows.push([
-        inv.vendor_name || 'Unknown',
+        normalizeVendorName(inv.vendor_name),
         inv.invoice_number || '',
         inv.invoice_date ? format(parseISO(inv.invoice_date), 'yyyy-MM-dd') : '',
         inv.billed_to || 'ENTIC',
@@ -1317,7 +1322,7 @@ export default function Reports() {
                               <h4 className="text-sm font-medium text-slate-500 mb-3 uppercase">ENTIC Vendors</h4>
                               <div className="space-y-2">
                                 {Object.entries(enticInvoices.reduce((acc, inv) => {
-                                  const vendor = (inv.vendor_name || 'Unknown').trim().replace(/\.+$/, '');
+                                  const vendor = normalizeVendorName(inv.vendor_name);
                                   if (!acc[vendor]) acc[vendor] = 0;
                                   acc[vendor] += (inv.total_amount || 0);
                                   return acc;
@@ -1336,7 +1341,7 @@ export default function Reports() {
                               <h4 className="text-sm font-medium text-slate-500 mb-3 uppercase">Hearing Institute Vendors</h4>
                               <div className="space-y-2">
                                 {Object.entries(thiInvoices.reduce((acc, inv) => {
-                                  const vendor = (inv.vendor_name || 'Unknown').trim().replace(/\.+$/, '');
+                                  const vendor = normalizeVendorName(inv.vendor_name);
                                   if (!acc[vendor]) acc[vendor] = 0;
                                   acc[vendor] += (inv.total_amount || 0);
                                   return acc;
