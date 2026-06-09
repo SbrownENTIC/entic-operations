@@ -99,9 +99,13 @@
       "type": "string",
       "description": "Primary attachment MIME type, kept for existing Power Automate compatibility"
     },
+    "attachment_content_base64": {
+      "type": "string",
+      "description": "Primary attachment Base64 content for Power Automate Outlook attachment mapping"
+    },
     "attachments": {
       "type": "array",
-      "description": "Invoice email attachments for Power Automate, including approved PDF and optional approved Excel invoice",
+      "description": "Invoice email attachments for Power Automate, including approved PDF or approved Excel invoice",
       "items": {
         "type": "object",
         "properties": {
@@ -131,6 +135,24 @@
           },
           "required": {
             "type": "boolean"
+          }
+        }
+      }
+    },
+    "outlook_attachments": {
+      "type": "array",
+      "description": "Power Automate-ready Outlook attachments using Name, ContentBytes, and ContentType",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Name": {
+            "type": "string"
+          },
+          "ContentBytes": {
+            "type": "string"
+          },
+          "ContentType": {
+            "type": "string"
           }
         }
       }

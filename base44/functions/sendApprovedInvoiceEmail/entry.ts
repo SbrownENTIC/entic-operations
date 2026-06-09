@@ -125,7 +125,7 @@ Deno.serve(async (req) => {
     const approvedExcelUrl = invoice.approved_invoice_excel_url || (urlLooksLike(invoice.approved_invoice_url, ['.xlsx', '.xls']) ? invoice.approved_invoice_url : '');
 
     if (!approvedPdfUrl && !approvedExcelUrl) {
-      return Response.json({ success: false, error: 'Approved invoice PDF or Excel file is required before sending.' }, { status: 400 });
+      return Response.json({ success: false, error: 'Approved invoice file is required before sending.' }, { status: 400 });
     }
 
     if (!(invoice.status === 'approved' || invoice.invoice_ready_to_send === true)) {
@@ -187,6 +187,11 @@ Deno.serve(async (req) => {
       : primaryIsPdf
         ? 'Approved PDF included.'
         : 'Approved Excel included.';
+    const outlookAttachments = attachments.map(attachment => ({
+      Name: attachment.file_name,
+      ContentBytes: attachment.content_base64,
+      ContentType: attachment.mime_type
+    }));
 
     const notification = await base44.asServiceRole.entities.NotificationQueue.create({
       notification_type: 'Invoice',
@@ -203,7 +208,9 @@ Deno.serve(async (req) => {
       attachment_url: primaryAttachment.file_url,
       attachment_filename: primaryAttachment.file_name,
       attachment_mime_type: primaryAttachment.mime_type,
+      attachment_content_base64: primaryAttachment.content_base64,
       attachments,
+      outlook_attachments: outlookAttachments,
       attachment_count: attachments.length,
       attachment_summary: attachmentSummary,
       status: 'Ready to Send',

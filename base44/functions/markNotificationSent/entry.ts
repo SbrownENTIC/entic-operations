@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
 
-    const { notification_id, sent_by, email_provider_message_id } = body;
+    const { notification_id, sent_by, email_provider_message_id, approved_invoice_attachment_sent, sent_attachment_count } = body;
 
     if (!notification_id) {
       return Response.json({ success: false, error: 'notification_id is required' }, { status: 400 });
@@ -60,7 +60,14 @@ Deno.serve(async (req) => {
       if (!hasApprovedInvoiceAttachment) {
         return Response.json({
           success: false,
-          error: 'Cannot mark invoice email Sent because an approved PDF or Excel attachment was not included.'
+          error: 'Cannot mark invoice email Sent because an approved invoice attachment was not queued.'
+        }, { status: 400 });
+      }
+
+      if (approved_invoice_attachment_sent !== true && Number(sent_attachment_count || 0) < 1) {
+        return Response.json({
+          success: false,
+          error: 'Cannot mark invoice email Sent until Power Automate confirms the approved invoice attachment was included.'
         }, { status: 400 });
       }
     }
