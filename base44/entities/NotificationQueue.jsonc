@@ -103,6 +103,18 @@
       "type": "string",
       "description": "Primary attachment Base64 content for Power Automate Outlook attachment mapping"
     },
+    "power_automate_attachment_name": {
+      "type": "string",
+      "description": "Power Automate-ready primary attachment name for Outlook Send an email (V2)"
+    },
+    "power_automate_attachment_content_base64": {
+      "type": "string",
+      "description": "Power Automate-ready primary attachment Base64 content for Outlook Send an email (V2)"
+    },
+    "power_automate_attachment_mime_type": {
+      "type": "string",
+      "description": "Power Automate-ready primary attachment MIME type for Outlook Send an email (V2)"
+    },
     "attachments": {
       "type": "array",
       "description": "Invoice email attachments for Power Automate, including approved PDF or approved Excel invoice",
