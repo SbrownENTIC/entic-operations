@@ -30,7 +30,21 @@ function buildEmailBody(program, monthYear) {
 }
 
 function safeInvoiceNumber(invoiceNumber) {
-  return String(invoiceNumber || 'approved-invoice').replace(/[^a-zA-Z0-9._-]/g, '_');
+  return String(invoiceNumber || 'approved-invoice').replace(/[^a-zA-Z0-9._ -]/g, '_').trim();
+}
+
+function fileNameFromUrl(fileUrl) {
+  const rawName = decodeURIComponent(String(fileUrl || '').split('?')[0].split('/').pop() || '');
+  return rawName.replace(/^[a-f0-9]{6,}_/i, '').trim();
+}
+
+function fileNameFromContentDisposition(header) {
+  const value = String(header || '');
+  const encodedMatch = value.match(/filename\*=UTF-8''([^;]+)/i);
+  if (encodedMatch) return decodeURIComponent(encodedMatch[1].replace(/"/g, '')).trim();
+  const plainMatch = value.match(/filename="?([^";]+)"?/i);
+  if (plainMatch) return plainMatch[1].trim();
+  return '';
 }
 
 function urlLooksLike(fileUrl, extensions) {
@@ -73,10 +87,15 @@ async function buildAttachment({ fileUrl, invoiceId, invoiceNumber, sourceField,
   const mimeType = inferMimeType(fileUrl, response.headers.get('content-type'));
   const fileType = fileTypeFromMime(mimeType);
 
+  const responseFileName = fileNameFromContentDisposition(response.headers.get('content-disposition'));
+  const sourceFileName = responseFileName || fileNameFromUrl(fileUrl);
+  const fallbackFileName = `${safeInvoiceNumber(invoiceNumber)} ${label}.${fileType}`;
+  const fileName = sourceFileName && sourceFileName.includes('.') ? sourceFileName : fallbackFileName;
+
   return {
     invoice_id: invoiceId,
     source_field: sourceField,
-    file_name: `${safeInvoiceNumber(invoiceNumber)}_${label}.${fileType}`,
+    file_name: fileName,
     file_type: fileType,
     mime_type: mimeType,
     file_url: fileUrl,
@@ -209,6 +228,9 @@ Deno.serve(async (req) => {
       attachment_filename: primaryAttachment.file_name,
       attachment_mime_type: primaryAttachment.mime_type,
       attachment_content_base64: primaryAttachment.content_base64,
+      power_automate_attachment_name: primaryAttachment.file_name,
+      power_automate_attachment_content_base64: primaryAttachment.content_base64,
+      power_automate_attachment_mime_type: primaryAttachment.mime_type,
       attachments,
       outlook_attachments: outlookAttachments,
       attachment_count: attachments.length,
