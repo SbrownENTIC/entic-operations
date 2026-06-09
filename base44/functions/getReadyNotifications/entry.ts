@@ -59,20 +59,33 @@ Deno.serve(async (req) => {
     // Get today's date in Eastern Time (YYYY-MM-DD)
     const todayET = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 
-    // Filter: status = Ready to Send, ready_to_send = true, sent_date blank, send_date = today
-    const ready = (allRecords || []).filter(n =>
-      n.status === 'Ready to Send' &&
-      n.ready_to_send === true &&
-      (!n.sent_date || n.sent_date === '' || n.sent_date === null) &&
-      n.send_date === todayET
-    );
+    // Filter: status = Ready to Send, ready_to_send = true, sent_date blank, send_date = today.
+    // Invoice emails are only returned when the approved invoice file content is present.
+    const ready = (allRecords || []).filter(n => {
+      const isReady = n.status === 'Ready to Send' &&
+        n.ready_to_send === true &&
+        (!n.sent_date || n.sent_date === '' || n.sent_date === null) &&
+        n.send_date === todayET;
+
+      if (!isReady) return false;
+      if (n.notification_type !== 'Invoice') return true;
+
+      const rawAttachments = Array.isArray(n.attachments) ? n.attachments : [];
+      return Boolean(
+        n.attachment_content_base64 ||
+        n.power_automate_attachment_content_base64 ||
+        rawAttachments.some(att => att?.content_base64 && att?.file_name && att?.mime_type)
+      );
+    });
 
     return Response.json({
       success: true,
       count: ready.length,
       notifications: ready.map(n => {
+        const rawAttachments = Array.isArray(n.attachments) ? n.attachments : [];
         const outlookAttachments = normalizeOutlookAttachments(n);
-        const primaryAttachment = outlookAttachments[0] || {};
+        const primaryAttachment = rawAttachments[0] || {};
+        const primaryOutlookAttachment = outlookAttachments[0] || {};
 
         return {
           id:                   n.id,
@@ -92,25 +105,31 @@ Deno.serve(async (req) => {
           cc:                   (n.cc || '').split(/[;,]/).map(e => e.trim()).filter(Boolean).join('; '),
           bcc:                  n.bcc || '',
           attachment_url:       n.attachment_url || '',
-          attachment_filename:  n.attachment_filename || primaryAttachment.Name || '',
-          attachment_mime_type: n.attachment_mime_type || primaryAttachment.ContentType || '',
-          attachment_content_base64: n.attachment_content_base64 || primaryAttachment.ContentBytes || '',
-          attachment_name:      primaryAttachment.Name || n.attachment_filename || '',
-          attachment_content:   primaryAttachment.ContentBytes || n.attachment_content_base64 || '',
-          attachment_content_bytes: primaryAttachment.ContentBytes || n.attachment_content_base64 || '',
-          attachment_content_type: primaryAttachment.ContentType || n.attachment_mime_type || '',
-          power_automate_attachment_name: n.power_automate_attachment_name || primaryAttachment.Name || n.attachment_filename || '',
-          power_automate_attachment_content_base64: n.power_automate_attachment_content_base64 || primaryAttachment.ContentBytes || n.attachment_content_base64 || '',
-          power_automate_attachment_mime_type: n.power_automate_attachment_mime_type || primaryAttachment.ContentType || n.attachment_mime_type || '',
-          Name:                 primaryAttachment.Name || n.attachment_filename || '',
-          ContentBytes:         primaryAttachment.ContentBytes || n.attachment_content_base64 || '',
-          ContentType:          primaryAttachment.ContentType || n.attachment_mime_type || '',
+          attachment_filename:  n.attachment_filename || primaryAttachment.file_name || primaryOutlookAttachment.Name || '',
+          attachment_mime_type: n.attachment_mime_type || primaryAttachment.mime_type || primaryOutlookAttachment.ContentType || '',
+          attachment_content_base64: n.attachment_content_base64 || primaryAttachment.content_base64 || primaryOutlookAttachment.ContentBytes || '',
+          approved_invoice_file_name: primaryAttachment.file_name || n.attachment_filename || primaryOutlookAttachment.Name || '',
+          approved_invoice_content_base64: primaryAttachment.content_base64 || n.attachment_content_base64 || primaryOutlookAttachment.ContentBytes || '',
+          approved_invoice_mime_type: primaryAttachment.mime_type || n.attachment_mime_type || primaryOutlookAttachment.ContentType || '',
+          attachment_name:      primaryAttachment.file_name || primaryOutlookAttachment.Name || n.attachment_filename || '',
+          attachment_content:   primaryAttachment.content_base64 || primaryOutlookAttachment.ContentBytes || n.attachment_content_base64 || '',
+          attachment_content_bytes: primaryAttachment.content_base64 || primaryOutlookAttachment.ContentBytes || n.attachment_content_base64 || '',
+          attachment_content_type: primaryAttachment.mime_type || primaryOutlookAttachment.ContentType || n.attachment_mime_type || '',
+          content_base64:       primaryAttachment.content_base64 || n.attachment_content_base64 || primaryOutlookAttachment.ContentBytes || '',
+          file_name:            primaryAttachment.file_name || n.attachment_filename || primaryOutlookAttachment.Name || '',
+          mime_type:            primaryAttachment.mime_type || n.attachment_mime_type || primaryOutlookAttachment.ContentType || '',
+          power_automate_attachment_name: n.power_automate_attachment_name || primaryAttachment.file_name || primaryOutlookAttachment.Name || n.attachment_filename || '',
+          power_automate_attachment_content_base64: n.power_automate_attachment_content_base64 || primaryAttachment.content_base64 || primaryOutlookAttachment.ContentBytes || n.attachment_content_base64 || '',
+          power_automate_attachment_mime_type: n.power_automate_attachment_mime_type || primaryAttachment.mime_type || primaryOutlookAttachment.ContentType || n.attachment_mime_type || '',
+          Name:                 primaryOutlookAttachment.Name || primaryAttachment.file_name || n.attachment_filename || '',
+          ContentBytes:         primaryOutlookAttachment.ContentBytes || primaryAttachment.content_base64 || n.attachment_content_base64 || '',
+          ContentType:          primaryOutlookAttachment.ContentType || primaryAttachment.mime_type || n.attachment_mime_type || '',
           has_attachment:       outlookAttachments.length > 0,
-          raw_attachments:      n.attachments || [],
-          attachments:          outlookAttachments,
+          approved_invoice_attachment: primaryAttachment,
+          attachments:          rawAttachments,
           Attachments:          outlookAttachments,
           outlook_attachments:  outlookAttachments,
-          attachment_count:     outlookAttachments.length,
+          attachment_count:     rawAttachments.length || outlookAttachments.length,
           attachment_summary:   n.attachment_summary || '',
           related_entity:       n.related_entity || '',
           related_record_id:    n.related_record_id || '',
