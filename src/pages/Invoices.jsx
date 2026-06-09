@@ -545,10 +545,6 @@ export default function Invoices() {
     }
   });
 
-  const approvedUrlLooksLikePdf = (url) => String(url || '').toLowerCase().split('?')[0].endsWith('.pdf') || String(url || '').toLowerCase().includes('.pdf');
-
-  const getApprovedPdfUrl = (invoice) => invoice.approved_invoice_pdf_url || (approvedUrlLooksLikePdf(invoice.approved_invoice_url) ? invoice.approved_invoice_url : '');
-
   const handleSubmit = (data, statusChanged) => {
     if (editingInvoice) {
       updateMutation.mutate({ id: editingInvoice.id, data, statusChanged });

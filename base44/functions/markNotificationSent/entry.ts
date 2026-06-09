@@ -43,18 +43,24 @@ Deno.serve(async (req) => {
 
     if (notification?.related_entity === 'Invoice') {
       const attachments = notification.attachments || [];
-      const hasApprovedPdf = attachments.some(att =>
+      const validMimeTypes = [
+        'application/pdf',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      ];
+      const legacyMimeType = String(notification.attachment_mime_type || '').toLowerCase();
+      const hasApprovedInvoiceAttachment = attachments.some(att =>
         att?.required === true &&
         att?.source_field &&
-        String(att.mime_type || '').toLowerCase() === 'application/pdf' &&
+        validMimeTypes.includes(String(att.mime_type || '').toLowerCase()) &&
         att.file_name &&
         (att.file_url || att.download_url || att.content_base64)
-      ) || String(notification.attachment_mime_type || '').toLowerCase() === 'application/pdf';
+      ) || validMimeTypes.includes(legacyMimeType);
 
-      if (!hasApprovedPdf) {
+      if (!hasApprovedInvoiceAttachment) {
         return Response.json({
           success: false,
-          error: 'Cannot mark invoice email Sent because the approved PDF attachment was not included.'
+          error: 'Cannot mark invoice email Sent because an approved PDF or Excel attachment was not included.'
         }, { status: 400 });
       }
     }

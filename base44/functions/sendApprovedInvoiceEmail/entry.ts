@@ -124,8 +124,8 @@ Deno.serve(async (req) => {
     const approvedPdfUrl = invoice.approved_invoice_pdf_url || (urlLooksLike(invoice.approved_invoice_url, ['.pdf']) ? invoice.approved_invoice_url : '');
     const approvedExcelUrl = invoice.approved_invoice_excel_url || (urlLooksLike(invoice.approved_invoice_url, ['.xlsx', '.xls']) ? invoice.approved_invoice_url : '');
 
-    if (!approvedPdfUrl) {
-      return Response.json({ success: false, error: 'Approved invoice PDF is required before sending.' }, { status: 400 });
+    if (!approvedPdfUrl && !approvedExcelUrl) {
+      return Response.json({ success: false, error: 'Approved invoice PDF or Excel file is required before sending.' }, { status: 400 });
     }
 
     if (!(invoice.status === 'approved' || invoice.invoice_ready_to_send === true)) {
@@ -157,17 +157,21 @@ Deno.serve(async (req) => {
 
     const monthYear = invoice.month || 'Invoice Period';
     const subject = `ENTIC Invoice - ${TEST_PROGRAM} - ${monthYear}`;
-    const pdfAttachment = await buildAttachment({
-      fileUrl: approvedPdfUrl,
+    const primaryFileUrl = approvedPdfUrl || approvedExcelUrl;
+    const primaryIsPdf = !!approvedPdfUrl;
+    const primaryAttachment = await buildAttachment({
+      fileUrl: primaryFileUrl,
       invoiceId: invoice.id,
       invoiceNumber: invoice.invoice_number,
-      sourceField: invoice.approved_invoice_pdf_url ? 'approved_invoice_pdf_url' : 'approved_invoice_url',
+      sourceField: primaryIsPdf
+        ? (invoice.approved_invoice_pdf_url ? 'approved_invoice_pdf_url' : 'approved_invoice_url')
+        : (invoice.approved_invoice_excel_url ? 'approved_invoice_excel_url' : 'approved_invoice_url'),
       required: true,
-      label: 'Approved_PDF_Invoice'
+      label: primaryIsPdf ? 'Approved_PDF_Invoice' : 'Approved_Excel_Invoice'
     });
-    const attachments = [pdfAttachment];
+    const attachments = [primaryAttachment];
 
-    if (approvedExcelUrl && approvedExcelUrl !== approvedPdfUrl) {
+    if (approvedPdfUrl && approvedExcelUrl && approvedExcelUrl !== approvedPdfUrl) {
       attachments.push(await buildAttachment({
         fileUrl: approvedExcelUrl,
         invoiceId: invoice.id,
@@ -178,9 +182,11 @@ Deno.serve(async (req) => {
       }));
     }
 
-    const attachmentSummary = attachments.length > 1
+    const attachmentSummary = approvedPdfUrl && approvedExcelUrl && approvedExcelUrl !== approvedPdfUrl
       ? 'Approved PDF included; approved Excel included.'
-      : 'Approved PDF included; approved Excel not found.';
+      : primaryIsPdf
+        ? 'Approved PDF included.'
+        : 'Approved Excel included.';
 
     const notification = await base44.asServiceRole.entities.NotificationQueue.create({
       notification_type: 'Invoice',
@@ -194,9 +200,9 @@ Deno.serve(async (req) => {
       bcc: '',
       subject,
       body: buildEmailBody(TEST_PROGRAM, monthYear),
-      attachment_url: pdfAttachment.file_url,
-      attachment_filename: pdfAttachment.file_name,
-      attachment_mime_type: pdfAttachment.mime_type,
+      attachment_url: primaryAttachment.file_url,
+      attachment_filename: primaryAttachment.file_name,
+      attachment_mime_type: primaryAttachment.mime_type,
       attachments,
       attachment_count: attachments.length,
       attachment_summary: attachmentSummary,
