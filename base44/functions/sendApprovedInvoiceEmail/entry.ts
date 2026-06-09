@@ -29,18 +29,60 @@ function buildEmailBody(program, monthYear) {
   </div>`;
 }
 
-function getAttachmentInfo(fileUrl, invoiceNumber) {
-  const pathname = new URL(fileUrl).pathname.toLowerCase();
-  const extension = pathname.endsWith('.xlsx') ? 'xlsx' : pathname.endsWith('.xls') ? 'xls' : 'pdf';
-  const mimeTypes = {
-    pdf: 'application/pdf',
-    xls: 'application/vnd.ms-excel',
-    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-  };
-  const safeNumber = String(invoiceNumber || 'approved-invoice').replace(/[^a-zA-Z0-9._-]/g, '_');
+function safeInvoiceNumber(invoiceNumber) {
+  return String(invoiceNumber || 'approved-invoice').replace(/[^a-zA-Z0-9._-]/g, '_');
+}
+
+function urlLooksLike(fileUrl, extensions) {
+  const value = String(fileUrl || '').toLowerCase().split('?')[0];
+  return extensions.some(ext => value.endsWith(ext) || value.includes(ext));
+}
+
+function inferMimeType(fileUrl, responseType) {
+  const contentType = String(responseType || '').split(';')[0].trim().toLowerCase();
+  if (contentType === 'application/pdf') return 'application/pdf';
+  if (contentType === 'application/vnd.ms-excel') return 'application/vnd.ms-excel';
+  if (contentType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') return contentType;
+  if (urlLooksLike(fileUrl, ['.xlsx'])) return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  if (urlLooksLike(fileUrl, ['.xls'])) return 'application/vnd.ms-excel';
+  return 'application/pdf';
+}
+
+function fileTypeFromMime(mimeType) {
+  if (mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') return 'xlsx';
+  if (mimeType === 'application/vnd.ms-excel') return 'xls';
+  return 'pdf';
+}
+
+function arrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 8192) {
+    binary += String.fromCharCode(...bytes.slice(i, i + 8192));
+  }
+  return btoa(binary);
+}
+
+async function buildAttachment({ fileUrl, invoiceId, invoiceNumber, sourceField, required, label }) {
+  const response = await fetch(fileUrl);
+  if (!response.ok) {
+    throw new Error(`Unable to download ${label} attachment from ${sourceField}`);
+  }
+
+  const buffer = await response.arrayBuffer();
+  const mimeType = inferMimeType(fileUrl, response.headers.get('content-type'));
+  const fileType = fileTypeFromMime(mimeType);
+
   return {
-    filename: `${safeNumber}.${extension}`,
-    mimeType: mimeTypes[extension]
+    invoice_id: invoiceId,
+    source_field: sourceField,
+    file_name: `${safeInvoiceNumber(invoiceNumber)}_${label}.${fileType}`,
+    file_type: fileType,
+    mime_type: mimeType,
+    file_url: fileUrl,
+    download_url: fileUrl,
+    content_base64: arrayBufferToBase64(buffer),
+    required
   };
 }
 
@@ -79,8 +121,11 @@ Deno.serve(async (req) => {
       }, { status: 400 });
     }
 
-    if (!invoice.approved_invoice_url) {
-      return Response.json({ success: false, error: 'Approved invoice PDF or Excel file is required before sending.' }, { status: 400 });
+    const approvedPdfUrl = invoice.approved_invoice_pdf_url || (urlLooksLike(invoice.approved_invoice_url, ['.pdf']) ? invoice.approved_invoice_url : '');
+    const approvedExcelUrl = invoice.approved_invoice_excel_url || (urlLooksLike(invoice.approved_invoice_url, ['.xlsx', '.xls']) ? invoice.approved_invoice_url : '');
+
+    if (!approvedPdfUrl) {
+      return Response.json({ success: false, error: 'Approved invoice PDF is required before sending.' }, { status: 400 });
     }
 
     if (!(invoice.status === 'approved' || invoice.invoice_ready_to_send === true)) {
@@ -112,7 +157,30 @@ Deno.serve(async (req) => {
 
     const monthYear = invoice.month || 'Invoice Period';
     const subject = `ENTIC Invoice - ${TEST_PROGRAM} - ${monthYear}`;
-    const attachment = getAttachmentInfo(invoice.approved_invoice_url, invoice.invoice_number);
+    const pdfAttachment = await buildAttachment({
+      fileUrl: approvedPdfUrl,
+      invoiceId: invoice.id,
+      invoiceNumber: invoice.invoice_number,
+      sourceField: invoice.approved_invoice_pdf_url ? 'approved_invoice_pdf_url' : 'approved_invoice_url',
+      required: true,
+      label: 'Approved_PDF_Invoice'
+    });
+    const attachments = [pdfAttachment];
+
+    if (approvedExcelUrl && approvedExcelUrl !== approvedPdfUrl) {
+      attachments.push(await buildAttachment({
+        fileUrl: approvedExcelUrl,
+        invoiceId: invoice.id,
+        invoiceNumber: invoice.invoice_number,
+        sourceField: invoice.approved_invoice_excel_url ? 'approved_invoice_excel_url' : 'approved_invoice_url',
+        required: false,
+        label: 'Approved_Excel_Invoice'
+      }));
+    }
+
+    const attachmentSummary = attachments.length > 1
+      ? 'Approved PDF included; approved Excel included.'
+      : 'Approved PDF included; approved Excel not found.';
 
     const notification = await base44.asServiceRole.entities.NotificationQueue.create({
       notification_type: 'Invoice',
@@ -126,9 +194,12 @@ Deno.serve(async (req) => {
       bcc: '',
       subject,
       body: buildEmailBody(TEST_PROGRAM, monthYear),
-      attachment_url: invoice.approved_invoice_url,
-      attachment_filename: attachment.filename,
-      attachment_mime_type: attachment.mimeType,
+      attachment_url: pdfAttachment.file_url,
+      attachment_filename: pdfAttachment.file_name,
+      attachment_mime_type: pdfAttachment.mime_type,
+      attachments,
+      attachment_count: attachments.length,
+      attachment_summary: attachmentSummary,
       status: 'Ready to Send',
       ready_to_send: true,
       sent_date: null,

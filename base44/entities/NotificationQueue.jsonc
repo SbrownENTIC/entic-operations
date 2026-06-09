@@ -89,15 +89,60 @@
     },
     "attachment_url": {
       "type": "string",
-      "description": "Approved invoice file URL to attach to the email"
+      "description": "Primary attachment URL, kept for existing Power Automate compatibility"
     },
     "attachment_filename": {
       "type": "string",
-      "description": "Filename to use for the outgoing email attachment"
+      "description": "Primary attachment filename, kept for existing Power Automate compatibility"
     },
     "attachment_mime_type": {
       "type": "string",
-      "description": "MIME type for the outgoing email attachment"
+      "description": "Primary attachment MIME type, kept for existing Power Automate compatibility"
+    },
+    "attachments": {
+      "type": "array",
+      "description": "Invoice email attachments for Power Automate, including approved PDF and optional approved Excel invoice",
+      "items": {
+        "type": "object",
+        "properties": {
+          "invoice_id": {
+            "type": "string"
+          },
+          "source_field": {
+            "type": "string"
+          },
+          "file_name": {
+            "type": "string"
+          },
+          "file_type": {
+            "type": "string"
+          },
+          "mime_type": {
+            "type": "string"
+          },
+          "file_url": {
+            "type": "string"
+          },
+          "download_url": {
+            "type": "string"
+          },
+          "content_base64": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "attachment_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of attachment objects included"
+    },
+    "attachment_summary": {
+      "type": "string",
+      "description": "Human-readable attachment handoff summary"
     },
     "status": {
       "type": "string",

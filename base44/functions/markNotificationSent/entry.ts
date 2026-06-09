@@ -41,6 +41,24 @@ Deno.serve(async (req) => {
     const allNotifications = await base44.asServiceRole.entities.NotificationQueue.list();
     const notification = (allNotifications || []).find(n => n.id === notification_id);
 
+    if (notification?.related_entity === 'Invoice') {
+      const attachments = notification.attachments || [];
+      const hasApprovedPdf = attachments.some(att =>
+        att?.required === true &&
+        att?.source_field &&
+        String(att.mime_type || '').toLowerCase() === 'application/pdf' &&
+        att.file_name &&
+        (att.file_url || att.download_url || att.content_base64)
+      ) || String(notification.attachment_mime_type || '').toLowerCase() === 'application/pdf';
+
+      if (!hasApprovedPdf) {
+        return Response.json({
+          success: false,
+          error: 'Cannot mark invoice email Sent because the approved PDF attachment was not included.'
+        }, { status: 400 });
+      }
+    }
+
     await base44.asServiceRole.entities.NotificationQueue.update(notification_id, updateData);
 
     if (notification?.related_entity === 'Invoice' && notification.related_record_id) {

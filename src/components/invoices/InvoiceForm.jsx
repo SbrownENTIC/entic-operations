@@ -54,6 +54,8 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
     invoice_sent_to_vendor: false,
     draft_invoice_url: '',
     approved_invoice_url: '',
+    approved_invoice_pdf_url: '',
+    approved_invoice_excel_url: '',
     invoice_email_sent: false,
     invoice_email_sent_date: '',
     invoice_email_sent_to: '',
@@ -386,11 +388,26 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
       else setUploadingApproved(true);
 
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const fileName = file.name.toLowerCase();
+      const isPdf = file.type === 'application/pdf' || fileName.endsWith('.pdf');
+      const isExcel = file.type === 'application/vnd.ms-excel' || file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || fileName.endsWith('.xls') || fileName.endsWith('.xlsx');
 
       setFormData(prev => {
-        const updates = {
-          [type === 'draft' ? 'draft_invoice_url' : 'approved_invoice_url']: file_url
-        };
+        const updates = {};
+
+        if (type === 'draft') {
+          updates.draft_invoice_url = file_url;
+        } else if (isPdf) {
+          updates.approved_invoice_url = file_url;
+          updates.approved_invoice_pdf_url = file_url;
+        } else if (isExcel) {
+          updates.approved_invoice_excel_url = file_url;
+          if (!prev.approved_invoice_pdf_url) {
+            updates.approved_invoice_url = file_url;
+          }
+        } else {
+          updates.approved_invoice_url = file_url;
+        }
 
         // Auto-update status to approved when approved invoice is uploaded (Ready to Send)
         if (type === 'approved' && prev.status !== 'paid_to_entic' && prev.status !== 'provider_paid' && prev.status !== 'sent_to_vendor') {

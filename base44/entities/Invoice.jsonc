@@ -119,7 +119,15 @@
     },
     "approved_invoice_url": {
       "type": "string",
-      "description": "URL to approved invoice document"
+      "description": "Legacy/current URL to approved invoice document"
+    },
+    "approved_invoice_pdf_url": {
+      "type": "string",
+      "description": "URL to the approved PDF invoice used for invoice email attachment handoff"
+    },
+    "approved_invoice_excel_url": {
+      "type": "string",
+      "description": "URL to the approved Excel invoice used for invoice email attachment handoff"
     },
     "invoice_email_sent": {
       "type": "boolean",

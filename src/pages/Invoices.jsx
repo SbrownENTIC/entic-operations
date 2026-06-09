@@ -545,6 +545,10 @@ export default function Invoices() {
     }
   });
 
+  const approvedUrlLooksLikePdf = (url) => String(url || '').toLowerCase().split('?')[0].endsWith('.pdf') || String(url || '').toLowerCase().includes('.pdf');
+
+  const getApprovedPdfUrl = (invoice) => invoice.approved_invoice_pdf_url || (approvedUrlLooksLikePdf(invoice.approved_invoice_url) ? invoice.approved_invoice_url : '');
+
   const handleSubmit = (data, statusChanged) => {
     if (editingInvoice) {
       updateMutation.mutate({ id: editingInvoice.id, data, statusChanged });
@@ -901,9 +905,22 @@ export default function Invoices() {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
 
       // 2. Prepare updates
-      const updates = {
-        approved_invoice_url: file_url
-      };
+      const fileName = file.name.toLowerCase();
+      const isPdf = file.type === 'application/pdf' || fileName.endsWith('.pdf');
+      const isExcel = file.type === 'application/vnd.ms-excel' || file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || fileName.endsWith('.xls') || fileName.endsWith('.xlsx');
+      const updates = {};
+
+      if (isPdf) {
+        updates.approved_invoice_url = file_url;
+        updates.approved_invoice_pdf_url = file_url;
+      } else if (isExcel) {
+        updates.approved_invoice_excel_url = file_url;
+        if (!invoice.approved_invoice_pdf_url) {
+          updates.approved_invoice_url = file_url;
+        }
+      } else {
+        updates.approved_invoice_url = file_url;
+      }
 
       // Auto-update status logic (matching form behavior)
       if (invoice.status !== 'paid_to_entic' && invoice.status !== 'provider_paid' && invoice.status !== 'sent_to_vendor') {
@@ -1529,7 +1546,7 @@ export default function Invoices() {
                               </Button>
                             )}
 
-                            {user?.role === 'admin' && invoice.program_group === 'Test Program' && invoice.approved_invoice_url && (invoice.status === 'approved' || invoice.invoice_ready_to_send) && (
+                            {user?.role === 'admin' && invoice.program_group === 'Test Program' && (invoice.approved_invoice_url || invoice.approved_invoice_pdf_url || invoice.approved_invoice_excel_url) && (invoice.status === 'approved' || invoice.invoice_ready_to_send) && (
                               <Button
                                 variant="ghost"
                                 size="sm"
