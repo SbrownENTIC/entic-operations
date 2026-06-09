@@ -121,6 +121,43 @@
       "type": "string",
       "description": "URL to approved invoice document"
     },
+    "invoice_email_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the approved invoice email was successfully sent"
+    },
+    "invoice_email_sent_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the approved invoice email was sent"
+    },
+    "invoice_email_sent_to": {
+      "type": "string",
+      "description": "Recipient email address used for the approved invoice email"
+    },
+    "invoice_email_sent_by": {
+      "type": "string",
+      "description": "Sender recorded for the approved invoice email"
+    },
+    "invoice_email_send_status": {
+      "type": "string",
+      "enum": [
+        "Not Sent",
+        "Ready to Send",
+        "Sent",
+        "Failed"
+      ],
+      "default": "Not Sent",
+      "description": "Approved invoice email sending status"
+    },
+    "invoice_email_error_message": {
+      "type": "string",
+      "description": "Error message from the approved invoice email send attempt"
+    },
+    "invoice_email_notification_id": {
+      "type": "string",
+      "description": "NotificationQueue record used for approved invoice email sending"
+    },
     "auto_generated": {
       "type": "boolean",
       "default": false,

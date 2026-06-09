@@ -26,11 +26,24 @@ Deno.serve(async (req) => {
       return Response.json({ success: false, error: 'notification_id is required' }, { status: 400 });
     }
 
+    const allNotifications = await base44.asServiceRole.entities.NotificationQueue.list();
+    const notification = (allNotifications || []).find(n => n.id === notification_id);
+    const errorText = error_message || 'Unknown error from Power Automate';
+
     await base44.asServiceRole.entities.NotificationQueue.update(notification_id, {
       status:        'Failed',
-      error_message: error_message || 'Unknown error from Power Automate',
+      error_message: errorText,
       ready_to_send: false,       // prevents re-trigger; human must reset manually
     });
+
+    if (notification?.related_entity === 'Invoice' && notification.related_record_id) {
+      await base44.asServiceRole.entities.Invoice.update(notification.related_record_id, {
+        invoice_email_sent: false,
+        invoice_email_send_status: 'Failed',
+        invoice_email_error_message: errorText,
+        invoice_email_notification_id: notification_id
+      });
+    }
 
     return Response.json({ success: true, notification_id, status: 'Failed' });
 

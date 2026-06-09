@@ -63,6 +63,10 @@
       "format": "date",
       "description": "Date of the actual office closure"
     },
+    "from_email": {
+      "type": "string",
+      "description": "Requested sender email address for Power Automate"
+    },
     "to": {
       "type": "string",
       "description": "Primary recipient email address(es)"
@@ -82,6 +86,18 @@
     "body": {
       "type": "string",
       "description": "Email body content (HTML)"
+    },
+    "attachment_url": {
+      "type": "string",
+      "description": "Approved invoice file URL to attach to the email"
+    },
+    "attachment_filename": {
+      "type": "string",
+      "description": "Filename to use for the outgoing email attachment"
+    },
+    "attachment_mime_type": {
+      "type": "string",
+      "description": "MIME type for the outgoing email attachment"
     },
     "status": {
       "type": "string",

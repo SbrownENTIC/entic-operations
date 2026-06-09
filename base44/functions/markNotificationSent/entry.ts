@@ -38,7 +38,22 @@ Deno.serve(async (req) => {
       updateData.email_provider_message_id = email_provider_message_id;
     }
 
+    const allNotifications = await base44.asServiceRole.entities.NotificationQueue.list();
+    const notification = (allNotifications || []).find(n => n.id === notification_id);
+
     await base44.asServiceRole.entities.NotificationQueue.update(notification_id, updateData);
+
+    if (notification?.related_entity === 'Invoice' && notification.related_record_id) {
+      await base44.asServiceRole.entities.Invoice.update(notification.related_record_id, {
+        invoice_email_sent: true,
+        invoice_email_sent_date: updateData.sent_date,
+        invoice_email_sent_to: notification.to || '',
+        invoice_email_sent_by: updateData.sent_by,
+        invoice_email_send_status: 'Sent',
+        invoice_email_error_message: null,
+        invoice_email_notification_id: notification_id
+      });
+    }
 
     return Response.json({ success: true, notification_id, status: 'Sent' });
 

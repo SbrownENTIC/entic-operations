@@ -54,6 +54,13 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
     invoice_sent_to_vendor: false,
     draft_invoice_url: '',
     approved_invoice_url: '',
+    invoice_email_sent: false,
+    invoice_email_sent_date: '',
+    invoice_email_sent_to: '',
+    invoice_email_sent_by: '',
+    invoice_email_send_status: 'Not Sent',
+    invoice_email_error_message: '',
+    invoice_email_notification_id: '',
     notes: ''
   });
 
@@ -946,6 +953,33 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
             </div>
 
           </div>
+
+          {invoice && (
+            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg space-y-2">
+              <h3 className="text-sm font-semibold text-emerald-900">Approved Invoice Email</h3>
+              <div className="grid md:grid-cols-4 gap-3 text-sm">
+                <div>
+                  <p className="text-emerald-700 text-xs">Status</p>
+                  <p className="font-medium text-slate-900">{formData.invoice_email_send_status || 'Not Sent'}</p>
+                </div>
+                <div>
+                  <p className="text-emerald-700 text-xs">Sent To</p>
+                  <p className="font-medium text-slate-900">{formData.invoice_email_sent_to || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-emerald-700 text-xs">Sent Date</p>
+                  <p className="font-medium text-slate-900">{formData.invoice_email_sent_date ? format(parseISO(formData.invoice_email_sent_date), 'MMM d, yyyy h:mm a') : '-'}</p>
+                </div>
+                <div>
+                  <p className="text-emerald-700 text-xs">Sent By</p>
+                  <p className="font-medium text-slate-900">{formData.invoice_email_sent_by || '-'}</p>
+                </div>
+              </div>
+              {formData.invoice_email_error_message && (
+                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded p-2">{formData.invoice_email_error_message}</p>
+              )}
+            </div>
+          )}
 
           {incomesAvailableForLinking.length > 0 && (
             <div className="space-y-3">

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Printer, AlertCircle, FileDown, CloudUpload, Upload, FileSpreadsheet } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Printer, AlertCircle, FileDown, CloudUpload, Upload, FileSpreadsheet, Send } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, parseISO } from "date-fns";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -46,6 +46,7 @@ export default function Invoices() {
   const [fixMessage, setFixMessage] = useState('');
   const [syncingAirtable, setSyncingAirtable] = useState(false);
   const [uploadingId, setUploadingId] = useState(null);
+  const [sendingInvoiceId, setSendingInvoiceId] = useState(null);
   const fileInputRef = React.useRef(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -923,6 +924,39 @@ export default function Invoices() {
     }
   };
 
+  const handleSendApprovedInvoice = async (invoice) => {
+    if (invoice.invoice_email_sent) {
+      const sentDate = invoice.invoice_email_sent_date ? format(parseISO(invoice.invoice_email_sent_date), 'MMM d, yyyy h:mm a') : 'a previous date';
+      const sentTo = invoice.invoice_email_sent_to || 'the saved recipient';
+      const confirmed = window.confirm(`This invoice was already emailed on ${sentDate} to ${sentTo}. Are you sure you want to resend it?`);
+      if (!confirmed) return;
+    }
+
+    setSendingInvoiceId(invoice.id);
+    try {
+      const response = await base44.functions.invoke('sendApprovedInvoiceEmail', {
+        invoice_id: invoice.id,
+        confirm_resend: invoice.invoice_email_sent === true
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      toast({
+        title: "Invoice queued for email",
+        description: `Test Program invoice queued to ${response.data.to}. It will show Sent only after Power Automate confirms delivery.`
+      });
+    } catch (error) {
+      const message = error.response?.data?.error || error.message;
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      toast({
+        variant: "destructive",
+        title: "Invoice email not sent",
+        description: message
+      });
+    } finally {
+      setSendingInvoiceId(null);
+    }
+  };
+
   const formatCurrency = (amount) => {
     return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
@@ -1127,6 +1161,13 @@ export default function Invoices() {
         {fixMessage && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm text-blue-900">{fixMessage}</p>
+          </div>
+        )}
+
+        {user?.role === 'admin' && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 no-print">
+            <p className="text-sm text-amber-900 font-medium">Invoice Email Phase 1 Test Mode</p>
+            <p className="text-xs text-amber-800 mt-1">Only Test Program invoices can be queued, and they only send to brownsteven89@gmail.com.</p>
           </div>
         )}
 
@@ -1487,7 +1528,20 @@ export default function Invoices() {
                                 </span>
                               </Button>
                             )}
-                            
+
+                            {user?.role === 'admin' && invoice.program_group === 'Test Program' && invoice.approved_invoice_url && (invoice.status === 'approved' || invoice.invoice_ready_to_send) && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleSendApprovedInvoice(invoice)}
+                                disabled={sendingInvoiceId === invoice.id}
+                                title="Send Approved Invoice (Phase 1 Test Program only)"
+                                className="text-emerald-600 hover:text-emerald-700"
+                              >
+                                <Send className={`w-4 h-4 ${sendingInvoiceId === invoice.id ? 'animate-pulse' : ''}`} />
+                              </Button>
+                            )}
+
                             {invoice.draft_invoice_url && (
                               <Button 
                                 variant="ghost" 
