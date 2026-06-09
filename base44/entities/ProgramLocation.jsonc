@@ -23,11 +23,6 @@
       "type": "number",
       "description": "Daily rate in dollars"
     },
-    "invoice_recipient_email": {
-      "type": "string",
-      "format": "email",
-      "description": "Email address used for approved invoice delivery"
-    },
     "invoice_counter": {
       "type": "number",
       "default": 0,

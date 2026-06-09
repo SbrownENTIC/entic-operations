@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Printer, AlertCircle, FileDown, CloudUpload, Upload, FileSpreadsheet, Send } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Printer, AlertCircle, FileDown, CloudUpload, Upload, FileSpreadsheet } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, parseISO } from "date-fns";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -46,7 +46,6 @@ export default function Invoices() {
   const [fixMessage, setFixMessage] = useState('');
   const [syncingAirtable, setSyncingAirtable] = useState(false);
   const [uploadingId, setUploadingId] = useState(null);
-  const [sendingInvoiceId, setSendingInvoiceId] = useState(null);
   const fileInputRef = React.useRef(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -673,7 +672,7 @@ export default function Invoices() {
     if (!window.confirm(`Sync ${targetName} invoice ${invoice.invoice_number} to Airtable?`)) return;
 
     if (!invoice.approved_invoice_url) {
-      alert('Cannot sync! This invoice does not have an approved invoice document. Please upload or generate one first.');
+      alert('Cannot sync! This invoice does not have an APPROVED PDF. Please upload or generate one first.');
       return;
     }
 
@@ -730,7 +729,7 @@ export default function Invoices() {
   const missingApproved = [];
 
   try {
-  // 1. Check for approved invoice documents
+  // 1. Check for approved PDFs
   for (const id of selectedInvoices) {
   const invoice = invoices.find(i => i.id === id);
   if (!invoice) continue;
@@ -743,7 +742,7 @@ export default function Invoices() {
   }
 
   if (missingApproved.length > 0) {
-    alert(`Cannot sync! The following invoices do not have an approved invoice document:\n\n${missingApproved.join('\n')}\n\nPlease ensure all selected invoices have an approved PDF or Excel file before syncing.`);
+    alert(`Cannot sync! The following invoices do not have an APPROVED PDF:\n\n${missingApproved.join('\n')}\n\nPlease ensure all selected invoices have an approved PDF before syncing.`);
     setSyncingAirtable(false);
     return;
   }
@@ -901,22 +900,9 @@ export default function Invoices() {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
 
       // 2. Prepare updates
-      const fileName = file.name.toLowerCase();
-      const isPdf = file.type === 'application/pdf' || fileName.endsWith('.pdf');
-      const isExcel = file.type === 'application/vnd.ms-excel' || file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || fileName.endsWith('.xls') || fileName.endsWith('.xlsx');
-      const updates = {};
-
-      if (isPdf) {
-        updates.approved_invoice_url = file_url;
-        updates.approved_invoice_pdf_url = file_url;
-      } else if (isExcel) {
-        updates.approved_invoice_excel_url = file_url;
-        if (!invoice.approved_invoice_pdf_url) {
-          updates.approved_invoice_url = file_url;
-        }
-      } else {
-        updates.approved_invoice_url = file_url;
-      }
+      const updates = {
+        approved_invoice_url: file_url
+      };
 
       // Auto-update status logic (matching form behavior)
       if (invoice.status !== 'paid_to_entic' && invoice.status !== 'provider_paid' && invoice.status !== 'sent_to_vendor') {
@@ -934,39 +920,6 @@ export default function Invoices() {
       console.error("Quick upload failed:", error);
       alert("Failed to upload invoice: " + error.message);
       setUploadingId(null);
-    }
-  };
-
-  const handleSendApprovedInvoice = async (invoice) => {
-    if (invoice.invoice_email_sent) {
-      const sentDate = invoice.invoice_email_sent_date ? format(parseISO(invoice.invoice_email_sent_date), 'MMM d, yyyy h:mm a') : 'a previous date';
-      const sentTo = invoice.invoice_email_sent_to || 'the saved recipient';
-      const confirmed = window.confirm(`This invoice was already emailed on ${sentDate} to ${sentTo}. Are you sure you want to resend it?`);
-      if (!confirmed) return;
-    }
-
-    setSendingInvoiceId(invoice.id);
-    try {
-      const response = await base44.functions.invoke('sendApprovedInvoiceEmail', {
-        invoice_id: invoice.id,
-        confirm_resend: invoice.invoice_email_sent === true
-      });
-
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      toast({
-        title: "Invoice queued for email",
-        description: `Test Program invoice queued to ${response.data.to}. It will show Sent only after Power Automate confirms delivery.`
-      });
-    } catch (error) {
-      const message = error.response?.data?.error || error.message;
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      toast({
-        variant: "destructive",
-        title: "Invoice email not sent",
-        description: message
-      });
-    } finally {
-      setSendingInvoiceId(null);
     }
   };
 
@@ -1131,7 +1084,7 @@ export default function Invoices() {
             type="file"
             ref={fileInputRef}
             className="hidden"
-            accept=".pdf,.xls,.xlsx,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            accept=".pdf,.doc,.docx,.xls,.xlsx"
             onChange={handleQuickUploadFile}
           />
           <div className="flex gap-3 flex-wrap">
@@ -1174,13 +1127,6 @@ export default function Invoices() {
         {fixMessage && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm text-blue-900">{fixMessage}</p>
-          </div>
-        )}
-
-        {user?.role === 'admin' && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 no-print">
-            <p className="text-sm text-amber-900 font-medium">Invoice Email Phase 1 Test Mode</p>
-            <p className="text-xs text-amber-800 mt-1">Only Test Program invoices can be queued, and they only send to brownsteven89@gmail.com.</p>
           </div>
         )}
 
@@ -1541,26 +1487,13 @@ export default function Invoices() {
                                 </span>
                               </Button>
                             )}
-
-                            {user?.role === 'admin' && invoice.program_group === 'Test Program' && (invoice.approved_invoice_url || invoice.approved_invoice_pdf_url || invoice.approved_invoice_excel_url) && (invoice.status === 'approved' || invoice.invoice_ready_to_send) && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleSendApprovedInvoice(invoice)}
-                                disabled={sendingInvoiceId === invoice.id}
-                                title="Send Approved Invoice (Phase 1 Test Program only)"
-                                className="text-emerald-600 hover:text-emerald-700"
-                              >
-                                <Send className={`w-4 h-4 ${sendingInvoiceId === invoice.id ? 'animate-pulse' : ''}`} />
-                              </Button>
-                            )}
-
+                            
                             {invoice.draft_invoice_url && (
                               <Button 
                                 variant="ghost" 
                                 size="sm"
                                 onClick={() => window.open(invoice.draft_invoice_url, '_blank')}
-                                title="View Attached Invoice Document"
+                                title="View Attached PDF"
                                 className="text-purple-600 hover:text-purple-700"
                               >
                                 <Eye className="w-4 h-4" />

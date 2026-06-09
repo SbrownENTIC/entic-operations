@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
 
-    const { notification_id, sent_by, email_provider_message_id, approved_invoice_attachment_sent, sent_attachment_count } = body;
+    const { notification_id, sent_by, email_provider_message_id } = body;
 
     if (!notification_id) {
       return Response.json({ success: false, error: 'notification_id is required' }, { status: 400 });
@@ -38,53 +38,7 @@ Deno.serve(async (req) => {
       updateData.email_provider_message_id = email_provider_message_id;
     }
 
-    const allNotifications = await base44.asServiceRole.entities.NotificationQueue.list();
-    const notification = (allNotifications || []).find(n => n.id === notification_id);
-
-    if (notification?.related_entity === 'Invoice') {
-      const attachments = notification.attachments || [];
-      const validMimeTypes = [
-        'application/pdf',
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      ];
-      const legacyMimeType = String(notification.attachment_mime_type || '').toLowerCase();
-      const hasApprovedInvoiceAttachment = attachments.some(att =>
-        att?.required === true &&
-        att?.source_field &&
-        validMimeTypes.includes(String(att.mime_type || '').toLowerCase()) &&
-        att.file_name &&
-        (att.file_url || att.download_url || att.content_base64)
-      ) || validMimeTypes.includes(legacyMimeType);
-
-      if (!hasApprovedInvoiceAttachment) {
-        return Response.json({
-          success: false,
-          error: 'Cannot mark invoice email Sent because an approved invoice attachment was not queued.'
-        }, { status: 400 });
-      }
-
-      if (approved_invoice_attachment_sent !== true && Number(sent_attachment_count || 0) < 1) {
-        return Response.json({
-          success: false,
-          error: 'Cannot mark invoice email Sent until Power Automate confirms the approved invoice attachment was included.'
-        }, { status: 400 });
-      }
-    }
-
     await base44.asServiceRole.entities.NotificationQueue.update(notification_id, updateData);
-
-    if (notification?.related_entity === 'Invoice' && notification.related_record_id) {
-      await base44.asServiceRole.entities.Invoice.update(notification.related_record_id, {
-        invoice_email_sent: true,
-        invoice_email_sent_date: updateData.sent_date,
-        invoice_email_sent_to: notification.to || '',
-        invoice_email_sent_by: updateData.sent_by,
-        invoice_email_send_status: 'Sent',
-        invoice_email_error_message: null,
-        invoice_email_notification_id: notification_id
-      });
-    }
 
     return Response.json({ success: true, notification_id, status: 'Sent' });
 

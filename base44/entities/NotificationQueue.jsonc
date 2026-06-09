@@ -63,10 +63,6 @@
       "format": "date",
       "description": "Date of the actual office closure"
     },
-    "from_email": {
-      "type": "string",
-      "description": "Requested sender email address for Power Automate"
-    },
     "to": {
       "type": "string",
       "description": "Primary recipient email address(es)"
@@ -86,97 +82,6 @@
     "body": {
       "type": "string",
       "description": "Email body content (HTML)"
-    },
-    "attachment_url": {
-      "type": "string",
-      "description": "Primary attachment URL, kept for existing Power Automate compatibility"
-    },
-    "attachment_filename": {
-      "type": "string",
-      "description": "Primary attachment filename, kept for existing Power Automate compatibility"
-    },
-    "attachment_mime_type": {
-      "type": "string",
-      "description": "Primary attachment MIME type, kept for existing Power Automate compatibility"
-    },
-    "attachment_content_base64": {
-      "type": "string",
-      "description": "Primary attachment Base64 content for Power Automate Outlook attachment mapping"
-    },
-    "power_automate_attachment_name": {
-      "type": "string",
-      "description": "Power Automate-ready primary attachment name for Outlook Send an email (V2)"
-    },
-    "power_automate_attachment_content_base64": {
-      "type": "string",
-      "description": "Power Automate-ready primary attachment Base64 content for Outlook Send an email (V2)"
-    },
-    "power_automate_attachment_mime_type": {
-      "type": "string",
-      "description": "Power Automate-ready primary attachment MIME type for Outlook Send an email (V2)"
-    },
-    "attachments": {
-      "type": "array",
-      "description": "Invoice email attachments for Power Automate, including approved PDF or approved Excel invoice",
-      "items": {
-        "type": "object",
-        "properties": {
-          "invoice_id": {
-            "type": "string"
-          },
-          "source_field": {
-            "type": "string"
-          },
-          "file_name": {
-            "type": "string"
-          },
-          "file_type": {
-            "type": "string"
-          },
-          "mime_type": {
-            "type": "string"
-          },
-          "file_url": {
-            "type": "string"
-          },
-          "download_url": {
-            "type": "string"
-          },
-          "content_base64": {
-            "type": "string"
-          },
-          "required": {
-            "type": "boolean"
-          }
-        }
-      }
-    },
-    "outlook_attachments": {
-      "type": "array",
-      "description": "Power Automate-ready Outlook attachments using Name, ContentBytes, and ContentType",
-      "items": {
-        "type": "object",
-        "properties": {
-          "Name": {
-            "type": "string"
-          },
-          "ContentBytes": {
-            "type": "string"
-          },
-          "ContentType": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "attachment_count": {
-      "type": "number",
-      "default": 0,
-      "description": "Number of attachment objects included"
-    },
-    "attachment_summary": {
-      "type": "string",
-      "description": "Human-readable attachment handoff summary"
     },
     "status": {
       "type": "string",
