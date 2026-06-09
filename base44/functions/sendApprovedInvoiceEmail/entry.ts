@@ -29,6 +29,21 @@ function buildEmailBody(program, monthYear) {
   </div>`;
 }
 
+function getAttachmentInfo(fileUrl, invoiceNumber) {
+  const pathname = new URL(fileUrl).pathname.toLowerCase();
+  const extension = pathname.endsWith('.xlsx') ? 'xlsx' : pathname.endsWith('.xls') ? 'xls' : 'pdf';
+  const mimeTypes = {
+    pdf: 'application/pdf',
+    xls: 'application/vnd.ms-excel',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  };
+  const safeNumber = String(invoiceNumber || 'approved-invoice').replace(/[^a-zA-Z0-9._-]/g, '_');
+  return {
+    filename: `${safeNumber}.${extension}`,
+    mimeType: mimeTypes[extension]
+  };
+}
+
 Deno.serve(async (req) => {
   let base44;
   let invoiceId;
@@ -65,7 +80,7 @@ Deno.serve(async (req) => {
     }
 
     if (!invoice.approved_invoice_url) {
-      return Response.json({ success: false, error: 'Approved invoice PDF is required before sending.' }, { status: 400 });
+      return Response.json({ success: false, error: 'Approved invoice PDF or Excel file is required before sending.' }, { status: 400 });
     }
 
     if (!(invoice.status === 'approved' || invoice.invoice_ready_to_send === true)) {
@@ -97,7 +112,7 @@ Deno.serve(async (req) => {
 
     const monthYear = invoice.month || 'Invoice Period';
     const subject = `ENTIC Invoice - ${TEST_PROGRAM} - ${monthYear}`;
-    const safeNumber = String(invoice.invoice_number || 'approved-invoice').replace(/[^a-zA-Z0-9._-]/g, '_');
+    const attachment = getAttachmentInfo(invoice.approved_invoice_url, invoice.invoice_number);
 
     const notification = await base44.asServiceRole.entities.NotificationQueue.create({
       notification_type: 'Invoice',
@@ -112,8 +127,8 @@ Deno.serve(async (req) => {
       subject,
       body: buildEmailBody(TEST_PROGRAM, monthYear),
       attachment_url: invoice.approved_invoice_url,
-      attachment_filename: `${safeNumber}.pdf`,
-      attachment_mime_type: 'application/pdf',
+      attachment_filename: attachment.filename,
+      attachment_mime_type: attachment.mimeType,
       status: 'Ready to Send',
       ready_to_send: true,
       sent_date: null,

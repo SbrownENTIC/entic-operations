@@ -878,7 +878,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                 {!isReadOnly && (
                   <Input
                     type="file"
-                    accept=".pdf,.doc,.docx"
+                    accept=".pdf,.xls,.xlsx,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     onChange={(e) => handleFileUpload(e, 'draft')}
                     disabled={uploadingDraft}
                     className="flex-1"
@@ -918,7 +918,7 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
                 {!isReadOnly && (
                   <Input
                     type="file"
-                    accept=".pdf,.doc,.docx"
+                    accept=".pdf,.xls,.xlsx,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     onChange={(e) => handleFileUpload(e, 'approved')}
                     disabled={uploadingApproved}
                     className="flex-1"

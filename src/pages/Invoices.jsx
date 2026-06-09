@@ -673,7 +673,7 @@ export default function Invoices() {
     if (!window.confirm(`Sync ${targetName} invoice ${invoice.invoice_number} to Airtable?`)) return;
 
     if (!invoice.approved_invoice_url) {
-      alert('Cannot sync! This invoice does not have an APPROVED PDF. Please upload or generate one first.');
+      alert('Cannot sync! This invoice does not have an approved invoice document. Please upload or generate one first.');
       return;
     }
 
@@ -730,7 +730,7 @@ export default function Invoices() {
   const missingApproved = [];
 
   try {
-  // 1. Check for approved PDFs
+  // 1. Check for approved invoice documents
   for (const id of selectedInvoices) {
   const invoice = invoices.find(i => i.id === id);
   if (!invoice) continue;
@@ -743,7 +743,7 @@ export default function Invoices() {
   }
 
   if (missingApproved.length > 0) {
-    alert(`Cannot sync! The following invoices do not have an APPROVED PDF:\n\n${missingApproved.join('\n')}\n\nPlease ensure all selected invoices have an approved PDF before syncing.`);
+    alert(`Cannot sync! The following invoices do not have an approved invoice document:\n\n${missingApproved.join('\n')}\n\nPlease ensure all selected invoices have an approved PDF or Excel file before syncing.`);
     setSyncingAirtable(false);
     return;
   }
@@ -1118,7 +1118,7 @@ export default function Invoices() {
             type="file"
             ref={fileInputRef}
             className="hidden"
-            accept=".pdf,.doc,.docx,.xls,.xlsx"
+            accept=".pdf,.xls,.xlsx,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             onChange={handleQuickUploadFile}
           />
           <div className="flex gap-3 flex-wrap">
@@ -1547,7 +1547,7 @@ export default function Invoices() {
                                 variant="ghost" 
                                 size="sm"
                                 onClick={() => window.open(invoice.draft_invoice_url, '_blank')}
-                                title="View Attached PDF"
+                                title="View Attached Invoice Document"
                                 className="text-purple-600 hover:text-purple-700"
                               >
                                 <Eye className="w-4 h-4" />
