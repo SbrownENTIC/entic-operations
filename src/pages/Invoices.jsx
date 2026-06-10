@@ -1553,12 +1553,12 @@ export default function Invoices() {
                               </Button>
                             )}
                             
-                            {invoice.draft_invoice_url && (
+                            {invoice.approved_invoice_url && (
                               <Button 
                                 variant="ghost" 
                                 size="sm"
-                                onClick={() => window.open(invoice.draft_invoice_url, '_blank')}
-                                title="View Attached Invoice File"
+                                onClick={() => window.open(invoice.approved_invoice_url, '_blank')}
+                                title="View Approved Invoice File"
                                 className="text-purple-600 hover:text-purple-700"
                               >
                                 <Eye className="w-4 h-4" />
