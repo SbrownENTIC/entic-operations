@@ -61,8 +61,12 @@ function contentTypeFromFilename(filename) {
   return 'application/octet-stream';
 }
 
-function buildInvoiceBody(invoice) {
-  const facilityName = invoice.program_group || 'the facility';
+function getProviderName(invoice, provider) {
+  return invoice.provider_name || provider?.full_name || invoice.program_group || 'the facility';
+}
+
+function buildInvoiceBody(invoice, provider) {
+  const recipientName = getProviderName(invoice, provider);
   const invoiceMonth = invoice.month || 'the invoice period';
 
   return `<div style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.6; max-width: 600px;">
@@ -73,7 +77,7 @@ function buildInvoiceBody(invoice) {
 
   <p style="margin: 0 0 12px 0;">Good morning,</p>
 
-  <p style="margin: 0 0 12px 0;">Attached is the <strong>${escapeHtml(invoiceMonth)}</strong> invoice for <strong>${escapeHtml(facilityName)}</strong>.</p>
+  <p style="margin: 0 0 12px 0;">Attached is the <strong>${escapeHtml(invoiceMonth)}</strong> invoice for <strong>${escapeHtml(recipientName)}</strong>.</p>
 
   <p style="margin: 0 0 12px 0;">Please let me know if anything else is needed.</p>
 
@@ -142,6 +146,10 @@ Deno.serve(async (req) => {
 
     const facilityName = invoice.program_group || '';
     const invoiceMonth = invoice.month || '';
+    const provider = invoice.staff_member_id
+      ? (await base44.asServiceRole.entities.Provider.filter({ id: invoice.staff_member_id }, '', 1))[0]
+      : null;
+    const providerName = getProviderName(invoice, provider);
     const subject = `${facilityName || 'Invoice'} ${invoiceMonth || ''} Invoice`.replace(/\s+/g, ' ').trim();
 
     const record = await base44.asServiceRole.entities.NotificationQueue.create({
@@ -151,12 +159,13 @@ Deno.serve(async (req) => {
       invoice_number: invoice.invoice_number || '',
       invoice_month: invoiceMonth,
       facility_name: facilityName,
+      provider_name: providerName,
       send_date: send_date || todayET(),
       to: toField,
       cc: ccField,
       bcc: bccField,
       subject,
-      body: buildInvoiceBody(invoice),
+      body: buildInvoiceBody(invoice, provider),
       attachment_filename: attachmentFilename,
       attachment_content_type: attachmentContentType,
       attachment_source_type: 'Invoice.approved_invoice_url',

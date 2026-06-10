@@ -32,6 +32,7 @@ function mapNotification(record) {
     related_record_id: record.related_record_id || '',
     invoice_number: record.invoice_number || '',
     facility_name: record.facility_name || '',
+    provider_name: record.provider_name || '',
     attachment_filename: record.attachment_filename || '',
     attachment_content_type: record.attachment_content_type || '',
     has_attachment: Boolean(record.attachment_filename || record.attachment_url || record.attachment_source_id)
