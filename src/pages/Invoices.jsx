@@ -680,7 +680,7 @@ export default function Invoices() {
     if (!window.confirm(`Sync ${targetName} invoice ${invoice.invoice_number} to Airtable?`)) return;
 
     if (!invoice.approved_invoice_url) {
-      alert('Cannot sync! This invoice does not have an APPROVED PDF. Please upload or generate one first.');
+      alert('Cannot sync! This invoice does not have an approved PDF or Excel file. Please upload or generate one first.');
       return;
     }
 
@@ -737,7 +737,7 @@ export default function Invoices() {
   const missingApproved = [];
 
   try {
-  // 1. Check for approved PDFs
+  // 1. Check for approved invoice files
   for (const id of selectedInvoices) {
   const invoice = invoices.find(i => i.id === id);
   if (!invoice) continue;
@@ -750,7 +750,7 @@ export default function Invoices() {
   }
 
   if (missingApproved.length > 0) {
-    alert(`Cannot sync! The following invoices do not have an APPROVED PDF:\n\n${missingApproved.join('\n')}\n\nPlease ensure all selected invoices have an approved PDF before syncing.`);
+    alert(`Cannot sync! The following invoices do not have an approved PDF or Excel file:\n\n${missingApproved.join('\n')}\n\nPlease ensure all selected invoices have an approved PDF or Excel file before syncing.`);
     setSyncingAirtable(false);
     return;
   }
@@ -902,6 +902,15 @@ export default function Invoices() {
 
     const invoice = invoices.find(inv => inv.id === uploadingId);
     if (!invoice) return;
+
+    const fileName = file.name?.toLowerCase() || '';
+    const isAllowedInvoiceFile = fileName.endsWith('.pdf') || fileName.endsWith('.xls') || fileName.endsWith('.xlsx');
+    if (!isAllowedInvoiceFile) {
+      alert('Please attach a PDF or Excel file (.pdf, .xls, .xlsx).');
+      e.target.value = '';
+      setUploadingId(null);
+      return;
+    }
 
     try {
       // 1. Upload file
@@ -1114,7 +1123,7 @@ export default function Invoices() {
             type="file"
             ref={fileInputRef}
             className="hidden"
-            accept=".pdf,.doc,.docx,.xls,.xlsx"
+            accept=".pdf,.xls,.xlsx,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             onChange={handleQuickUploadFile}
           />
           <div className="flex gap-3 flex-wrap">
@@ -1509,7 +1518,7 @@ export default function Invoices() {
                                 size="sm"
                                 onClick={() => handleQuickUploadClick(invoice)}
                                 disabled={uploadingId === invoice.id}
-                                title="Upload Approved Invoice"
+                                title="Upload Approved Invoice (PDF or Excel)"
                                 className="text-teal-600 hover:text-teal-700"
                               >
                                 <Upload className={`w-4 h-4 ${uploadingId === invoice.id ? 'animate-pulse' : ''}`} />
@@ -1549,7 +1558,7 @@ export default function Invoices() {
                                 variant="ghost" 
                                 size="sm"
                                 onClick={() => window.open(invoice.draft_invoice_url, '_blank')}
-                                title="View Attached PDF"
+                                title="View Attached Invoice File"
                                 className="text-purple-600 hover:text-purple-700"
                               >
                                 <Eye className="w-4 h-4" />

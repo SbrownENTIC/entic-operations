@@ -369,9 +369,21 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
     });
   };
 
+  const isAllowedInvoiceFile = (file) => {
+    const name = file?.name?.toLowerCase() || '';
+    return name.endsWith('.pdf') || name.endsWith('.xls') || name.endsWith('.xlsx');
+  };
+
   const handleFileUpload = async (e, type) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (!isAllowedInvoiceFile(file)) {
+      alert('Please attach a PDF or Excel file (.pdf, .xls, .xlsx).');
+      e.target.value = '';
+      return;
+    }
+
     setIsDirty(true);
 
     try {
@@ -866,12 +878,12 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
           <div className="grid md:grid-cols-2 gap-6">
             {formData.program_group !== 'St. Francis' && (
             <div className="space-y-2">
-              <Label>Draft Invoice</Label>
+              <Label>Draft Invoice (PDF or Excel)</Label>
               <div className="flex gap-2">
                 {!isReadOnly && (
                   <Input
                     type="file"
-                    accept=".pdf,.doc,.docx"
+                    accept=".pdf,.xls,.xlsx,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     onChange={(e) => handleFileUpload(e, 'draft')}
                     disabled={uploadingDraft}
                     className="flex-1"
@@ -906,12 +918,12 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
             )}
 
             <div className="space-y-2">
-              <Label>Approved Invoice</Label>
+              <Label>Approved Invoice (PDF or Excel)</Label>
               <div className="flex gap-2">
                 {!isReadOnly && (
                   <Input
                     type="file"
-                    accept=".pdf,.doc,.docx"
+                    accept=".pdf,.xls,.xlsx,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     onChange={(e) => handleFileUpload(e, 'approved')}
                     disabled={uploadingApproved}
                     className="flex-1"
