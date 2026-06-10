@@ -12,18 +12,20 @@ function escapeHtml(value) {
 function signatureBlock() {
   return `<p style="margin: 16px 0 12px 0;">Thank you,</p>
 
-  <p style="margin: 0 0 4px 0; font-weight: bold; color: #003366; font-size: 16px;">Steve Brown</p>
-  <p style="margin: 0 0 12px 0; color: #1f2937; font-size: 14px;">Operations Manager</p>
-
-  <div style="margin: 16px 0 12px 0;">
-    <img src="https://enticmd.com/wp-content/uploads/2024/07/ENT-CT-logo-1.png" alt="ENTIC Logo" style="max-width: 220px; height: auto; display: block;">
+  <p style="margin: 0 0 0 0; font-weight: bold; color: #003366; font-size: 18px;">Steve Brown</p>
+  
+  <div style="margin-top: 8px; margin-bottom: 18px;">
+    <img src="https://enticmd.com/wp-content/uploads/2024/07/ENT-CT-logo-1.png" alt="ENTIC Logo" style="max-width: 340px; height: auto; display: block;">
   </div>
 
-  <p style="margin: 0 0 4px 0; font-size: 13px; color: #1f2937;"><strong>Ear, Nose &amp; Throat Institute of CT</strong></p>
-  <p style="margin: 0; font-size: 12px; color: #6b7280;">599 Farmington Ave., Suite 102<br>Farmington, CT 06032</p>
-  <p style="margin: 4px 0 0 0; font-size: 12px; color: #6b7280;"><a href="tel:860-284-4950">(860) 284-4950</a><br><a href="http://www.enticmd.com" style="color: #1f4e78; text-decoration: none;">www.enticmd.com</a></p>
+  <p style="margin: 0 0 8px 0; font-weight: 600; color: #1f2937; font-size: 14px;">Operations Manager</p>
 
-  <p style="margin: 12px 0 0 0; font-weight: bold; color: #ff6b35; font-size: 15px;">ENT Express – Now Open in Farmington!</p>`;
+  <p style="margin: 0 0 4px 0; font-size: 13px; color: #1f2937;"><strong>Ear, Nose &amp; Throat Institute of CT</strong></p>
+  <p style="margin: 0 0 4px 0; font-size: 12px; color: #1f2937;">599 Farmington Ave., Suite 102<br>Farmington, CT 06032</p>
+  <p style="margin: 0 0 8px 0; font-size: 12px; color: #1f2937;"><a href="tel:860-284-4950" style="color: #1f2937; text-decoration: none;">(860) 284-4950</a></p>
+  <p style="margin: 0 0 12px 0; font-size: 12px;"><a href="https://www.enticmd.com" style="color: #16a34a; text-decoration: underline;">www.enticmd.com</a></p>
+
+  <p style="margin: 0; font-weight: bold; color: #ff6b35; font-size: 16px; font-family: Georgia, serif;">ENT Express – Now Open in Farmington &amp; Glastonbury!</p>`;
 }
 
 function todayET() {
