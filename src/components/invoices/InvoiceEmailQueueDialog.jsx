@@ -36,6 +36,14 @@ function getDefaultInvoiceRecipients(invoice) {
     };
   }
 
+  if (facility.includes("test program")) {
+    return {
+      matched: true,
+      to: "steve.brown@enticmd.com",
+      cc: "brownsteven89@gmail.com;brownsteven89@icloud.com"
+    };
+  }
+
   return { matched: false, to: "", cc: "" };
 }
 
