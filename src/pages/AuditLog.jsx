@@ -76,7 +76,7 @@ export default function AuditLogPage() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="h-full min-h-0 overflow-hidden flex flex-col p-6 max-w-none w-full mx-auto gap-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <ShieldCheck className="w-7 h-7 text-blue-600" />
@@ -127,13 +127,13 @@ export default function AuditLogPage() {
       </Card>
 
       {/* Results */}
-      <Card>
-        <CardHeader>
+      <Card className="flex-1 min-h-0 flex flex-col">
+        <CardHeader className="flex-shrink-0">
           <CardTitle className="text-base">
             {isLoading ? 'Loading...' : `${filtered.length.toLocaleString()} entries`}
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 flex-1 min-h-0 overflow-hidden">
           {isLoading ? (
             <div className="flex justify-center py-12">
               <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
@@ -141,7 +141,7 @@ export default function AuditLogPage() {
           ) : filtered.length === 0 ? (
             <div className="text-center py-12 text-slate-500">No audit entries found.</div>
           ) : (
-            <div className="overflow-auto max-h-[60vh]">
+            <div className="overflow-auto h-full">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-slate-50 border-b border-slate-200">
                   <tr>

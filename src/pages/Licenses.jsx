@@ -294,7 +294,7 @@ export default function Licenses() {
   }
 
   return (
-    <div className={`flex flex-col bg-slate-50 ${showForm ? 'min-h-[calc(100vh-9rem)]' : 'h-[calc(100vh-9rem)] overflow-hidden'}`}>
+    <div className={`flex flex-col bg-slate-50 h-full min-h-0 ${showForm ? 'overflow-auto' : 'overflow-hidden'}`}>
     <div className="flex-shrink-0 p-2 md:p-4">
       <div className="max-w-none w-full space-y-2">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">

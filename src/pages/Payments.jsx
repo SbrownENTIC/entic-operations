@@ -640,7 +640,7 @@ export default function Payments() {
 
   return (
     <>
-    <div className="h-screen flex flex-col overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="h-full min-h-0 flex flex-col overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <style>{`
         @media print {
           body * { visibility: hidden !important; }

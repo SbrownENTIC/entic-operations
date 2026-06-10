@@ -343,7 +343,7 @@ export default function OfficeSupplyOrders() {
 
   return (
     <>
-    <div className="h-screen flex flex-col overflow-hidden bg-slate-50">
+    <div className="h-full min-h-0 flex flex-col overflow-hidden bg-slate-50">
       <div className="flex-shrink-0 p-2 md:p-3">
         <div className="max-w-none w-full space-y-2">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">

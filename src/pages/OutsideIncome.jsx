@@ -557,7 +557,7 @@ export default function OutsideIncome() {
 
   return (
     <>
-    <div className="h-screen overflow-hidden flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="h-full min-h-0 overflow-hidden flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <style>{`
         @media print {
           body * { visibility: hidden; }

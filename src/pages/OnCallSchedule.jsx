@@ -592,8 +592,8 @@ export default function OnCallSchedule() {
 
   return (
     <>
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-8">
-      <div className="p-2 md:p-3">
+    <div className="h-full min-h-0 overflow-hidden flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="flex-shrink-0 p-2 md:p-3">
         <div className="max-w-none w-full space-y-2">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
           <div>
@@ -670,11 +670,11 @@ export default function OnCallSchedule() {
         </div>
       </div>
 
-      <div className="px-4 md:px-6 pb-4">
-        <div className="max-w-none w-full">
+      <div className="flex-1 overflow-hidden px-4 md:px-6 pb-4">
+        <div className="max-w-none w-full h-full">
         {viewMode === 'list' ? (
-          <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm">
-            <CardHeader className="border-b border-slate-100 space-y-4">
+          <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm h-full flex flex-col">
+            <CardHeader className="border-b border-slate-100 space-y-4 flex-shrink-0">
               <div className="flex items-center gap-4">
                 <Search className="w-5 h-5 text-slate-400" />
                 <Input
@@ -750,8 +750,8 @@ export default function OnCallSchedule() {
                 </div>
               )}
             </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-auto max-h-[600px]">
+            <CardContent className="p-0 flex-1 overflow-hidden">
+              <div className="overflow-auto h-full">
                 <table className="w-full">
                   <thead className="sticky top-0 bg-slate-50 border-b border-slate-200 z-10">
                     <tr>
@@ -879,7 +879,7 @@ export default function OnCallSchedule() {
             </CardContent>
           </Card>
         ) : (
-          <Card className="border-slate-200 shadow-sm overflow-hidden">
+          <Card className="border-slate-200 shadow-sm overflow-hidden h-full flex flex-col">
             <CardHeader className="border-b border-slate-100 p-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold">{format(currentMonth, 'MMMM yyyy')}</h2>
@@ -907,8 +907,8 @@ export default function OnCallSchedule() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-0">
-              <div className="bg-white overflow-x-auto max-h-[600px] overflow-y-auto">
+            <CardContent className="p-0 flex-1 overflow-hidden">
+              <div className="bg-white overflow-auto h-full">
                 {/* Calendar Header */}
                 <div className="grid grid-cols-7 border-b-[3px] border-slate-400 min-w-[900px] bg-slate-100">
                   {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (

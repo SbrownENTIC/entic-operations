@@ -646,7 +646,7 @@ export default function Reports() {
 
   if (isLoading) {
     return (
-      <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
+      <div className="h-full p-6 md:p-8 bg-slate-50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center py-12 text-slate-500">Loading reports...</div>
         </div>
@@ -680,8 +680,8 @@ export default function Reports() {
   const clinicalSupplyOrders = supplyOrders.filter(o => o.category === 'clinical');
 
   return (
-    <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="h-full min-h-0 overflow-hidden flex flex-col p-6 md:p-8 bg-slate-50">
+      <div className="max-w-7xl mx-auto w-full h-full min-h-0 flex flex-col gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Reports</h1>
           <p className="text-slate-600 mt-1">Generate and export detailed reports</p>
@@ -720,7 +720,7 @@ export default function Reports() {
           </CardContent>
         </Card>
 
-        <Tabs defaultValue="payment-tracking" className="space-y-4">
+        <Tabs defaultValue="payment-tracking" className="flex-1 min-h-0 flex flex-col gap-4 overflow-hidden [&_[role=tabpanel]]:flex-1 [&_[role=tabpanel]]:min-h-0 [&_[role=tabpanel]]:overflow-auto">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
             <TabsList className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3 w-full h-auto bg-transparent p-0">
               <TabsTrigger value="payment-tracking" className="flex flex-col items-center justify-center gap-2 py-4 h-full whitespace-normal text-center bg-slate-50 border border-slate-200 rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600 hover:bg-slate-100 hover:border-slate-300 transition-all shadow-sm">

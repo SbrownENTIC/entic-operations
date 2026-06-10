@@ -128,8 +128,8 @@ export default function DocumentManagement() {
 
   if (currentSection) {
     return (
-      <div className="h-full flex flex-col">
-        <div className="bg-white border-b border-slate-200 px-6 py-3 flex items-center gap-2 sticky top-16 z-10">
+      <div className="h-full min-h-0 overflow-hidden flex flex-col">
+        <div className="bg-white border-b border-slate-200 px-6 py-3 flex items-center gap-2 flex-shrink-0 z-10">
            <Button 
              variant="ghost" 
              size="sm"
@@ -150,9 +150,9 @@ export default function DocumentManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
-      <div className="max-w-6xl mx-auto space-y-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="h-full min-h-0 overflow-hidden flex flex-col bg-slate-50 p-8">
+      <div className="max-w-6xl mx-auto w-full h-full min-h-0 flex flex-col gap-6">
+        <div className="flex-shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Documentation Database</h1>
             <p className="text-slate-600 mt-2">Central repository for all organization documents and invoices.</p>
@@ -169,7 +169,7 @@ export default function DocumentManagement() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 content-start pr-1">
           {allFolders.map((folder) => (
             <Card 
               key={folder.id} 

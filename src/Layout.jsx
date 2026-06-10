@@ -361,8 +361,10 @@ function LayoutContent({ children, currentPageName }) {
     );
   }
 
+  const isDashboardPage = currentPageName === 'Dashboard';
+
   return (
-    <div className="min-h-screen w-full overflow-x-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className={`${isDashboardPage ? 'min-h-screen' : 'h-screen overflow-hidden'} w-full overflow-x-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50`}>
       <style>{`
         :root {
           --primary: 221 83% 53%;
@@ -551,7 +553,7 @@ function LayoutContent({ children, currentPageName }) {
       </nav>
 
       {/* Main Content */}
-      <main className="flex-1 relative pt-[8rem]">
+      <main className={isDashboardPage ? "flex-1 relative pt-[8rem]" : "relative h-screen pt-[8rem] overflow-hidden"}>
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
@@ -559,7 +561,7 @@ function LayoutContent({ children, currentPageName }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
-            className="h-full"
+            className={isDashboardPage ? "h-full" : "h-full min-h-0 overflow-hidden"}
           >
             {children}
           </motion.div>
