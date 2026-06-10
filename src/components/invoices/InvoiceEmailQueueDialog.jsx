@@ -8,6 +8,37 @@ import { Label } from "@/components/ui/label";
 import { AlertCircle, Send } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
+function getDefaultInvoiceRecipients(invoice) {
+  const facility = String(invoice?.program_group || invoice?.facility_name || "").toLowerCase();
+  const defaultCc = "steve.brown@enticmd.com;heldridge@enticmd.com";
+
+  if (facility.includes("uconn") || facility.includes("university of connecticut")) {
+    return {
+      matched: true,
+      to: "amoffo@uchc.edu;jserrano@uchc.edu",
+      cc: defaultCc
+    };
+  }
+
+  if (facility.includes("hartford") || facility.includes("hhc")) {
+    return {
+      matched: true,
+      to: "ap@hhchealth.org",
+      cc: defaultCc
+    };
+  }
+
+  if (facility.includes("manchester") || facility.includes("echn")) {
+    return {
+      matched: true,
+      to: "ap@hhchealth.org",
+      cc: defaultCc
+    };
+  }
+
+  return { matched: false, to: "", cc: "" };
+}
+
 export default function InvoiceEmailQueueDialog({ invoice, open, onOpenChange, onQueued }) {
   const { toast } = useToast();
   const [formData, setFormData] = React.useState({
@@ -19,10 +50,11 @@ export default function InvoiceEmailQueueDialog({ invoice, open, onOpenChange, o
 
   React.useEffect(() => {
     if (invoice && open) {
+      const defaultRecipients = getDefaultInvoiceRecipients(invoice);
       setFormData({
         send_date: new Date().toLocaleDateString("en-CA"),
-        to: "",
-        cc: "",
+        to: defaultRecipients.to,
+        cc: defaultRecipients.cc,
         bcc: ""
       });
     }
@@ -56,6 +88,7 @@ export default function InvoiceEmailQueueDialog({ invoice, open, onOpenChange, o
   if (!invoice) return null;
 
   const missingAttachment = !invoice.approved_invoice_url;
+  const defaultRecipients = getDefaultInvoiceRecipients(invoice);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -76,6 +109,12 @@ export default function InvoiceEmailQueueDialog({ invoice, open, onOpenChange, o
               <span>Cannot queue invoice email because no approved invoice attachment is attached to this invoice.</span>
             </div>
           )}
+
+          <p className="text-xs text-slate-600">
+            {defaultRecipients.matched
+              ? "Recipients auto-filled based on facility. Please review before queueing."
+              : "No default recipients found for this facility. Please enter recipients manually."}
+          </p>
 
           <div className="space-y-2">
             <Label htmlFor="invoice-email-send-date">Send Date</Label>
