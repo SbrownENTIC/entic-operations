@@ -15,7 +15,7 @@ function signatureBlock() {
   <p style="margin: 0 0 0 0; font-weight: bold; color: #003366; font-size: 18px;">Steve Brown</p>
   
   <div style="margin-top: 8px; margin-bottom: 18px;">
-    <img src="https://enticmd.com/wp-content/uploads/2024/07/ENT-CT-logo-1.png" alt="ENTIC Logo" style="max-width: 340px; height: auto; display: block;">
+    <img src="https://enticmd.com/wp-content/uploads/2024/07/ENT-CT-logo-1.png" alt="ENTIC Logo" style="max-width: 360px; width: 360px; height: auto; display: block;">
   </div>
 
   <p style="margin: 0 0 8px 0; font-weight: 600; color: #1f2937; font-size: 14px;">Operations Manager</p>
