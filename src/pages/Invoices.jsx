@@ -5,13 +5,14 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Printer, AlertCircle, FileDown, CloudUpload, Upload, FileSpreadsheet } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Printer, AlertCircle, FileDown, CloudUpload, Upload, FileSpreadsheet, Mail } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, parseISO } from "date-fns";
 import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { formatDateToEST } from "@/components/DateUtils";
 import InvoiceForm from "../components/invoices/InvoiceForm";
+import InvoiceEmailQueueDialog from "../components/invoices/InvoiceEmailQueueDialog";
 import { auditCreate, auditUpdate, auditDelete } from '@/lib/auditLogger';
 import EmptyState from "@/components/ui/EmptyState";
 import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
@@ -46,6 +47,7 @@ export default function Invoices() {
   const [fixMessage, setFixMessage] = useState('');
   const [syncingAirtable, setSyncingAirtable] = useState(false);
   const [uploadingId, setUploadingId] = useState(null);
+  const [queueEmailInvoice, setQueueEmailInvoice] = useState(null);
   const fileInputRef = React.useRef(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -75,6 +77,12 @@ export default function Invoices() {
   const { data: payments = [] } = useQuery({
     queryKey: ['payments'],
     queryFn: () => base44.entities.Payment.list()
+  });
+
+  const { data: notificationQueue = [] } = useQuery({
+    queryKey: ['invoice-email-notifications'],
+    queryFn: () => base44.entities.NotificationQueue.filter({ notification_type: 'Invoice Email' }),
+    refetchInterval: 15000
   });
 
   useEffect(() => {
@@ -1054,6 +1062,28 @@ export default function Invoices() {
     return invoice.status?.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
 
+  const getInvoiceEmailRecord = (invoiceId) => {
+    const records = notificationQueue.filter(n => n.related_record_id === invoiceId);
+    if (records.length === 0) return null;
+    return [...records].sort((a, b) => new Date(b.created_date || 0) - new Date(a.created_date || 0))[0];
+  };
+
+  const getInvoiceEmailStatus = (invoice) => {
+    const record = getInvoiceEmailRecord(invoice.id);
+    if (!record) return { label: 'Not Queued', className: 'bg-slate-100 text-slate-600' };
+    const classMap = {
+      'Ready to Send': 'bg-blue-100 text-blue-800',
+      Sent: 'bg-green-100 text-green-800',
+      Failed: 'bg-red-100 text-red-800',
+      Cancelled: 'bg-slate-100 text-slate-600'
+    };
+    return {
+      label: record.status === 'Ready to Send' ? 'Queued' : record.status,
+      className: classMap[record.status] || 'bg-slate-100 text-slate-600',
+      record
+    };
+  };
+
   if (invoicesLoading || providersLoading) {
     return <ListPageSkeleton />;
   }
@@ -1418,6 +1448,20 @@ export default function Invoices() {
                           <Badge className={`${statusColors[invoice.status]} text-[10px]`}>
                             {getStatusLabel(invoice)}
                           </Badge>
+                          {(() => {
+                            const emailStatus = getInvoiceEmailStatus(invoice);
+                            return (
+                              <div className="mt-1 space-y-0.5">
+                                <Badge className={`${emailStatus.className} text-[10px]`}>Email: {emailStatus.label}</Badge>
+                                {emailStatus.record?.sent_date && (
+                                  <div className="text-[10px] text-slate-500">Sent: {formatDateToEST(emailStatus.record.sent_date)}</div>
+                                )}
+                                {emailStatus.record?.error_message && (
+                                  <div className="text-[10px] text-red-600 max-w-[160px] truncate" title={emailStatus.record.error_message}>{emailStatus.record.error_message}</div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td className="px-3 py-2 text-center no-print">
                           {invoice.manual_status_override && user?.role === 'admin' && (
@@ -1469,6 +1513,18 @@ export default function Invoices() {
                                 className="text-teal-600 hover:text-teal-700"
                               >
                                 <Upload className={`w-4 h-4 ${uploadingId === invoice.id ? 'animate-pulse' : ''}`} />
+                              </Button>
+                            )}
+
+                            {user?.role === 'admin' && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setQueueEmailInvoice(invoice)}
+                                title="Queue Invoice Email"
+                                className="text-purple-600 hover:text-purple-700"
+                              >
+                                <Mail className="w-4 h-4" />
                               </Button>
                             )}
 
@@ -1548,7 +1604,14 @@ export default function Invoices() {
       </div>
     </div>
 
-      <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+      <InvoiceEmailQueueDialog
+        invoice={queueEmailInvoice}
+        open={!!queueEmailInvoice}
+        onOpenChange={(open) => !open && setQueueEmailInvoice(null)}
+        onQueued={() => queryClient.invalidateQueries({ queryKey: ['invoice-email-notifications'] })}
+      />
+
+      <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}> 
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Invoice</AlertDialogTitle>

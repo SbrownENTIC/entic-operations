@@ -11,6 +11,7 @@
         "License Expiration Reminder",
         "License Expiration",
         "Invoice",
+        "Invoice Email",
         "Custom"
       ],
       "description": "Type of notification"
@@ -53,6 +54,18 @@
       "type": "string",
       "description": "Office location if applicable"
     },
+    "invoice_number": {
+      "type": "string",
+      "description": "Invoice number for invoice email queue records"
+    },
+    "invoice_month": {
+      "type": "string",
+      "description": "Invoice month for invoice email queue records"
+    },
+    "facility_name": {
+      "type": "string",
+      "description": "Facility or program group for invoice email queue records"
+    },
     "send_date": {
       "type": "string",
       "format": "date",
@@ -82,6 +95,26 @@
     "body": {
       "type": "string",
       "description": "Email body content (HTML)"
+    },
+    "attachment_filename": {
+      "type": "string",
+      "description": "Attachment filename for invoice email queue records"
+    },
+    "attachment_content_type": {
+      "type": "string",
+      "description": "Attachment MIME content type"
+    },
+    "attachment_source_type": {
+      "type": "string",
+      "description": "Source type for the attachment, e.g. Invoice.approved_invoice_url"
+    },
+    "attachment_source_id": {
+      "type": "string",
+      "description": "Source record ID for the attachment"
+    },
+    "attachment_url": {
+      "type": "string",
+      "description": "Approved invoice attachment URL used by the attachment retrieval function"
     },
     "status": {
       "type": "string",

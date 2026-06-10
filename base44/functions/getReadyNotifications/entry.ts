@@ -53,6 +53,12 @@ Deno.serve(async (req) => {
         cc:                   (n.cc || '').split(',').map(e => e.trim()).filter(Boolean).join('; '),
         bcc:                  n.bcc || '',
         related_record_id:    n.related_record_id || '',
+        invoice_number:       n.invoice_number || '',
+        invoice_month:        n.invoice_month || '',
+        facility_name:        n.facility_name || '',
+        attachment_filename:  n.attachment_filename || '',
+        attachment_content_type: n.attachment_content_type || '',
+        has_attachment:       n.notification_type === 'Invoice Email' && !!n.attachment_filename,
         created_date:         n.created_date,
       }))
     });
