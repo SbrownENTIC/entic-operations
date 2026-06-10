@@ -15,7 +15,7 @@ function signatureBlock() {
   <p style="margin: 0 0 0 0; font-weight: bold; color: #003366; font-size: 18px;">Steve Brown</p>
   
   <div>
-    <img src="https://enticmd.com/wp-content/uploads/2024/07/ENT-CT-logo-1.png" alt="Ear, Nose &amp; Throat Institute of Connecticut" width="300" style="width:300px; max-width:300px; height:auto; display:block; margin-top:8px; margin-bottom:18px; border:0; outline:none; text-decoration:none;">
+    <img src="https://enticmd.com/wp-content/uploads/2024/07/ENT-CT-logo-1.png" alt="Ear, Nose &amp; Throat Institute of Connecticut" width="200" style="width:200px; max-width:200px; height:auto; display:block; margin-top:8px; margin-bottom:18px; border:0; outline:none; text-decoration:none;">
   </div>
 
   <p style="margin: 0 0 8px 0; font-weight: 600; color: #1f2937; font-size: 14px;">Operations Manager</p>
