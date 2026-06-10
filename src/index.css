@@ -156,3 +156,58 @@ button:focus-visible {
     @apply bg-background text-foreground;
   }
 }
+
+/* Compact density for non-dashboard data tables only */
+.non-dashboard-compact table {
+  width: 100%;
+  font-size: 13px;
+}
+
+.non-dashboard-compact table th,
+.non-dashboard-compact table td {
+  padding: 8px 10px !important;
+  line-height: 1.25rem;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.non-dashboard-compact table th {
+  font-size: 12px;
+}
+
+.non-dashboard-compact table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.non-dashboard-compact table td:last-child,
+.non-dashboard-compact table th:last-child {
+  overflow: visible;
+  max-width: none;
+  white-space: nowrap;
+}
+
+.non-dashboard-compact table tr {
+  height: 38px;
+}
+
+.non-dashboard-compact table td .inline-flex[class*="rounded"] {
+  padding: 2px 7px;
+  font-size: 11px;
+  line-height: 1rem;
+  white-space: nowrap;
+}
+
+.non-dashboard-compact table td button:not([role="checkbox"]),
+.non-dashboard-compact table td [role="button"] {
+  height: 28px !important;
+  min-height: 28px;
+  padding: 4px 6px !important;
+}
+
+.non-dashboard-compact table td button svg,
+.non-dashboard-compact table td [role="button"] svg {
+  width: 14px;
+  height: 14px;
+}

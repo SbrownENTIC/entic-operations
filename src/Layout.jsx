@@ -561,7 +561,7 @@ function LayoutContent({ children, currentPageName }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
-            className={isDashboardPage ? "h-full" : "h-full min-h-0 overflow-hidden"}
+            className={isDashboardPage ? "h-full" : "h-full min-h-0 overflow-hidden non-dashboard-compact"}
           >
             {children}
           </motion.div>
