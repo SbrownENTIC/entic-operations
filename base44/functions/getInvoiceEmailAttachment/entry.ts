@@ -30,15 +30,32 @@ function filenameFromUrl(fileUrl, fallback) {
   return fallback || 'approved_invoice.pdf';
 }
 
+async function markAttachmentFailed(base44, notificationId, errorMessage) {
+  if (!base44 || !notificationId) return;
+  try {
+    await base44.asServiceRole.entities.NotificationQueue.update(notificationId, {
+      status: 'Failed',
+      ready_to_send: false,
+      error_message: errorMessage || 'Invoice attachment retrieval failed.'
+    });
+  } catch (_) {
+    // Do not hide the original attachment retrieval error.
+  }
+}
+
 Deno.serve(async (req) => {
+  let base44;
+  let notificationIdForFailure = '';
+
   try {
     if (req.method !== 'POST') {
       return new Response('Method not allowed', { status: 405 });
     }
 
-    const base44 = createClientFromRequest(req);
+    base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
     const { notification_id } = body;
+    notificationIdForFailure = notification_id || '';
 
     if (!notification_id) {
       return Response.json({ success: false, error: 'notification_id is required' }, { status: 400 });
@@ -55,18 +72,24 @@ Deno.serve(async (req) => {
     }
 
     if (!notification.related_record_id) {
-      return Response.json({ success: false, error: 'Invoice Email notification is missing related invoice ID.' }, { status: 400 });
+      const errorMessage = 'Invoice Email notification is missing related invoice ID.';
+      await markAttachmentFailed(base44, notification.id, errorMessage);
+      return Response.json({ success: false, error: errorMessage }, { status: 400 });
     }
 
     const allInvoices = await base44.asServiceRole.entities.Invoice.list();
     const invoice = (allInvoices || []).find(i => i.id === notification.related_record_id);
     if (!invoice) {
-      return Response.json({ success: false, error: 'Related invoice record not found.' }, { status: 404 });
+      const errorMessage = 'Related invoice record not found.';
+      await markAttachmentFailed(base44, notification.id, errorMessage);
+      return Response.json({ success: false, error: errorMessage }, { status: 404 });
     }
 
     const fileUrl = invoice.approved_invoice_url || notification.attachment_url;
     if (!fileUrl) {
-      return Response.json({ success: false, error: 'Cannot retrieve attachment because the related invoice has no approved invoice attachment.' }, { status: 400 });
+      const errorMessage = 'Cannot retrieve attachment because the related invoice has no approved invoice attachment.';
+      await markAttachmentFailed(base44, notification.id, errorMessage);
+      return Response.json({ success: false, error: errorMessage }, { status: 400 });
     }
 
     let downloadableUrl = fileUrl;
@@ -77,7 +100,9 @@ Deno.serve(async (req) => {
 
     const fileResponse = await fetch(downloadableUrl);
     if (!fileResponse.ok) {
-      return Response.json({ success: false, error: `Could not download approved invoice attachment. HTTP ${fileResponse.status}` }, { status: 502 });
+      const errorMessage = `Could not download approved invoice attachment. HTTP ${fileResponse.status}`;
+      await markAttachmentFailed(base44, notification.id, errorMessage);
+      return Response.json({ success: false, error: errorMessage }, { status: 502 });
     }
 
     const filename = notification.attachment_filename || filenameFromUrl(fileUrl, `Approved_Invoice_${invoice.invoice_number || invoice.id}.pdf`);
@@ -86,7 +111,9 @@ Deno.serve(async (req) => {
     const buffer = await fileResponse.arrayBuffer();
 
     if (!buffer || buffer.byteLength === 0) {
-      return Response.json({ success: false, error: 'Approved invoice attachment was downloaded but contained no file content.' }, { status: 502 });
+      const errorMessage = 'Approved invoice attachment was downloaded but contained no file content.';
+      await markAttachmentFailed(base44, notification.id, errorMessage);
+      return Response.json({ success: false, error: errorMessage }, { status: 502 });
     }
 
     return Response.json({
@@ -96,6 +123,7 @@ Deno.serve(async (req) => {
       base64Content: arrayBufferToBase64(buffer)
     });
   } catch (error) {
+    await markAttachmentFailed(base44, notificationIdForFailure, error.message);
     return Response.json({ success: false, error: error.message }, { status: 500 });
   }
 });
