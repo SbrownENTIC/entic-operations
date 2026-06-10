@@ -351,7 +351,7 @@ export default function Providers() {
   return (
     <div className="h-screen overflow-hidden flex flex-col bg-slate-50">
       <div className="flex-shrink-0 p-2 md:p-3">
-        <div className="max-w-7xl mx-auto space-y-2">
+        <div className="max-w-none w-full space-y-2">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Providers</h1>
@@ -399,7 +399,7 @@ export default function Providers() {
       </div>
 
       <div className="flex-1 overflow-hidden px-4 md:px-6 pb-4">
-        <div className="max-w-7xl mx-auto h-full">
+        <div className="max-w-none w-full h-full">
         <Card className="border-slate-200 shadow-sm h-full flex flex-col">
           <CardHeader className="border-b border-slate-100 flex-shrink-0">
             <div className="flex items-center gap-4">

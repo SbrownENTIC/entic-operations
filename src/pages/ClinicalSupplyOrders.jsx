@@ -357,7 +357,7 @@ export default function ClinicalSupplyOrders() {
     <>
     <div className="min-h-screen bg-slate-50 pb-8">
       <div className="p-2 md:p-3">
-        <div className="max-w-7xl mx-auto space-y-2">
+        <div className="max-w-none w-full space-y-2">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Clinical Supply Orders</h1>
@@ -395,7 +395,7 @@ export default function ClinicalSupplyOrders() {
       </div>
 
       <div className="px-4 md:px-6 pb-4">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-none w-full">
         <Card className="border-slate-200 shadow-sm">
           <CardHeader className="border-b border-slate-100">
             <div className="flex items-center gap-4 flex-wrap">

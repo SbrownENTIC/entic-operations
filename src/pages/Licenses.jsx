@@ -296,7 +296,7 @@ export default function Licenses() {
   return (
     <div className={`flex flex-col bg-slate-50 ${showForm ? 'min-h-[calc(100vh-9rem)]' : 'h-[calc(100vh-9rem)] overflow-hidden'}`}>
     <div className="flex-shrink-0 p-2 md:p-4">
-      <div className="max-w-[92rem] mx-auto space-y-2">
+      <div className="max-w-none w-full space-y-2">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">License Management</h1>
@@ -374,7 +374,7 @@ export default function Licenses() {
       </div>
 
       <div className="flex-1 overflow-hidden px-2 md:px-4 pb-4">
-        <div className="max-w-[92rem] mx-auto h-full">
+        <div className="max-w-none w-full h-full">
         <Card className="border-slate-200 shadow-sm h-full flex flex-col">
           <CardHeader className="border-b border-slate-100 flex-shrink-0">
             <div className="flex items-center gap-4">

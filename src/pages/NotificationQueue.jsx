@@ -133,7 +133,7 @@ export default function NotificationQueuePage() {
 
   return (
     <div className="p-6 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-none w-full space-y-6">
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Notification Queue</h1>

@@ -146,7 +146,7 @@ export default function AudiologySupplyCatalog() {
   if (isLoading) {
     return (
       <div className="p-6 md:p-8 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-none w-full">
           <div className="text-center py-12 text-slate-500">Loading...</div>
         </div>
       </div>
@@ -157,7 +157,7 @@ export default function AudiologySupplyCatalog() {
     <>
     <div className="h-screen overflow-hidden flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <div className="flex-shrink-0 p-2 md:p-3">
-        <div className="max-w-7xl mx-auto space-y-2">
+        <div className="max-w-none w-full space-y-2">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Audiology Supply Catalog</h1>
@@ -205,7 +205,7 @@ export default function AudiologySupplyCatalog() {
       </div>
 
       <div className="flex-1 overflow-hidden px-4 md:px-6 pb-4">
-        <div className="max-w-7xl mx-auto h-full">
+        <div className="max-w-none w-full h-full">
         <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm h-full flex flex-col">
           <CardHeader className="border-b border-slate-100 space-y-4 flex-shrink-0">
             <div className="flex items-center gap-4">
