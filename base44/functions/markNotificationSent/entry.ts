@@ -27,10 +27,15 @@ Deno.serve(async (req) => {
       return Response.json({ success: false, error: 'notification_id is required' }, { status: 400 });
     }
 
+    const sentAt = new Date().toISOString();
+    const sentBy = sent_by || 'Steve Brown';
+    const notifications = await base44.asServiceRole.entities.NotificationQueue.filter({ id: notification_id }, '', 1);
+    const notification = notifications?.[0] || null;
+
     const updateData = {
       status:    'Sent',
-      sent_date: new Date().toISOString(),
-      sent_by:   sent_by || 'Steve Brown',
+      sent_date: sentAt,
+      sent_by:   sentBy,
       ready_to_send: false,         // prevents re-trigger on next poll
     };
 
@@ -40,7 +45,27 @@ Deno.serve(async (req) => {
 
     await base44.asServiceRole.entities.NotificationQueue.update(notification_id, updateData);
 
-    return Response.json({ success: true, notification_id, status: 'Sent' });
+    let invoice_status_updated = false;
+    if (
+      notification?.notification_type === 'Invoice Email' &&
+      notification?.related_entity === 'Invoice' &&
+      notification?.related_record_id
+    ) {
+      const invoices = await base44.asServiceRole.entities.Invoice.filter({ id: notification.related_record_id }, '', 1);
+      const invoice = invoices?.[0] || null;
+      const eligibleStatuses = ['approved', 'draft', 'not_started'];
+
+      if (invoice && eligibleStatuses.includes(invoice.status)) {
+        await base44.asServiceRole.entities.Invoice.update(invoice.id, {
+          status: 'sent_to_vendor',
+          invoice_sent_to_vendor: true,
+          sent_to_vendor_at: sentAt
+        });
+        invoice_status_updated = true;
+      }
+    }
+
+    return Response.json({ success: true, notification_id, status: 'Sent', invoice_status_updated });
 
   } catch (error) {
     return Response.json({ success: false, error: error.message }, { status: 500 });
