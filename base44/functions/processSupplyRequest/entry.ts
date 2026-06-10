@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
     const order = await base44.asServiceRole.entities.SupplyOrder.create(orderData);
 
     // Send notification email immediately on submission
-    const recipientEmail = Deno.env.get('APPROVAL_EMAIL') || 'hollyjo@enticmd.com';
+    const recipientEmail = Deno.env.get('SUPPLY_ORDER_NOTIFICATION_RECIPIENT') || 'steve.brown@enticmd.com';
     const itemList = analyzedItems.map(item =>
       `<li>${item.supply_name}${item.item_number ? ` (Item# ${item.item_number})` : ''} — Qty: ${item.quantity}</li>`
     ).join('');

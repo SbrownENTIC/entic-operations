@@ -31,22 +31,16 @@ Deno.serve(async (req) => {
       <p style="margin-top:16px; color:#888; font-size:12px;">You can review this order in the ENTIC Operations Center under Office Supply Orders.</p>
     `;
 
-    await Promise.all([
-      base44.asServiceRole.integrations.Core.SendEmail({
-        to: 'steve.brown@enticmd.com',
-        subject,
-        body: body_html,
-        from_name: 'ENTIC Supply Orders'
-      }),
-      base44.asServiceRole.integrations.Core.SendEmail({
-        to: 'brownsteven89@icloud.com',
-        subject,
-        body: body_html,
-        from_name: 'ENTIC Supply Orders'
-      })
-    ]);
+    const recipientEmail = Deno.env.get('SUPPLY_ORDER_NOTIFICATION_RECIPIENT') || 'steve.brown@enticmd.com';
 
-    return Response.json({ success: true });
+    await base44.asServiceRole.integrations.Core.SendEmail({
+      to: recipientEmail,
+      subject,
+      body: body_html,
+      from_name: 'ENTIC Supply Orders'
+    });
+
+    return Response.json({ success: true, to: recipientEmail });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
