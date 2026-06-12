@@ -62,7 +62,7 @@ export default function CallLogDashboard() {
   });
 
   const { data: users = [], isLoading: usersLoading } = useQuery({
-    queryKey: ['users'],
+    queryKey: ['user-directory'],
     queryFn: () => base44.entities.UserDirectory.list()
   });
 
@@ -71,7 +71,7 @@ export default function CallLogDashboard() {
   // Helper to normalize extension
   const normalizeExtension = (ext) => {
     if (!ext || typeof ext !== 'string') return '';
-    return String(ext).trim().replace(/[\s\-\(\)]/g, '').replace(/\D/g, '');
+    return String(ext).trim().replace(/[\s\-()]/g, '').replace(/\D/g, '');
   };
 
   // Build extension to user map from UserDirectory.extensions
@@ -176,7 +176,7 @@ export default function CallLogDashboard() {
     const answeredOutboundByUser = {};
     if (Array.isArray(outbound)) {
     outbound.forEach(call => {
-      const normalizedExt = call.extension?.trim().replace(/[\s\-\(\)]/g, '').replace(/\D/g, '') || '';
+      const normalizedExt = call.extension?.trim().replace(/[\s\-()]/g, '').replace(/\D/g, '') || '';
       const user = extToUser[normalizedExt] || extToUser[call.extension];
       if (!user) return;
       
@@ -626,7 +626,7 @@ export default function CallLogDashboard() {
       // Pre-compute per-group outbound metrics using raw outbound records mapped through extToUser
       const groupOutboundMap = { "Front Desk": { total: 0, connected: 0 }, "NP Coordinator": { total: 0, connected: 0 } };
       outbound.forEach(call => {
-        const normalizedExt = String(call.extension || "").trim().replace(/[\s\-\(\)]/g, '').replace(/\D/g, '');
+        const normalizedExt = String(call.extension || "").trim().replace(/[\s\-()]/g, '').replace(/\D/g, '');
         const userObj = extToUser[normalizedExt] || extToUser[call.extension];
         const group = userObj ? userObj.benchmark_group : null;
         const key = group === "Front Desk" ? "Front Desk" : group === "NP Coordinator" ? "NP Coordinator" : null;
@@ -829,7 +829,7 @@ export default function CallLogDashboard() {
         };
 
         inbound.forEach(call => {
-          const normalizedExt = String(call.extension || '').trim().replace(/[\s\-\(\)]/g, '').replace(/\D/g, '');
+          const normalizedExt = String(call.extension || '').trim().replace(/[\s\-()]/g, '').replace(/\D/g, '');
           const userObj = extToUser[normalizedExt] || extToUser[call.extension];
           if (!userObj) return;
           if (filterGroup && userObj.benchmark_group !== filterGroup && !(Array.isArray(filterGroup) && filterGroup.includes(userObj.benchmark_group))) return;
@@ -843,7 +843,7 @@ export default function CallLogDashboard() {
         });
 
         outbound.forEach(call => {
-          const normalizedExt = String(call.extension || '').trim().replace(/[\s\-\(\)]/g, '').replace(/\D/g, '');
+          const normalizedExt = String(call.extension || '').trim().replace(/[\s\-()]/g, '').replace(/\D/g, '');
           const userObj = extToUser[normalizedExt] || extToUser[call.extension];
           if (!userObj) return;
           if (filterGroup && userObj.benchmark_group !== filterGroup && !(Array.isArray(filterGroup) && filterGroup.includes(userObj.benchmark_group))) return;

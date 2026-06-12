@@ -901,11 +901,11 @@ export default function Reports() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {[
-                      { label: '0-30 days', key: 'current', color: 'blue' },
-                      { label: '31-60 days', key: '60days', color: 'yellow' },
-                      { label: '61-90 days', key: '90days', color: 'orange' },
-                      { label: '90+ days', key: '90plus', color: 'red' }
-                    ].map(({ label, key, color }) => {
+                      { label: '0-30 days', key: 'current', classes: { bg: 'bg-blue-50', text: 'text-blue-700', selected: 'border-blue-500 ring-2 ring-blue-200' } },
+                      { label: '31-60 days', key: '60days', classes: { bg: 'bg-yellow-50', text: 'text-yellow-700', selected: 'border-yellow-500 ring-2 ring-yellow-200' } },
+                      { label: '61-90 days', key: '90days', classes: { bg: 'bg-orange-50', text: 'text-orange-700', selected: 'border-orange-500 ring-2 ring-orange-200' } },
+                      { label: '90+ days', key: '90plus', classes: { bg: 'bg-red-50', text: 'text-red-700', selected: 'border-red-500 ring-2 ring-red-200' } }
+                    ].map(({ label, key, classes }) => {
                       const count = invoices.filter(inv => {
                          const balance = (inv.amount_expected || inv.total || 0) - (inv.amount_received || 0);
                          return balance > 0 && getAgingCategory(inv) === key;
@@ -915,10 +915,10 @@ export default function Reports() {
                         <div 
                           key={key} 
                           onClick={() => setSelectedAgingCategory(selectedAgingCategory === key ? null : key)}
-                          className={`bg-${color}-50 p-4 rounded-lg cursor-pointer transition-all border-2 ${selectedAgingCategory === key ? `border-${color}-500 ring-2 ring-${color}-200` : 'border-transparent hover:scale-105'}`}
+                          className={`${classes.bg} p-4 rounded-lg cursor-pointer transition-all border-2 ${selectedAgingCategory === key ? classes.selected : 'border-transparent hover:scale-105'}`}
                         >
                           <p className="text-sm text-slate-600">{label}</p>
-                          <p className={`text-2xl font-bold text-${color}-700`}>{count}</p>
+                          <p className={`text-2xl font-bold ${classes.text}`}>{count}</p>
                         </div>
                       );
                     })}
@@ -1254,7 +1254,7 @@ export default function Reports() {
                                   );
                                 }) : (
                                   <tr>
-                                    <td colspan="6" className="p-8 text-center text-slate-500">No unlinked invoices found in this period.</td>
+                                    <td colSpan={6} className="p-8 text-center text-slate-500">No unlinked invoices found in this period.</td>
                                   </tr>
                                 )}
                               </tbody>

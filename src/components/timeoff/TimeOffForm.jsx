@@ -96,7 +96,7 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
       if (pasteInput) {
         const lines = pasteInput.split(/[\r\n,]+/);
         lines.forEach(line => {
-          const dateMatch = line.match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);
+          const dateMatch = line.match(/(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
           if (dateMatch) {
             try {
               const dateStr = `${dateMatch[1]}/${dateMatch[2]}/${dateMatch[3]}`;
@@ -263,13 +263,13 @@ export default function TimeOffForm({ timeOff, onSubmit, onCancel, isLoading }) 
 
                         lines.forEach(line => {
                           // 1. Clean the line (remove numbering, bullets, etc.)
-                          const cleanLine = line.replace(/^[\d\-\*\.]+\s+/, '').trim();
+                          const cleanLine = line.replace(/^[\d\-*.]+\s+/, '').trim();
                           if (!cleanLine) return;
 
                           let parsedDate = null;
 
                           // 2. Try finding standard numeric formats: M/D/Y, M-D-Y, Y-M-D
-                          const digitGroups = cleanLine.match(/(\d{1,4})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
+                          const digitGroups = cleanLine.match(/(\d{1,4})[/.-](\d{1,2})[/.-](\d{2,4})/);
 
                           if (digitGroups) {
                             const p1 = parseInt(digitGroups[1]);

@@ -7,6 +7,59 @@ import { Download } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
+const STATUS_COLOR_CLASSES = {
+  gray: {
+    card: 'border-gray-200 bg-gray-50/30',
+    badge: 'bg-gray-100 text-gray-800 border-gray-300',
+    link: 'hover:bg-gray-100 hover:border-gray-400',
+  },
+  slate: {
+    card: 'border-slate-200 bg-slate-50/30',
+    badge: 'bg-slate-100 text-slate-800 border-slate-300',
+    link: 'hover:bg-slate-100 hover:border-slate-400',
+  },
+  orange: {
+    card: 'border-orange-200 bg-orange-50/30',
+    badge: 'bg-orange-100 text-orange-800 border-orange-300',
+    link: 'hover:bg-orange-100 hover:border-orange-400',
+  },
+  amber: {
+    card: 'border-amber-200 bg-amber-50/30',
+    badge: 'bg-amber-100 text-amber-800 border-amber-300',
+    link: 'hover:bg-amber-100 hover:border-amber-400',
+  },
+  indigo: {
+    card: 'border-indigo-200 bg-indigo-50/30',
+    badge: 'bg-indigo-100 text-indigo-800 border-indigo-300',
+    link: 'hover:bg-indigo-100 hover:border-indigo-400',
+  },
+  yellow: {
+    card: 'border-yellow-200 bg-yellow-50/30',
+    badge: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+    link: 'hover:bg-yellow-100 hover:border-yellow-400',
+  },
+  lime: {
+    card: 'border-lime-200 bg-lime-50/30',
+    badge: 'bg-lime-100 text-lime-800 border-lime-300',
+    link: 'hover:bg-lime-100 hover:border-lime-400',
+  },
+  blue: {
+    card: 'border-blue-200 bg-blue-50/30',
+    badge: 'bg-blue-100 text-blue-800 border-blue-300',
+    link: 'hover:bg-blue-100 hover:border-blue-400',
+  },
+  emerald: {
+    card: 'border-emerald-200 bg-emerald-50/30',
+    badge: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+    link: 'hover:bg-emerald-100 hover:border-emerald-400',
+  },
+  purple: {
+    card: 'border-purple-200 bg-purple-50/30',
+    badge: 'bg-purple-100 text-purple-800 border-purple-300',
+    link: 'hover:bg-purple-100 hover:border-purple-400',
+  },
+};
+
 export default function InvoiceSummaryWidget({ 
   invoices, 
   providers, 
@@ -70,12 +123,14 @@ export default function InvoiceSummaryWidget({
 
             if (filteredStatusInvoices.length === 0) return null;
 
+            const colorClasses = STATUS_COLOR_CLASSES[color] || STATUS_COLOR_CLASSES.slate;
+
             return (
-              <Card key={status} className={`border-${color}-200 bg-${color}-50/30 shadow-sm`}>
+              <Card key={status} className={`${colorClasses.card} shadow-sm`}>
                 <CardHeader className="pb-2 border-b border-slate-200 bg-white">
                   <div className="flex items-center justify-between">
                     <h3 className="font-semibold text-slate-900 text-xs">{status}</h3>
-                    <Badge className={`bg-${color}-100 text-${color}-800 border-${color}-300 text-xs`}>
+                    <Badge className={`${colorClasses.badge} text-xs`}>
                       {filteredStatusInvoices.length}
                     </Badge>
                   </div>
@@ -89,7 +144,7 @@ export default function InvoiceSummaryWidget({
                           <Link 
                             key={inv.id} 
                             to={`${createPageUrl("Invoices")}?edit=${inv.id}`}
-                            className={`block text-xs px-2 py-1.5 bg-white hover:bg-${color}-100 rounded border border-slate-200 hover:border-${color}-400 transition-all shadow-sm hover:shadow`}
+                            className={`block text-xs px-2 py-1.5 bg-white rounded border border-slate-200 transition-all shadow-sm hover:shadow ${colorClasses.link}`}
                           >
                             <div className="font-medium text-slate-900 text-xs">
                               {inv.invoice_number || 'N/A'}

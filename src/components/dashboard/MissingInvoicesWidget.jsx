@@ -79,7 +79,7 @@ export default function MissingInvoicesWidget({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center mr-3 text-orange-700 font-bold text-xs">
-                      {provider.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                      {(provider.full_name || '?').split(' ').map(n => n[0]).join('').substring(0, 2)}
                     </div>
                     <div>
                       <span className="font-medium text-slate-900 text-sm block">{provider.full_name}</span>

@@ -67,31 +67,53 @@ export default function YearlyFinancialsReport({ payments, formatCurrency }) {
     );
   };
 
+  const SUMMARY_CARD_CLASSES = {
+    blue: {
+      container: 'bg-blue-50 border-blue-100',
+      icon: 'text-blue-900',
+      label: 'text-blue-800',
+      value: 'text-blue-900',
+      border: 'border-blue-200/50',
+      meta: 'text-blue-600',
+      subtitle: 'text-blue-700',
+    },
+    slate: {
+      container: 'bg-slate-50 border-slate-100',
+      icon: 'text-slate-900',
+      label: 'text-slate-800',
+      value: 'text-slate-900',
+      border: 'border-slate-200/50',
+      meta: 'text-slate-600',
+      subtitle: 'text-slate-600',
+    },
+  };
+
   const SummaryCard = ({ data, prevData, color, icon: Icon }) => {
     const change = prevData ? calculateChange(data.totalAmount, prevData.totalAmount) : null;
+    const classes = SUMMARY_CARD_CLASSES[color] || SUMMARY_CARD_CLASSES.slate;
     
     return (
-      <div className={`bg-${color}-50 p-6 rounded-xl border border-${color}-100 relative overflow-hidden`}>
+      <div className={`${classes.container} p-6 rounded-xl border relative overflow-hidden`}>
         <div className="absolute top-0 right-0 p-4 opacity-10">
-          <Icon className={`w-24 h-24 text-${color}-900`} />
+          <Icon className={`w-24 h-24 ${classes.icon}`} />
         </div>
-        <p className={`text-sm font-semibold text-${color}-800 uppercase tracking-wider mb-2`}>{data.year} Performance</p>
+        <p className={`text-sm font-semibold ${classes.label} uppercase tracking-wider mb-2`}>{data.year} Performance</p>
         <div className="flex items-baseline gap-2 mb-1">
-          <h3 className={`text-3xl font-bold text-${color}-900`}>{formatCurrency(data.totalAmount)}</h3>
+          <h3 className={`text-3xl font-bold ${classes.value}`}>{formatCurrency(data.totalAmount)}</h3>
           {change !== null && renderTrendText(change)}
         </div>
-        <p className={`${color === 'blue' ? 'text-blue-700' : 'text-slate-600'} font-medium mb-4`}>{data.count} total payments</p>
+        <p className={`${classes.subtitle} font-medium mb-4`}>{data.count} total payments</p>
         
-        <div className={`pt-4 border-t border-${color}-200/50 flex gap-4`}>
+        <div className={`pt-4 border-t ${classes.border} flex gap-4`}>
           <div>
-              <span className={`text-xs text-${color}-600 block`}>Avg Payment</span>
-              <span className={`font-semibold text-${color}-900`}>
+              <span className={`text-xs ${classes.meta} block`}>Avg Payment</span>
+              <span className={`font-semibold ${classes.value}`}>
                 {formatCurrency(data.count > 0 ? data.totalAmount / data.count : 0)}
               </span>
           </div>
           <div>
-              <span className={`text-xs text-${color}-600 block`}>Best Month</span>
-              <span className={`font-semibold text-${color}-900`}>
+              <span className={`text-xs ${classes.meta} block`}>Best Month</span>
+              <span className={`font-semibold ${classes.value}`}>
                 {(() => {
                   const max = Math.max(...data.monthlyTotals);
                   const index = data.monthlyTotals.indexOf(max);

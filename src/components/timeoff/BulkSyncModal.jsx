@@ -37,7 +37,7 @@ export default function BulkSyncModal({ isOpen, onClose, providers, existingEntr
     const yearsInInput = new Set();
 
     lines.forEach(line => {
-      const dateMatch = line.match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);
+      const dateMatch = line.match(/(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
       if (dateMatch) {
         try {
           const dateStr = `${dateMatch[1]}/${dateMatch[2]}/${dateMatch[3]}`;
@@ -46,7 +46,9 @@ export default function BulkSyncModal({ isOpen, onClose, providers, existingEntr
             validDates.add(format(parsedDate, 'yyyy-MM-dd'));
             yearsInInput.add(getYear(parsedDate));
           }
-        } catch (e) {}
+        } catch {
+          // Skip unparseable date values
+        }
       }
     });
 

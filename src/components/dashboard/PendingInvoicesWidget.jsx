@@ -37,7 +37,7 @@ export default function PendingInvoicesWidget({ providersWithPendingInvoices }) 
               <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-indigo-200 shadow-sm group-hover:border-indigo-400 group-hover:shadow-md transition-all">
                 <div className="flex items-center">
                   <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center mr-3 text-indigo-700 font-bold text-xs">
-                    {provider.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                    {(provider.full_name || '?').split(' ').map(n => n[0]).join('').substring(0, 2)}
                   </div>
                   <div>
                     <span className="font-medium text-slate-900 text-sm block group-hover:text-indigo-700 transition-colors">{provider.full_name}</span>

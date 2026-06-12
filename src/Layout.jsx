@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
+import { clearAuditUserCache } from "@/lib/auditLogger";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { 
@@ -28,13 +30,11 @@ import {
         ShieldCheck,
         Boxes,
         BarChart3,
-        HeartPulse,
         Bell,
         Menu,
         X,
         MoreVertical,
         HelpCircle,
-        Settings,
         LogOut,
         Loader2,
         ClipboardList
@@ -47,8 +47,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Toaster } from "@/components/ui/toaster";
-
 const navigationItems = [
   {
     title: "Dashboard",
@@ -161,6 +159,13 @@ const moreMenuItems = [
   },
 ];
 
+function isNavItemActive(pathname, item) {
+  if (item.title === "Dashboard") {
+    return pathname === "/" || pathname === item.url;
+  }
+  return pathname === item.url;
+}
+
 export default function Layout(props) {
   return (
     <FormProvider>
@@ -174,76 +179,60 @@ function LayoutContent({ children, currentPageName }) {
   const navigate = useNavigate();
   const { isDirty, setIsDirty } = useFormState();
   const [pendingNavigation, setPendingNavigation] = useState(null);
-  const [isAuthorized, setIsAuthorized] = useState(false);
-  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const { isAuthenticated, isLoadingAuth, navigateToLogin } = useAuth();
+  const isPublicPage = currentPageName === 'PublicSupplyRequest';
 
   // Scroll to top on route change
   React.useEffect(() => {
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
-  // Update document title and check auth
+  // Redirect unauthenticated users away from protected pages
   React.useEffect(() => {
-    const init = async () => {
-      // Title logic
-      if (currentPageName === 'PublicSupplyRequest') {
-        document.title = "ENTIC Supply Order Form";
-      } else {
-        const pageTitleMap = {
-          Dashboard: "Dashboard",
-          Providers: "Providers",
-          OnCallSchedule: "On-Call Schedule",
-          OutsideIncome: "Outside Income",
-          Invoices: "Invoices",
-          Payments: "Payments",
-          OfficeSupplyOrders: "Office Supply Orders",
-          ClinicalSupplyOrders: "Clinical Supply Orders",
-          AudiologySupplyOrders: "Audiology Supply Orders",
-          ProviderTimeOff: "Time Off & CME",
-          Reminders: "Notifications & Closures",
-          Licenses: "Licenses",
-          Reports: "Reports",
-          DocumentManagement: "Document Management",
-          ClinicalPrivileges: "Clinical Privileges",
-          CMETracking: "CME Tracking",
-          OfficeSupplyCatalog: "Office Catalog",
-          ClinicalSupplyCatalog: "Clinical Catalog",
-          AudiologySupplyCatalog: "Audiology Catalog",
-          SystemDocumentation: "System Documentation",
-          ProgramLocations: "Program Locations",
-          ProviderDetail: "Provider Detail",
-        };
-        const pageTitle = pageTitleMap[currentPageName];
-        document.title = pageTitle
-          ? `ENTIC Operations Center – ${pageTitle}`
-          : "ENTIC Operations Center";
-      }
+    if (!isPublicPage && !isLoadingAuth && !isAuthenticated) {
+      navigateToLogin();
+    }
+  }, [isPublicPage, isLoadingAuth, isAuthenticated, navigateToLogin]);
 
-      // Auth logic
-      const isPublicPage = currentPageName === 'PublicSupplyRequest';
-      if (isPublicPage) {
-        setIsAuthorized(true);
-        setIsLoadingAuth(false);
-        return;
-      }
+  // Update document title on page change
+  React.useEffect(() => {
+    if (currentPageName === 'PublicSupplyRequest') {
+      document.title = "ENTIC Supply Order Form";
+      return;
+    }
 
-      try {
-        await base44.auth.me();
-        setIsAuthorized(true);
-        setIsLoadingAuth(false);
-      } catch (error) {
-        // If not authenticated and not public page, redirect
-        if (!isPublicPage) {
-          base44.auth.redirectToLogin();
-          setIsAuthorized(false);
-          // We keep loading false to show nothing/loading until redirect kicks in
-          setIsLoadingAuth(false);
-        }
-      }
+    const pageTitleMap = {
+      Dashboard: "Dashboard",
+      Providers: "Providers",
+      OnCallSchedule: "On-Call Schedule",
+      OutsideIncome: "Outside Income",
+      Invoices: "Invoices",
+      Payments: "Payments",
+      OfficeSupplyOrders: "Office Supply Orders",
+      ClinicalSupplyOrders: "Clinical Supply Orders",
+      AudiologySupplyOrders: "Audiology Supply Orders",
+      ProviderTimeOff: "Time Off & CME",
+      Reminders: "Notifications & Closures",
+      Licenses: "Licenses",
+      Reports: "Reports",
+      DocumentManagement: "Document Management",
+      ClinicalPrivileges: "Clinical Privileges",
+      CMETracking: "CME Tracking",
+      OfficeSupplyCatalog: "Office Catalog",
+      ClinicalSupplyCatalog: "Clinical Catalog",
+      AudiologySupplyCatalog: "Audiology Catalog",
+      SystemDocumentation: "System Documentation",
+      ProgramLocations: "Program Locations",
+      ProviderDetail: "Provider Detail",
+      AuditLog: "Audit Log",
+      NotificationQueue: "Notification Queue",
+      CallLogDashboard: "Call Log",
+      TodaysOrders: "Today's Orders",
     };
-
-    setIsLoadingAuth(true);
-    init();
+    const pageTitle = pageTitleMap[currentPageName];
+    document.title = pageTitle
+      ? `ENTIC Operations Center – ${pageTitle}`
+      : "ENTIC Operations Center";
   }, [currentPageName]);
 
   const [previousCount, setPreviousCount] = React.useState(0);
@@ -265,6 +254,7 @@ function LayoutContent({ children, currentPageName }) {
   };
 
   const handleLogout = () => {
+    clearAuditUserCache();
     base44.auth.logout();
   };
 
@@ -338,8 +328,8 @@ function LayoutContent({ children, currentPageName }) {
     setPreviousCount(pendingOrders.length);
   }, [pendingOrders.length]);
 
-  // Show loading state while checking auth
-  if (isLoadingAuth) {
+  // Show loading state while checking auth (protected pages only)
+  if (!isPublicPage && isLoadingAuth) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-slate-50">
         <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
@@ -347,13 +337,13 @@ function LayoutContent({ children, currentPageName }) {
     );
   }
 
-  // If check finished but not authorized (and not public page), don't render content (redirect happening)
-  if (!isAuthorized && currentPageName !== 'PublicSupplyRequest') {
+  // Redirect in progress for unauthenticated protected pages
+  if (!isPublicPage && !isAuthenticated) {
     return null;
   }
 
   // Hide navigation for public pages
-  if (currentPageName === 'PublicSupplyRequest') {
+  if (isPublicPage) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
         {children}
@@ -415,6 +405,7 @@ function LayoutContent({ children, currentPageName }) {
               <Link 
                 to={createPageUrl("OfficeSupplyOrders") + "?filter=pending"}
                 className="relative p-2 hover:bg-blue-50 rounded-lg transition-all border border-transparent hover:border-blue-200"
+                aria-label={`Pending supply orders${pendingOrders.length > 0 ? ` (${pendingOrders.length})` : ''}`}
               >
                 <Bell className={`w-5 h-5 text-slate-600 ${pendingOrders.length > 0 ? 'animate-ring' : ''}`} />
                 {pendingOrders.length > 0 && (
@@ -429,7 +420,7 @@ function LayoutContent({ children, currentPageName }) {
                   to={item.url}
                   onClick={(e) => handleNavigationClick(e, item.url)}
                   className={`flex items-center gap-1 px-1 py-1 rounded-lg text-[11px] font-medium transition-all duration-200 border h-14 w-[105px] justify-center text-center leading-tight whitespace-normal ${
-                    location.pathname === item.url
+                    isNavItemActive(location.pathname, item)
                       ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md border-blue-600'
                       : 'bg-white text-slate-700 hover:bg-blue-50 border-slate-200 hover:border-blue-300 shadow-sm hover:shadow'
                   }`}
@@ -444,6 +435,7 @@ function LayoutContent({ children, currentPageName }) {
                     variant="outline"
                     size="sm"
                     className="flex items-center gap-1 px-2 py-2 rounded-lg text-sm font-medium border border-slate-200 hover:border-blue-300 shadow-sm hover:shadow"
+                    aria-label="More menu"
                   >
                     <MoreVertical className="w-4 h-4" />
                   </Button>
@@ -475,6 +467,7 @@ function LayoutContent({ children, currentPageName }) {
               <Link 
                 to={createPageUrl("OfficeSupplyOrders") + "?filter=pending"}
                 className="relative p-2 hover:bg-slate-100 rounded-lg transition-colors lg:hidden"
+                aria-label={`Pending supply orders${pendingOrders.length > 0 ? ` (${pendingOrders.length})` : ''}`}
               >
                 <Bell className={`w-5 h-5 text-slate-600 ${pendingOrders.length > 0 ? 'animate-ring' : ''}`} />
                 {pendingOrders.length > 0 && (
@@ -489,6 +482,8 @@ function LayoutContent({ children, currentPageName }) {
                 variant="ghost"
                 size="icon"
                 className="lg:hidden"
+                aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+                aria-expanded={mobileMenuOpen}
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               >
                 {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -509,7 +504,7 @@ function LayoutContent({ children, currentPageName }) {
                       handleNavigationClick(e, item.url);
                     }}
                     className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm transition-all ${
-                      location.pathname === item.url
+                      isNavItemActive(location.pathname, item)
                         ? 'bg-blue-100 text-blue-700 font-medium'
                         : 'text-slate-700 hover:bg-slate-100'
                     }`}
@@ -527,7 +522,7 @@ function LayoutContent({ children, currentPageName }) {
                       handleNavigationClick(e, item.url);
                     }}
                     className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm transition-all ${
-                      location.pathname === item.url
+                      isNavItemActive(location.pathname, item)
                         ? 'bg-blue-100 text-blue-700 font-medium'
                         : 'text-slate-700 hover:bg-slate-100'
                     }`}
@@ -567,7 +562,6 @@ function LayoutContent({ children, currentPageName }) {
           </motion.div>
         </AnimatePresence>
       </main>
-      <Toaster />
 
       <AlertDialog open={!!pendingNavigation} onOpenChange={(open) => !open && setPendingNavigation(null)}>
         <AlertDialogContent>

@@ -5,7 +5,7 @@ import { startOfWeek, startOfMonth, format, parseISO } from 'date-fns';
  */
 function normalizeExtension(ext) {
   if (!ext || typeof ext !== 'string') return '';
-  return String(ext).trim().replace(/[\s\-\(\)]/g, '').replace(/\D/g, '');
+  return String(ext).trim().replace(/[\s\-()]/g, '').replace(/\D/g, '');
 }
 
 /**
