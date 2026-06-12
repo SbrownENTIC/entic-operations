@@ -162,36 +162,6 @@ export default function Dashboard() {
     staleTime: 30000
   });
 
-  const { data: pendingVendorInvoices = [], isLoading: vendorInvoicesLoading } = useQuery({
-    queryKey: ['pending-vendor-invoices'],
-    queryFn: async () => {
-      try {
-        // Fetch invoices that are pending review
-        const results = await base44.entities.VendorInvoice.filter({ status: 'pending_review' });
-        return results;
-      } catch (error) {
-        return handleQueryError(error);
-      }
-    },
-    retry: false,
-    staleTime: 30000
-  });
-
-  const { data: rejectedVendorInvoices = [], isLoading: rejectedVendorInvoicesLoading } = useQuery({
-    queryKey: ['rejected-vendor-invoices'],
-    queryFn: async () => {
-      try {
-        // Fetch invoices that are rejected
-        const results = await base44.entities.VendorInvoice.filter({ status: 'rejected' });
-        return results;
-      } catch (error) {
-        return handleQueryError(error);
-      }
-    },
-    retry: false,
-    staleTime: 30000
-  });
-
   const { data: partiallyReceivedOrders = [] } = useQuery({
     queryKey: ['partially-received-orders'],
     queryFn: async () => {
@@ -867,7 +837,7 @@ export default function Dashboard() {
   });
 
   const isLoading = providersLoading || licensesLoading || privilegesLoading || 
-                    invoicesLoading || cmeLoading || paymentsLoading || supplyOrdersLoading || vendorInvoicesLoading || rejectedVendorInvoicesLoading;
+                    invoicesLoading || cmeLoading || paymentsLoading || supplyOrdersLoading;
 
   if (hasErrors) {
     return (
@@ -944,8 +914,6 @@ export default function Dashboard() {
             supplyOrders={supplyOrders}
             draftInvoices={draftInvoices}
             licensesExpiring14Days={licensesExpiring14Days}
-            pendingVendorInvoices={pendingVendorInvoices}
-            rejectedVendorInvoices={rejectedVendorInvoices}
           />
         );
       case 'pending_invoices':
