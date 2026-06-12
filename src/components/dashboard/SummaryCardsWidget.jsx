@@ -22,7 +22,7 @@ export default function SummaryCardsWidget({
           </CardHeader>
           <CardContent className="pt-3">
             <div className="text-4xl font-bold text-orange-700 mb-1">{pendingVendorInvoices.length}</div>
-            <Link to={createPageUrl("VendorInvoices")} className="text-xs text-orange-700 hover:text-orange-900 font-semibold hover:underline">
+            <Link to={createPageUrl("DocumentManagement")} className="text-xs text-orange-700 hover:text-orange-900 font-semibold hover:underline">
               Review invoices →
             </Link>
           </CardContent>
@@ -38,7 +38,7 @@ export default function SummaryCardsWidget({
           </CardHeader>
           <CardContent className="pt-3">
             <div className="text-4xl font-bold text-rose-700 mb-1">{rejectedVendorInvoices.length}</div>
-            <Link to={createPageUrl("VendorInvoices") + "?status=rejected"} className="text-xs text-rose-700 hover:text-rose-900 font-semibold hover:underline">
+            <Link to={createPageUrl("DocumentManagement")} className="text-xs text-rose-700 hover:text-rose-900 font-semibold hover:underline">
               View rejected →
             </Link>
           </CardContent>
