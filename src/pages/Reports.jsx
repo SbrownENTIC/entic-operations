@@ -29,7 +29,16 @@ export default function Reports() {
   });
   const [selectedAgingCategory, setSelectedAgingCategory] = useState(null);
   const [allocationView, setAllocationView] = useState('standard'); // 'standard' | 'quarter'
+  const [activeReportTab, setActiveReportTab] = useState('payment-tracking');
+  const [callLogMounted, setCallLogMounted] = useState(false);
   // supplyOrderDetail state moved to SupplyOrderReportView component
+
+  const handleReportTabChange = (value) => {
+    setActiveReportTab(value);
+    if (value === 'call-log') {
+      setCallLogMounted(true);
+    }
+  };
 
   const { data: payments = [], isLoading: paymentsLoading } = useQuery({
     queryKey: ['payments'],
@@ -723,7 +732,7 @@ export default function Reports() {
           </CardContent>
         </Card>
 
-        <Tabs defaultValue="payment-tracking" className="flex flex-col gap-4 min-w-0 [&_[role=tabpanel]]:min-w-0">
+        <Tabs value={activeReportTab} onValueChange={handleReportTabChange} className="flex flex-col gap-4 min-w-0 [&_[role=tabpanel]]:min-w-0">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
             <TabsList className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3 w-full h-auto bg-transparent p-0">
               <TabsTrigger value="payment-tracking" className="flex flex-col items-center justify-center gap-2 py-4 h-full whitespace-normal text-center bg-slate-50 border border-slate-200 rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600 hover:bg-slate-100 hover:border-slate-300 transition-all shadow-sm">
@@ -1394,7 +1403,7 @@ export default function Reports() {
           </TabsContent>
 
           <TabsContent value="call-log" className="p-0">
-            <CallLogDashboard />
+            {callLogMounted && <CallLogDashboard />}
           </TabsContent>
 
         </Tabs>
