@@ -352,6 +352,7 @@ function LayoutContent({ children, currentPageName }) {
   }
 
   const isDashboardPage = currentPageName === 'Dashboard';
+  const isReportsPage = currentPageName === 'Reports';
 
   return (
     <div className={`${isDashboardPage ? 'min-h-screen' : 'h-screen overflow-hidden'} w-full overflow-x-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50`}>
@@ -366,6 +367,8 @@ function LayoutContent({ children, currentPageName }) {
           --muted-foreground: 215.4 16.3% 46.9%;
           --accent: 210 40% 96.1%;
           --accent-foreground: 222.2 47.4% 11.2%;
+          /* Matches the fixed nav offset used across the app (min-h-[6rem] row + padding buffer). */
+          --layout-nav-offset: 8rem;
         }
         @keyframes ring {
           0%, 100% { transform: rotate(0deg); }
@@ -548,7 +551,13 @@ function LayoutContent({ children, currentPageName }) {
       </nav>
 
       {/* Main Content */}
-      <main className={isDashboardPage ? "flex-1 relative pt-[8rem]" : "relative h-screen pt-[8rem] overflow-hidden"}>
+      <main className={
+        isDashboardPage
+          ? "flex-1 relative pt-[8rem]"
+          : isReportsPage
+            ? "fixed inset-x-0 bottom-0 top-[var(--layout-nav-offset)] z-0 flex flex-col min-h-0 overflow-hidden"
+            : "relative h-screen pt-[8rem] overflow-hidden"
+      }>
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
@@ -556,7 +565,13 @@ function LayoutContent({ children, currentPageName }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
-            className={isDashboardPage ? "h-full" : "h-full min-h-0 overflow-hidden non-dashboard-compact"}
+            className={
+              isDashboardPage
+                ? "h-full"
+                : isReportsPage
+                  ? "flex flex-col h-full min-h-0 overflow-hidden non-dashboard-compact"
+                  : "h-full min-h-0 overflow-hidden non-dashboard-compact"
+            }
           >
             {children}
           </motion.div>
