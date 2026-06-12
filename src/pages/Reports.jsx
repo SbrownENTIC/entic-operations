@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchAllCallRecords } from "@/lib/callLogData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,11 +32,24 @@ export default function Reports() {
   const [allocationView, setAllocationView] = useState('standard'); // 'standard' | 'quarter'
   const [activeReportTab, setActiveReportTab] = useState('payment-tracking');
   const [callLogMounted, setCallLogMounted] = useState(false);
+  const queryClient = useQueryClient();
   // supplyOrderDetail state moved to SupplyOrderReportView component
 
-  const handleReportTabChange = (value) => {
+  const handleReportTabChange = async (value) => {
     setActiveReportTab(value);
     if (value === 'call-log') {
+      if (!callLogMounted) {
+        await Promise.all([
+          queryClient.prefetchQuery({
+            queryKey: ['inbound-calls'],
+            queryFn: () => fetchAllCallRecords(base44.entities.InboundCallRaw),
+          }),
+          queryClient.prefetchQuery({
+            queryKey: ['outbound-calls'],
+            queryFn: () => fetchAllCallRecords(base44.entities.OutboundCallRaw),
+          }),
+        ]);
+      }
       setCallLogMounted(true);
     }
   };
