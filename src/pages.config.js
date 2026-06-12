@@ -55,7 +55,6 @@ import ClinicalSupplyCatalog from './pages/ClinicalSupplyCatalog';
 import ClinicalSupplyOrders from './pages/ClinicalSupplyOrders';
 import Dashboard from './pages/Dashboard';
 import DocumentManagement from './pages/DocumentManagement';
-import Home from './pages/Home';
 import Invoices from './pages/Invoices';
 import Licenses from './pages/Licenses';
 import OfficeSupplyCatalog from './pages/OfficeSupplyCatalog';
@@ -87,7 +86,6 @@ export const PAGES = {
     "ClinicalSupplyOrders": ClinicalSupplyOrders,
     "Dashboard": Dashboard,
     "DocumentManagement": DocumentManagement,
-    "Home": Home,
     "Invoices": Invoices,
     "Licenses": Licenses,
     "OfficeSupplyCatalog": OfficeSupplyCatalog,
