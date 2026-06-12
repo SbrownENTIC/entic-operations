@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Upload, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import { clearCallLogCache } from '@/lib/callLogCache';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function CDRUpload({ onUploadSuccess }) {
@@ -45,6 +46,7 @@ export default function CDRUpload({ onUploadSuccess }) {
               type: 'success',
               text: `Import Complete - ${job.processed_rows.toLocaleString()} rows processed`
             });
+            await clearCallLogCache();
             if (onUploadSuccess) {
               onUploadSuccess();
             }

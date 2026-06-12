@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchAllCallRecords } from "@/lib/callLogData";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,8 +19,8 @@ import ProviderLicensesReport from "../components/reports/ProviderLicensesReport
 import { PaymentTrendChart, InvoiceAgingChart, IncomeDistributionChart, SupplySpendingChart } from "../components/reports/ReportCharts";
 import OfficeSupplyAnalytics from "../components/reports/OfficeSupplyAnalytics";
 import PaymentQuarterView from "../components/reports/PaymentQuarterView";
-import CallLogDashboard from "../pages/CallLogDashboard";
 import CallLogTabTrigger from "../components/reports/CallLogTabTrigger";
+import CallLogReportSection from "../components/reports/CallLogReportSection";
 
 export default function Reports() {
   const [dateRange, setDateRange] = useState({
@@ -32,24 +31,11 @@ export default function Reports() {
   const [allocationView, setAllocationView] = useState('standard'); // 'standard' | 'quarter'
   const [activeReportTab, setActiveReportTab] = useState('payment-tracking');
   const [callLogMounted, setCallLogMounted] = useState(false);
-  const queryClient = useQueryClient();
   // supplyOrderDetail state moved to SupplyOrderReportView component
 
-  const handleReportTabChange = async (value) => {
+  const handleReportTabChange = (value) => {
     setActiveReportTab(value);
     if (value === 'call-log') {
-      if (!callLogMounted) {
-        await Promise.all([
-          queryClient.prefetchQuery({
-            queryKey: ['inbound-calls'],
-            queryFn: () => fetchAllCallRecords(base44.entities.InboundCallRaw),
-          }),
-          queryClient.prefetchQuery({
-            queryKey: ['outbound-calls'],
-            queryFn: () => fetchAllCallRecords(base44.entities.OutboundCallRaw),
-          }),
-        ]);
-      }
       setCallLogMounted(true);
     }
   };
@@ -1417,7 +1403,9 @@ export default function Reports() {
           </TabsContent>
 
           <TabsContent value="call-log" className="p-0">
-            {callLogMounted && <CallLogDashboard />}
+            {callLogMounted && (
+              <CallLogReportSection isTabActive={activeReportTab === 'call-log'} />
+            )}
           </TabsContent>
 
         </Tabs>
