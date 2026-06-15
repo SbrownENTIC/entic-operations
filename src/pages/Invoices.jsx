@@ -14,6 +14,7 @@ import { formatDateToEST } from "@/components/DateUtils";
 import InvoiceForm from "../components/invoices/InvoiceForm";
 import InvoiceEmailQueueDialog from "../components/invoices/InvoiceEmailQueueDialog";
 import { auditCreate, auditUpdate, auditDelete } from '@/lib/auditLogger';
+import { fetchAllEntityRecords } from "@/lib/base44Pagination";
 import EmptyState from "@/components/ui/EmptyState";
 import { ListPageSkeleton } from "@/components/ui/LoadingSkeletons";
 import { useToast } from "@/components/ui/use-toast";
@@ -61,12 +62,12 @@ export default function Invoices() {
 
   const { data: invoices = [], isLoading: invoicesLoading } = useQuery({
     queryKey: ['invoices'],
-    queryFn: () => base44.entities.Invoice.list('-invoice_date')
+    queryFn: () => fetchAllEntityRecords(base44.entities.Invoice, '-invoice_date')
   });
 
   const { data: incomes = [] } = useQuery({
     queryKey: ['outside-income'],
-    queryFn: () => base44.entities.OutsideIncome.list()
+    queryFn: () => fetchAllEntityRecords(base44.entities.OutsideIncome)
   });
 
   const { data: providers = [], isLoading: providersLoading } = useQuery({
@@ -76,7 +77,7 @@ export default function Invoices() {
 
   const { data: payments = [] } = useQuery({
     queryKey: ['payments'],
-    queryFn: () => base44.entities.Payment.list()
+    queryFn: () => fetchAllEntityRecords(base44.entities.Payment)
   });
 
   const { data: notificationQueue = [] } = useQuery({
@@ -195,7 +196,7 @@ export default function Invoices() {
       // Auto-create Hartford Hospital Directorship invoice if this is an RVU invoice
       if (data.program_group === 'Hartford Hospital' && data.invoice_number && !data.invoice_number.includes('Directorship')) {
         // Fetch fresh list of incomes to ensure we have the latest data
-        const allIncomes = await base44.entities.OutsideIncome.list();
+        const allIncomes = await fetchAllEntityRecords(base44.entities.OutsideIncome);
         
         // Find the matching directorship outside income for this provider and month
         let directorshipIncome = allIncomes.find(inc => {
@@ -292,7 +293,7 @@ export default function Invoices() {
 
       if (isSethBrown && data.program_group === 'St. Francis' && data.invoice_number && !data.invoice_number.includes('Directorship')) {
         // Fetch fresh list of incomes
-        const allIncomes = await base44.entities.OutsideIncome.list();
+        const allIncomes = await fetchAllEntityRecords(base44.entities.OutsideIncome);
         
         // Find the matching directorship outside income for this provider and month
         let directorshipIncome = allIncomes.find(inc => {
