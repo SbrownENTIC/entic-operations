@@ -225,6 +225,12 @@ export async function syncCallLogReportData(queryClient, { onStatus, onReadyToMo
   }
 }
 
+export async function forceRefreshCallLogData(queryClient) {
+  await clearCallLogCache();
+  const currentVersion = await fetchCallLogImportVersion();
+  return refreshCallLogBundle(queryClient, currentVersion);
+}
+
 export async function persistCallLogCacheFromQueries(queryClient) {
   const inbound = queryClient.getQueryData(['inbound-calls']);
   const outbound = queryClient.getQueryData(['outbound-calls']);

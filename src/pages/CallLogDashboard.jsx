@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { forceRefreshCallLogData } from '@/lib/callLogCache';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle, Loader2, Download } from 'lucide-react';
+import { AlertTriangle, Loader2, Download, RefreshCw } from 'lucide-react';
 import ExcelJS from 'exceljs';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCallMetrics, formatPercent, KPICard } from '@/components/calllog/CallLogMetrics';
@@ -28,6 +29,7 @@ import GoalTrackingWidget from '@/components/calllog/GoalTrackingWidget';
 export default function CallLogDashboard() {
   const [selectedMetric, setSelectedMetric] = useState(null);
   const [activeTab, setActiveTab] = useState('reporting');
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const queryClient = useQueryClient();
 
   // Fetch all data with proper pagination to avoid 5000 record limit
@@ -67,6 +69,19 @@ export default function CallLogDashboard() {
   });
 
   const isLoading = inboundLoading || outboundLoading || usersLoading;
+  const hasData = inbound.length > 0 || outbound.length > 0;
+
+  const handleRefreshData = async () => {
+    setIsRefreshing(true);
+    try {
+      await forceRefreshCallLogData(queryClient);
+    } catch (error) {
+      console.error('Call Log manual refresh failed:', error);
+      alert('Failed to refresh call log data. Please try again.');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Helper to normalize extension
   const normalizeExtension = (ext) => {
@@ -1268,7 +1283,7 @@ export default function CallLogDashboard() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !hasData && !isRefreshing) {
     return (
       <div className="p-6 bg-slate-50 min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
@@ -1285,12 +1300,30 @@ export default function CallLogDashboard() {
     <div className="p-6 bg-slate-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Call Log Dashboard</h1>
             <p className="text-slate-600 mt-1">Inbound/outbound metrics and performance analysis</p>
           </div>
+          <Button
+            variant="outline"
+            onClick={handleRefreshData}
+            disabled={isRefreshing}
+            className="gap-2 shrink-0 border-blue-200 text-blue-700 hover:bg-blue-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Refreshing…' : 'Refresh Data'}
+          </Button>
         </div>
+
+        {isRefreshing && (
+          <Alert className="border-blue-200 bg-blue-50">
+            <Loader2 className="w-4 h-4 animate-spin text-blue-700" />
+            <AlertDescription className="text-blue-900">
+              Reloading all inbound and outbound call records and recalculating metrics…
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Tabs */}
          <Tabs value={activeTab} onValueChange={setActiveTab}>
