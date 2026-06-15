@@ -338,6 +338,10 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
       finalData.sent_to_vendor_at = invoice?.sent_to_vendor_at || null;
     }
 
+    if (!finalData.provider_paid) {
+      finalData.date_provider_paid = '';
+    }
+
     onSubmit(finalData, statusChanged);
   };
 
@@ -459,6 +463,11 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
   // Helper to ensure mutual exclusivity of status checkboxes
   const handleStatusCheckboxChange = (targetStatus, booleanFieldToSet, isChecked) => {
     if (!isChecked) {
+      if (booleanFieldToSet === 'provider_paid') {
+        setFormData(prev => ({ ...prev, provider_paid: false, date_provider_paid: '' }));
+        setIsDirty(true);
+        return;
+      }
       if (booleanFieldToSet) {
         handleChange(booleanFieldToSet, false);
       }
@@ -467,24 +476,30 @@ export default function InvoiceForm({ invoice, incomes, preselectedIncomes = [],
 
     const updates = {};
     const booleanFields = ['provider_paid', 'invoice_ready_to_send', 'invoice_sent_for_approval', 'invoice_sent_to_vendor'];
-    
-    // Uncheck all boolean fields
-    booleanFields.forEach(field => {
-      updates[field] = false;
+
+    setFormData(prev => {
+      // Uncheck all boolean fields
+      booleanFields.forEach(field => {
+        updates[field] = false;
+      });
+
+      if (booleanFieldToSet !== 'provider_paid' && prev.provider_paid) {
+        updates.date_provider_paid = '';
+      }
+
+      // Set the target boolean field
+      if (booleanFieldToSet) {
+        updates[booleanFieldToSet] = true;
+      }
+
+      // Update status
+      if (targetStatus) {
+        updates.status = targetStatus;
+        manualEditFlags.current.status = true;
+      }
+
+      return { ...prev, ...updates };
     });
-
-    // Set the target boolean field
-    if (booleanFieldToSet) {
-      updates[booleanFieldToSet] = true;
-    }
-
-    // Update status
-    if (targetStatus) {
-      updates.status = targetStatus;
-      manualEditFlags.current.status = true;
-    }
-
-    setFormData(prev => ({ ...prev, ...updates }));
     setIsDirty(true);
   };
 

@@ -405,6 +405,10 @@ export default function Invoices() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data, statusChanged }) => {
+      if (data.provider_paid === false) {
+        data.date_provider_paid = null;
+      }
+
       // If status was manually changed, set the override flag
       if (statusChanged) {
         data.manual_status_override = true;
@@ -514,6 +518,10 @@ export default function Invoices() {
 
   const bulkUpdateMutation = useMutation({
     mutationFn: async ({ ids, updateData }) => {
+      if (updateData.provider_paid === false) {
+        updateData.date_provider_paid = null;
+      }
+
       // Mark as manually overridden if status is being changed
       if (updateData.status) {
         updateData.manual_status_override = true;
