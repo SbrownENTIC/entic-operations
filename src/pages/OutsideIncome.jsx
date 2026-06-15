@@ -32,6 +32,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { auditCreate, auditUpdate, auditDelete } from '@/lib/auditLogger';
+import { fetchAllEntityRecords } from "@/lib/base44Pagination";
 
 export default function OutsideIncome() {
   const [showForm, setShowForm] = useState(false);
@@ -60,7 +61,7 @@ export default function OutsideIncome() {
 
   const { data: incomes = [], isLoading: incomesLoading } = useQuery({
     queryKey: ['outside-income'],
-    queryFn: () => base44.entities.OutsideIncome.list('-created_date')
+    queryFn: () => fetchAllEntityRecords(base44.entities.OutsideIncome, '-created_date')
   });
 
   const { data: providers = [], isLoading: providersLoading } = useQuery({
@@ -135,7 +136,7 @@ export default function OutsideIncome() {
           const targetMonthYear = format(parseISO(firstDayString), 'MMMM yyyy');
           
           // Check if directorship record already exists for this provider and month
-          const allIncomes = await base44.entities.OutsideIncome.list();
+          const allIncomes = await fetchAllEntityRecords(base44.entities.OutsideIncome);
           const existingDirectorship = allIncomes.find(inc => {
             const isSameProvider = inc.provider_id === data.provider_id;
             const isSameLocation = inc.program_location_id === directorshipLocation.id;
