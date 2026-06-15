@@ -55,23 +55,44 @@ function idbDelete(db, key) {
   });
 }
 
+function getUserDirectoryVersionSnapshot(users) {
+  let userDirectoryUpdatedAt = null;
+
+  for (const user of users) {
+    if (user.updated_date && (!userDirectoryUpdatedAt || user.updated_date > userDirectoryUpdatedAt)) {
+      userDirectoryUpdatedAt = user.updated_date;
+    }
+  }
+
+  return {
+    userDirectoryUpdatedAt,
+    userDirectoryCount: users.length,
+  };
+}
+
 /**
- * Lightweight import version derived from existing ImportJob records.
+ * Lightweight cache version from ImportJob records, raw call timestamps, and User Directory.
  * Falls back to newest raw record updated_date when no completed job exists.
+ * User Directory count + latest updated_date detect extension mapping edits and deletions.
  */
 export async function fetchCallLogImportVersion() {
-  const [inboundJobs, outboundJobs, latestInbound, latestOutbound] = await Promise.all([
+  const [inboundJobs, outboundJobs, latestInbound, latestOutbound, userDirectory] = await Promise.all([
     base44.entities.ImportJob.filter({ type: 'inbound', status: 'complete' }, '-completed_at', 1),
     base44.entities.ImportJob.filter({ type: 'outbound', status: 'complete' }, '-completed_at', 1),
     base44.entities.InboundCallRaw.filter({}, '-updated_date', 1),
     base44.entities.OutboundCallRaw.filter({}, '-updated_date', 1),
+    base44.entities.UserDirectory.list(),
   ]);
+
+  const { userDirectoryUpdatedAt, userDirectoryCount } = getUserDirectoryVersionSnapshot(userDirectory);
 
   return {
     inboundJobId: inboundJobs[0]?.id ?? null,
     inboundCompletedAt: inboundJobs[0]?.completed_at ?? latestInbound[0]?.updated_date ?? null,
     outboundJobId: outboundJobs[0]?.id ?? null,
     outboundCompletedAt: outboundJobs[0]?.completed_at ?? latestOutbound[0]?.updated_date ?? null,
+    userDirectoryUpdatedAt,
+    userDirectoryCount,
   };
 }
 
@@ -82,7 +103,9 @@ export function callLogImportVersionsMatch(storedVersion, currentVersion) {
     storedVersion.inboundJobId === currentVersion.inboundJobId &&
     storedVersion.inboundCompletedAt === currentVersion.inboundCompletedAt &&
     storedVersion.outboundJobId === currentVersion.outboundJobId &&
-    storedVersion.outboundCompletedAt === currentVersion.outboundCompletedAt
+    storedVersion.outboundCompletedAt === currentVersion.outboundCompletedAt &&
+    storedVersion.userDirectoryUpdatedAt === currentVersion.userDirectoryUpdatedAt &&
+    storedVersion.userDirectoryCount === currentVersion.userDirectoryCount
   );
 }
 
