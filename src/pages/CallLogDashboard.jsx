@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { forceRefreshCallLogData } from '@/lib/callLogCache';
+import { fetchAllCallRecords } from '@/lib/callLogData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -32,35 +33,14 @@ export default function CallLogDashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const queryClient = useQueryClient();
 
-  // Fetch all data with proper pagination to avoid 5000 record limit
-  const fetchAllRecords = async (entity) => {
-    let allRows = [];
-    let skip = 0;
-    const batchSize = 5000;
-
-    while (true) {
-      const batch = await entity.filter({}, '-updated_date', batchSize, skip);
-      
-      if (!batch || batch.length === 0) break;
-
-      allRows = allRows.concat(batch);
-      skip += batchSize;
-
-      // Safety break if batch is smaller than requested (indicates end of data)
-      if (batch.length < batchSize) break;
-    }
-
-    return allRows;
-  };
-
   const { data: inbound = [], isLoading: inboundLoading } = useQuery({
     queryKey: ['inbound-calls'],
-    queryFn: () => fetchAllRecords(base44.entities.InboundCallRaw)
+    queryFn: () => fetchAllCallRecords(base44.entities.InboundCallRaw)
   });
 
   const { data: outbound = [], isLoading: outboundLoading } = useQuery({
     queryKey: ['outbound-calls'],
-    queryFn: () => fetchAllRecords(base44.entities.OutboundCallRaw)
+    queryFn: () => fetchAllCallRecords(base44.entities.OutboundCallRaw)
   });
 
   const { data: users = [], isLoading: usersLoading } = useQuery({
