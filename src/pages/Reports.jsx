@@ -21,6 +21,7 @@ import OfficeSupplyAnalytics from "../components/reports/OfficeSupplyAnalytics";
 import PaymentQuarterView from "../components/reports/PaymentQuarterView";
 import CallLogTabTrigger from "../components/reports/CallLogTabTrigger";
 import CallLogReportSection from "../components/reports/CallLogReportSection";
+import { fetchAllEntityRecords } from "@/lib/base44Pagination";
 
 export default function Reports() {
   const [dateRange, setDateRange] = useState({
@@ -42,12 +43,12 @@ export default function Reports() {
 
   const { data: payments = [], isLoading: paymentsLoading } = useQuery({
     queryKey: ['payments'],
-    queryFn: () => base44.entities.Payment.list('-payment_date')
+    queryFn: () => fetchAllEntityRecords(base44.entities.Payment, '-payment_date')
   });
 
   const { data: invoices = [], isLoading: invoicesLoading } = useQuery({
     queryKey: ['invoices'],
-    queryFn: () => base44.entities.Invoice.list('-invoice_date')
+    queryFn: () => fetchAllEntityRecords(base44.entities.Invoice, '-invoice_date')
   });
 
   const { data: providers = [], isLoading: providersLoading } = useQuery({
@@ -57,7 +58,7 @@ export default function Reports() {
 
   const { data: incomes = [], isLoading: incomesLoading } = useQuery({
     queryKey: ['outside-income'],
-    queryFn: () => base44.entities.OutsideIncome.list()
+    queryFn: () => fetchAllEntityRecords(base44.entities.OutsideIncome)
   });
 
   const { data: supplyOrders = [], isLoading: ordersLoading } = useQuery({
