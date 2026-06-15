@@ -1,5 +1,63 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
+/**
+ * Derive invoice status from payment allocations, aligned with Payments.jsx updateInvoiceStatuses.
+ * Priority: manual_status_override (blocks except paid_to_entic) → provider_paid flag → allocation math.
+ */
+function deriveInvoiceStatus(invoice, amountReceived) {
+  const amountExpected = invoice.amount_expected || invoice.total || 0;
+  const balance = amountExpected - amountReceived;
+
+  let potentialStatus = invoice.status;
+
+  if (invoice.provider_paid) {
+    potentialStatus = 'provider_paid';
+  } else if (balance <= 0.01 && amountReceived > 0) {
+    potentialStatus = 'paid_to_entic';
+  } else if (amountReceived > 0 && balance > 0.01) {
+    potentialStatus = 'partial';
+  } else if (amountReceived === 0) {
+    if (['paid_to_entic', 'provider_paid', 'partial'].includes(invoice.status)) {
+      if (invoice.invoice_sent_to_vendor) {
+        potentialStatus = 'sent_to_vendor';
+      } else if (invoice.invoice_sent_for_approval) {
+        potentialStatus = 'sent_for_approval';
+      } else {
+        potentialStatus = 'draft';
+      }
+    }
+  }
+
+  if (potentialStatus === 'pending') {
+    if (invoice.invoice_sent_to_vendor) {
+      potentialStatus = 'sent_to_vendor';
+    } else if (invoice.invoice_sent_for_approval) {
+      potentialStatus = 'sent_for_approval';
+    } else {
+      potentialStatus = 'pending_providers_approval';
+    }
+  }
+
+  if (amountReceived === 0 && !invoice.provider_paid) {
+    if (invoice.invoice_sent_to_vendor && potentialStatus !== 'sent_to_vendor') {
+      potentialStatus = 'sent_to_vendor';
+    } else if (
+      invoice.invoice_sent_for_approval &&
+      potentialStatus !== 'sent_for_approval' &&
+      !invoice.invoice_sent_to_vendor
+    ) {
+      potentialStatus = 'sent_for_approval';
+    }
+  }
+
+  let newStatus = invoice.status;
+  if (!invoice.manual_status_override || potentialStatus === 'paid_to_entic') {
+    newStatus = potentialStatus;
+  }
+
+  return newStatus;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -32,16 +90,7 @@ Deno.serve(async (req) => {
     // Update each invoice with calculated amount_received and status
     for (const invoice of invoices) {
       const amountReceived = invoiceTotals[invoice.id] || 0;
-      const amountExpected = invoice.amount_expected || invoice.total || 0;
-      const balance = amountExpected - amountReceived;
-      
-      // Determine status based on payment
-      let newStatus = invoice.status;
-      if (balance <= 0 && amountReceived > 0) {
-        newStatus = 'paid_to_entic';
-      } else if (amountReceived > 0 && balance > 0) {
-        newStatus = 'partial';
-      }
+      const newStatus = deriveInvoiceStatus(invoice, amountReceived);
       
       // Only update if amount_received or status has changed
       // NEVER update amount_expected - that's set manually by the user
