@@ -58,6 +58,29 @@ function deriveInvoiceStatus(invoice, amountReceived) {
   return newStatus;
 }
 
+/**
+ * Paginate through all entity records via list(), avoiding Base44 default page limits.
+ * Uses skip += batch.length so partial API page sizes still advance correctly.
+ */
+async function fetchAllEntityRecords(
+  entity: { list: (sort?: string, limit?: number, skip?: number) => Promise<unknown[]> },
+  sort?: string
+) {
+  const allRows: unknown[] = [];
+  const batchSize = 5000;
+  let skip = 0;
+
+  while (true) {
+    const batch = await entity.list(sort, batchSize, skip);
+    if (!batch || batch.length === 0) break;
+
+    allRows.push(...batch);
+    skip += batch.length;
+  }
+
+  return allRows;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -69,8 +92,8 @@ Deno.serve(async (req) => {
     }
 
     // Fetch all payments and invoices
-    const payments = await base44.asServiceRole.entities.Payment.list();
-    const invoices = await base44.asServiceRole.entities.Invoice.list();
+    const payments = await fetchAllEntityRecords(base44.asServiceRole.entities.Payment);
+    const invoices = await fetchAllEntityRecords(base44.asServiceRole.entities.Invoice);
     
     // Calculate total received per invoice from payment allocations
     const invoiceTotals = {};
