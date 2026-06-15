@@ -152,7 +152,11 @@ export default function PaymentDetailModal({ payment, invoices, providers, onClo
                   {payment.allocations.map((allocation, index) => {
                     const invoice = invoices.find(inv => inv.id === allocation.invoice_id);
                     const provider = providers.find(p => p.id === allocation.provider_id);
-                    
+                    const isOtherProfessionalIncome =
+                      !invoice && allocation.outside_income_id && allocation.provider_id;
+                    const isDirectIncome =
+                      !invoice && allocation.outside_income_id && !allocation.provider_id;
+
                     return (
                       <div key={index} className="p-4 bg-slate-50 rounded-lg border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 transition-all group">
                         <div className="grid md:grid-cols-5 gap-4">
@@ -167,19 +171,26 @@ export default function PaymentDetailModal({ payment, invoices, providers, onClo
                                 {invoice.invoice_number || 'N/A'}
                                 <ExternalLink className="w-3 h-3" />
                               </Link>
+                            ) : isOtherProfessionalIncome ? (
+                              <p className="font-medium text-emerald-700">Other Professional Income</p>
+                            ) : isDirectIncome ? (
+                              <p className="font-medium text-blue-700">Direct Income</p>
                             ) : (
                               <p className="font-medium text-slate-900">N/A</p>
                             )}
                             <p className="text-sm text-slate-600">
-                              {invoice?.program_group || 'N/A'}
-                              {invoice?.month ? ` (${invoice.month})` : ''}
+                              {invoice
+                                ? `${invoice.program_group || 'N/A'}${invoice.month ? ` (${invoice.month})` : ''}`
+                                : isOtherProfessionalIncome
+                                  ? payment.payer || 'N/A'
+                                  : 'N/A'}
                             </p>
                           </div>
                           
                           <div>
                             <p className="text-xs text-slate-500">Provider</p>
                             <p className="font-medium text-slate-900">
-                              {provider?.full_name || 'Unknown'}
+                              {provider?.full_name || (isDirectIncome ? 'N/A' : 'Unknown')}
                             </p>
                           </div>
                           
@@ -239,8 +250,10 @@ export default function PaymentDetailModal({ payment, invoices, providers, onClo
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Allocation</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove this allocation of ${formatCurrency(deleteConfirm?.amount || 0)}? 
-              This will update the payment's unallocated amount and the invoice's received amount.
+              Are you sure you want to remove this allocation of ${formatCurrency(deleteConfirm?.amount || 0)}?
+              {deleteConfirm?.invoice_id
+                ? " This will update the payment's unallocated amount and the invoice's received amount."
+                : " This will update the payment's unallocated amount."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

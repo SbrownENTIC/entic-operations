@@ -15,6 +15,49 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import InvoiceForm from "../invoices/InvoiceForm";
 import { useFormState } from "@/components/FormContext";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+
+const DIRECT_PAYERS = ['Quinnipiac University', 'Nations Hearing'];
+
+const PAYMENT_MODES = {
+  INVOICE: 'invoice',
+  DIRECT: 'direct',
+  OTHER_PROFESSIONAL: 'other_professional_income',
+};
+
+const emptyDirectItem = () => ({
+  amount: 0,
+  amount_due: 0,
+  service_date: format(new Date(), 'yyyy-MM-dd'),
+  external_invoice_number: '',
+  external_po_number: '',
+  description: '',
+});
+
+const emptyProfessionalItem = () => ({
+  provider_id: '',
+  amount: 0,
+  service_date: format(new Date(), 'yyyy-MM-dd'),
+  description: '',
+});
+
+const detectPaymentMode = (payment, incomes = []) => {
+  if (!payment) return PAYMENT_MODES.INVOICE;
+  const allocs = payment.allocations || [];
+  if (allocs.some((a) => a.outside_income_id && a.provider_id)) {
+    return PAYMENT_MODES.OTHER_PROFESSIONAL;
+  }
+  if (allocs.some((a) => a.outside_income_id && !a.provider_id)) {
+    return PAYMENT_MODES.DIRECT;
+  }
+  if (allocs.some((a) => a.invoice_id)) {
+    return PAYMENT_MODES.INVOICE;
+  }
+  if (DIRECT_PAYERS.includes(payment.payer)) {
+    return PAYMENT_MODES.DIRECT;
+  }
+  return PAYMENT_MODES.INVOICE;
+};
 
 export default function PaymentForm({ payment, invoices, providers, onSubmit, onCancel, isLoading, isReadOnly }) {
   const { setIsDirty } = useFormState();
@@ -43,9 +86,12 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
   const [bulkSearchTerm, setBulkSearchTerm] = useState("");
   const [selectedBulkInvoices, setSelectedBulkInvoices] = useState(new Set());
   
-  // Direct Income State
+  // Payment mode and allocation state
+  const [paymentMode, setPaymentMode] = useState(PAYMENT_MODES.INVOICE);
   const [directIncomeItems, setDirectIncomeItems] = useState([]);
-  const isDirectPayer = ['Quinnipiac University', 'Nations Hearing'].includes(formData.payer);
+  const [professionalIncomeItems, setProfessionalIncomeItems] = useState([]);
+  const [payerComboboxOpen, setPayerComboboxOpen] = useState(false);
+  const [payerSearch, setPayerSearch] = useState('');
   const isQuinnipiac = formData.payer === 'Quinnipiac University';
   const isNations = formData.payer === 'Nations Hearing';
 
@@ -69,6 +115,16 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
     queryKey: ['outside-income'],
     queryFn: () => base44.entities.OutsideIncome.list()
   });
+
+  const { data: existingPayments = [] } = useQuery({
+    queryKey: ['payments'],
+    queryFn: () => base44.entities.Payment.list('-payment_date')
+  });
+
+  const allPayerOptions = React.useMemo(() => {
+    const historical = existingPayments.map((p) => p.payer).filter(Boolean);
+    return [...new Set([...payerOptions, ...historical])].sort((a, b) => a.localeCompare(b));
+  }, [existingPayments]);
 
   const createInvoiceMutation = useMutation({
     mutationFn: async (data) => {
@@ -104,69 +160,110 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
   useEffect(() => {
     if (payment) {
       setFormData(payment);
-      
-      // Populate direct income items if applicable
-      if (['Quinnipiac University', 'Nations Hearing'].includes(payment.payer) && payment.allocations) {
-        const items = payment.allocations.map(a => {
-           if (a.outside_income_id) {
-             const income = incomes.find(i => i.id === a.outside_income_id);
-             return {
-               id: a.outside_income_id, 
-               amount: a.amount,
-               amount_due: income?.amount_due || a.amount,
-               service_date: income?.work_dates?.[0] || format(new Date(), 'yyyy-MM-dd'),
-               external_invoice_number: income?.external_invoice_number || '',
-               external_po_number: income?.external_po_number || '',
-               description: income?.description || '',
-             };
-           }
-           return null;
+      const mode = detectPaymentMode(payment, incomes);
+      setPaymentMode(mode);
+
+      if (mode === PAYMENT_MODES.DIRECT && payment.allocations) {
+        const items = payment.allocations.map((a) => {
+          if (a.outside_income_id) {
+            const income = incomes.find((i) => i.id === a.outside_income_id);
+            return {
+              id: a.outside_income_id,
+              amount: a.amount,
+              amount_due: income?.amount_due || a.amount,
+              service_date: income?.work_dates?.[0] || format(new Date(), 'yyyy-MM-dd'),
+              external_invoice_number: income?.external_invoice_number || '',
+              external_po_number: income?.external_po_number || '',
+              description: income?.description || '',
+            };
+          }
+          return null;
         }).filter(Boolean);
         if (items.length > 0) setDirectIncomeItems(items);
         else if (payment.allocations.length === 0) {
-             setDirectIncomeItems([{ amount: 0, amount_due: 0, service_date: format(new Date(), 'yyyy-MM-dd'), external_invoice_number: '', external_po_number: '', description: '' }]);
+          setDirectIncomeItems([emptyDirectItem()]);
         }
+      } else if (mode === PAYMENT_MODES.OTHER_PROFESSIONAL && payment.allocations) {
+        const items = payment.allocations.map((a) => {
+          if (a.outside_income_id) {
+            const income = incomes.find((i) => i.id === a.outside_income_id);
+            return {
+              id: a.outside_income_id,
+              provider_id: a.provider_id || income?.provider_id || '',
+              amount: a.amount,
+              service_date: income?.work_dates?.[0] || format(new Date(), 'yyyy-MM-dd'),
+              description: a.notes || income?.description || '',
+            };
+          }
+          return null;
+        }).filter(Boolean);
+        if (items.length > 0) setProfessionalIncomeItems(items);
+        else setProfessionalIncomeItems([emptyProfessionalItem()]);
       }
     }
   }, [payment, incomes]);
 
-  const handleChange = (field, value) => {
-    if (field === 'payer') {
-       if (['Quinnipiac University', 'Nations Hearing'].includes(value)) {
-          // Auto set status to entic_paid if selecting a direct payer
-          setFormData(prev => ({ ...prev, status: 'entic_paid', [field]: value }));
-          
-          if (!['Quinnipiac University', 'Nations Hearing'].includes(formData.payer)) {
-             setDirectIncomeItems([{ amount: 0, amount_due: 0, service_date: format(new Date(), 'yyyy-MM-dd'), external_invoice_number: '', external_po_number: '', description: '' }]);
-          }
-       } else {
-          setFormData(prev => ({ ...prev, [field]: value }));
-       }
-    } else {
-      setFormData(prev => ({ ...prev, [field]: value }));
+  const handleModeChange = (mode) => {
+    setPaymentMode(mode);
+    if (mode === PAYMENT_MODES.DIRECT && directIncomeItems.length === 0) {
+      setDirectIncomeItems([emptyDirectItem()]);
+    }
+    if (mode === PAYMENT_MODES.OTHER_PROFESSIONAL && professionalIncomeItems.length === 0) {
+      setProfessionalIncomeItems([emptyProfessionalItem()]);
     }
     setIsDirty(true);
   };
 
-  // Auto-calculate payment_month from allocations or direct income details
+  const handleChange = (field, value) => {
+    if (field === 'payer') {
+      setFormData((prev) => {
+        const updates = { [field]: value };
+        if (paymentMode === PAYMENT_MODES.DIRECT && DIRECT_PAYERS.includes(value)) {
+          updates.status = 'entic_paid';
+        }
+        return { ...prev, ...updates };
+      });
+      if (
+        paymentMode === PAYMENT_MODES.DIRECT &&
+        DIRECT_PAYERS.includes(value) &&
+        !DIRECT_PAYERS.includes(formData.payer)
+      ) {
+        setDirectIncomeItems([emptyDirectItem()]);
+      }
+    } else {
+      setFormData((prev) => ({ ...prev, [field]: value }));
+    }
+    setIsDirty(true);
+  };
+
+  // Auto-calculate payment_month from allocations or direct/professional income details
   useEffect(() => {
     const months = new Set();
 
-    if (isDirectPayer) {
-      directIncomeItems.forEach(item => {
+    if (paymentMode === PAYMENT_MODES.DIRECT) {
+      directIncomeItems.forEach((item) => {
         if (item.service_date) {
-           // Parse YYYY-MM-DD safely
-           const [year, month] = item.service_date.split('-');
-           if (year && month) {
-              const dateObj = new Date(parseInt(year), parseInt(month) - 1);
-              months.add(format(dateObj, 'MMMM yyyy'));
-           }
+          const [year, month] = item.service_date.split('-');
+          if (year && month) {
+            const dateObj = new Date(parseInt(year), parseInt(month) - 1);
+            months.add(format(dateObj, 'MMMM yyyy'));
+          }
+        }
+      });
+    } else if (paymentMode === PAYMENT_MODES.OTHER_PROFESSIONAL) {
+      professionalIncomeItems.forEach((item) => {
+        if (item.service_date) {
+          const [year, month] = item.service_date.split('-');
+          if (year && month) {
+            const dateObj = new Date(parseInt(year), parseInt(month) - 1);
+            months.add(format(dateObj, 'MMMM yyyy'));
+          }
         }
       });
     } else if (formData.allocations && formData.allocations.length > 0) {
-      formData.allocations.forEach(allocation => {
+      formData.allocations.forEach((allocation) => {
         if (allocation.invoice_id) {
-          const invoice = invoices.find(inv => inv.id === allocation.invoice_id);
+          const invoice = invoices.find((inv) => inv.id === allocation.invoice_id);
           if (invoice && invoice.month) {
             months.add(invoice.month);
           }
@@ -175,74 +272,136 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
     }
 
     const paymentMonth = Array.from(months).sort().join(', ');
-    
+
     if (paymentMonth !== formData.payment_month) {
-       // Only clear if we are in a mode that should be auto-populating
-       if ((isDirectPayer && directIncomeItems.length > 0) || (!isDirectPayer && formData.allocations.length > 0) || paymentMonth === '') {
-          setFormData(prev => ({ ...prev, payment_month: paymentMonth }));
-       }
+      const shouldAutoPopulate =
+        (paymentMode === PAYMENT_MODES.DIRECT && directIncomeItems.length > 0) ||
+        (paymentMode === PAYMENT_MODES.OTHER_PROFESSIONAL && professionalIncomeItems.length > 0) ||
+        (paymentMode === PAYMENT_MODES.INVOICE && formData.allocations.length > 0) ||
+        paymentMonth === '';
+      if (shouldAutoPopulate) {
+        setFormData((prev) => ({ ...prev, payment_month: paymentMonth }));
+      }
     }
-  }, [formData.allocations, invoices, directIncomeItems, isDirectPayer, formData.payment_month]);
+  }, [formData.allocations, invoices, directIncomeItems, professionalIncomeItems, paymentMode, formData.payment_month]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (paymentMode === PAYMENT_MODES.OTHER_PROFESSIONAL) {
+      if (!formData.payer?.trim()) {
+        alert('Please select or enter a payer.');
+        return;
+      }
+      const validRows = professionalIncomeItems.filter((item) => item.amount && item.provider_id);
+      if (validRows.length === 0) {
+        alert('Please add at least one row with a provider and amount.');
+        return;
+      }
+    }
+
+    if (paymentMode === PAYMENT_MODES.DIRECT && !DIRECT_PAYERS.includes(formData.payer)) {
+      alert('Direct Payment requires Quinnipiac University or Nations Hearing as the payer.');
+      return;
+    }
+
     setIsDirty(false);
     
     let finalAllocations = formData.allocations;
     let paymentStatus = formData.status;
     
-    if (isDirectPayer) {
-      // Create/Update Outside Income records
+    if (paymentMode === PAYMENT_MODES.DIRECT) {
+      // Create/Update Outside Income records (Quinnipiac / Nations Hearing)
       const newAllocations = [];
-      
-      for (const item of directIncomeItems) {
-         if (!item.amount) continue;
 
-         const incomeData = {
-           facility_name: formData.payer,
-           program_location_id: null,
-           total_amount: item.amount_due || item.amount, // Total amount billed
-           amount_due: item.amount_due,
-           rate: item.amount, 
-           days_worked: 1,
-           status: 'entic_paid',
-           work_dates: [item.service_date],
-           external_invoice_number: item.external_invoice_number,
-           external_po_number: item.external_po_number,
-           description: item.description,
-           notes: `Auto-created from payment ref ${formData.reference_number}`
-         };
-         
-         let incomeId = item.id;
-         
-         if (incomeId) {
-            await base44.entities.OutsideIncome.update(incomeId, incomeData);
-         } else {
-            const newIncome = await base44.entities.OutsideIncome.create(incomeData);
-            incomeId = newIncome.id;
-         }
-         
-         newAllocations.push({
-           outside_income_id: incomeId,
-           provider_id: null, // No provider for these
-           amount: item.amount,
-           notes: item.description
-         });
+      for (const item of directIncomeItems) {
+        if (!item.amount) continue;
+
+        const incomeData = {
+          facility_name: formData.payer,
+          program_location_id: null,
+          total_amount: item.amount_due || item.amount,
+          amount_due: item.amount_due,
+          rate: item.amount,
+          days_worked: 1,
+          status: 'entic_paid',
+          work_dates: [item.service_date],
+          external_invoice_number: item.external_invoice_number,
+          external_po_number: item.external_po_number,
+          description: item.description,
+          notes: `Auto-created from payment ref ${formData.reference_number}`,
+        };
+
+        let incomeId = item.id;
+
+        if (incomeId) {
+          await base44.entities.OutsideIncome.update(incomeId, incomeData);
+        } else {
+          const newIncome = await base44.entities.OutsideIncome.create(incomeData);
+          incomeId = newIncome.id;
+        }
+
+        newAllocations.push({
+          outside_income_id: incomeId,
+          provider_id: null,
+          amount: item.amount,
+          notes: item.description,
+        });
       }
-      
+
       finalAllocations = newAllocations;
-      
-      // Auto-set payment status to entic_paid for direct payers
+
       if (formData.status === 'pending' || !formData.status) {
-         paymentStatus = 'entic_paid';
+        paymentStatus = 'entic_paid';
+      }
+    } else if (paymentMode === PAYMENT_MODES.OTHER_PROFESSIONAL) {
+      const newAllocations = [];
+
+      for (const item of professionalIncomeItems) {
+        if (!item.amount || !item.provider_id) continue;
+
+        const incomeData = {
+          facility_name: formData.payer,
+          provider_id: item.provider_id,
+          program_location_id: null,
+          total_amount: item.amount,
+          amount_due: item.amount,
+          status: 'entic_paid',
+          work_dates: [item.service_date],
+          description: item.description,
+          notes: `Auto-created from payment ref ${formData.reference_number}`,
+        };
+
+        let incomeId = item.id;
+
+        if (incomeId) {
+          await base44.entities.OutsideIncome.update(incomeId, incomeData);
+        } else {
+          const newIncome = await base44.entities.OutsideIncome.create(incomeData);
+          incomeId = newIncome.id;
+        }
+
+        newAllocations.push({
+          outside_income_id: incomeId,
+          provider_id: item.provider_id,
+          amount: item.amount,
+          notes: item.description,
+        });
+      }
+
+      finalAllocations = newAllocations;
+
+      if (formData.status === 'pending' || !formData.status) {
+        paymentStatus = 'entic_paid';
       }
     }
-    
+
+    queryClient.invalidateQueries({ queryKey: ['outside-income'] });
     onSubmit({ ...formData, status: paymentStatus, allocations: finalAllocations });
   };
 
   const addDirectItem = () => {
-    setDirectIncomeItems([...directIncomeItems, { amount: 0, amount_due: 0, service_date: format(new Date(), 'yyyy-MM-dd'), external_invoice_number: '', external_po_number: '', description: '' }]);
+    setDirectIncomeItems([...directIncomeItems, emptyDirectItem()]);
   };
 
   const removeDirectItem = (index) => {
@@ -253,10 +412,33 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
     const newItems = [...directIncomeItems];
     newItems[index] = { ...newItems[index], [field]: value };
     setDirectIncomeItems(newItems);
-    
-    // Auto update total amount
+
     const total = newItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
-    setFormData(prev => ({ ...prev, total_amount: total }));
+    setFormData((prev) => ({ ...prev, total_amount: total }));
+    setIsDirty(true);
+  };
+
+  const addProfessionalItem = () => {
+    setProfessionalIncomeItems([...professionalIncomeItems, emptyProfessionalItem()]);
+    setIsDirty(true);
+  };
+
+  const removeProfessionalItem = (index) => {
+    const newItems = professionalIncomeItems.filter((_, i) => i !== index);
+    setProfessionalIncomeItems(newItems);
+    const total = newItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+    setFormData((prev) => ({ ...prev, total_amount: total }));
+    setIsDirty(true);
+  };
+
+  const updateProfessionalItem = (index, field, value) => {
+    const newItems = [...professionalIncomeItems];
+    newItems[index] = { ...newItems[index], [field]: value };
+    setProfessionalIncomeItems(newItems);
+
+    const total = newItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+    setFormData((prev) => ({ ...prev, total_amount: total }));
+    setIsDirty(true);
   };
 
   const addAllocation = () => {
@@ -386,7 +568,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
             payment_date: data.payment_date || prev.payment_date,
           }));
 
-          if (isDirectPayer && data.items && data.items.length > 0) {
+          if (paymentMode === PAYMENT_MODES.DIRECT && data.items && data.items.length > 0) {
             const newItems = data.items.map(item => ({
               amount: item.amount || 0,
               amount_due: item.amount_due || item.amount || 0,
@@ -476,6 +658,14 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
 
   const totalAllocated = formData.allocations.reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
   const unallocated = (formData.total_amount || 0) - totalAllocated;
+  const isAutoTotalMode = paymentMode === PAYMENT_MODES.DIRECT || paymentMode === PAYMENT_MODES.OTHER_PROFESSIONAL;
+
+  const filteredPayerOptions = payerSearch.trim()
+    ? allPayerOptions.filter((p) => p.toLowerCase().includes(payerSearch.toLowerCase()))
+    : allPayerOptions;
+  const showCustomPayerOption =
+    payerSearch.trim() &&
+    !allPayerOptions.some((p) => p.toLowerCase() === payerSearch.trim().toLowerCase());
 
   return (
     <>
@@ -495,6 +685,36 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                 <p className="text-sm mt-1">This payment record is view-only. Contact an administrator to make changes.</p>
               </div>
             )}
+
+            <div className="mb-6 p-4 bg-white rounded-lg border border-slate-200">
+              <Label className="text-sm font-medium text-slate-700 mb-3 block">Payment Type *</Label>
+              <RadioGroup
+                value={paymentMode}
+                onValueChange={handleModeChange}
+                className="flex flex-col sm:flex-row gap-4"
+                disabled={isReadOnly}
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value={PAYMENT_MODES.INVOICE} id="mode-invoice" disabled={isReadOnly} />
+                  <Label htmlFor="mode-invoice" className="font-normal cursor-pointer">Invoice Payment</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value={PAYMENT_MODES.DIRECT} id="mode-direct" disabled={isReadOnly} />
+                  <Label htmlFor="mode-direct" className="font-normal cursor-pointer">Direct Payment</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value={PAYMENT_MODES.OTHER_PROFESSIONAL} id="mode-other" disabled={isReadOnly} />
+                  <Label htmlFor="mode-other" className="font-normal cursor-pointer">Other Professional Income</Label>
+                </div>
+              </RadioGroup>
+              {paymentMode === PAYMENT_MODES.DIRECT && (
+                <p className="text-xs text-slate-500 mt-2">For Quinnipiac University and Nations Hearing payments without invoices.</p>
+              )}
+              {paymentMode === PAYMENT_MODES.OTHER_PROFESSIONAL && (
+                <p className="text-xs text-slate-500 mt-2">For professional income received without an existing invoice to allocate against.</p>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-slate-700 mb-1 block">
@@ -521,29 +741,102 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                   placeholder="Will be set from invoice allocations"
                   className="bg-slate-100"
                 />
-                <p className="text-xs text-slate-500 mt-1">Automatically set from invoice months</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  {paymentMode === PAYMENT_MODES.INVOICE
+                    ? 'Automatically set from invoice months'
+                    : 'Automatically set from service dates'}
+                </p>
               </div>
 
               <div>
                 <label className="text-sm font-medium text-slate-700 mb-1 block">
                   Payer *
                 </label>
-                <Select
-                  value={formData.payer}
-                  onValueChange={(value) => handleChange('payer', value)}
-                  disabled={isReadOnly}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select payer" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {payerOptions.map(payer => (
-                      <SelectItem key={payer} value={payer}>
-                        {payer}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {paymentMode === PAYMENT_MODES.OTHER_PROFESSIONAL ? (
+                  <Popover open={payerComboboxOpen} onOpenChange={setPayerComboboxOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className="w-full justify-between font-normal"
+                        disabled={isReadOnly}
+                      >
+                        {formData.payer || <span className="text-slate-500">Select or type payer...</span>}
+                        <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                      <Command shouldFilter={false}>
+                        <CommandInput
+                          placeholder="Search or type new payer..."
+                          value={payerSearch}
+                          onValueChange={setPayerSearch}
+                        />
+                        <CommandEmpty>
+                          {payerSearch.trim() ? (
+                            <button
+                              type="button"
+                              className="w-full px-4 py-3 text-left text-sm hover:bg-slate-100"
+                              onClick={() => {
+                                handleChange('payer', payerSearch.trim());
+                                setPayerSearch('');
+                                setPayerComboboxOpen(false);
+                              }}
+                            >
+                              Add &ldquo;{payerSearch.trim()}&rdquo; as new payer
+                            </button>
+                          ) : (
+                            <span className="p-4 text-sm text-slate-500">Type a payer name</span>
+                          )}
+                        </CommandEmpty>
+                        <CommandGroup className="max-h-48 overflow-auto">
+                          {showCustomPayerOption && (
+                            <CommandItem
+                              value={`new-${payerSearch}`}
+                              onSelect={() => {
+                                handleChange('payer', payerSearch.trim());
+                                setPayerSearch('');
+                                setPayerComboboxOpen(false);
+                              }}
+                            >
+                              Add &ldquo;{payerSearch.trim()}&rdquo; as new payer
+                            </CommandItem>
+                          )}
+                          {filteredPayerOptions.map((payer) => (
+                            <CommandItem
+                              key={payer}
+                              value={payer}
+                              onSelect={() => {
+                                handleChange('payer', payer);
+                                setPayerSearch('');
+                                setPayerComboboxOpen(false);
+                              }}
+                            >
+                              {payer}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                ) : (
+                  <Select
+                    value={formData.payer}
+                    onValueChange={(value) => handleChange('payer', value)}
+                    disabled={isReadOnly}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select payer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {payerOptions.map((payer) => (
+                        <SelectItem key={payer} value={payer}>
+                          {payer}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
 
               <div>
@@ -556,8 +849,12 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                   value={formData.total_amount}
                   onChange={(e) => handleChange('total_amount', parseFloat(e.target.value) || 0)}
                   required
-                  disabled={isReadOnly}
+                  disabled={isReadOnly || isAutoTotalMode}
+                  className={isAutoTotalMode ? 'bg-slate-100' : ''}
                 />
+                {isAutoTotalMode && (
+                  <p className="text-xs text-slate-500 mt-1">Auto-calculated from allocation rows</p>
+                )}
               </div>
 
               <div>
@@ -671,8 +968,8 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
             </div>
 
             <div>
-              {isDirectPayer ? (
-                // Direct Income Mode
+              {paymentMode === PAYMENT_MODES.DIRECT ? (
+                // Direct Income Mode (Quinnipiac / Nations Hearing)
                 <div>
                   <div className="flex items-center justify-between mb-4 mt-6">
                     <div>
@@ -690,6 +987,11 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                   </div>
                   
                   <div className="space-y-4">
+                    {!DIRECT_PAYERS.includes(formData.payer) && (
+                      <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                        Select Quinnipiac University or Nations Hearing as the payer for direct payments.
+                      </p>
+                    )}
                     {directIncomeItems.map((item, index) => (
                       <div key={index} className="p-4 bg-blue-50/50 rounded-lg border border-blue-100 space-y-3">
                         {isQuinnipiac && (
@@ -829,6 +1131,91 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                           </>
                         )}
                         
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : paymentMode === PAYMENT_MODES.OTHER_PROFESSIONAL ? (
+                <div>
+                  <div className="flex items-center justify-between mb-4 mt-6">
+                    <div>
+                      <Label className="text-emerald-700">Other Professional Income</Label>
+                      <p className="text-sm text-slate-500 mt-1">
+                        Enter provider and amount — Outside Income records will be created automatically
+                      </p>
+                    </div>
+                    {!isReadOnly && (
+                      <Button type="button" variant="outline" size="sm" onClick={addProfessionalItem}>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Row
+                      </Button>
+                    )}
+                  </div>
+
+                  <div className="space-y-4">
+                    {professionalIncomeItems.map((item, index) => (
+                      <div key={index} className="p-4 bg-emerald-50/50 rounded-lg border border-emerald-100 space-y-3">
+                        <div className="grid grid-cols-12 gap-3">
+                          <div className="col-span-4">
+                            <Label className="text-xs">Provider *</Label>
+                            <Select
+                              value={item.provider_id}
+                              onValueChange={(value) => updateProfessionalItem(index, 'provider_id', value)}
+                              disabled={isReadOnly}
+                            >
+                              <SelectTrigger className="mt-1">
+                                <SelectValue placeholder="Select provider" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {providers.map((provider) => (
+                                  <SelectItem key={provider.id} value={provider.id}>
+                                    {provider.full_name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="col-span-3">
+                            <Label className="text-xs">Amount *</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              className="mt-1"
+                              value={item.amount || 0}
+                              onChange={(e) => updateProfessionalItem(index, 'amount', parseFloat(e.target.value) || 0)}
+                              required
+                              disabled={isReadOnly}
+                            />
+                          </div>
+                          <div className="col-span-4">
+                            <Label className="text-xs">Service Date *</Label>
+                            <Input
+                              type="date"
+                              className="mt-1"
+                              value={item.service_date}
+                              onChange={(e) => updateProfessionalItem(index, 'service_date', e.target.value)}
+                              required
+                              disabled={isReadOnly}
+                            />
+                          </div>
+                          <div className="col-span-1 flex items-end justify-end">
+                            {!isReadOnly && professionalIncomeItems.length > 1 && (
+                              <Button type="button" variant="ghost" size="icon" onClick={() => removeProfessionalItem(index)}>
+                                <Trash2 className="w-4 h-4 text-red-500" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <Label className="text-xs">Description / Notes</Label>
+                          <Input
+                            className="mt-1"
+                            value={item.description}
+                            onChange={(e) => updateProfessionalItem(index, 'description', e.target.value)}
+                            placeholder="Optional description"
+                            disabled={isReadOnly}
+                          />
+                        </div>
                       </div>
                     ))}
                   </div>

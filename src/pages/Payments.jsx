@@ -67,6 +67,77 @@ export default function Payments() {
     queryFn: () => base44.entities.Provider.list()
   });
 
+  const { data: outsideIncomes = [] } = useQuery({
+    queryKey: ['outside-income'],
+    queryFn: () => base44.entities.OutsideIncome.list()
+  });
+
+  const getAllocationLabel = (allocation) => {
+    const invoice = invoices.find((inv) => inv.id === allocation.invoice_id);
+    if (invoice) {
+      return {
+        primary: invoice.invoice_number || 'N/A',
+        secondary: invoice.month ? `(${invoice.month})` : null,
+      };
+    }
+    if (allocation.outside_income_id) {
+      const provider = providers.find((p) => p.id === allocation.provider_id);
+      const income = outsideIncomes.find((inc) => inc.id === allocation.outside_income_id);
+      const providerName = provider?.full_name || (income?.provider_id
+        ? providers.find((p) => p.id === income.provider_id)?.full_name
+        : null);
+      if (allocation.provider_id || income?.provider_id) {
+        return {
+          primary: providerName || 'Unknown Provider',
+          secondary: 'Other Professional Income',
+        };
+      }
+      return {
+        primary: 'Direct Income',
+        secondary: income?.external_invoice_number || null,
+      };
+    }
+    return { primary: 'N/A', secondary: null };
+  };
+
+  const allocationsMatch = (a, toRemove) => {
+    if (toRemove.invoice_id) {
+      return (
+        a.invoice_id === toRemove.invoice_id &&
+        a.provider_id === toRemove.provider_id &&
+        a.amount === toRemove.amount
+      );
+    }
+    if (toRemove.outside_income_id) {
+      return (
+        a.outside_income_id === toRemove.outside_income_id &&
+        a.amount === toRemove.amount
+      );
+    }
+    return false;
+  };
+
+  const derivePaymentMonth = (allocations) => {
+    const months = new Set();
+    allocations.forEach((allocation) => {
+      if (allocation.invoice_id) {
+        const invoice = invoices.find((inv) => inv.id === allocation.invoice_id);
+        if (invoice?.month) months.add(invoice.month);
+      } else if (allocation.outside_income_id) {
+        const income = outsideIncomes.find((inc) => inc.id === allocation.outside_income_id);
+        const dateStr = income?.work_dates?.[0];
+        if (dateStr) {
+          const [year, month] = dateStr.split('-');
+          if (year && month) {
+            const dateObj = new Date(parseInt(year), parseInt(month) - 1);
+            months.add(format(dateObj, 'MMMM yyyy'));
+          }
+        }
+      }
+    });
+    return Array.from(months).sort().join(', ');
+  };
+
   // Helper function to round to 2 decimal places and handle floating point precision
   const roundToTwo = (num) => {
     return Math.round((num + Number.EPSILON) * 100) / 100;
@@ -266,6 +337,7 @@ export default function Payments() {
     onSuccess: (payment, data) => {
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['outside-income'] });
       setShowForm(false);
       setEditingPayment(null);
       auditCreate('Payment', data, payment?.id).catch(e => console.error('[Audit]', e));
@@ -324,6 +396,7 @@ export default function Payments() {
     onSuccess: (payment, variables) => {
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['outside-income'] });
       const oldRecord = editingPayment;
       setShowForm(false);
       setEditingPayment(null);
@@ -363,26 +436,13 @@ export default function Payments() {
   const unallocateMutation = useMutation({
     mutationFn: async ({ payment, allocationToRemove }) => {
       const updatedAllocations = (payment.allocations || []).filter(
-        a => !(a.invoice_id === allocationToRemove.invoice_id &&
-              a.provider_id === allocationToRemove.provider_id &&
-              a.amount === allocationToRemove.amount)
+        (a) => !allocationsMatch(a, allocationToRemove)
       );
 
       const totalAllocated = updatedAllocations.reduce((sum, a) => sum + (a.amount || 0), 0);
       const unallocated = roundToTwo((payment.total_amount || 0) - totalAllocated);
 
-      const months = new Set();
-      if (updatedAllocations.length > 0) {
-        updatedAllocations.forEach(allocation => {
-          if (allocation.invoice_id) {
-            const invoice = invoices.find(inv => inv.id === allocation.invoice_id);
-            if (invoice && invoice.month) {
-              months.add(invoice.month);
-            }
-          }
-        });
-      }
-      const paymentMonth = Array.from(months).sort().join(', ');
+      const paymentMonth = derivePaymentMonth(updatedAllocations);
 
       let status = payment.status;
       if (Math.abs(unallocated) < 0.01 && totalAllocated > 0) {
@@ -405,6 +465,7 @@ export default function Payments() {
     onSuccess: (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['outside-income'] });
       auditUpdate('Payment', variables.payment.id, { allocations: 'allocation_removed' }, variables.payment).catch(e => console.error('[Audit]', e));
       setViewingPayment(null);
     },
@@ -928,15 +989,15 @@ export default function Payments() {
                           {payment.allocations && payment.allocations.length > 0 ? (
                             <div className="space-y-1">
                               {payment.allocations.map((allocation, idx) => {
-                                const invoice = invoices.find(inv => inv.id === allocation.invoice_id);
+                                const label = getAllocationLabel(allocation);
                                 return (
                                   <div key={idx} className="text-[10px]">
                                     <span className="font-medium text-slate-900">
-                                      {invoice?.invoice_number || 'N/A'}
+                                      {label.primary}
                                     </span>
-                                    {invoice?.month && (
+                                    {label.secondary && (
                                       <span className="text-slate-500 ml-1">
-                                        ({invoice.month})
+                                        ({label.secondary})
                                       </span>
                                     )}
                                   </div>
