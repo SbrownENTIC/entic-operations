@@ -44,6 +44,9 @@ Deno.serve(async (req) => {
                 filename = "Outside_Income_Payment_Tracking_UConn";
             } else if (title.includes("Nations Hearing")) {
                 filename = "Outside_Income_Payment_Tracking_Nations_Hearing";
+            } else if (title.includes("Other Professional Income")) {
+                filename = "Outside_Income_Payment_Tracking_Other_Professional_Income";
+                sheetname = "Other Professional Income";
             } else {
                 // Fallback for others
                 filename = `Outside_Income_Payment_Tracking_${title.split(' - ')[0].replace(/[^a-zA-Z0-9]/g, '_')}`;
@@ -673,14 +676,14 @@ Deno.serve(async (req) => {
                     copySheet(hpsOriginal, reorderedMaster, 'Hartford Payment Summary', tabColors['Hartford Payment Summary']);
                     
                     // Now add the detail sheet with cycling color (unless it's one of the last two)
-                    if (srcSheet.name === 'Quinnipiac University' || srcSheet.name === 'Nations Hearing') {
+                    if (srcSheet.name === 'Quinnipiac University' || srcSheet.name === 'Nations Hearing' || srcSheet.name === 'Other Professional Income') {
                         lastSheets.push(srcSheet);
                     } else {
                         copySheet(srcSheet, reorderedMaster, srcSheet.name, detailColors[detailColorIdx++ % detailColors.length]);
                     }
                 } else {
                     // Collect detail sheets to add last, or add them now if not in the last two
-                    if (srcSheet.name === 'Quinnipiac University' || srcSheet.name === 'Nations Hearing') {
+                    if (srcSheet.name === 'Quinnipiac University' || srcSheet.name === 'Nations Hearing' || srcSheet.name === 'Other Professional Income') {
                         lastSheets.push(srcSheet);
                     } else {
                         copySheet(srcSheet, reorderedMaster, srcSheet.name, detailColors[detailColorIdx++ % detailColors.length]);

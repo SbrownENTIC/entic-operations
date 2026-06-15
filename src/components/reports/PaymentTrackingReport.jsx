@@ -52,6 +52,21 @@ const buildPaymentQuarterRows = (payments, invoices, providers, outsideIncome = 
   payments.forEach(payment => {
     if (!payment.payment_date) return;
     (payment.allocations || []).forEach(allocation => {
+      if (allocation.outside_income_id && !allocation.invoice_id && allocation.provider_id) {
+        const provider = providers.find(p => p.id === allocation.provider_id);
+        rows.push({
+          quarter: getQuarter(payment.payment_date),
+          paymentDate: payment.payment_date,
+          referenceNumber: payment.reference_number || '',
+          programGroup: 'Other Professional Income',
+          provider: provider?.full_name || '-',
+          invoiceNumber: '-',
+          isDirectorship: false,
+          amount: allocation.amount || 0,
+        });
+        return;
+      }
+
       const invoice = invoices.find(inv => inv.id === allocation.invoice_id);
       const group = normalizeQGroup(invoice?.program_group || '');
       if (!QUARTER_ALLOWED_GROUPS.includes(group)) return;
@@ -114,6 +129,111 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
 
       return (monthOrder[bMonth] || 0) - (monthOrder[aMonth] || 0);
     });
+  };
+
+  const isOtherProfessionalAllocation = (allocation) =>
+    allocation.outside_income_id &&
+    !allocation.invoice_id &&
+    allocation.provider_id;
+
+  const cleanAutoNotes = (notes) => {
+    if (!notes) return '';
+    const lower = notes.toLowerCase();
+    if (lower.includes('auto-generated') || lower.includes('auto-created')) return '';
+    return notes;
+  };
+
+  const parseUsDate = (dateStr) => {
+    if (!dateStr || typeof dateStr !== 'string') return null;
+    const parts = dateStr.split('/');
+    if (parts.length !== 3) return null;
+    const [month, day, year] = parts;
+    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+  };
+
+  const buildOtherProfessionalIncomeSection = (normalizeGroup) => {
+    const headers = [
+      'Payment Date',
+      'Payment Month',
+      'Payer',
+      'Provider',
+      'Service Date',
+      'Expected Payment',
+      'Payment Received',
+      'Reference Number',
+      'Payment Method',
+      'Notes',
+    ];
+
+    const rows = [];
+
+    payments.forEach((payment) => {
+      if (!payment.payment_date) return;
+
+      const pDate = parseISO(payment.payment_date);
+      const start = dateRange.start ? parseISO(dateRange.start) : null;
+      const end = dateRange.end ? parseISO(dateRange.end) : null;
+      if (start && pDate < start) return;
+      if (end && pDate > end) return;
+
+      (payment.allocations || []).forEach((allocation) => {
+        if (!isOtherProfessionalAllocation(allocation)) return;
+
+        const income = outsideIncome.find((inc) => inc.id === allocation.outside_income_id);
+        const provider = providers.find((p) => p.id === allocation.provider_id);
+        const facilityName = payment.payer || income?.facility_name || '';
+
+        if (selectedProgramGroup !== 'all') {
+          const normalizedFacility = normalizeGroup(facilityName);
+          if (
+            normalizedFacility !== selectedProgramGroup &&
+            facilityName !== selectedProgramGroup
+          ) {
+            return;
+          }
+        }
+
+        const serviceDateStr = income?.work_dates?.[0];
+        const serviceDate = serviceDateStr ? format(parseISO(serviceDateStr), 'MM/dd/yyyy') : '';
+        const paymentDate = format(pDate, 'MM/dd/yyyy');
+        const amount = allocation.amount || 0;
+        const expectedAmount = income?.amount_due || income?.total_amount || amount;
+
+        const notes = [
+          allocation.notes,
+          income?.description,
+          cleanAutoNotes(income?.notes),
+        ].filter(Boolean).join('; ');
+
+        rows.push([
+          paymentDate,
+          payment.payment_month || '',
+          facilityName,
+          provider?.full_name || 'Unknown',
+          serviceDate,
+          expectedAmount,
+          amount,
+          payment.reference_number || '',
+          (payment.payment_method || '').replace(/_/g, ' '),
+          notes,
+        ]);
+      });
+    });
+
+    rows.sort((a, b) => {
+      const ad = parseUsDate(a[0]);
+      const bd = parseUsDate(b[0]);
+      if (!ad && !bd) return 0;
+      if (!ad) return 1;
+      if (!bd) return -1;
+      return bd - ad;
+    });
+
+    return {
+      title: 'Other Professional Income - TRACKING',
+      headers,
+      rows,
+    };
   };
 
   const downloadBackendReport = async (sections) => {
@@ -584,6 +704,11 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
       }
     });
 
+    const otherProfessionalSection = buildOtherProfessionalIncomeSection(normalizeGroup);
+    if (otherProfessionalSection.rows.length > 0) {
+      sections.push(otherProfessionalSection);
+    }
+
     if (sections.length === 0) {
        alert("No data found for the selected filters. Please adjust your filters and try again.");
        return;
@@ -594,10 +719,20 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
   const directPayerOptions = ['Quinnipiac University', 'Nations Hearing'];
   const relevantDirectIncome = outsideIncome.filter(inc => directPayerOptions.includes(inc.facility_name));
   const directGroups = relevantDirectIncome.map(inc => inc.facility_name);
+
+  const otherProfessionalPayers = [...new Set(
+    payments.flatMap((payment) =>
+      (payment.allocations || [])
+        .filter(isOtherProfessionalAllocation)
+        .map(() => payment.payer)
+        .filter(Boolean)
+    )
+  )];
   
   const programGroupOptions = ['all', ...new Set([
     ...invoices.map(inv => inv.program_group).filter(Boolean),
-    ...directGroups
+    ...directGroups,
+    ...otherProfessionalPayers,
   ])].sort();
 
   return (
@@ -607,7 +742,7 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
           <div>
             <CardTitle>Payment Tracking Report</CardTitle>
             <p className="text-sm text-slate-500 mt-1">
-              Track invoices by location with Directorship/On-Call breakdown for Hartford Hospital and St. Francis
+              Track invoices by location with Directorship/On-Call breakdown, plus Other Professional Income
             </p>
           </div>
           <Button onClick={generateReport} className="gap-2" disabled={isGenerating}>
