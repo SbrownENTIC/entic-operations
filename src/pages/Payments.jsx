@@ -27,6 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { auditCreate, auditUpdate, auditDelete } from '@/lib/auditLogger';
+import { fetchAllEntityRecords } from "@/lib/base44Pagination";
 
 export default function Payments() {
   const [showForm, setShowForm] = useState(false);
@@ -54,12 +55,12 @@ export default function Payments() {
 
   const { data: payments = [], isLoading: paymentsLoading } = useQuery({
     queryKey: ['payments'],
-    queryFn: () => base44.entities.Payment.list('-payment_date')
+    queryFn: () => fetchAllEntityRecords(base44.entities.Payment, '-payment_date')
   });
 
   const { data: invoices = [], isLoading: invoicesLoading } = useQuery({
     queryKey: ['invoices'],
-    queryFn: () => base44.entities.Invoice.list()
+    queryFn: () => fetchAllEntityRecords(base44.entities.Invoice)
   });
 
   const { data: providers = [], isLoading: providersLoading } = useQuery({
@@ -69,7 +70,7 @@ export default function Payments() {
 
   const { data: outsideIncomes = [] } = useQuery({
     queryKey: ['outside-income'],
-    queryFn: () => base44.entities.OutsideIncome.list()
+    queryFn: () => fetchAllEntityRecords(base44.entities.OutsideIncome)
   });
 
   const getAllocationLabel = (allocation) => {
