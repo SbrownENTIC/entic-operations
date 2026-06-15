@@ -20,6 +20,7 @@ import FinancialOverviewWidget from "../components/dashboard/FinancialOverviewWi
 import FinancialByProgramWidget from "../components/dashboard/FinancialByProgramWidget";
 import CMEComplianceWidget from "../components/dashboard/CMEComplianceWidget";
 import DashboardCustomizer, { DEFAULT_WIDGETS } from "../components/dashboard/DashboardCustomizer";
+import { fetchAllEntityRecords } from "@/lib/base44Pagination";
 
 export default function Dashboard() {
   // Force rebuild timestamp: 2026-01-22
@@ -109,7 +110,7 @@ export default function Dashboard() {
     queryKey: ['invoices'],
     queryFn: async () => {
       try {
-        return await base44.entities.Invoice.list();
+        return await fetchAllEntityRecords(base44.entities.Invoice);
       } catch (error) {
         return handleQueryError(error);
       }
@@ -135,7 +136,7 @@ export default function Dashboard() {
     queryKey: ['payments'],
     queryFn: async () => {
       try {
-        return await base44.entities.Payment.list();
+        return await fetchAllEntityRecords(base44.entities.Payment);
       } catch (error) {
         return handleQueryError(error);
       }
@@ -208,7 +209,7 @@ export default function Dashboard() {
     queryKey: ['outside-income'],
     queryFn: async () => {
       try {
-        return await base44.entities.OutsideIncome.list();
+        return await fetchAllEntityRecords(base44.entities.OutsideIncome);
       } catch (error) {
         return handleQueryError(error);
       }
