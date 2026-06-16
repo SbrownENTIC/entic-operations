@@ -19,6 +19,95 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const DIRECT_PAYERS = ['Quinnipiac University', 'Nations Hearing'];
 
+const isDirectorshipOutsideIncome = (income) =>
+  (income?.facility_name || '').toLowerCase().includes('directorship');
+
+const getLinkedIncomes = (invoice, incomes = []) =>
+  (invoice?.outside_income_ids || [])
+    .map((id) => incomes.find((inc) => inc.id === id))
+    .filter(Boolean);
+
+const getInvoiceBalanceSplit = (invoice, incomes = []) => {
+  const totalExpected = invoice?.amount_expected || invoice?.total || 0;
+  const totalReceived = invoice?.amount_received || 0;
+  const totalBalance = Math.max(0, totalExpected - totalReceived);
+  const linked = getLinkedIncomes(invoice, incomes);
+  const directorshipExpected = linked
+    .filter(isDirectorshipOutsideIncome)
+    .reduce((sum, inc) => sum + (inc.total_amount || 0), 0);
+  const onCallExpected = linked
+    .filter((inc) => !isDirectorshipOutsideIncome(inc))
+    .reduce((sum, inc) => sum + (inc.total_amount || 0), 0);
+
+  if (linked.length === 0 || (directorshipExpected <= 0 && onCallExpected <= 0)) {
+    return {
+      totalBalance,
+      directorshipBalance: 0,
+      onCallBalance: totalBalance,
+      isMixed: false,
+    };
+  }
+
+  if (directorshipExpected > 0 && onCallExpected > 0) {
+    if (totalBalance <= 0) {
+      return {
+        totalBalance: 0,
+        directorshipBalance: 0,
+        onCallBalance: 0,
+        isMixed: true,
+        directorshipExpected,
+        onCallExpected,
+      };
+    }
+
+    const directorshipBalance = Math.round((totalBalance * (directorshipExpected / (directorshipExpected + onCallExpected))) * 100) / 100;
+    return {
+      totalBalance,
+      directorshipBalance,
+      onCallBalance: Math.round((totalBalance - directorshipBalance) * 100) / 100,
+      isMixed: true,
+      directorshipExpected,
+      onCallExpected,
+    };
+  }
+
+  if (directorshipExpected > 0) {
+    return {
+      totalBalance,
+      directorshipBalance: totalBalance,
+      onCallBalance: 0,
+      isMixed: false,
+      directorshipExpected,
+      onCallExpected: 0,
+    };
+  }
+
+  return {
+    totalBalance,
+    directorshipBalance: 0,
+    onCallBalance: totalBalance,
+    isMixed: false,
+    directorshipExpected: 0,
+    onCallExpected,
+  };
+};
+
+const suggestAllocationAmount = (invoice, incomes, paymentTotal) => {
+  const split = getInvoiceBalanceSplit(invoice, incomes);
+  if (split.totalBalance <= 0) return 0;
+  if (!paymentTotal || paymentTotal <= 0) return split.totalBalance;
+
+  if (split.isMixed) {
+    const matchesDirectorship = Math.abs(paymentTotal - split.directorshipBalance) < 0.02;
+    const matchesOnCall = Math.abs(paymentTotal - split.onCallBalance) < 0.02;
+    if (matchesDirectorship) return Math.min(paymentTotal, split.directorshipBalance);
+    if (matchesOnCall) return Math.min(paymentTotal, split.onCallBalance);
+    return Math.min(paymentTotal, split.totalBalance);
+  }
+
+  return Math.min(paymentTotal, split.totalBalance);
+};
+
 const PAYMENT_MODES = {
   INVOICE: 'invoice',
   DIRECT: 'direct',
@@ -464,14 +553,13 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
     if (field === 'invoice_id') {
       const invoice = invoices.find(inv => inv.id === value);
       if (invoice) {
-        // Calculate the invoice's remaining balance
-        const invoiceBalance = (invoice.amount_expected || invoice.total || 0) - (invoice.amount_received || 0);
-        
-        newAllocations[index] = { 
-          ...newAllocations[index], 
+        const suggestedAmount = suggestAllocationAmount(invoice, incomes, formData.total_amount);
+
+        newAllocations[index] = {
+          ...newAllocations[index],
           invoice_id: value,
           provider_id: invoice.staff_member_id || '',
-          amount: parseFloat(invoiceBalance) || 0
+          amount: suggestedAmount,
         };
         
         // Auto-add invoice notes to payment notes if invoice has notes
@@ -627,12 +715,12 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
 
       const invoice = invoices.find(inv => inv.id === invoiceId);
       if (invoice) {
-        const invoiceBalance = (invoice.amount_expected || invoice.total || 0) - (invoice.amount_received || 0);
-        
+        const suggestedAmount = suggestAllocationAmount(invoice, incomes, formData.total_amount);
+
         newAllocations.push({
           invoice_id: invoiceId,
           provider_id: invoice.staff_member_id || '',
-          amount: parseFloat(invoiceBalance) || 0,
+          amount: suggestedAmount,
           notes: ''
         });
 
@@ -1250,6 +1338,9 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                     {formData.allocations.map((allocation, index) => {
                       const selectedInvoice = invoices.find(inv => inv.id === allocation.invoice_id);
                       const selectedProvider = providers.find(p => p.id === allocation.provider_id);
+                      const balanceSplit = selectedInvoice
+                        ? getInvoiceBalanceSplit(selectedInvoice, incomes)
+                        : null;
                       
                       return (
                         <div key={index} className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-3">
@@ -1360,9 +1451,39 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                                 disabled={isReadOnly}
                               />
                               {selectedInvoice && (
-                                <p className="text-xs text-slate-500 mt-1">
-                                  Invoice balance: ${((selectedInvoice.amount_expected || selectedInvoice.total || 0) - (selectedInvoice.amount_received || 0)).toFixed(2)}
-                                </p>
+                                <div className="text-xs text-slate-500 mt-1 space-y-1">
+                                  <p>
+                                    Invoice balance: ${balanceSplit.totalBalance.toFixed(2)}
+                                  </p>
+                                  {balanceSplit.isMixed && (
+                                    <>
+                                      <p>
+                                        Directorship remaining: ${balanceSplit.directorshipBalance.toFixed(2)}
+                                        {!isReadOnly && (
+                                          <button
+                                            type="button"
+                                            className="ml-2 text-blue-600 hover:underline"
+                                            onClick={() => updateAllocation(index, 'amount', balanceSplit.directorshipBalance)}
+                                          >
+                                            Apply
+                                          </button>
+                                        )}
+                                      </p>
+                                      <p>
+                                        On-Call remaining: ${balanceSplit.onCallBalance.toFixed(2)}
+                                        {!isReadOnly && (
+                                          <button
+                                            type="button"
+                                            className="ml-2 text-blue-600 hover:underline"
+                                            onClick={() => updateAllocation(index, 'amount', balanceSplit.onCallBalance)}
+                                          >
+                                            Apply
+                                          </button>
+                                        )}
+                                      </p>
+                                    </>
+                                  )}
+                                </div>
                               )}
                             </div>
                             
