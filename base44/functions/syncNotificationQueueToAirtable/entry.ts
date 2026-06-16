@@ -1,4 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import {
+  todayET,
+  validateLicenseReminderNotification,
+  cancelInvalidLicenseReminder,
+} from '../_shared/licenseReminderValidation.ts';
 
 /**
  * SYNC NOTIFICATION QUEUE TO AIRTABLE
@@ -94,6 +99,38 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, message: 'No records ready to sync.', synced: 0 });
     }
 
+    // Block stale license reminders from reaching Airtable/Outlook.
+    const today = todayET();
+    const validatedRecords = [];
+    const cancelledLicenseReminders = [];
+
+    for (const notification of queueRecords) {
+      if (notification.notification_type === 'License Expiration Reminder') {
+        const validation = await validateLicenseReminderNotification(base44, notification, today);
+        if (!validation.valid) {
+          await cancelInvalidLicenseReminder(base44, notification, validation.reason);
+          cancelledLicenseReminders.push({
+            id: notification.id,
+            reminder_stage: notification.reminder_stage || '',
+            reason: validation.reason,
+          });
+          continue;
+        }
+      }
+      validatedRecords.push(notification);
+    }
+
+    queueRecords = validatedRecords;
+
+    if (queueRecords.length === 0) {
+      return Response.json({
+        success: true,
+        message: 'No valid records ready to sync after license reminder validation.',
+        synced: 0,
+        cancelled_license_reminders: cancelledLicenseReminders.length > 0 ? cancelledLicenseReminders : undefined,
+      });
+    }
+
     // ── FETCH EXISTING AIRTABLE RECORDS (for duplicate prevention) ───────────
     const tableUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(NOTIFICATION_QUEUE_TABLE)}`;
     const existingResp = await fetch(
@@ -175,6 +212,7 @@ Deno.serve(async (req) => {
       message: `Synced ${created} record(s) to Airtable. ${skipped} skipped (already queued/sent). ${errors.length} error(s).`,
       synced: created,
       skipped,
+      cancelled_license_reminders: cancelledLicenseReminders.length > 0 ? cancelledLicenseReminders : undefined,
       errors: errors.length > 0 ? errors : undefined
     });
 

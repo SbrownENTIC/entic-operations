@@ -1,11 +1,18 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
-
-const STALE_LICENSE_REMINDER_MESSAGE = 'Cancelled because license expiration date no longer matches';
+import {
+  todayET,
+  validateLicenseReminderNotification,
+  cancelInvalidLicenseReminder,
+  isUnsentLicenseReminder,
+} from '../_shared/licenseReminderValidation.ts';
 
 /**
  * GET READY NOTIFICATIONS
  * Called by Power Automate to retrieve all NotificationQueue records
  * where status = "Ready to Send" and ready_to_send = true and sent_date is blank.
+ *
+ * License Expiration Reminders are validated against the live License record
+ * before being returned. Stale reminders are auto-cancelled.
  *
  * Power Automate HTTP action:
  *   Method: POST
@@ -17,70 +24,56 @@ const STALE_LICENSE_REMINDER_MESSAGE = 'Cancelled because license expiration dat
  * Caller IP must be whitelisted or a shared secret passed if desired.
  */
 
-async function validateLicenseReminder(base44, notification) {
-  if (notification.notification_type !== 'License Expiration Reminder') {
-    return { valid: true };
-  }
-
-  if (!notification.related_record_id) {
-    return { valid: false, reason: 'Missing related license id' };
-  }
-
-  let license;
-  try {
-    license = await base44.asServiceRole.entities.License.get(notification.related_record_id);
-  } catch {
-    return { valid: false, reason: 'Related license not found' };
-  }
-
-  if (!license?.expiration_date) {
-    return { valid: false, reason: 'License missing expiration date' };
-  }
-
-  if (license.status !== 'active') {
-    return { valid: false, reason: 'License is not active' };
-  }
-
-  if (license.expiration_date !== notification.expiration_date) {
-    return { valid: false, reason: STALE_LICENSE_REMINDER_MESSAGE };
-  }
-
-  return { valid: true };
-}
-
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    // Fetch all NotificationQueue records as service role
     const allRecords = await base44.asServiceRole.entities.NotificationQueue.list();
+    const today = todayET();
 
-    // Get today's date in Eastern Time (YYYY-MM-DD)
-    const todayET = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
-
-    // Filter: status = Ready to Send, ready_to_send = true, sent_date blank, send_date = today
-    const candidates = (allRecords || []).filter(n =>
-      n.status === 'Ready to Send' &&
-      n.ready_to_send === true &&
-      (!n.sent_date || n.sent_date === '' || n.sent_date === null) &&
-      n.send_date === todayET
-    );
-
-    const ready = [];
+    // Proactively cancel any unsent license reminders that no longer match live license data
+    // (e.g. expiration date updated but queue row was not cancelled).
     const cancelled = [];
 
-    for (const notification of candidates) {
-      const validation = await validateLicenseReminder(base44, notification);
+    for (const notification of allRecords || []) {
+      if (!isUnsentLicenseReminder(notification)) continue;
+
+      const validation = await validateLicenseReminderNotification(base44, notification, today);
       if (!validation.valid) {
-        await base44.asServiceRole.entities.NotificationQueue.update(notification.id, {
-          status: 'Cancelled',
-          ready_to_send: false,
-          error_message: validation.reason
-        });
+        await cancelInvalidLicenseReminder(base44, notification, validation.reason);
         cancelled.push({
           id: notification.id,
           notification_type: notification.notification_type,
-          reason: validation.reason
+          reminder_stage: notification.reminder_stage || '',
+          send_date: notification.send_date || '',
+          reason: validation.reason,
+        });
+      }
+    }
+
+    const cancelledIds = new Set(cancelled.map((c) => c.id));
+
+    // Filter: status = Ready to Send, ready_to_send = true, sent_date blank, send_date = today
+    const candidates = (allRecords || []).filter((n) =>
+      !cancelledIds.has(n.id) &&
+      n.status === 'Ready to Send' &&
+      n.ready_to_send === true &&
+      (!n.sent_date || n.sent_date === '' || n.sent_date === null) &&
+      n.send_date === today
+    );
+
+    const ready = [];
+
+    for (const notification of candidates) {
+      const validation = await validateLicenseReminderNotification(base44, notification, today);
+      if (!validation.valid) {
+        await cancelInvalidLicenseReminder(base44, notification, validation.reason);
+        cancelled.push({
+          id: notification.id,
+          notification_type: notification.notification_type,
+          reminder_stage: notification.reminder_stage || '',
+          send_date: notification.send_date || '',
+          reason: validation.reason,
         });
         continue;
       }
@@ -93,7 +86,7 @@ Deno.serve(async (req) => {
       count: ready.length,
       cancelled_stale_count: cancelled.length,
       cancelled_stale: cancelled.length > 0 ? cancelled : null,
-      notifications: ready.map(n => ({
+      notifications: ready.map((n) => ({
         id:                   n.id,
         notification_type:    n.notification_type,
         closure_type:         n.closure_type || '',
@@ -107,7 +100,7 @@ Deno.serve(async (req) => {
         subject:              n.subject,
         body:                 n.body,
         to:                   n.to,
-        cc:                   (n.cc || '').split(',').map(e => e.trim()).filter(Boolean).join('; '),
+        cc:                   (n.cc || '').split(',').map((e: string) => e.trim()).filter(Boolean).join('; '),
         bcc:                  n.bcc || '',
         related_record_id:    n.related_record_id || '',
         invoice_number:       n.invoice_number || '',

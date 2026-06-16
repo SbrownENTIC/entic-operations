@@ -158,11 +158,18 @@ function matchingRecords(queue, license) {
 }
 
 async function cancelOldUnsentRecords(base44, records, license, summary, details) {
-  const oldUnsent = records.filter(record =>
-    record.expiration_date !== license.expiration_date &&
-    ['Ready to Send', 'Failed'].includes(record.status) &&
-    (!record.sent_date || record.sent_date === '')
-  );
+  const oldUnsent = records.filter(record => {
+    if (!['Ready to Send', 'Failed'].includes(record.status)) return false;
+    if (record.sent_date) return false;
+
+    if (record.expiration_date !== license.expiration_date) return true;
+
+    const stage = STAGES.find(s => s.label === record.reminder_stage);
+    if (!stage) return true;
+
+    const expectedSendDate = subtractDays(license.expiration_date, stage.days);
+    return record.send_date !== expectedSendDate;
+  });
 
   for (const record of oldUnsent) {
     await base44.asServiceRole.entities.NotificationQueue.update(record.id, {
