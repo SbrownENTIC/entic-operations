@@ -16,16 +16,22 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import InvoiceForm from "../invoices/InvoiceForm";
 import { useFormState } from "@/components/FormContext";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { fetchAllEntityRecords } from "@/lib/base44Pagination";
 
 const DIRECT_PAYERS = ['Quinnipiac University', 'Nations Hearing'];
 
 const isDirectorshipOutsideIncome = (income) =>
   (income?.facility_name || '').toLowerCase().includes('directorship');
 
-const getLinkedIncomes = (invoice, incomes = []) =>
-  (invoice?.outside_income_ids || [])
+const getLinkedIncomes = (invoice, incomes = []) => {
+  const linkedById = (invoice?.outside_income_ids || [])
     .map((id) => incomes.find((inc) => inc.id === id))
     .filter(Boolean);
+  const linkedByInvoiceId = incomes.filter((inc) => inc.invoice_id === invoice?.id);
+  const merged = new Map();
+  [...linkedById, ...linkedByInvoiceId].forEach((inc) => merged.set(inc.id, inc));
+  return [...merged.values()];
+};
 
 const getInvoiceBalanceSplit = (invoice, incomes = []) => {
   const totalExpected = invoice?.amount_expected || invoice?.total || 0;
@@ -202,7 +208,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
   // Fetch outside income for the invoice form
   const { data: incomes = [] } = useQuery({
     queryKey: ['outside-income'],
-    queryFn: () => base44.entities.OutsideIncome.list()
+    queryFn: () => fetchAllEntityRecords(base44.entities.OutsideIncome)
   });
 
   const { data: existingPayments = [] } = useQuery({
@@ -547,50 +553,53 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
   };
 
   const updateAllocation = (index, field, value) => {
-    const newAllocations = [...formData.allocations];
-    
-    // If updating invoice_id, auto-populate provider, amount, and payment notes
-    if (field === 'invoice_id') {
-      const invoice = invoices.find(inv => inv.id === value);
-      if (invoice) {
-        const suggestedAmount = suggestAllocationAmount(invoice, incomes, formData.total_amount);
+    setFormData((prev) => {
+      const newAllocations = [...prev.allocations];
 
-        newAllocations[index] = {
-          ...newAllocations[index],
-          invoice_id: value,
-          provider_id: invoice.staff_member_id || '',
-          amount: suggestedAmount,
-        };
-        
-        // Auto-add invoice notes to payment notes if invoice has notes
-        if (invoice.notes && invoice.notes.trim()) {
-          const invoiceIdentifier = invoice.invoice_number || `Invoice ${index + 1}`;
-          const noteToAdd = `${invoiceIdentifier}: ${invoice.notes}`;
-          
-          // Check if this note is already in the payment notes
-          const currentNotes = formData.notes || '';
-          if (!currentNotes.includes(noteToAdd)) {
-            const updatedNotes = currentNotes 
-              ? `${currentNotes}\n${noteToAdd}` 
-              : noteToAdd;
-            
-            setFormData(prev => ({ 
-              ...prev, 
-              allocations: newAllocations,
-              notes: updatedNotes 
-            }));
-            setIsDirty(true);
-            return; // Exit early since we're updating formData here
+      if (field === 'invoice_id') {
+        const invoice = invoices.find((inv) => inv.id === value);
+        if (invoice) {
+          const suggestedAmount = suggestAllocationAmount(invoice, incomes, prev.total_amount);
+
+          newAllocations[index] = {
+            ...newAllocations[index],
+            invoice_id: value,
+            provider_id: invoice.staff_member_id || '',
+            amount: suggestedAmount,
+          };
+
+          if (invoice.notes && invoice.notes.trim()) {
+            const invoiceIdentifier = invoice.invoice_number || `Invoice ${index + 1}`;
+            const noteToAdd = `${invoiceIdentifier}: ${invoice.notes}`;
+            const currentNotes = prev.notes || '';
+            if (!currentNotes.includes(noteToAdd)) {
+              return {
+                ...prev,
+                allocations: newAllocations,
+                notes: currentNotes ? `${currentNotes}\n${noteToAdd}` : noteToAdd,
+              };
+            }
           }
+        } else {
+          newAllocations[index] = { ...newAllocations[index], [field]: value };
         }
       } else {
         newAllocations[index] = { ...newAllocations[index], [field]: value };
       }
-    } else {
-      newAllocations[index] = { ...newAllocations[index], [field]: value };
-    }
-    
-    setFormData({ ...formData, allocations: newAllocations });
+
+      return { ...prev, allocations: newAllocations };
+    });
+    setIsDirty(true);
+  };
+
+  const applySplitAmount = (index, amount) => {
+    const numericAmount = Math.round((parseFloat(amount) || 0) * 100) / 100;
+    setFormData((prev) => ({
+      ...prev,
+      allocations: prev.allocations.map((allocation, i) =>
+        i === index ? { ...allocation, amount: numericAmount } : allocation
+      ),
+    }));
     setIsDirty(true);
   };
 
@@ -1450,37 +1459,45 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                                 onChange={(e) => updateAllocation(index, 'amount', parseFloat(e.target.value) || 0)}
                                 disabled={isReadOnly}
                               />
-                              {selectedInvoice && (
+                              {selectedInvoice && balanceSplit && (
                                 <div className="text-xs text-slate-500 mt-1 space-y-1">
-                                  <p>
+                                  <div>
                                     Invoice balance: ${balanceSplit.totalBalance.toFixed(2)}
-                                  </p>
+                                  </div>
                                   {balanceSplit.isMixed && (
                                     <>
-                                      <p>
-                                        Directorship remaining: ${balanceSplit.directorshipBalance.toFixed(2)}
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <span>
+                                          Directorship remaining: ${balanceSplit.directorshipBalance.toFixed(2)}
+                                        </span>
                                         {!isReadOnly && (
-                                          <button
+                                          <Button
                                             type="button"
-                                            className="ml-2 text-blue-600 hover:underline"
-                                            onClick={() => updateAllocation(index, 'amount', balanceSplit.directorshipBalance)}
+                                            variant="link"
+                                            size="sm"
+                                            className="h-auto p-0 text-blue-600"
+                                            onClick={() => applySplitAmount(index, balanceSplit.directorshipBalance)}
                                           >
                                             Apply
-                                          </button>
+                                          </Button>
                                         )}
-                                      </p>
-                                      <p>
-                                        On-Call remaining: ${balanceSplit.onCallBalance.toFixed(2)}
+                                      </div>
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <span>
+                                          On-Call remaining: ${balanceSplit.onCallBalance.toFixed(2)}
+                                        </span>
                                         {!isReadOnly && (
-                                          <button
+                                          <Button
                                             type="button"
-                                            className="ml-2 text-blue-600 hover:underline"
-                                            onClick={() => updateAllocation(index, 'amount', balanceSplit.onCallBalance)}
+                                            variant="link"
+                                            size="sm"
+                                            className="h-auto p-0 text-blue-600"
+                                            onClick={() => applySplitAmount(index, balanceSplit.onCallBalance)}
                                           >
                                             Apply
-                                          </button>
+                                          </Button>
                                         )}
-                                      </p>
+                                      </div>
                                     </>
                                   )}
                                 </div>
