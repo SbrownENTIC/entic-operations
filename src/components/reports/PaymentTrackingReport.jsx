@@ -29,22 +29,289 @@ const sortQuartersDesc = (a, b) => {
   return qb - qa;
 };
 
+const isDirectorshipOutsideIncome = (income, programLocations = []) => {
+  if (!income) return false;
+  if ((income.facility_name || '').toLowerCase().includes('directorship')) return true;
+  if (income.program_location_id) {
+    const loc = programLocations.find(pl => pl.id === income.program_location_id);
+    if (loc?.program_type === 'Directorship') return true;
+    if ((loc?.program_location || '').toLowerCase().includes('directorship')) return true;
+  }
+  return false;
+};
+
+const getLinkedIncomes = (invoice, outsideIncome = []) =>
+  (invoice?.outside_income_ids || [])
+    .map((id) => outsideIncome.find((inc) => inc.id === id))
+    .filter(Boolean);
+
+const getOutsideIncomeProgramGroup = (income, programLocations = [], normalizeGroup) => {
+  if (!income) return '';
+  if (income.program_location_id) {
+    const loc = programLocations.find((pl) => pl.id === income.program_location_id);
+    if (loc?.program_group) return normalizeGroup(loc.program_group);
+  }
+  return normalizeGroup(income.facility_name || '');
+};
+
 const isDirectorshipInvoice = (invoice, outsideIncome = [], programLocations = []) => {
   if (!invoice) return false;
-  // Signal 1: invoice number contains "(Directorship)"
   if (invoice.invoice_number?.includes('(Directorship)')) return true;
-  // Signal 2: any linked outside income record points to a Directorship program location
-  const linkedIncomes = (invoice.outside_income_ids || []).map(id =>
-    outsideIncome.find(inc => inc.id === id)
-  ).filter(Boolean);
-  return linkedIncomes.some(inc => {
-    if (inc.facility_name?.toLowerCase().includes('directorship')) return true;
-    if (inc.program_location_id) {
-      const loc = programLocations.find(pl => pl.id === inc.program_location_id);
-      if (loc?.program_type === 'Directorship') return true;
+  return getLinkedIncomes(invoice, outsideIncome).some((inc) =>
+    isDirectorshipOutsideIncome(inc, programLocations)
+  );
+};
+
+const getInvoiceTypeSplit = (invoice, outsideIncome = [], programLocations = [], programGroup) => {
+  const invoiceTotal = invoice.amount_expected || invoice.total || 0;
+  const hasDirectorshipInvoiceNumber = invoice.invoice_number?.includes('(Directorship)');
+
+  if (programGroup === 'Hartford Hospital') {
+    if (hasDirectorshipInvoiceNumber) {
+      return {
+        directorshipExpected: invoiceTotal,
+        onCallExpected: 0,
+      };
     }
-    return false;
+    return {
+      directorshipExpected: 0,
+      onCallExpected: invoiceTotal,
+    };
+  }
+
+  const linked = getLinkedIncomes(invoice, outsideIncome);
+  const directorshipIncomes = linked.filter((inc) => isDirectorshipOutsideIncome(inc, programLocations));
+  const onCallIncomes = linked.filter((inc) => !isDirectorshipOutsideIncome(inc, programLocations));
+  const directorshipFromIncome = directorshipIncomes.reduce((sum, inc) => sum + (inc.total_amount || 0), 0);
+  const onCallFromIncome = onCallIncomes.reduce((sum, inc) => sum + (inc.total_amount || 0), 0);
+
+  if (linked.length === 0) {
+    if (hasDirectorshipInvoiceNumber) {
+      return { directorshipExpected: invoiceTotal, onCallExpected: 0 };
+    }
+    return { directorshipExpected: 0, onCallExpected: invoiceTotal };
+  }
+
+  if (directorshipFromIncome > 0 && onCallFromIncome > 0) {
+    return {
+      directorshipExpected: directorshipFromIncome,
+      onCallExpected: onCallFromIncome,
+    };
+  }
+
+  if (directorshipFromIncome > 0 || hasDirectorshipInvoiceNumber) {
+    return {
+      directorshipExpected: directorshipFromIncome || invoiceTotal,
+      onCallExpected: 0,
+    };
+  }
+
+  return {
+    directorshipExpected: 0,
+    onCallExpected: onCallFromIncome || invoiceTotal,
+  };
+};
+
+const splitReceivedAmount = (totalReceived, directorshipExpected, onCallExpected) => {
+  const received = totalReceived || 0;
+  const totalExpected = directorshipExpected + onCallExpected;
+  if (received <= 0 || totalExpected <= 0) {
+    return { directorshipReceived: 0, onCallReceived: 0 };
+  }
+  if (directorshipExpected <= 0) {
+    return { directorshipReceived: 0, onCallReceived: received };
+  }
+  if (onCallExpected <= 0) {
+    return { directorshipReceived: received, onCallReceived: 0 };
+  }
+  const directorshipReceived = Math.round((received * (directorshipExpected / totalExpected)) * 100) / 100;
+  return {
+    directorshipReceived,
+    onCallReceived: Math.round((received - directorshipReceived) * 100) / 100,
+  };
+};
+
+const getIncomeMonthLabel = (income) => {
+  const dateStr = Array.isArray(income?.work_dates) && income.work_dates[0]
+    ? income.work_dates[0]
+    : income?.created_date;
+  if (!dateStr) return '';
+  try {
+    return format(parseISO(dateStr), 'MMMM yyyy');
+  } catch {
+    return '';
+  }
+};
+
+const getInvoicePaymentMeta = (invoice, payments) => {
+  let paymentDate = '';
+  let voucherNumber = '';
+  let paymentQuarter = '';
+  let paymentNotes = '';
+
+  payments.forEach((payment) => {
+    payment.allocations?.forEach((allocation) => {
+      if (allocation.invoice_id === invoice.id) {
+        const pDate = parseISO(payment.payment_date);
+        paymentDate = format(pDate, 'MM/dd/yyyy');
+        const q = Math.floor(pDate.getMonth() / 3) + 1;
+        paymentQuarter = `Q${q} ${pDate.getFullYear()}`;
+        voucherNumber = payment.reference_number || '';
+        paymentNotes = (payment.notes && (payment.notes.toLowerCase().includes('auto-generated') || payment.notes.toLowerCase().includes('auto-created')))
+          ? ''
+          : (payment.notes || '');
+      }
+    });
   });
+
+  return { paymentDate, voucherNumber, paymentQuarter, paymentNotes };
+};
+
+const buildSeparatedProgramSections = ({
+  programGroup,
+  groupInvoices,
+  payments,
+  providers,
+  outsideIncome,
+  programLocations,
+  sortByMonth,
+  normalizeGroup,
+}) => {
+  const headers = [
+    'Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received',
+    'Payment Date', 'Payment Quarter', 'Voucher Number', 'Date Paid Provider', 'Allocation/Notes',
+  ];
+
+  const directorshipSection = {
+    title: `${programGroup} - DIRECTORSHIP TRACKING`,
+    headers,
+    rows: [],
+  };
+  const onCallSection = {
+    title: `${programGroup} - ON-CALL TRACKING`,
+    headers,
+    rows: [],
+  };
+
+  const pushTrackingRow = (section, {
+    providerName,
+    invoiceNumber,
+    month,
+    expectedAmount,
+    receivedAmount,
+    paymentMeta,
+    dateProviderPaid = '',
+    notes = '',
+  }) => {
+    section.rows.push([
+      providerName,
+      invoiceNumber || '',
+      month || '',
+      expectedAmount,
+      receivedAmount,
+      paymentMeta.paymentDate,
+      paymentMeta.paymentQuarter,
+      paymentMeta.voucherNumber,
+      dateProviderPaid,
+      notes,
+    ]);
+  };
+
+  sortByMonth(groupInvoices);
+
+  groupInvoices.forEach((invoice) => {
+    const provider = providers.find((p) => p.id === invoice.staff_member_id);
+    const providerName = provider?.full_name || 'Unknown';
+    const paymentMeta = getInvoicePaymentMeta(invoice, payments);
+    const split = getInvoiceTypeSplit(invoice, outsideIncome, programLocations, programGroup);
+    const { directorshipReceived, onCallReceived } = splitReceivedAmount(
+      invoice.amount_received || 0,
+      split.directorshipExpected,
+      split.onCallExpected
+    );
+    const shouldHideNotes = invoice.auto_generated || (invoice.notes && (
+      invoice.notes.toLowerCase().includes('auto-generated') ||
+      invoice.notes.toLowerCase().includes('auto-created')
+    ));
+    const invoiceNotes = [shouldHideNotes ? '' : (invoice.notes || ''), paymentMeta.paymentNotes]
+      .filter(Boolean)
+      .join('; ');
+    const dateProviderPaid = invoice.date_provider_paid
+      ? format(parseISO(invoice.date_provider_paid), 'MM/dd/yyyy')
+      : '';
+
+    if (split.directorshipExpected > 0) {
+      pushTrackingRow(directorshipSection, {
+        providerName,
+        invoiceNumber: invoice.invoice_number,
+        month: invoice.month,
+        expectedAmount: split.directorshipExpected,
+        receivedAmount: split.onCallExpected > 0 ? directorshipReceived : (invoice.amount_received || 0),
+        paymentMeta,
+        dateProviderPaid,
+        notes: invoiceNotes,
+      });
+    }
+
+    if (split.onCallExpected > 0) {
+      pushTrackingRow(onCallSection, {
+        providerName,
+        invoiceNumber: invoice.invoice_number,
+        month: invoice.month,
+        expectedAmount: split.onCallExpected,
+        receivedAmount: split.directorshipExpected > 0 ? onCallReceived : (invoice.amount_received || 0),
+        paymentMeta,
+        dateProviderPaid,
+        notes: invoiceNotes,
+      });
+    }
+  });
+
+  const seenOutsideIncomeAllocations = new Set();
+  payments.forEach((payment) => {
+    if (!payment.payment_date) return;
+
+    payment.allocations?.forEach((allocation) => {
+      if (!allocation.outside_income_id || allocation.invoice_id) return;
+
+      const dedupeKey = `${payment.id}:${allocation.outside_income_id}:${allocation.amount}`;
+      if (seenOutsideIncomeAllocations.has(dedupeKey)) return;
+      seenOutsideIncomeAllocations.add(dedupeKey);
+
+      const income = outsideIncome.find((inc) => inc.id === allocation.outside_income_id);
+      if (!income) return;
+
+      const incomeGroup = getOutsideIncomeProgramGroup(income, programLocations, normalizeGroup);
+      if (incomeGroup !== programGroup) return;
+
+      const isDirectorship = isDirectorshipOutsideIncome(income, programLocations);
+      const section = isDirectorship ? directorshipSection : onCallSection;
+      const provider = providers.find((p) => p.id === (allocation.provider_id || income.provider_id));
+      const providerName = provider?.full_name || 'Unknown';
+      const pDate = parseISO(payment.payment_date);
+      const paymentMeta = {
+        paymentDate: format(pDate, 'MM/dd/yyyy'),
+        paymentQuarter: `Q${Math.floor(pDate.getMonth() / 3) + 1} ${pDate.getFullYear()}`,
+        voucherNumber: payment.reference_number || '',
+        paymentNotes: '',
+      };
+      const linkedInvoice = income.invoice_id
+        ? groupInvoices.find((inv) => inv.id === income.invoice_id)
+        : null;
+
+      pushTrackingRow(section, {
+        providerName,
+        invoiceNumber: linkedInvoice?.invoice_number || income.external_invoice_number || income.facility_name,
+        month: getIncomeMonthLabel(income) || linkedInvoice?.month,
+        expectedAmount: income.amount_due || income.total_amount || allocation.amount || 0,
+        receivedAmount: allocation.amount || 0,
+        paymentMeta,
+        notes: [income.description, income.notes].filter(Boolean).join('; '),
+      });
+    });
+  });
+
+  return { directorshipSection, onCallSection };
 };
 
 const buildPaymentQuarterRows = (payments, invoices, providers, outsideIncome = [], programLocations = []) => {
@@ -53,13 +320,28 @@ const buildPaymentQuarterRows = (payments, invoices, providers, outsideIncome = 
     if (!payment.payment_date) return;
     (payment.allocations || []).forEach(allocation => {
       if (allocation.outside_income_id && !allocation.invoice_id && allocation.provider_id) {
-        const provider = providers.find(p => p.id === allocation.provider_id);
+        const income = outsideIncome.find((inc) => inc.id === allocation.outside_income_id);
+        const programGroup = getOutsideIncomeProgramGroup(income, programLocations, normalizeQGroup);
+        if (QUARTER_ALLOWED_GROUPS.includes(programGroup)) {
+          rows.push({
+            quarter: getQuarter(payment.payment_date),
+            paymentDate: payment.payment_date,
+            referenceNumber: payment.reference_number || '',
+            programGroup,
+            provider: providers.find(p => p.id === allocation.provider_id)?.full_name || '-',
+            invoiceNumber: income?.external_invoice_number || income?.facility_name || '-',
+            isDirectorship: isDirectorshipOutsideIncome(income, programLocations),
+            amount: allocation.amount || 0,
+          });
+          return;
+        }
+
         rows.push({
           quarter: getQuarter(payment.payment_date),
           paymentDate: payment.payment_date,
           referenceNumber: payment.reference_number || '',
           programGroup: 'Other Professional Income',
-          provider: provider?.full_name || '-',
+          provider: providers.find(p => p.id === allocation.provider_id)?.full_name || '-',
           invoiceNumber: '-',
           isDirectorship: false,
           amount: allocation.amount || 0,
@@ -182,6 +464,11 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
         const income = outsideIncome.find((inc) => inc.id === allocation.outside_income_id);
         const provider = providers.find((p) => p.id === allocation.provider_id);
         const facilityName = payment.payer || income?.facility_name || '';
+
+        const separatedProgramGroup = getOutsideIncomeProgramGroup(income, programLocations, normalizeGroup);
+        if (separatedProgramGroup === 'St. Francis' || separatedProgramGroup === 'Hartford Hospital') {
+          return;
+        }
 
         if (selectedProgramGroup !== 'all') {
           const normalizedFacility = normalizeGroup(facilityName);
@@ -477,180 +764,30 @@ export default function PaymentTrackingReport({ invoices, payments, providers, p
         sections.push(section);
 
       } else if (needsSeparation) {
-        // Separate by program type
-        const directorshipLocation = programLocations.find(pl => 
+        const directorshipLocation = programLocations.find(pl =>
           pl.program_group === programGroup && pl.program_type === 'Directorship'
         );
-        const onCallLocation = programLocations.find(pl => 
+        const onCallLocation = programLocations.find(pl =>
           pl.program_group === programGroup && pl.program_type === 'On-Call'
         );
 
-        // DIRECTORSHIP SECTION
+        const { directorshipSection, onCallSection } = buildSeparatedProgramSections({
+          programGroup,
+          groupInvoices,
+          payments,
+          providers,
+          outsideIncome,
+          programLocations,
+          sortByMonth,
+          normalizeGroup,
+        });
+
         if (directorshipLocation) {
-          const section = {
-            title: `${programGroup} - DIRECTORSHIP TRACKING`,
-            headers: ['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Payment Quarter', 'Voucher Number', 'Date Paid Provider', 'Allocation/Notes'],
-            rows: []
-          };
-
-          const directorshipInvoices = groupInvoices.filter(inv => {
-            // For Hartford Hospital, ONLY use invoice number
-            if (programGroup === 'Hartford Hospital') {
-              return inv.invoice_number && inv.invoice_number.includes('(Directorship)');
-            }
-            
-            // For other programs (St. Francis), check invoice number first
-            if (inv.invoice_number && inv.invoice_number.includes('(Directorship)')) {
-              return true;
-            }
-            
-            // Then check linked outside income for directorship
-            const linkedIncomes = (inv.outside_income_ids || []).map(incomeId => 
-              outsideIncome.find(income => income.id === incomeId)
-            ).filter(Boolean);
-
-            return linkedIncomes.some(income => {
-              if (income.facility_name && income.facility_name.toLowerCase().includes('directorship')) {
-                return true;
-              }
-              if (income.program_location_id) {
-                const incomeLocation = programLocations.find(pl => pl.id === income.program_location_id);
-                if (incomeLocation?.program_type === 'Directorship') {
-                  return true;
-                }
-              }
-              return false;
-            });
-          });
-
-          // Sort by month
-          sortByMonth(directorshipInvoices);
-
-          directorshipInvoices.forEach(invoice => {
-            const provider = providers.find(p => p.id === invoice.staff_member_id);
-            const providerName = provider?.full_name || 'Unknown';
-
-            // Find payment info
-            let paymentDate = '';
-            let voucherNumber = '';
-            let paymentQuarter = '';
-            let paymentNotes = '';
-            payments.forEach(payment => {
-              payment.allocations?.forEach(allocation => {
-                if (allocation.invoice_id === invoice.id) {
-                  const pDate = parseISO(payment.payment_date);
-                  paymentDate = format(pDate, 'MM/dd/yyyy');
-                  const q = Math.floor(pDate.getMonth() / 3) + 1;
-                  paymentQuarter = `Q${q} ${pDate.getFullYear()}`;
-                  voucherNumber = payment.reference_number || '';
-                  paymentNotes = (payment.notes && (payment.notes.toLowerCase().includes('auto-generated') || payment.notes.toLowerCase().includes('auto-created'))) ? '' : (payment.notes || '');
-                }
-              });
-            });
-
-            const expectedAmount = invoice.amount_expected || invoice.total || 0;
-            const receivedAmount = invoice.amount_received || 0;
-            
-            const shouldHideNotes = invoice.auto_generated || (invoice.notes && (invoice.notes.toLowerCase().includes('auto-generated') || invoice.notes.toLowerCase().includes('auto-created')));
-            section.rows.push([
-              providerName,
-              invoice.invoice_number || '',
-              invoice.month || '',
-              expectedAmount, // Number
-              receivedAmount, // Number
-              paymentDate,
-              paymentQuarter,
-              voucherNumber,
-              invoice.date_provider_paid ? format(parseISO(invoice.date_provider_paid), 'MM/dd/yyyy') : '',
-              [shouldHideNotes ? '' : (invoice.notes || ''), paymentNotes].filter(Boolean).join('; ')
-            ]);
-          });
-          sections.push(section);
+          sections.push(directorshipSection);
         }
 
-        // ON-CALL SECTION
         if (onCallLocation) {
-          const section = {
-            title: `${programGroup} - ON-CALL TRACKING`,
-            headers: ['Provider', 'Invoice Number', 'Month', 'Expected Payment', 'Payment Received', 'Payment Date', 'Payment Quarter', 'Voucher Number', 'Date Paid Provider', 'Allocation/Notes'],
-            rows: []
-          };
-
-          const onCallInvoices = groupInvoices.filter(inv => {
-            // For Hartford Hospital, ONLY use invoice number
-            if (programGroup === 'Hartford Hospital') {
-              return !inv.invoice_number || !inv.invoice_number.includes('(Directorship)');
-            }
-            
-            // For other programs (St. Francis), check invoice number first
-            if (inv.invoice_number && inv.invoice_number.includes('(Directorship)')) {
-              return false;
-            }
-            
-            // Then check linked outside income to exclude directorship
-            const linkedIncomes = (inv.outside_income_ids || []).map(incomeId => 
-              outsideIncome.find(income => income.id === incomeId)
-            ).filter(Boolean);
-
-            const hasDirectorshipIncome = linkedIncomes.some(income => {
-              if (income.facility_name && income.facility_name.toLowerCase().includes('directorship')) {
-                return true;
-              }
-              if (income.program_location_id) {
-                const incomeLocation = programLocations.find(pl => pl.id === income.program_location_id);
-                if (incomeLocation?.program_type === 'Directorship') {
-                  return true;
-                }
-              }
-              return false;
-            });
-            
-            return !hasDirectorshipIncome;
-          });
-
-          // Sort by month
-          sortByMonth(onCallInvoices);
-
-          onCallInvoices.forEach(invoice => {
-            const provider = providers.find(p => p.id === invoice.staff_member_id);
-            const providerName = provider?.full_name || 'Unknown';
-
-            // Find payment info
-            let paymentDate = '';
-            let voucherNumber = '';
-            let paymentQuarter = '';
-            let paymentNotes = '';
-            payments.forEach(payment => {
-              payment.allocations?.forEach(allocation => {
-                if (allocation.invoice_id === invoice.id) {
-                  const pDate = parseISO(payment.payment_date);
-                  paymentDate = format(pDate, 'MM/dd/yyyy');
-                  const q = Math.floor(pDate.getMonth() / 3) + 1;
-                  paymentQuarter = `Q${q} ${pDate.getFullYear()}`;
-                  voucherNumber = payment.reference_number || '';
-                  paymentNotes = (payment.notes && (payment.notes.toLowerCase().includes('auto-generated') || payment.notes.toLowerCase().includes('auto-created'))) ? '' : (payment.notes || '');
-                }
-              });
-            });
-
-            const expectedAmount = invoice.amount_expected || invoice.total || 0;
-            const receivedAmount = invoice.amount_received || 0;
-
-            const shouldHideNotes = invoice.auto_generated || (invoice.notes && (invoice.notes.toLowerCase().includes('auto-generated') || invoice.notes.toLowerCase().includes('auto-created')));
-            section.rows.push([
-              providerName,
-              invoice.invoice_number || '',
-              invoice.month || '',
-              expectedAmount, // Number
-              receivedAmount, // Number
-              paymentDate,
-              paymentQuarter,
-              voucherNumber,
-              invoice.date_provider_paid ? format(parseISO(invoice.date_provider_paid), 'MM/dd/yyyy') : '',
-              [shouldHideNotes ? '' : (invoice.notes || ''), paymentNotes].filter(Boolean).join('; ')
-            ]);
-          });
-          sections.push(section);
+          sections.push(onCallSection);
         }
 
       } else {
