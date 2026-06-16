@@ -160,7 +160,7 @@ function matchingRecords(queue, license) {
 async function cancelOldUnsentRecords(base44, records, license, summary, details) {
   const oldUnsent = records.filter(record =>
     record.expiration_date !== license.expiration_date &&
-    ['Ready to Send', 'Failed', 'Cancelled'].includes(record.status) &&
+    ['Ready to Send', 'Failed'].includes(record.status) &&
     (!record.sent_date || record.sent_date === '')
   );
 
@@ -206,9 +206,8 @@ async function createForLicense(base44, license, provider, allQueue, options, su
     return details;
   }
 
-  if (options.expiration_updated) {
-    await cancelOldUnsentRecords(base44, existingForLicense, license, summary, details);
-  }
+  // Always cancel unsent reminders tied to a previous expiration date.
+  await cancelOldUnsentRecords(base44, existingForLicense, license, summary, details);
 
   const expirationDateFormatted = formatLongDate(license.expiration_date);
 
