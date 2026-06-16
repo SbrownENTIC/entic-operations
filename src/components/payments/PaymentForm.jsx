@@ -17,102 +17,14 @@ import InvoiceForm from "../invoices/InvoiceForm";
 import { useFormState } from "@/components/FormContext";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { fetchAllEntityRecords } from "@/lib/base44Pagination";
+import {
+  getInvoiceBalanceSplit,
+  suggestAllocationAmount,
+  findSplitOutsideIncomeId,
+  inferSplitTypeFromAmount,
+} from "@/lib/stFrancisPaymentSplit";
 
 const DIRECT_PAYERS = ['Quinnipiac University', 'Nations Hearing'];
-
-const isDirectorshipOutsideIncome = (income) =>
-  (income?.facility_name || '').toLowerCase().includes('directorship');
-
-const getLinkedIncomes = (invoice, incomes = []) => {
-  const linkedById = (invoice?.outside_income_ids || [])
-    .map((id) => incomes.find((inc) => inc.id === id))
-    .filter(Boolean);
-  const linkedByInvoiceId = incomes.filter((inc) => inc.invoice_id === invoice?.id);
-  const merged = new Map();
-  [...linkedById, ...linkedByInvoiceId].forEach((inc) => merged.set(inc.id, inc));
-  return [...merged.values()];
-};
-
-const getInvoiceBalanceSplit = (invoice, incomes = []) => {
-  const totalExpected = invoice?.amount_expected || invoice?.total || 0;
-  const totalReceived = invoice?.amount_received || 0;
-  const totalBalance = Math.max(0, totalExpected - totalReceived);
-  const linked = getLinkedIncomes(invoice, incomes);
-  const directorshipExpected = linked
-    .filter(isDirectorshipOutsideIncome)
-    .reduce((sum, inc) => sum + (inc.total_amount || 0), 0);
-  const onCallExpected = linked
-    .filter((inc) => !isDirectorshipOutsideIncome(inc))
-    .reduce((sum, inc) => sum + (inc.total_amount || 0), 0);
-
-  if (linked.length === 0 || (directorshipExpected <= 0 && onCallExpected <= 0)) {
-    return {
-      totalBalance,
-      directorshipBalance: 0,
-      onCallBalance: totalBalance,
-      isMixed: false,
-    };
-  }
-
-  if (directorshipExpected > 0 && onCallExpected > 0) {
-    if (totalBalance <= 0) {
-      return {
-        totalBalance: 0,
-        directorshipBalance: 0,
-        onCallBalance: 0,
-        isMixed: true,
-        directorshipExpected,
-        onCallExpected,
-      };
-    }
-
-    const directorshipBalance = Math.round((totalBalance * (directorshipExpected / (directorshipExpected + onCallExpected))) * 100) / 100;
-    return {
-      totalBalance,
-      directorshipBalance,
-      onCallBalance: Math.round((totalBalance - directorshipBalance) * 100) / 100,
-      isMixed: true,
-      directorshipExpected,
-      onCallExpected,
-    };
-  }
-
-  if (directorshipExpected > 0) {
-    return {
-      totalBalance,
-      directorshipBalance: totalBalance,
-      onCallBalance: 0,
-      isMixed: false,
-      directorshipExpected,
-      onCallExpected: 0,
-    };
-  }
-
-  return {
-    totalBalance,
-    directorshipBalance: 0,
-    onCallBalance: totalBalance,
-    isMixed: false,
-    directorshipExpected: 0,
-    onCallExpected,
-  };
-};
-
-const suggestAllocationAmount = (invoice, incomes, paymentTotal) => {
-  const split = getInvoiceBalanceSplit(invoice, incomes);
-  if (split.totalBalance <= 0) return 0;
-  if (!paymentTotal || paymentTotal <= 0) return split.totalBalance;
-
-  if (split.isMixed) {
-    const matchesDirectorship = Math.abs(paymentTotal - split.directorshipBalance) < 0.02;
-    const matchesOnCall = Math.abs(paymentTotal - split.onCallBalance) < 0.02;
-    if (matchesDirectorship) return Math.min(paymentTotal, split.directorshipBalance);
-    if (matchesOnCall) return Math.min(paymentTotal, split.onCallBalance);
-    return Math.min(paymentTotal, split.totalBalance);
-  }
-
-  return Math.min(paymentTotal, split.totalBalance);
-};
 
 const PAYMENT_MODES = {
   INVOICE: 'invoice',
@@ -213,7 +125,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
 
   const { data: existingPayments = [] } = useQuery({
     queryKey: ['payments'],
-    queryFn: () => base44.entities.Payment.list('-payment_date')
+    queryFn: () => fetchAllEntityRecords(base44.entities.Payment, '-payment_date')
   });
 
   const allPayerOptions = React.useMemo(() => {
@@ -559,13 +471,24 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
       if (field === 'invoice_id') {
         const invoice = invoices.find((inv) => inv.id === value);
         if (invoice) {
-          const suggestedAmount = suggestAllocationAmount(invoice, incomes, prev.total_amount);
+          const suggestedAmount = suggestAllocationAmount(
+            invoice,
+            incomes,
+            prev.total_amount,
+            existingPayments,
+            payment?.id
+          );
+          const splitType = inferSplitTypeFromAmount(invoice, incomes, suggestedAmount);
+          const outsideIncomeId = splitType
+            ? findSplitOutsideIncomeId(invoice, incomes, splitType)
+            : undefined;
 
           newAllocations[index] = {
             ...newAllocations[index],
             invoice_id: value,
             provider_id: invoice.staff_member_id || '',
             amount: suggestedAmount,
+            ...(outsideIncomeId ? { outside_income_id: outsideIncomeId } : {}),
           };
 
           if (invoice.notes && invoice.notes.trim()) {
@@ -592,14 +515,28 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
     setIsDirty(true);
   };
 
-  const applySplitAmount = (index, amount) => {
+  const applySplitAmount = (index, amount, splitType) => {
     const numericAmount = Math.round((parseFloat(amount) || 0) * 100) / 100;
-    setFormData((prev) => ({
-      ...prev,
-      allocations: prev.allocations.map((allocation, i) =>
-        i === index ? { ...allocation, amount: numericAmount } : allocation
-      ),
-    }));
+    setFormData((prev) => {
+      const allocation = prev.allocations[index];
+      const invoice = invoices.find((inv) => inv.id === allocation?.invoice_id);
+      const outsideIncomeId = splitType
+        ? findSplitOutsideIncomeId(invoice, incomes, splitType)
+        : allocation?.outside_income_id;
+
+      return {
+        ...prev,
+        allocations: prev.allocations.map((a, i) =>
+          i === index
+            ? {
+                ...a,
+                amount: numericAmount,
+                ...(outsideIncomeId ? { outside_income_id: outsideIncomeId } : {}),
+              }
+            : a
+        ),
+      };
+    });
     setIsDirty(true);
   };
 
@@ -1348,7 +1285,13 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                       const selectedInvoice = invoices.find(inv => inv.id === allocation.invoice_id);
                       const selectedProvider = providers.find(p => p.id === allocation.provider_id);
                       const balanceSplit = selectedInvoice
-                        ? getInvoiceBalanceSplit(selectedInvoice, incomes)
+                        ? getInvoiceBalanceSplit(
+                            selectedInvoice,
+                            incomes,
+                            existingPayments,
+                            [],
+                            payment?.id
+                          )
                         : null;
                       
                       return (
@@ -1476,7 +1419,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                                             variant="link"
                                             size="sm"
                                             className="h-auto p-0 text-blue-600"
-                                            onClick={() => applySplitAmount(index, balanceSplit.directorshipBalance)}
+                                            onClick={() => applySplitAmount(index, balanceSplit.directorshipBalance, 'directorship')}
                                           >
                                             Apply
                                           </Button>
@@ -1492,7 +1435,7 @@ export default function PaymentForm({ payment, invoices, providers, onSubmit, on
                                             variant="link"
                                             size="sm"
                                             className="h-auto p-0 text-blue-600"
-                                            onClick={() => applySplitAmount(index, balanceSplit.onCallBalance)}
+                                            onClick={() => applySplitAmount(index, balanceSplit.onCallBalance, 'oncall')}
                                           >
                                             Apply
                                           </Button>

@@ -5,6 +5,13 @@ import { Download, Building2, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, parseISO } from "date-fns";
+import {
+  isDirectorshipOutsideIncome,
+  getLinkedIncomes,
+  getInvoiceTypeSplit,
+  splitReceivedFromPayments,
+  inferSplitTypeFromAmount,
+} from "@/lib/stFrancisPaymentSplit";
 
 // ── Payment Quarter View helpers (mirrors PaymentQuarterView.jsx logic) ──────
 const QUARTER_ALLOWED_GROUPS = ['Hartford Hospital', 'UConn', 'HH - Manchester / ECHN', 'St. Francis'];
@@ -29,22 +36,6 @@ const sortQuartersDesc = (a, b) => {
   return qb - qa;
 };
 
-const isDirectorshipOutsideIncome = (income, programLocations = []) => {
-  if (!income) return false;
-  if ((income.facility_name || '').toLowerCase().includes('directorship')) return true;
-  if (income.program_location_id) {
-    const loc = programLocations.find(pl => pl.id === income.program_location_id);
-    if (loc?.program_type === 'Directorship') return true;
-    if ((loc?.program_location || '').toLowerCase().includes('directorship')) return true;
-  }
-  return false;
-};
-
-const getLinkedIncomes = (invoice, outsideIncome = []) =>
-  (invoice?.outside_income_ids || [])
-    .map((id) => outsideIncome.find((inc) => inc.id === id))
-    .filter(Boolean);
-
 const getOutsideIncomeProgramGroup = (income, programLocations = [], normalizeGroup) => {
   if (!income) return '';
   if (income.program_location_id) {
@@ -60,75 +51,6 @@ const isDirectorshipInvoice = (invoice, outsideIncome = [], programLocations = [
   return getLinkedIncomes(invoice, outsideIncome).some((inc) =>
     isDirectorshipOutsideIncome(inc, programLocations)
   );
-};
-
-const getInvoiceTypeSplit = (invoice, outsideIncome = [], programLocations = [], programGroup) => {
-  const invoiceTotal = invoice.amount_expected || invoice.total || 0;
-  const hasDirectorshipInvoiceNumber = invoice.invoice_number?.includes('(Directorship)');
-
-  if (programGroup === 'Hartford Hospital') {
-    if (hasDirectorshipInvoiceNumber) {
-      return {
-        directorshipExpected: invoiceTotal,
-        onCallExpected: 0,
-      };
-    }
-    return {
-      directorshipExpected: 0,
-      onCallExpected: invoiceTotal,
-    };
-  }
-
-  const linked = getLinkedIncomes(invoice, outsideIncome);
-  const directorshipIncomes = linked.filter((inc) => isDirectorshipOutsideIncome(inc, programLocations));
-  const onCallIncomes = linked.filter((inc) => !isDirectorshipOutsideIncome(inc, programLocations));
-  const directorshipFromIncome = directorshipIncomes.reduce((sum, inc) => sum + (inc.total_amount || 0), 0);
-  const onCallFromIncome = onCallIncomes.reduce((sum, inc) => sum + (inc.total_amount || 0), 0);
-
-  if (linked.length === 0) {
-    if (hasDirectorshipInvoiceNumber) {
-      return { directorshipExpected: invoiceTotal, onCallExpected: 0 };
-    }
-    return { directorshipExpected: 0, onCallExpected: invoiceTotal };
-  }
-
-  if (directorshipFromIncome > 0 && onCallFromIncome > 0) {
-    return {
-      directorshipExpected: directorshipFromIncome,
-      onCallExpected: onCallFromIncome,
-    };
-  }
-
-  if (directorshipFromIncome > 0 || hasDirectorshipInvoiceNumber) {
-    return {
-      directorshipExpected: directorshipFromIncome || invoiceTotal,
-      onCallExpected: 0,
-    };
-  }
-
-  return {
-    directorshipExpected: 0,
-    onCallExpected: onCallFromIncome || invoiceTotal,
-  };
-};
-
-const splitReceivedAmount = (totalReceived, directorshipExpected, onCallExpected) => {
-  const received = totalReceived || 0;
-  const totalExpected = directorshipExpected + onCallExpected;
-  if (received <= 0 || totalExpected <= 0) {
-    return { directorshipReceived: 0, onCallReceived: 0 };
-  }
-  if (directorshipExpected <= 0) {
-    return { directorshipReceived: 0, onCallReceived: received };
-  }
-  if (onCallExpected <= 0) {
-    return { directorshipReceived: received, onCallReceived: 0 };
-  }
-  const directorshipReceived = Math.round((received * (directorshipExpected / totalExpected)) * 100) / 100;
-  return {
-    directorshipReceived,
-    onCallReceived: Math.round((received - directorshipReceived) * 100) / 100,
-  };
 };
 
 const getIncomeMonthLabel = (income) => {
@@ -224,10 +146,12 @@ const buildSeparatedProgramSections = ({
     const providerName = provider?.full_name || 'Unknown';
     const paymentMeta = getInvoicePaymentMeta(invoice, payments);
     const split = getInvoiceTypeSplit(invoice, outsideIncome, programLocations, programGroup);
-    const { directorshipReceived, onCallReceived } = splitReceivedAmount(
-      invoice.amount_received || 0,
-      split.directorshipExpected,
-      split.onCallExpected
+    const { directorshipReceived, onCallReceived } = splitReceivedFromPayments(
+      invoice,
+      payments,
+      outsideIncome,
+      programLocations,
+      programGroup
     );
     const shouldHideNotes = invoice.auto_generated || (invoice.notes && (
       invoice.notes.toLowerCase().includes('auto-generated') ||
@@ -353,7 +277,18 @@ const buildPaymentQuarterRows = (payments, invoices, providers, outsideIncome = 
       const group = normalizeQGroup(invoice?.program_group || '');
       if (!QUARTER_ALLOWED_GROUPS.includes(group)) return;
       const provider = providers.find(p => p.id === allocation.provider_id);
-      const isDirectorship = isDirectorshipInvoice(invoice, outsideIncome, programLocations);
+      let isDirectorship = isDirectorshipInvoice(invoice, outsideIncome, programLocations);
+      if (allocation.outside_income_id) {
+        const taggedIncome = outsideIncome.find((inc) => inc.id === allocation.outside_income_id);
+        isDirectorship = isDirectorshipOutsideIncome(taggedIncome, programLocations);
+      } else if (invoice) {
+        const typeSplit = getInvoiceTypeSplit(invoice, outsideIncome, programLocations, group);
+        if (typeSplit.directorshipExpected > 0 && typeSplit.onCallExpected > 0) {
+          const inferred = inferSplitTypeFromAmount(invoice, outsideIncome, allocation.amount || 0);
+          if (inferred === 'directorship') isDirectorship = true;
+          else if (inferred === 'oncall') isDirectorship = false;
+        }
+      }
       const invoiceNum = invoice?.invoice_number || '-';
       rows.push({
         quarter: getQuarter(payment.payment_date),

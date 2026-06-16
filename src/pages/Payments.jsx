@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { auditCreate, auditUpdate, auditDelete } from '@/lib/auditLogger';
 import { fetchAllEntityRecords } from "@/lib/base44Pagination";
+import { getIncomeAmountReceived } from "@/lib/stFrancisPaymentSplit";
 
 export default function Payments() {
   const [showForm, setShowForm] = useState(false);
@@ -68,7 +69,7 @@ export default function Payments() {
     queryFn: () => base44.entities.Provider.list()
   });
 
-  const { data: outsideIncomes = [] } = useQuery({
+  const { data: outsideIncomes = [], isLoading: outsideIncomesLoading } = useQuery({
     queryKey: ['outside-income'],
     queryFn: () => fetchAllEntityRecords(base44.entities.OutsideIncome)
   });
@@ -254,10 +255,45 @@ export default function Payments() {
     }
   };
 
+  const updateOutsideIncomeStatuses = async () => {
+    if (outsideIncomes.length === 0) return;
+
+    for (const income of outsideIncomes) {
+      if (!income.invoice_id) continue;
+
+      const invoice = invoices.find((inv) => inv.id === income.invoice_id);
+      if (!invoice) continue;
+
+      const expected = income.total_amount || 0;
+      if (expected <= 0) continue;
+
+      const received = getIncomeAmountReceived(
+        income,
+        invoice,
+        payments,
+        outsideIncomes,
+        [],
+        invoice.program_group
+      );
+
+      let newStatus = income.status;
+      if (received >= expected - 0.01) {
+        newStatus = 'paid';
+      } else if (received === 0 && income.status === 'paid') {
+        newStatus = 'invoiced';
+      }
+
+      if (newStatus !== income.status) {
+        await base44.entities.OutsideIncome.update(income.id, { status: newStatus });
+      }
+    }
+  };
+
   // Auto-update on page load to sync existing data
   useEffect(() => {
     const updateData = async () => {
-      if (paymentsLoading || invoicesLoading || providersLoading || payments.length === 0 || invoices.length === 0) return;
+      if (paymentsLoading || invoicesLoading || providersLoading || outsideIncomesLoading
+        || payments.length === 0 || invoices.length === 0) return;
 
       for (const payment of payments) {
         const totalAllocated = payment.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
@@ -282,9 +318,11 @@ export default function Payments() {
       }
 
       await updateInvoiceStatuses();
+      await updateOutsideIncomeStatuses();
 
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['outside-income'] });
     };
 
     const timer = setTimeout(() => {
@@ -293,7 +331,7 @@ export default function Payments() {
 
     return () => clearTimeout(timer);
 
-  }, [payments.length, invoices.length, paymentsLoading, invoicesLoading, providersLoading]);
+  }, [payments.length, invoices.length, outsideIncomes.length, paymentsLoading, invoicesLoading, providersLoading, outsideIncomesLoading]);
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
@@ -332,6 +370,7 @@ export default function Payments() {
       });
 
       await updateInvoiceStatuses();
+      await updateOutsideIncomeStatuses();
 
       return payment;
     },
@@ -391,6 +430,7 @@ export default function Payments() {
       });
 
       await updateInvoiceStatuses();
+      await updateOutsideIncomeStatuses();
 
       return payment;
     },
@@ -417,11 +457,13 @@ export default function Payments() {
       await base44.entities.Payment.delete(payment.id);
 
       await updateInvoiceStatuses();
+      await updateOutsideIncomeStatuses();
     },
     onSuccess: (result, payment) => {
       const snapshot = deleteConfirm;
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['outside-income'] });
       setDeleteConfirm(null);
       auditDelete('Payment', payment.id, snapshot).catch(e => console.error('[Audit]', e));
     },
@@ -462,6 +504,7 @@ export default function Payments() {
       });
 
       await updateInvoiceStatuses();
+      await updateOutsideIncomeStatuses();
     },
     onSuccess: (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['payments'] });
