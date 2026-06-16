@@ -11,6 +11,7 @@ import {
   getInvoiceTypeSplit,
   splitReceivedFromPayments,
   inferSplitTypeFromAmount,
+  getSplitInvoicePaymentAttribution,
 } from "@/lib/stFrancisPaymentSplit";
 
 // ── Payment Quarter View helpers (mirrors PaymentQuarterView.jsx logic) ──────
@@ -65,28 +66,18 @@ const getIncomeMonthLabel = (income) => {
   }
 };
 
-const getInvoicePaymentMeta = (invoice, payments) => {
-  let paymentDate = '';
-  let voucherNumber = '';
-  let paymentQuarter = '';
-  let paymentNotes = '';
-
-  payments.forEach((payment) => {
-    payment.allocations?.forEach((allocation) => {
-      if (allocation.invoice_id === invoice.id) {
-        const pDate = parseISO(payment.payment_date);
-        paymentDate = format(pDate, 'MM/dd/yyyy');
-        const q = Math.floor(pDate.getMonth() / 3) + 1;
-        paymentQuarter = `Q${q} ${pDate.getFullYear()}`;
-        voucherNumber = payment.reference_number || '';
-        paymentNotes = (payment.notes && (payment.notes.toLowerCase().includes('auto-generated') || payment.notes.toLowerCase().includes('auto-created')))
-          ? ''
-          : (payment.notes || '');
-      }
-    });
-  });
-
-  return { paymentDate, voucherNumber, paymentQuarter, paymentNotes };
+const formatPaymentMeta = (attribution) => {
+  if (!attribution?.payment?.payment_date) {
+    return { paymentDate: '', voucherNumber: '', paymentQuarter: '', paymentNotes: '' };
+  }
+  const pDate = parseISO(attribution.payment.payment_date);
+  const q = Math.floor(pDate.getMonth() / 3) + 1;
+  return {
+    paymentDate: format(pDate, 'MM/dd/yyyy'),
+    paymentQuarter: `Q${q} ${pDate.getFullYear()}`,
+    voucherNumber: attribution.payment.reference_number || '',
+    paymentNotes: attribution.notes || '',
+  };
 };
 
 const buildSeparatedProgramSections = ({
@@ -144,7 +135,15 @@ const buildSeparatedProgramSections = ({
   groupInvoices.forEach((invoice) => {
     const provider = providers.find((p) => p.id === invoice.staff_member_id);
     const providerName = provider?.full_name || 'Unknown';
-    const paymentMeta = getInvoicePaymentMeta(invoice, payments);
+    const paymentAttribution = getSplitInvoicePaymentAttribution(
+      invoice,
+      payments,
+      outsideIncome,
+      programLocations,
+      programGroup
+    );
+    const directorshipPaymentMeta = formatPaymentMeta(paymentAttribution.directorship);
+    const onCallPaymentMeta = formatPaymentMeta(paymentAttribution.onCall);
     const split = getInvoiceTypeSplit(invoice, outsideIncome, programLocations, programGroup);
     const { directorshipReceived, onCallReceived } = splitReceivedFromPayments(
       invoice,
@@ -157,9 +156,7 @@ const buildSeparatedProgramSections = ({
       invoice.notes.toLowerCase().includes('auto-generated') ||
       invoice.notes.toLowerCase().includes('auto-created')
     ));
-    const invoiceNotes = [shouldHideNotes ? '' : (invoice.notes || ''), paymentMeta.paymentNotes]
-      .filter(Boolean)
-      .join('; ');
+    const baseInvoiceNotes = shouldHideNotes ? '' : (invoice.notes || '');
     const dateProviderPaid = invoice.date_provider_paid
       ? format(parseISO(invoice.date_provider_paid), 'MM/dd/yyyy')
       : '';
@@ -171,9 +168,11 @@ const buildSeparatedProgramSections = ({
         month: invoice.month,
         expectedAmount: split.directorshipExpected,
         receivedAmount: split.onCallExpected > 0 ? directorshipReceived : (invoice.amount_received || 0),
-        paymentMeta,
+        paymentMeta: directorshipReceived > 0 ? directorshipPaymentMeta : formatPaymentMeta(null),
         dateProviderPaid,
-        notes: invoiceNotes,
+        notes: [baseInvoiceNotes, directorshipReceived > 0 ? directorshipPaymentMeta.paymentNotes : '']
+          .filter(Boolean)
+          .join('; '),
       });
     }
 
@@ -184,9 +183,11 @@ const buildSeparatedProgramSections = ({
         month: invoice.month,
         expectedAmount: split.onCallExpected,
         receivedAmount: split.directorshipExpected > 0 ? onCallReceived : (invoice.amount_received || 0),
-        paymentMeta,
+        paymentMeta: onCallReceived > 0 ? onCallPaymentMeta : formatPaymentMeta(null),
         dateProviderPaid,
-        notes: invoiceNotes,
+        notes: [baseInvoiceNotes, onCallReceived > 0 ? onCallPaymentMeta.paymentNotes : '']
+          .filter(Boolean)
+          .join('; '),
       });
     }
   });

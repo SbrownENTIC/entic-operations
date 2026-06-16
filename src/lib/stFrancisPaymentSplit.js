@@ -178,6 +178,105 @@ export const inferSplitTypeFromAmount = (invoice, incomes, amount) => {
   return null;
 };
 
+/** Attribute a single invoice allocation to directorship or on-call (directorship-first waterfall). */
+export const attributeInvoiceAllocation = (
+  allocation,
+  invoice,
+  outsideIncome = [],
+  programLocations = [],
+  programGroup,
+  priorDirectorshipReceived = 0
+) => {
+  if (!allocation?.invoice_id || allocation.invoice_id !== invoice?.id) return null;
+
+  if (allocation.outside_income_id) {
+    const income = outsideIncome.find((inc) => inc.id === allocation.outside_income_id);
+    return isDirectorshipOutsideIncome(income, programLocations) ? 'directorship' : 'oncall';
+  }
+
+  const split = getInvoiceTypeSplit(invoice, outsideIncome, programLocations, programGroup);
+  const amount = allocation.amount || 0;
+  if (amount <= 0) return null;
+
+  const inferred = inferSplitTypeFromAmount(invoice, outsideIncome, amount);
+  if (inferred) return inferred;
+
+  if (split.directorshipExpected <= 0) return 'oncall';
+  if (split.onCallExpected <= 0) return 'directorship';
+
+  const directorshipRemaining = Math.max(0, split.directorshipExpected - priorDirectorshipReceived);
+  if (amount <= directorshipRemaining + 0.01) return 'directorship';
+  if (directorshipRemaining <= 0.01) return 'oncall';
+  return 'mixed';
+};
+
+/** Raw payment attribution per type for combined invoices (used by reports). */
+export const getSplitInvoicePaymentAttribution = (
+  invoice,
+  payments = [],
+  outsideIncome = [],
+  programLocations = [],
+  programGroup
+) => {
+  const empty = { payment: null, notes: '' };
+  const result = { directorship: { ...empty }, onCall: { ...empty } };
+
+  if (!invoice) return result;
+
+  let directorshipReceived = 0;
+  const sortedPayments = [...payments].sort((a, b) =>
+    (a.payment_date || '').localeCompare(b.payment_date || '')
+  );
+
+  sortedPayments.forEach((payment) => {
+    if (!payment.payment_date) return;
+
+    payment.allocations?.forEach((allocation) => {
+      if (allocation.invoice_id !== invoice.id) return;
+
+      const amount = allocation.amount || 0;
+      if (!amount) return;
+
+      const type = attributeInvoiceAllocation(
+        allocation,
+        invoice,
+        outsideIncome,
+        programLocations,
+        programGroup,
+        directorshipReceived
+      );
+
+      const paymentNotes = payment.notes && (
+        payment.notes.toLowerCase().includes('auto-generated') ||
+        payment.notes.toLowerCase().includes('auto-created')
+      ) ? '' : (payment.notes || '');
+
+      if (type === 'directorship' || type === 'oncall') {
+        result[type] = { payment, notes: paymentNotes };
+      } else if (type === 'mixed') {
+        const split = getInvoiceTypeSplit(invoice, outsideIncome, programLocations, programGroup);
+        const directorshipRemaining = Math.max(0, split.directorshipExpected - directorshipReceived);
+        if (directorshipRemaining > 0.01) {
+          result.directorship = { payment, notes: paymentNotes };
+        }
+        if (amount - directorshipRemaining > 0.01) {
+          result.onCall = { payment, notes: paymentNotes };
+        }
+      }
+
+      if (type === 'directorship') {
+        directorshipReceived += amount;
+      } else if (type === 'mixed') {
+        const split = getInvoiceTypeSplit(invoice, outsideIncome, programLocations, programGroup);
+        const directorshipRemaining = Math.max(0, split.directorshipExpected - directorshipReceived);
+        directorshipReceived += Math.min(amount, directorshipRemaining);
+      }
+    });
+  });
+
+  return result;
+};
+
 export const getInvoiceBalanceSplit = (
   invoice,
   incomes = [],
