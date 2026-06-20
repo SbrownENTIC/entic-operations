@@ -29,6 +29,7 @@ import {
 import { auditCreate, auditUpdate, auditDelete } from '@/lib/auditLogger';
 import { fetchAllEntityRecords } from "@/lib/base44Pagination";
 import { getIncomeAmountReceived } from "@/lib/stFrancisPaymentSplit";
+import { applyQuinnipiacAutoAllocation } from "@/lib/quinnipiacPaymentAllocation";
 
 export default function Payments() {
   const [showForm, setShowForm] = useState(false);
@@ -143,6 +144,34 @@ export default function Payments() {
   // Helper function to round to 2 decimal places and handle floating point precision
   const roundToTwo = (num) => {
     return Math.round((num + Number.EPSILON) * 100) / 100;
+  };
+
+  const persistQuinnipiacAutoAllocation = async (payment, incomesSnapshot) => {
+    const result = await applyQuinnipiacAutoAllocation(payment, incomesSnapshot, base44);
+    if (!result.changed) {
+      return { payment, incomesSnapshot, changed: false };
+    }
+
+    await base44.entities.Payment.update(payment.id, {
+      allocations: result.payment.allocations,
+      payment_month: result.payment.payment_month,
+      unallocated_amount: result.payment.unallocated_amount,
+      status: result.payment.status,
+    });
+
+    let nextIncomes = incomesSnapshot;
+    if (result.incomeRecord?.id) {
+      const existingIndex = nextIncomes.findIndex((income) => income.id === result.incomeRecord.id);
+      if (existingIndex >= 0) {
+        nextIncomes = nextIncomes.map((income, index) =>
+          index === existingIndex ? result.incomeRecord : income
+        );
+      } else {
+        nextIncomes = [...nextIncomes, result.incomeRecord];
+      }
+    }
+
+    return { payment: result.payment, incomesSnapshot: nextIncomes, changed: true };
   };
 
   // Check for URL parameters to auto-open a payment in edit mode
@@ -293,9 +322,18 @@ export default function Payments() {
   useEffect(() => {
     const updateData = async () => {
       if (paymentsLoading || invoicesLoading || providersLoading || outsideIncomesLoading
-        || payments.length === 0 || invoices.length === 0) return;
+        || payments.length === 0) return;
+
+      let incomesSnapshot = [...outsideIncomes];
 
       for (const payment of payments) {
+        const quinnipiacResult = await persistQuinnipiacAutoAllocation(payment, incomesSnapshot);
+        incomesSnapshot = quinnipiacResult.incomesSnapshot;
+
+        if (quinnipiacResult.changed) {
+          continue;
+        }
+
         const totalAllocated = payment.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
         const unallocated = roundToTwo((payment.total_amount || 0) - totalAllocated);
 
@@ -335,15 +373,17 @@ export default function Payments() {
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      const totalAllocated = data.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
-      const unallocated = roundToTwo(data.total_amount - totalAllocated);
+      let workingData = { ...data };
 
-      let paymentMonth = data.payment_month;
+      const totalAllocated = workingData.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
+      const unallocated = roundToTwo(workingData.total_amount - totalAllocated);
+
+      let paymentMonth = workingData.payment_month;
 
       if (!paymentMonth) {
         const months = new Set();
-        if (data.allocations) {
-          data.allocations.forEach(allocation => {
+        if (workingData.allocations) {
+          workingData.allocations.forEach(allocation => {
             if (allocation.invoice_id) {
               const invoice = invoices.find(inv => inv.id === allocation.invoice_id);
               if (invoice && invoice.month) {
@@ -355,7 +395,7 @@ export default function Payments() {
         paymentMonth = Array.from(months).sort().join(', ');
       }
 
-      let status = data.status;
+      let status = workingData.status;
       if (Math.abs(unallocated) < 0.01 && totalAllocated > 0 && status === 'pending') {
         status = 'entic_paid';
       }
@@ -363,16 +403,19 @@ export default function Payments() {
       const normalizedUnallocated = Math.abs(unallocated) < 0.01 ? 0 : unallocated;
 
       const payment = await base44.entities.Payment.create({
-        ...data,
+        ...workingData,
         payment_month: paymentMonth,
         unallocated_amount: normalizedUnallocated,
         status: status
       });
 
+      const quinnipiacResult = await persistQuinnipiacAutoAllocation(payment, outsideIncomes);
+      const finalPayment = quinnipiacResult.changed ? quinnipiacResult.payment : payment;
+
       await updateInvoiceStatuses();
       await updateOutsideIncomeStatuses();
 
-      return payment;
+      return finalPayment;
     },
     onSuccess: (payment, data) => {
       queryClient.invalidateQueries({ queryKey: ['payments'] });
@@ -393,15 +436,27 @@ export default function Payments() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }) => {
-      const totalAllocated = data.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
-      const unallocated = roundToTwo(data.total_amount - totalAllocated);
+      const quinnipiacResult = await applyQuinnipiacAutoAllocation({ ...data, id }, outsideIncomes, base44);
 
-      let paymentMonth = data.payment_month;
+      let workingData = { ...data };
+      if (quinnipiacResult.changed) {
+        workingData = {
+          ...workingData,
+          allocations: quinnipiacResult.payment.allocations,
+          payment_month: quinnipiacResult.payment.payment_month,
+          status: quinnipiacResult.payment.status,
+        };
+      }
+
+      const totalAllocated = workingData.allocations?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
+      const unallocated = roundToTwo(workingData.total_amount - totalAllocated);
+
+      let paymentMonth = workingData.payment_month;
 
       if (!paymentMonth) {
         const months = new Set();
-        if (data.allocations) {
-          data.allocations.forEach(allocation => {
+        if (workingData.allocations) {
+          workingData.allocations.forEach(allocation => {
             if (allocation.invoice_id) {
               const invoice = invoices.find(inv => inv.id === allocation.invoice_id);
               if (invoice && invoice.month) {
@@ -413,7 +468,7 @@ export default function Payments() {
         paymentMonth = Array.from(months).sort().join(', ');
       }
 
-      let status = data.status;
+      let status = workingData.status;
       if (Math.abs(unallocated) < 0.01 && totalAllocated > 0 && status === 'pending') {
         status = 'entic_paid';
       } else if (unallocated > 0.01 && (status === 'cleared' || status === 'entic_paid')) {
@@ -423,7 +478,7 @@ export default function Payments() {
       const normalizedUnallocated = Math.abs(unallocated) < 0.01 ? 0 : unallocated;
 
       const payment = await base44.entities.Payment.update(id, {
-        ...data,
+        ...workingData,
         payment_month: paymentMonth,
         unallocated_amount: normalizedUnallocated,
         status: status
