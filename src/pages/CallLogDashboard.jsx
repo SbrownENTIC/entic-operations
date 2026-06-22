@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { forceRefreshCallLogData } from '@/lib/callLogCache';
+import { forceRefreshCallLogData, resetLegacyCallLogQueryState } from '@/lib/callLogCache';
 import { fetchAllCallRecords } from '@/lib/callLogData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,10 @@ export default function CallLogDashboard() {
   const [activeTab, setActiveTab] = useState('reporting');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    resetLegacyCallLogQueryState(queryClient);
+  }, [queryClient]);
 
   const { data: inbound = [], isLoading: inboundLoading } = useQuery({
     queryKey: ['inbound-calls'],

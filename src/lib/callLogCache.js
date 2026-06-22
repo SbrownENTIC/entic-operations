@@ -2,9 +2,11 @@ import { base44 } from '@/api/base44Client';
 import { fetchAllCallRecords } from '@/lib/callLogData';
 
 const DB_NAME = 'entic-call-log-cache';
-const DB_VERSION = 1;
+// Bumped from 1 → 3 to migrate past the reverted v2 report-bundle cache format.
+const DB_VERSION = 3;
 const STORE_NAME = 'cache';
 const CACHE_RECORD_KEY = 'latest';
+const CACHE_FORMAT = 'raw-v1';
 
 function openCacheDb() {
   return new Promise((resolve, reject) => {
@@ -14,10 +16,15 @@ function openCacheDb() {
     }
 
     const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
+    request.onupgradeneeded = (event) => {
       const db = request.result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME);
+        return;
+      }
+
+      if (event.oldVersion > 0 && event.oldVersion < DB_VERSION) {
+        request.transaction.objectStore(STORE_NAME).clear();
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -71,6 +78,24 @@ function getUserDirectoryVersionSnapshot(users) {
 }
 
 /**
+ * Valid client-side raw cache entry. Rejects the reverted v2 report-bundle format.
+ */
+export function isValidRawCacheEntry(stored) {
+  if (!stored) return false;
+  if (stored.report) return false;
+  if (stored.cacheFormat && stored.cacheFormat !== CACHE_FORMAT) return false;
+  if (!Array.isArray(stored.inbound) || !Array.isArray(stored.outbound)) return false;
+  return true;
+}
+
+/**
+ * Remove stale server-side report bundle query state left from the reverted optimization.
+ */
+export function resetLegacyCallLogQueryState(queryClient) {
+  queryClient.removeQueries({ queryKey: ['call-log-report'] });
+}
+
+/**
  * Lightweight cache version from ImportJob records, raw call timestamps, and User Directory.
  * Falls back to newest raw record updated_date when no completed job exists.
  * User Directory count + latest updated_date detect extension mapping edits and deletions.
@@ -112,7 +137,15 @@ export function callLogImportVersionsMatch(storedVersion, currentVersion) {
 export async function loadCallLogCache() {
   try {
     const db = await openCacheDb();
-    return await idbGet(db, CACHE_RECORD_KEY);
+    const stored = await idbGet(db, CACHE_RECORD_KEY);
+
+    if (stored && !isValidRawCacheEntry(stored)) {
+      console.warn('Clearing incompatible Call Log cache entry (legacy report-bundle format).');
+      await idbDelete(db, CACHE_RECORD_KEY);
+      return null;
+    }
+
+    return stored;
   } catch (error) {
     console.warn('Unable to read Call Log cache:', error);
     return null;
@@ -124,6 +157,7 @@ export async function saveCallLogCache(cachePayload) {
     const db = await openCacheDb();
     await idbPut(db, CACHE_RECORD_KEY, {
       ...cachePayload,
+      cacheFormat: CACHE_FORMAT,
       cachedAt: new Date().toISOString(),
     });
   } catch (error) {
@@ -151,16 +185,17 @@ export function configureCallLogCacheHits(queryClient) {
 
   queryClient.setQueryDefaults(['inbound-calls'], cacheQueryDefaults);
   queryClient.setQueryDefaults(['outbound-calls'], cacheQueryDefaults);
+  queryClient.setQueryDefaults(['user-directory'], cacheQueryDefaults);
 }
 
 export function applyCallLogCacheToQueries(queryClient, cache) {
-  if (cache?.inbound?.length) {
+  if (Array.isArray(cache?.inbound)) {
     queryClient.setQueryData(['inbound-calls'], cache.inbound);
   }
-  if (cache?.outbound?.length) {
+  if (Array.isArray(cache?.outbound)) {
     queryClient.setQueryData(['outbound-calls'], cache.outbound);
   }
-  if (cache?.users?.length) {
+  if (Array.isArray(cache?.users)) {
     queryClient.setQueryData(['user-directory'], cache.users);
   }
 }
@@ -195,49 +230,59 @@ export async function syncCallLogReportData(queryClient, { onStatus, onReadyToMo
       if (onStatus) onStatus(status);
     };
 
-    const [stored, currentVersion] = await Promise.all([
-      loadCallLogCache(),
-      fetchCallLogImportVersion(),
-    ]);
+    resetLegacyCallLogQueryState(queryClient);
+    setStatus('loading');
 
-    const hasStored = Boolean(stored?.inbound?.length && stored?.outbound?.length);
-    const hasMemory = Boolean(queryClient.getQueryData(['inbound-calls'])?.length);
+    try {
+      const [stored, currentVersion] = await Promise.all([
+        loadCallLogCache(),
+        fetchCallLogImportVersion(),
+      ]);
 
-    if (hasStored) {
-      applyCallLogCacheToQueries(queryClient, stored);
-      configureCallLogCacheHits(queryClient);
-    }
+      const hasStored = isValidRawCacheEntry(stored);
+      const hasMemory = Boolean(
+        Array.isArray(queryClient.getQueryData(['inbound-calls'])) &&
+        Array.isArray(queryClient.getQueryData(['outbound-calls']))
+      );
 
-    if (hasStored && callLogImportVersionsMatch(stored.importVersion, currentVersion)) {
-      setStatus('ready');
+      if (hasStored) {
+        applyCallLogCacheToQueries(queryClient, stored);
+        configureCallLogCacheHits(queryClient);
+      }
+
+      if (hasStored && callLogImportVersionsMatch(stored.importVersion, currentVersion)) {
+        setStatus('ready');
+        onReadyToMount?.();
+        return;
+      }
+
+      const showStaleWhileRefreshing = hasStored || hasMemory;
+
+      if (!showStaleWhileRefreshing) {
+        try {
+          await refreshCallLogBundle(queryClient, currentVersion);
+          setStatus('ready');
+          onReadyToMount?.();
+        } catch (error) {
+          console.error('Call Log initial load failed:', error);
+          setStatus('error');
+        }
+        return;
+      }
+
+      setStatus('refreshing');
       onReadyToMount?.();
-      return;
-    }
 
-    const showStaleWhileRefreshing = hasStored || hasMemory;
-
-    if (!showStaleWhileRefreshing) {
-      setStatus('loading');
       try {
         await refreshCallLogBundle(queryClient, currentVersion);
         setStatus('ready');
-        onReadyToMount?.();
       } catch (error) {
-        console.error('Call Log initial load failed:', error);
-        setStatus('error');
+        console.error('Call Log refresh failed:', error);
+        setStatus('ready');
       }
-      return;
-    }
-
-    setStatus('refreshing');
-    onReadyToMount?.();
-
-    try {
-      await refreshCallLogBundle(queryClient, currentVersion);
-      setStatus('ready');
     } catch (error) {
-      console.error('Call Log refresh failed:', error);
-      setStatus('ready');
+      console.error('Call Log sync failed:', error);
+      setStatus('error');
     }
   })();
 
@@ -249,6 +294,7 @@ export async function syncCallLogReportData(queryClient, { onStatus, onReadyToMo
 }
 
 export async function forceRefreshCallLogData(queryClient) {
+  resetLegacyCallLogQueryState(queryClient);
   await clearCallLogCache();
   const currentVersion = await fetchCallLogImportVersion();
   return refreshCallLogBundle(queryClient, currentVersion);
@@ -259,7 +305,7 @@ export async function persistCallLogCacheFromQueries(queryClient) {
   const outbound = queryClient.getQueryData(['outbound-calls']);
   const users = queryClient.getQueryData(['user-directory']);
 
-  if (!inbound?.length || !outbound?.length) return;
+  if (!Array.isArray(inbound) || !Array.isArray(outbound)) return;
 
   const importVersion = await fetchCallLogImportVersion();
   await saveCallLogCache({
