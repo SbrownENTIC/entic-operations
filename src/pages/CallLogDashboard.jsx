@@ -1,7 +1,7 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { forceRefreshCallLogData, resetLegacyCallLogQueryState } from '@/lib/callLogCache';
+import { forceRefreshCallLogData, syncCallLogReportData, CALL_LOG_QUERY_OPTIONS } from '@/lib/callLogCache';
 import { fetchAllCallRecords } from '@/lib/callLogData';
 import {
   resolveCallLogDateRange,
@@ -43,33 +43,60 @@ export default function CallLogDashboard() {
   const [datePreset, setDatePreset] = useState('current_month');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const queryClient = useQueryClient();
+  const hasRequestedLoadRef = useRef(false);
 
   useEffect(() => {
-    resetLegacyCallLogQueryState(queryClient);
+    if (hasRequestedLoadRef.current) return;
+    hasRequestedLoadRef.current = true;
+
+    const alreadyLoaded =
+      Array.isArray(queryClient.getQueryData(['inbound-calls'])) &&
+      Array.isArray(queryClient.getQueryData(['outbound-calls']));
+
+    if (alreadyLoaded) {
+      setIsInitialLoad(false);
+      return;
+    }
+
+    (async () => {
+      try {
+        await syncCallLogReportData(queryClient);
+        setLoadError(false);
+      } catch {
+        setLoadError(true);
+      } finally {
+        setIsInitialLoad(false);
+      }
+    })();
   }, [queryClient]);
 
-  const { data: inbound = [], isLoading: inboundLoading, isError: inboundError, refetch: refetchInbound } = useQuery({
+  const { data: inbound = [] } = useQuery({
     queryKey: ['inbound-calls'],
     queryFn: () => fetchAllCallRecords(base44.entities.InboundCallRaw),
-    retry: 2,
+    ...CALL_LOG_QUERY_OPTIONS,
+    enabled: false,
   });
 
-  const { data: outbound = [], isLoading: outboundLoading, isError: outboundError, refetch: refetchOutbound } = useQuery({
+  const { data: outbound = [] } = useQuery({
     queryKey: ['outbound-calls'],
     queryFn: () => fetchAllCallRecords(base44.entities.OutboundCallRaw),
-    retry: 2,
+    ...CALL_LOG_QUERY_OPTIONS,
+    enabled: false,
   });
 
-  const { data: users = [], isLoading: usersLoading, isError: usersError } = useQuery({
+  const { data: users = [] } = useQuery({
     queryKey: ['user-directory'],
     queryFn: () => base44.entities.UserDirectory.list(),
-    retry: 2,
+    ...CALL_LOG_QUERY_OPTIONS,
+    enabled: false,
   });
 
-  const isLoading = inboundLoading || outboundLoading || usersLoading;
   const hasData = inbound.length > 0 || outbound.length > 0;
-  const hasQueryError = inboundError || outboundError || usersError;
+  const isLoading = isInitialLoad && !hasData && !isRefreshing;
+  const hasQueryError = loadError;
 
   const dateRange = useMemo(
     () => resolveCallLogDateRange(datePreset, customStart, customEnd),
@@ -1287,9 +1314,16 @@ export default function CallLogDashboard() {
         </Alert>
         <Button
           variant="outline"
-          onClick={() => {
-            refetchInbound();
-            refetchOutbound();
+          onClick={async () => {
+            setIsInitialLoad(true);
+            setLoadError(false);
+            try {
+              await syncCallLogReportData(queryClient);
+            } catch {
+              setLoadError(true);
+            } finally {
+              setIsInitialLoad(false);
+            }
           }}
         >
           Retry
@@ -1501,8 +1535,9 @@ export default function CallLogDashboard() {
               <CardContent>
                 <CDRUpload
                   onUploadSuccess={() => {
-                    queryClient.invalidateQueries({ queryKey: ['inbound-calls'] });
-                    queryClient.invalidateQueries({ queryKey: ['outbound-calls'] });
+                    forceRefreshCallLogData(queryClient).catch((error) => {
+                      console.error('Call Log refresh after CDR import failed:', error);
+                    });
                   }}
                 />
               </CardContent>

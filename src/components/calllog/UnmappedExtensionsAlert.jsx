@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
-import { fetchAllCallRecords } from '@/lib/callLogData';
+import { CALL_LOG_QUERY_OPTIONS } from '@/lib/callLogCache';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,19 +11,20 @@ export default function UnmappedExtensionsAlert({ inbound: inboundProp, outbound
 
   const { data: inboundFromQuery = [] } = useQuery({
     queryKey: ['inbound-calls'],
-    queryFn: () => fetchAllCallRecords(base44.entities.InboundCallRaw),
-    enabled: inboundProp === undefined,
+    ...CALL_LOG_QUERY_OPTIONS,
+    enabled: false,
   });
 
   const { data: outboundFromQuery = [] } = useQuery({
     queryKey: ['outbound-calls'],
-    queryFn: () => fetchAllCallRecords(base44.entities.OutboundCallRaw),
-    enabled: outboundProp === undefined,
+    ...CALL_LOG_QUERY_OPTIONS,
+    enabled: false,
   });
 
   const { data: users = [] } = useQuery({
     queryKey: ['user-directory'],
-    queryFn: () => base44.entities.UserDirectory.list(),
+    ...CALL_LOG_QUERY_OPTIONS,
+    enabled: false,
   });
 
   const inbound = inboundProp ?? inboundFromQuery;

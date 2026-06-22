@@ -7,6 +7,22 @@ const DB_VERSION = 3;
 const STORE_NAME = 'cache';
 const CACHE_RECORD_KEY = 'latest';
 const CACHE_FORMAT = 'raw-v1';
+const VERSION_CHECK_MIN_INTERVAL_MS = 5 * 60 * 1000;
+
+/** React Query defaults — cache-only reads; no idle refetching. */
+export const CALL_LOG_QUERY_OPTIONS = {
+  staleTime: Infinity,
+  gcTime: 30 * 60 * 1000,
+  refetchOnMount: false,
+  refetchOnWindowFocus: false,
+  refetchOnReconnect: false,
+  refetchInterval: false,
+  retry: false,
+};
+
+let callLogLoadInFlight = null;
+let lastVersionCheckAt = 0;
+let lastVersionCheckResult = null;
 
 function openCacheDb() {
   return new Promise((resolve, reject) => {
@@ -88,23 +104,28 @@ export function isValidRawCacheEntry(stored) {
   return true;
 }
 
-/**
- * Remove stale server-side report bundle query state and restore fetch-friendly defaults.
- */
-export function resetLegacyCallLogQueryState(queryClient) {
+/** Remove stale server-side report bundle query state only. */
+export function removeLegacyCallLogQueries(queryClient) {
   queryClient.removeQueries({ queryKey: ['call-log-report'] });
+}
 
-  const fetchDefaults = {
-    staleTime: 0,
-    gcTime: 5 * 60 * 1000,
-    refetchOnMount: true,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: true,
-  };
+/** @deprecated Use removeLegacyCallLogQueries + configureCallLogCacheHits instead. */
+export function resetLegacyCallLogQueryState(queryClient) {
+  removeLegacyCallLogQueries(queryClient);
+  configureCallLogCacheHits(queryClient);
+}
 
-  queryClient.setQueryDefaults(['inbound-calls'], fetchDefaults);
-  queryClient.setQueryDefaults(['outbound-calls'], fetchDefaults);
-  queryClient.setQueryDefaults(['user-directory'], fetchDefaults);
+export function configureCallLogCacheHits(queryClient) {
+  queryClient.setQueryDefaults(['inbound-calls'], CALL_LOG_QUERY_OPTIONS);
+  queryClient.setQueryDefaults(['outbound-calls'], CALL_LOG_QUERY_OPTIONS);
+  queryClient.setQueryDefaults(['user-directory'], CALL_LOG_QUERY_OPTIONS);
+}
+
+function hasCallLogQueryData(queryClient) {
+  return (
+    Array.isArray(queryClient.getQueryData(['inbound-calls'])) &&
+    Array.isArray(queryClient.getQueryData(['outbound-calls']))
+  );
 }
 
 async function fetchEntityRecordsSafely(fetchFn, fallback = []) {
@@ -119,9 +140,14 @@ async function fetchEntityRecordsSafely(fetchFn, fallback = []) {
 
 /**
  * Lightweight cache version from ImportJob records, raw call timestamps, and User Directory.
- * ImportJob lookups are best-effort — a failure there must not block the dashboard.
+ * Debounced to at most once every few minutes unless forced.
  */
-export async function fetchCallLogImportVersion() {
+export async function fetchCallLogImportVersion({ force = false } = {}) {
+  const now = Date.now();
+  if (!force && lastVersionCheckResult && now - lastVersionCheckAt < VERSION_CHECK_MIN_INTERVAL_MS) {
+    return lastVersionCheckResult;
+  }
+
   const [
     inboundJobs,
     outboundJobs,
@@ -146,7 +172,8 @@ export async function fetchCallLogImportVersion() {
 
   const { userDirectoryUpdatedAt, userDirectoryCount } = getUserDirectoryVersionSnapshot(userDirectory);
 
-  return {
+  lastVersionCheckAt = now;
+  lastVersionCheckResult = {
     inboundJobId: inboundJobs[0]?.id ?? null,
     inboundCompletedAt: inboundJobs[0]?.completed_at ?? latestInbound[0]?.updated_date ?? null,
     outboundJobId: outboundJobs[0]?.id ?? null,
@@ -154,6 +181,8 @@ export async function fetchCallLogImportVersion() {
     userDirectoryUpdatedAt,
     userDirectoryCount,
   };
+
+  return lastVersionCheckResult;
 }
 
 export function callLogImportVersionsMatch(storedVersion, currentVersion) {
@@ -210,20 +239,6 @@ export async function clearCallLogCache() {
   }
 }
 
-export function configureCallLogCacheHits(queryClient) {
-  const cacheQueryDefaults = {
-    staleTime: Infinity,
-    gcTime: Infinity,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-  };
-
-  queryClient.setQueryDefaults(['inbound-calls'], cacheQueryDefaults);
-  queryClient.setQueryDefaults(['outbound-calls'], cacheQueryDefaults);
-  queryClient.setQueryDefaults(['user-directory'], cacheQueryDefaults);
-}
-
 export function applyCallLogCacheToQueries(queryClient, cache) {
   if (Array.isArray(cache?.inbound)) {
     queryClient.setQueryData(['inbound-calls'], cache.inbound);
@@ -246,120 +261,78 @@ export async function fetchFullCallLogBundle() {
   return { inbound, outbound, users };
 }
 
-let syncInFlight = null;
-
-async function refreshCallLogBundle(queryClient, currentVersion) {
+async function refreshCallLogBundle(queryClient, importVersion) {
   const bundle = await fetchFullCallLogBundle();
   applyCallLogCacheToQueries(queryClient, bundle);
-  await saveCallLogCache({ ...bundle, importVersion: currentVersion });
+  await saveCallLogCache({ ...bundle, importVersion });
   configureCallLogCacheHits(queryClient);
   return bundle;
 }
 
-export async function syncCallLogReportData(queryClient, { onStatus } = {}) {
-  if (syncInFlight) {
-    return syncInFlight;
+function runExclusiveCallLogLoad(task) {
+  if (callLogLoadInFlight) {
+    return callLogLoadInFlight;
   }
 
-  syncInFlight = (async () => {
+  callLogLoadInFlight = (async () => {
+    try {
+      return await task();
+    } finally {
+      callLogLoadInFlight = null;
+    }
+  })();
+
+  return callLogLoadInFlight;
+}
+
+/**
+ * Load call log data once on page open. Uses IndexedDB or in-memory cache when available;
+ * otherwise fetches a single full bundle from the backend.
+ */
+export async function syncCallLogReportData(queryClient, { onStatus } = {}) {
+  return runExclusiveCallLogLoad(async () => {
     const setStatus = (status) => {
       if (onStatus) onStatus(status);
     };
 
-    resetLegacyCallLogQueryState(queryClient);
+    removeLegacyCallLogQueries(queryClient);
+    configureCallLogCacheHits(queryClient);
+
+    if (hasCallLogQueryData(queryClient)) {
+      setStatus('ready');
+      return;
+    }
+
+    const stored = await loadCallLogCache();
+    if (isValidRawCacheEntry(stored)) {
+      applyCallLogCacheToQueries(queryClient, stored);
+      configureCallLogCacheHits(queryClient);
+      setStatus('ready');
+      return;
+    }
+
     setStatus('loading');
 
     try {
-      const stored = await loadCallLogCache();
-      const hasStored = isValidRawCacheEntry(stored);
-      const hasMemory = Boolean(
-        Array.isArray(queryClient.getQueryData(['inbound-calls'])) &&
-        Array.isArray(queryClient.getQueryData(['outbound-calls']))
-      );
-
-      if (hasStored) {
-        applyCallLogCacheToQueries(queryClient, stored);
-        configureCallLogCacheHits(queryClient);
-      }
-
-      let currentVersion = null;
-      try {
-        currentVersion = await fetchCallLogImportVersion();
-      } catch (error) {
-        console.warn('Call Log import version check failed:', error);
-      }
-
-      if (hasStored && currentVersion && callLogImportVersionsMatch(stored.importVersion, currentVersion)) {
-        setStatus('ready');
-        return;
-      }
-
-      const showStaleWhileRefreshing = hasStored || hasMemory;
-
-      if (!showStaleWhileRefreshing) {
-        try {
-          if (!currentVersion) {
-            currentVersion = await fetchCallLogImportVersion();
-          }
-          await refreshCallLogBundle(queryClient, currentVersion);
-          setStatus('ready');
-        } catch (error) {
-          console.error('Call Log initial cache refresh failed:', error);
-          resetLegacyCallLogQueryState(queryClient);
-          setStatus('error');
-        }
-        return;
-      }
-
-      setStatus('refreshing');
-
-      try {
-        if (!currentVersion) {
-          currentVersion = await fetchCallLogImportVersion();
-        }
-        await refreshCallLogBundle(queryClient, currentVersion);
-        setStatus('ready');
-      } catch (error) {
-        console.error('Call Log background refresh failed:', error);
-        if (!hasStored && !hasMemory) {
-          resetLegacyCallLogQueryState(queryClient);
-        }
-        setStatus(hasStored || hasMemory ? 'ready' : 'error');
-      }
+      const importVersion = await fetchCallLogImportVersion({ force: true });
+      await refreshCallLogBundle(queryClient, importVersion);
+      setStatus('ready');
     } catch (error) {
-      console.error('Call Log sync failed:', error);
-      resetLegacyCallLogQueryState(queryClient);
+      console.error('Call Log initial load failed:', error);
       setStatus('error');
+      throw error;
     }
-  })();
-
-  try {
-    await syncInFlight;
-  } finally {
-    syncInFlight = null;
-  }
-}
-
-export async function forceRefreshCallLogData(queryClient) {
-  resetLegacyCallLogQueryState(queryClient);
-  await clearCallLogCache();
-  const currentVersion = await fetchCallLogImportVersion();
-  return refreshCallLogBundle(queryClient, currentVersion);
-}
-
-export async function persistCallLogCacheFromQueries(queryClient) {
-  const inbound = queryClient.getQueryData(['inbound-calls']);
-  const outbound = queryClient.getQueryData(['outbound-calls']);
-  const users = queryClient.getQueryData(['user-directory']);
-
-  if (!Array.isArray(inbound) || !Array.isArray(outbound)) return;
-
-  const importVersion = await fetchCallLogImportVersion();
-  await saveCallLogCache({
-    inbound,
-    outbound,
-    users: users ?? [],
-    importVersion,
   });
-  configureCallLogCacheHits(queryClient);
+}
+
+/** Force a full backend refresh (manual refresh or post-CDR import). */
+export async function forceRefreshCallLogData(queryClient) {
+  return runExclusiveCallLogLoad(async () => {
+    removeLegacyCallLogQueries(queryClient);
+    configureCallLogCacheHits(queryClient);
+    await clearCallLogCache();
+
+    const importVersion = await fetchCallLogImportVersion({ force: true });
+    return refreshCallLogBundle(queryClient, importVersion);
+  });
 }
