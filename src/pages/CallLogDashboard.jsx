@@ -9,7 +9,7 @@ import {
   formatCallLogDateRangeLabel,
   isCallLogDateRangeReady,
 } from '@/lib/callLogDateRange';
-import { format, startOfYear, endOfMonth } from 'date-fns';
+import { format, endOfMonth } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -168,20 +168,20 @@ export default function CallLogDashboard() {
     return Object.values(weekMap);
   }, [filteredInbound, filteredOutbound, extToUser, benchmarkUserIds]);
 
-  // YTD inbound for Monthly KPI Summary — independent of reporting date range
-  const ytdInbound = useMemo(() => {
+  // Inbound from tracking start for Monthly KPI Summary — independent of reporting date range
+  const monthlyKpiInbound = useMemo(() => {
     const today = new Date();
     return filterCallsByDateRange(
       inbound,
-      format(startOfYear(today), 'yyyy-MM-dd'),
+      '2026-05-01',
       format(endOfMonth(today), 'yyyy-MM-dd')
     );
   }, [inbound]);
 
   const monthlyData = useMemo(() => {
-    const aggregated = aggregateInboundByMonth(ytdInbound, extToUser, benchmarkUserIds);
-    return fillMonthlyKpiSummary(aggregated, new Date().getFullYear());
-  }, [ytdInbound, extToUser, benchmarkUserIds]);
+    const aggregated = aggregateInboundByMonth(monthlyKpiInbound, extToUser, benchmarkUserIds);
+    return fillMonthlyKpiSummary(aggregated);
+  }, [monthlyKpiInbound, extToUser, benchmarkUserIds]);
 
   const weeklyOutboundData = useMemo(() => {
     return aggregateOutboundByWeek(filteredOutbound, extToUser, benchmarkUserIds);

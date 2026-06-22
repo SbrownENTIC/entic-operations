@@ -114,29 +114,70 @@ const EMPTY_MONTH_ROW = {
   benchmark_answer_rate: 0,
 };
 
-/**
- * Fill monthly KPI rows for the current year (Jan through current month), newest first.
- */
-export function fillMonthlyKpiSummary(aggregatedRows, reportingYear, referenceDate = new Date()) {
-  const currentYear = referenceDate.getFullYear();
-  const currentMonth = referenceDate.getMonth() + 1;
+/** First month Call Log data was tracked (inclusive). */
+export const CALL_LOG_TRACKING_START_MONTH = '2026-05';
 
-  if (reportingYear !== currentYear) {
+function enumerateMonthKeys(startMonthKey, endMonthKey) {
+  const months = [];
+  let year = parseInt(startMonthKey.slice(0, 4), 10);
+  let month = parseInt(startMonthKey.slice(5, 7), 10);
+  const endYear = parseInt(endMonthKey.slice(0, 4), 10);
+  const endMonth = parseInt(endMonthKey.slice(5, 7), 10);
+
+  while (year < endYear || (year === endYear && month <= endMonth)) {
+    months.push(`${year}-${String(month).padStart(2, '0')}`);
+    month += 1;
+    if (month > 12) {
+      month = 1;
+      year += 1;
+    }
+  }
+  return months;
+}
+
+function normalizeMonthRow(row) {
+  const totalInbound = row.total_inbound || 0;
+  const benchmarkInbound = row.benchmark_inbound || 0;
+  const answerRate = totalInbound === 0
+    ? 0
+    : Math.min((row.total_answered || 0) / totalInbound, 1.0);
+  const benchmarkAnswerRate = benchmarkInbound === 0
+    ? 0
+    : Math.min((row.benchmark_answered || 0) / benchmarkInbound, 1.0);
+
+  return {
+    ...EMPTY_MONTH_ROW,
+    ...row,
+    answer_rate: Number.isFinite(answerRate) ? answerRate : 0,
+    benchmark_answer_rate: Number.isFinite(benchmarkAnswerRate) ? benchmarkAnswerRate : 0,
+  };
+}
+
+/**
+ * Fill monthly KPI rows from tracking start (May 2026) through the current month.
+ * Newest month first; empty months included with zeros.
+ */
+export function fillMonthlyKpiSummary(aggregatedRows, referenceDate = new Date()) {
+  const endMonthKey = format(startOfMonth(referenceDate), 'yyyy-MM');
+
+  if (endMonthKey < CALL_LOG_TRACKING_START_MONTH) {
     return [];
   }
 
   const byMonth = Object.fromEntries(
     (aggregatedRows || [])
-      .filter((row) => row.month?.startsWith(`${reportingYear}-`))
-      .map((row) => [row.month, row])
+      .filter(
+        (row) =>
+          row.month &&
+          row.month >= CALL_LOG_TRACKING_START_MONTH &&
+          row.month <= endMonthKey
+      )
+      .map((row) => [row.month, normalizeMonthRow(row)])
   );
 
-  const rows = [];
-  for (let m = 1; m <= currentMonth; m++) {
-    const monthKey = `${reportingYear}-${String(m).padStart(2, '0')}`;
-    rows.push(byMonth[monthKey] ?? { month: monthKey, ...EMPTY_MONTH_ROW });
-  }
-  return rows.sort((a, b) => (b.month || '').localeCompare(a.month || ''));
+  return enumerateMonthKeys(CALL_LOG_TRACKING_START_MONTH, endMonthKey)
+    .reverse()
+    .map((monthKey) => normalizeMonthRow(byMonth[monthKey] ?? { month: monthKey, ...EMPTY_MONTH_ROW }));
 }
 
 /**
