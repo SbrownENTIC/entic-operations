@@ -1,7 +1,8 @@
 import { base44 } from '@/api/base44Client';
+import { fetchAllCallRecords } from '@/lib/callLogData';
 
 const DB_NAME = 'entic-call-log-cache';
-const DB_VERSION = 2;
+const DB_VERSION = 1;
 const STORE_NAME = 'cache';
 const CACHE_RECORD_KEY = 'latest';
 
@@ -69,6 +70,11 @@ function getUserDirectoryVersionSnapshot(users) {
   };
 }
 
+/**
+ * Lightweight cache version from ImportJob records, raw call timestamps, and User Directory.
+ * Falls back to newest raw record updated_date when no completed job exists.
+ * User Directory count + latest updated_date detect extension mapping edits and deletions.
+ */
 export async function fetchCallLogImportVersion() {
   const [inboundJobs, outboundJobs, latestInbound, latestOutbound, userDirectory] = await Promise.all([
     base44.entities.ImportJob.filter({ type: 'inbound', status: 'complete' }, '-completed_at', 1),
@@ -87,7 +93,6 @@ export async function fetchCallLogImportVersion() {
     outboundCompletedAt: outboundJobs[0]?.completed_at ?? latestOutbound[0]?.updated_date ?? null,
     userDirectoryUpdatedAt,
     userDirectoryCount,
-    userDirectory,
   };
 }
 
@@ -144,38 +149,40 @@ export function configureCallLogCacheHits(queryClient) {
     refetchOnReconnect: false,
   };
 
-  queryClient.setQueryDefaults(['call-log-report'], cacheQueryDefaults);
-  queryClient.setQueryDefaults(['user-directory'], cacheQueryDefaults);
+  queryClient.setQueryDefaults(['inbound-calls'], cacheQueryDefaults);
+  queryClient.setQueryDefaults(['outbound-calls'], cacheQueryDefaults);
 }
 
 export function applyCallLogCacheToQueries(queryClient, cache) {
-  if (cache?.report) {
-    queryClient.setQueryData(['call-log-report'], cache.report);
+  if (cache?.inbound?.length) {
+    queryClient.setQueryData(['inbound-calls'], cache.inbound);
   }
-  if (cache?.report?.users?.length) {
-    queryClient.setQueryData(['user-directory'], cache.report.users);
+  if (cache?.outbound?.length) {
+    queryClient.setQueryData(['outbound-calls'], cache.outbound);
+  }
+  if (cache?.users?.length) {
+    queryClient.setQueryData(['user-directory'], cache.users);
   }
 }
 
 export async function fetchFullCallLogBundle() {
-  const response = await base44.functions.invoke('getCallLogReportBundle', {});
-  const report = response.data?.report;
+  const [inbound, outbound, users] = await Promise.all([
+    fetchAllCallRecords(base44.entities.InboundCallRaw),
+    fetchAllCallRecords(base44.entities.OutboundCallRaw),
+    base44.entities.UserDirectory.list(),
+  ]);
 
-  if (!report) {
-    throw new Error(response.data?.error || 'Failed to load call log report');
-  }
-
-  return { report };
+  return { inbound, outbound, users };
 }
 
 let syncInFlight = null;
 
 async function refreshCallLogBundle(queryClient, currentVersion) {
-  const { report } = await fetchFullCallLogBundle();
-  applyCallLogCacheToQueries(queryClient, { report });
-  await saveCallLogCache({ report, importVersion: currentVersion });
+  const bundle = await fetchFullCallLogBundle();
+  applyCallLogCacheToQueries(queryClient, bundle);
+  await saveCallLogCache({ ...bundle, importVersion: currentVersion });
   configureCallLogCacheHits(queryClient);
-  return { report };
+  return bundle;
 }
 
 export async function syncCallLogReportData(queryClient, { onStatus, onReadyToMount } = {}) {
@@ -193,12 +200,8 @@ export async function syncCallLogReportData(queryClient, { onStatus, onReadyToMo
       fetchCallLogImportVersion(),
     ]);
 
-    if (currentVersion.userDirectory?.length) {
-      queryClient.setQueryData(['user-directory'], currentVersion.userDirectory);
-    }
-
-    const hasStored = Boolean(stored?.report);
-    const hasMemory = Boolean(queryClient.getQueryData(['call-log-report']));
+    const hasStored = Boolean(stored?.inbound?.length && stored?.outbound?.length);
+    const hasMemory = Boolean(queryClient.getQueryData(['inbound-calls'])?.length);
 
     if (hasStored) {
       applyCallLogCacheToQueries(queryClient, stored);
@@ -252,12 +255,17 @@ export async function forceRefreshCallLogData(queryClient) {
 }
 
 export async function persistCallLogCacheFromQueries(queryClient) {
-  const report = queryClient.getQueryData(['call-log-report']);
-  if (!report) return;
+  const inbound = queryClient.getQueryData(['inbound-calls']);
+  const outbound = queryClient.getQueryData(['outbound-calls']);
+  const users = queryClient.getQueryData(['user-directory']);
+
+  if (!inbound?.length || !outbound?.length) return;
 
   const importVersion = await fetchCallLogImportVersion();
   await saveCallLogCache({
-    report,
+    inbound,
+    outbound,
+    users: users ?? [],
     importVersion,
   });
   configureCallLogCacheHits(queryClient);

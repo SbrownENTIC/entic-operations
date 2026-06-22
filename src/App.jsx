@@ -9,7 +9,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
-import CallLogReportSection from '@/components/reports/CallLogReportSection';
+import CallLogDashboard from '@/pages/CallLogDashboard';
 import AuditLogPage from '@/pages/AuditLog';
 import NotificationQueuePage from '@/pages/NotificationQueue';
 
@@ -65,7 +65,7 @@ const AuthenticatedApp = () => {
       ))}
       <Route path="/CallLogDashboard" element={
         <LayoutWrapper currentPageName="CallLogDashboard">
-          <CallLogReportSection isTabActive />
+          <CallLogDashboard />
         </LayoutWrapper>
       } />
       <Route path="/AuditLog" element={
