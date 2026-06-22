@@ -1,76 +1,81 @@
 import React, { useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 
 /**
- * Calculate all call metrics from raw data
+ * Calculate all call metrics from raw data in a single pass per dataset.
  */
 export function useCallMetrics(inbound, outbound, users) {
   return useMemo(() => {
-    // Build extension to user map from UserDirectory.extensions array
     const extToUser = {};
-    users.forEach(user => {
+    users.forEach((user) => {
       if (user.extensions && Array.isArray(user.extensions)) {
-        user.extensions.forEach(ext => {
+        user.extensions.forEach((ext) => {
           extToUser[ext] = user;
         });
       }
     });
 
-    // Filter to benchmark users only
-    const benchmarkUsers = users.filter(u => u.include_in_benchmark);
-    const benchmarkUserIds = new Set(benchmarkUsers.map(u => u.id));
+    const benchmarkUsers = users.filter((u) => u.include_in_benchmark);
+    const benchmarkUserIds = new Set(benchmarkUsers.map((u) => u.id));
+    const frontDeskUserIds = new Set(
+      benchmarkUsers.filter((u) => u.benchmark_group === 'Front Desk').map((u) => u.id)
+    );
 
-    // Filter to front desk benchmark users
-    const frontDeskUsers = benchmarkUsers.filter(u => u.benchmark_group === 'Front Desk');
-    const frontDeskUserIds = new Set(frontDeskUsers.map(u => u.id));
-
-    // Calculate totals (all data)
     const totalInbound = inbound.length;
     const totalOutbound = outbound.length;
     const totalCalls = totalInbound + totalOutbound;
 
-    // Calculate answered/missed (all inbound)
-    const totalAnswered = inbound.filter(c => c.answered).length;
-    const totalMissed = inbound.filter(c => c.missed).length;
+    let totalAnswered = 0;
+    let totalMissed = 0;
+    let benchmarkInboundCount = 0;
+    let benchmarkAnswered = 0;
+    let frontDeskInboundCount = 0;
+    let frontDeskAnswered = 0;
+    const unmappedInboundExts = new Set();
 
-    // Inbound answer rate (all data, capped at 1.0)
+    for (const call of inbound) {
+      if (call.answered) totalAnswered++;
+      if (call.missed) totalMissed++;
+
+      const user = extToUser[call.extension];
+      if (!user) {
+        unmappedInboundExts.add(call.extension);
+        continue;
+      }
+
+      if (benchmarkUserIds.has(user.id)) {
+        benchmarkInboundCount++;
+        if (call.answered) benchmarkAnswered++;
+      }
+
+      if (frontDeskUserIds.has(user.id)) {
+        frontDeskInboundCount++;
+        if (call.answered) frontDeskAnswered++;
+      }
+    }
+
+    let connectedOutbound = 0;
+    let answeredOutbound = 0;
+
+    for (const call of outbound) {
+      if (call.result === 'answered') {
+        answeredOutbound++;
+        if ((call.duration_seconds || 0) >= 30) {
+          connectedOutbound++;
+        }
+      }
+    }
+
     const inboundAnswerRate = totalInbound === 0 ? 0 : Math.min(totalAnswered / totalInbound, 1.0);
-
-    // Calculate outbound metrics (connected = answered AND duration >= 30 seconds)
-    const connectedOutbound = outbound.filter(c => c.result === 'answered' && (c.duration_seconds || 0) >= 30).length;
     const outboundContactRate = totalOutbound === 0 ? 0 : Math.min(connectedOutbound / totalOutbound, 1.0);
-
-    // For Overall Contact Rate: count ALL answered outbound (no duration threshold)
-    const answeredOutbound = outbound.filter(c => c.result === 'answered').length;
-
-    // Overall Contact Rate (combined inbound answered + all answered outbound)
     const totalContacted = totalAnswered + answeredOutbound;
     const overallContactRate = totalCalls === 0 ? 0 : Math.min(totalContacted / totalCalls, 1.0);
-
-    // Benchmark-only metrics
-    const benchmarkInbound = inbound.filter(c => {
-      const user = extToUser[c.extension];
-      return user && benchmarkUserIds.has(user.id);
-    });
-    const benchmarkAnswered = benchmarkInbound.filter(c => c.answered).length;
-    const benchmarkAnswerRate = benchmarkInbound.length === 0 ? 0 : 
-      Math.min(benchmarkAnswered / benchmarkInbound.length, 1.0);
-
-    // Front-End (Front Desk) metrics
-    const frontDeskInbound = inbound.filter(c => {
-      const user = extToUser[c.extension];
-      return user && frontDeskUserIds.has(user.id);
-    });
-    const frontDeskAnswered = frontDeskInbound.filter(c => c.answered).length;
-    const frontDeskAnswerRate = frontDeskInbound.length === 0 ? 0 :
-      Math.min(frontDeskAnswered / frontDeskInbound.length, 1.0);
-
-    // Unmapped extensions - extensions in call data not in any user.extensions
-    const mappedExtensions = new Set(Object.keys(extToUser));
-    const unmappedInboundExts = new Set(
-      inbound.filter(c => !mappedExtensions.has(c.extension)).map(c => c.extension)
-    );
-    const unmappedCount = unmappedInboundExts.size;
+    const benchmarkAnswerRate = benchmarkInboundCount === 0
+      ? 0
+      : Math.min(benchmarkAnswered / benchmarkInboundCount, 1.0);
+    const frontDeskAnswerRate = frontDeskInboundCount === 0
+      ? 0
+      : Math.min(frontDeskAnswered / frontDeskInboundCount, 1.0);
 
     return {
       totalCalls,
@@ -83,14 +88,14 @@ export function useCallMetrics(inbound, outbound, users) {
       outboundContactRate,
       totalContacted,
       overallContactRate,
-      benchmarkInbound: benchmarkInbound.length,
+      benchmarkInbound: benchmarkInboundCount,
       benchmarkAnswered,
       benchmarkAnswerRate,
-      frontDeskInbound: frontDeskInbound.length,
+      frontDeskInbound: frontDeskInboundCount,
       frontDeskAnswered,
       frontDeskAnswerRate,
-      unmappedCount,
-      unmappedExtensions: Array.from(unmappedInboundExts)
+      unmappedCount: unmappedInboundExts.size,
+      unmappedExtensions: Array.from(unmappedInboundExts),
     };
   }, [inbound, outbound, users]);
 }

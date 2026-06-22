@@ -42,7 +42,7 @@ export default function CallLogReportSection({ isTabActive }) {
       if (event.type !== 'updated') return;
 
       const queryKey = event.query.queryKey[0];
-      if (queryKey !== 'inbound-calls' && queryKey !== 'outbound-calls') return;
+      if (queryKey !== 'call-log-report') return;
       if (event.query.state.fetchStatus !== 'idle' || event.query.state.status !== 'success') return;
 
       if (persistTimeoutRef.current) {

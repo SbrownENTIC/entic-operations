@@ -275,8 +275,7 @@ export default function UserDirectoryTable() {
           // Refresh all queries
           queryClient.invalidateQueries({ queryKey: ['user-directory'] });
           queryClient.invalidateQueries({ queryKey: ['extensions'] });
-          queryClient.invalidateQueries({ queryKey: ['inbound-calls'] });
-          queryClient.invalidateQueries({ queryKey: ['outbound-calls'] });
+          queryClient.invalidateQueries({ queryKey: ['call-log-report'] });
         } catch (error) {
           setImportMessage({
             type: 'error',

@@ -50,8 +50,7 @@ export default function UnmappedExtensionsDrawer({ unmappedData, onClose }) {
       });
 
       queryClient.invalidateQueries({ queryKey: ['user-directory'] });
-      queryClient.invalidateQueries({ queryKey: ['inbound-calls'] });
-      queryClient.invalidateQueries({ queryKey: ['outbound-calls'] });
+      queryClient.invalidateQueries({ queryKey: ['call-log-report'] });
     } catch (error) {
       alert(`Assignment failed: ${error.message}`);
     } finally {

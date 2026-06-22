@@ -1,45 +1,32 @@
 import React, { useMemo, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
-import { fetchAllCallRecords } from '@/lib/callLogData';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import UnmappedExtensionsDrawer from './UnmappedExtensionsDrawer';
 
-export default function UnmappedExtensionsAlert() {
+export default function UnmappedExtensionsAlert({
+  unmappedData: unmappedDataProp,
+  inbound = [],
+  outbound = [],
+  users = [],
+}) {
   const [showDrawer, setShowDrawer] = useState(false);
-  const queryClient = useQueryClient();
 
-  const { data: inbound = [] } = useQuery({
-    queryKey: ['inbound-calls'],
-    queryFn: () => fetchAllCallRecords(base44.entities.InboundCallRaw),
-  });
-
-  const { data: outbound = [] } = useQuery({
-    queryKey: ['outbound-calls'],
-    queryFn: () => fetchAllCallRecords(base44.entities.OutboundCallRaw),
-  });
-
-  const { data: users = [] } = useQuery({
-    queryKey: ['user-directory'],
-    queryFn: () => base44.entities.UserDirectory.list(),
-  });
-
-  // Find unmapped extensions
   const unmappedData = useMemo(() => {
+    if (unmappedDataProp?.length) {
+      return unmappedDataProp;
+    }
+
     const mappedExts = new Set();
-    users.forEach(user => {
+    users.forEach((user) => {
       if (user.extensions && Array.isArray(user.extensions)) {
-        user.extensions.forEach(ext => {
-          mappedExts.add(ext);
-        });
+        user.extensions.forEach((ext) => mappedExts.add(ext));
       }
     });
 
     const unmapped = {};
 
-    inbound.forEach(call => {
+    inbound.forEach((call) => {
       if (!mappedExts.has(call.extension)) {
         if (!unmapped[call.extension]) {
           unmapped[call.extension] = {
@@ -60,7 +47,7 @@ export default function UnmappedExtensionsAlert() {
       }
     });
 
-    outbound.forEach(call => {
+    outbound.forEach((call) => {
       if (!mappedExts.has(call.extension)) {
         if (!unmapped[call.extension]) {
           unmapped[call.extension] = {
@@ -82,7 +69,7 @@ export default function UnmappedExtensionsAlert() {
     });
 
     return Object.values(unmapped).sort((a, b) => b.inbound - a.inbound);
-  }, [inbound, outbound, users]);
+  }, [unmappedDataProp, inbound, outbound, users]);
 
   if (unmappedData.length === 0) {
     return null;

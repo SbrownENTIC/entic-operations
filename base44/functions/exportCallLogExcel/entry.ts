@@ -258,13 +258,18 @@ Deno.serve(async (req) => {
 
     // ===== FINAL EXPORT =====
     const buffer = await wb.xlsx.writeBuffer();
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
 
-    return new Response(buffer, {
-      status: 200,
-      headers: {
-        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename="CallLog_Report_${new Date().toISOString().split("T")[0]}.xlsx"`
-      }
+    const filename = `CallLog_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+    return Response.json({
+      success: true,
+      file_base64: btoa(binary),
+      filename,
     });
   } catch (error) {
     console.error('Excel export error:', error.message);
