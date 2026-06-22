@@ -10,15 +10,16 @@ import {
   startOfYear,
   endOfYear,
   subDays,
+  subMonths,
   isValid,
 } from 'date-fns';
 
 export const CALL_LOG_DATE_PRESETS = [
   { id: 'current_week', label: 'Current Week' },
   { id: 'current_month', label: 'Current Month' },
+  { id: 'last_month', label: 'Last Month' },
   { id: 'current_quarter', label: 'Current Quarter' },
   { id: 'current_year', label: 'Current Year' },
-  { id: 'last_30_days', label: 'Last 30 Days' },
   { id: 'last_90_days', label: 'Last 90 Days' },
   { id: 'custom', label: 'Custom Date Range' },
 ];
@@ -50,13 +51,15 @@ export function resolveCallLogDateRange(preset, customStart = '', customEnd = ''
         end: toDateString(endOfYear(today)),
         label: 'Current Year',
       };
-    case 'last_30_days':
+    case 'last_month': {
+      const previousMonth = subMonths(today, 1);
       return {
         preset,
-        start: toDateString(subDays(today, 29)),
-        end: toDateString(today),
-        label: 'Last 30 Days',
+        start: toDateString(startOfMonth(previousMonth)),
+        end: toDateString(endOfMonth(previousMonth)),
+        label: 'Last Month',
       };
+    }
     case 'last_90_days':
       return {
         preset,
