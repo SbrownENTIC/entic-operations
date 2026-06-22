@@ -10,7 +10,6 @@ import {
 
 export default function CallLogReportSection({ isTabActive }) {
   const queryClient = useQueryClient();
-  const [mounted, setMounted] = useState(false);
   const [status, setStatus] = useState('idle');
   const persistTimeoutRef = useRef(null);
 
@@ -24,9 +23,6 @@ export default function CallLogReportSection({ isTabActive }) {
         onStatus: (nextStatus) => {
           if (!cancelled) setStatus(nextStatus);
         },
-        onReadyToMount: () => {
-          if (!cancelled) setMounted(true);
-        },
       });
     })();
 
@@ -36,7 +32,7 @@ export default function CallLogReportSection({ isTabActive }) {
   }, [isTabActive, queryClient]);
 
   useEffect(() => {
-    if (!mounted) return undefined;
+    if (!isTabActive) return undefined;
 
     const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
       if (event.type !== 'updated') return;
@@ -60,45 +56,44 @@ export default function CallLogReportSection({ isTabActive }) {
         clearTimeout(persistTimeoutRef.current);
       }
     };
-  }, [mounted, queryClient]);
+  }, [isTabActive, queryClient]);
 
-  if (!mounted && (status === 'loading' || status === 'idle')) {
-    return (
-      <div className="flex items-center justify-center gap-3 py-16 text-slate-600">
-        <Loader2 className="w-5 h-5 animate-spin" />
-        <span>Loading Call Log report…</span>
-      </div>
-    );
-  }
-
-  if (!mounted && status === 'error') {
-    return (
-      <div className="py-16 text-center text-slate-600">
-        Unable to load the Call Log report. Please try opening the tab again.
-      </div>
-    );
-  }
-
-  if (!mounted) {
+  if (!isTabActive) {
     return null;
   }
 
   return (
     <div className="relative">
-      {status === 'refreshing' && (
+      {status === 'loading' && (
         <Alert className="mx-4 mt-4 mb-0 border-blue-200 bg-blue-50">
           <Loader2 className="w-4 h-4 animate-spin text-blue-700" />
           <AlertDescription className="text-blue-900">
-            Updating Call Log report with newly imported data…
+            Loading call log data…
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {status === 'error' && (
+        <Alert className="mx-4 mt-4 mb-0 border-amber-200 bg-amber-50">
+          <AlertDescription className="text-amber-900">
+            Cached call log data could not be refreshed. Loading directly from the server…
           </AlertDescription>
         </Alert>
       )}
 
       {status === 'refreshing' && (
-        <div className="pointer-events-none absolute right-4 top-4 z-20 flex items-center gap-2 rounded-full border border-blue-200 bg-white/95 px-3 py-1 text-xs font-medium text-blue-800 shadow-sm">
-          <Loader2 className="h-3 w-3 animate-spin" />
-          Updating…
-        </div>
+        <>
+          <Alert className="mx-4 mt-4 mb-0 border-blue-200 bg-blue-50">
+            <Loader2 className="w-4 h-4 animate-spin text-blue-700" />
+            <AlertDescription className="text-blue-900">
+              Updating Call Log report with newly imported data…
+            </AlertDescription>
+          </Alert>
+          <div className="pointer-events-none absolute right-4 top-4 z-20 flex items-center gap-2 rounded-full border border-blue-200 bg-white/95 px-3 py-1 text-xs font-medium text-blue-800 shadow-sm">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            Updating…
+          </div>
+        </>
       )}
 
       <CallLogDashboard />

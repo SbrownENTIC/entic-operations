@@ -37,23 +37,27 @@ export default function CallLogDashboard() {
     resetLegacyCallLogQueryState(queryClient);
   }, [queryClient]);
 
-  const { data: inbound = [], isLoading: inboundLoading } = useQuery({
+  const { data: inbound = [], isLoading: inboundLoading, isError: inboundError, refetch: refetchInbound } = useQuery({
     queryKey: ['inbound-calls'],
-    queryFn: () => fetchAllCallRecords(base44.entities.InboundCallRaw)
+    queryFn: () => fetchAllCallRecords(base44.entities.InboundCallRaw),
+    retry: 2,
   });
 
-  const { data: outbound = [], isLoading: outboundLoading } = useQuery({
+  const { data: outbound = [], isLoading: outboundLoading, isError: outboundError, refetch: refetchOutbound } = useQuery({
     queryKey: ['outbound-calls'],
-    queryFn: () => fetchAllCallRecords(base44.entities.OutboundCallRaw)
+    queryFn: () => fetchAllCallRecords(base44.entities.OutboundCallRaw),
+    retry: 2,
   });
 
-  const { data: users = [], isLoading: usersLoading } = useQuery({
+  const { data: users = [], isLoading: usersLoading, isError: usersError } = useQuery({
     queryKey: ['user-directory'],
-    queryFn: () => base44.entities.UserDirectory.list()
+    queryFn: () => base44.entities.UserDirectory.list(),
+    retry: 2,
   });
 
   const isLoading = inboundLoading || outboundLoading || usersLoading;
   const hasData = inbound.length > 0 || outbound.length > 0;
+  const hasQueryError = inboundError || outboundError || usersError;
 
   const handleRefreshData = async () => {
     setIsRefreshing(true);
@@ -1269,8 +1273,31 @@ export default function CallLogDashboard() {
 
   if (isLoading && !hasData && !isRefreshing) {
     return (
-      <div className="p-6 bg-slate-50 min-h-screen flex items-center justify-center">
+      <div className="p-6 bg-slate-50 min-h-screen flex flex-col items-center justify-center gap-3">
         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <p className="text-sm text-slate-600">Loading call records…</p>
+      </div>
+    );
+  }
+
+  if (hasQueryError && !hasData && !isRefreshing) {
+    return (
+      <div className="p-6 bg-slate-50 min-h-screen flex flex-col items-center justify-center gap-4">
+        <Alert variant="destructive" className="max-w-md">
+          <AlertTriangle className="w-4 h-4" />
+          <AlertDescription>
+            Failed to load call log data. Check your connection and try again.
+          </AlertDescription>
+        </Alert>
+        <Button
+          variant="outline"
+          onClick={() => {
+            refetchInbound();
+            refetchOutbound();
+          }}
+        >
+          Retry
+        </Button>
       </div>
     );
   }
