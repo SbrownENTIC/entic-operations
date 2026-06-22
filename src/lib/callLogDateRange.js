@@ -11,11 +11,14 @@ import {
   endOfYear,
   subDays,
   subMonths,
+  subWeeks,
   isValid,
 } from 'date-fns';
 
+const WEEK_STARTS_ON_MONDAY = { weekStartsOn: 1 };
+
 export const CALL_LOG_DATE_PRESETS = [
-  { id: 'current_week', label: 'Current Week' },
+  { id: 'prior_week', label: 'Prior Week' },
   { id: 'current_month', label: 'Current Month' },
   { id: 'last_month', label: 'Last Month' },
   { id: 'current_quarter', label: 'Current Quarter' },
@@ -30,13 +33,15 @@ export function resolveCallLogDateRange(preset, customStart = '', customEnd = ''
   const today = new Date();
 
   switch (preset) {
-    case 'current_week':
+    case 'prior_week': {
+      const priorWeek = subWeeks(today, 1);
       return {
         preset,
-        start: toDateString(startOfWeek(today, { weekStartsOn: 1 })),
-        end: toDateString(endOfWeek(today, { weekStartsOn: 1 })),
-        label: 'Current Week',
+        start: toDateString(startOfWeek(priorWeek, WEEK_STARTS_ON_MONDAY)),
+        end: toDateString(endOfWeek(priorWeek, WEEK_STARTS_ON_MONDAY)),
+        label: 'Prior Week',
       };
+    }
     case 'current_quarter':
       return {
         preset,
