@@ -104,6 +104,41 @@ export function aggregateInboundByMonth(inboundCalls, extToUser, benchmarkUserId
   }));
 }
 
+const EMPTY_MONTH_ROW = {
+  total_inbound: 0,
+  total_answered: 0,
+  total_missed: 0,
+  benchmark_inbound: 0,
+  benchmark_answered: 0,
+  answer_rate: 0,
+  benchmark_answer_rate: 0,
+};
+
+/**
+ * Fill monthly KPI rows for the current year (Jan through current month), newest first.
+ */
+export function fillMonthlyKpiSummary(aggregatedRows, reportingYear, referenceDate = new Date()) {
+  const currentYear = referenceDate.getFullYear();
+  const currentMonth = referenceDate.getMonth() + 1;
+
+  if (reportingYear !== currentYear) {
+    return [];
+  }
+
+  const byMonth = Object.fromEntries(
+    (aggregatedRows || [])
+      .filter((row) => row.month?.startsWith(`${reportingYear}-`))
+      .map((row) => [row.month, row])
+  );
+
+  const rows = [];
+  for (let m = 1; m <= currentMonth; m++) {
+    const monthKey = `${reportingYear}-${String(m).padStart(2, '0')}`;
+    rows.push(byMonth[monthKey] ?? { month: monthKey, ...EMPTY_MONTH_ROW });
+  }
+  return rows.sort((a, b) => (b.month || '').localeCompare(a.month || ''));
+}
+
 /**
  * Aggregate by user (for individual performance)
  */

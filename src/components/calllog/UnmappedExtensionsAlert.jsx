@@ -1,24 +1,25 @@
 import React, { useMemo, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { fetchAllCallRecords } from '@/lib/callLogData';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import UnmappedExtensionsDrawer from './UnmappedExtensionsDrawer';
 
-export default function UnmappedExtensionsAlert() {
+export default function UnmappedExtensionsAlert({ inbound: inboundProp, outbound: outboundProp }) {
   const [showDrawer, setShowDrawer] = useState(false);
-  const queryClient = useQueryClient();
 
-  const { data: inbound = [] } = useQuery({
+  const { data: inboundFromQuery = [] } = useQuery({
     queryKey: ['inbound-calls'],
     queryFn: () => fetchAllCallRecords(base44.entities.InboundCallRaw),
+    enabled: inboundProp === undefined,
   });
 
-  const { data: outbound = [] } = useQuery({
+  const { data: outboundFromQuery = [] } = useQuery({
     queryKey: ['outbound-calls'],
     queryFn: () => fetchAllCallRecords(base44.entities.OutboundCallRaw),
+    enabled: outboundProp === undefined,
   });
 
   const { data: users = [] } = useQuery({
@@ -26,7 +27,9 @@ export default function UnmappedExtensionsAlert() {
     queryFn: () => base44.entities.UserDirectory.list(),
   });
 
-  // Find unmapped extensions
+  const inbound = inboundProp ?? inboundFromQuery;
+  const outbound = outboundProp ?? outboundFromQuery;
+
   const unmappedData = useMemo(() => {
     const mappedExts = new Set();
     users.forEach(user => {

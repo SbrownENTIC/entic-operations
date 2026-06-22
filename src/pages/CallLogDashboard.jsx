@@ -3,6 +3,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { forceRefreshCallLogData, resetLegacyCallLogQueryState } from '@/lib/callLogCache';
 import { fetchAllCallRecords } from '@/lib/callLogData';
+import {
+  resolveCallLogDateRange,
+  filterCallsByDateRange,
+  formatCallLogDateRangeLabel,
+  isCallLogDateRangeReady,
+} from '@/lib/callLogDateRange';
+import { format, startOfYear, endOfMonth } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -16,7 +23,8 @@ import {
   aggregateByUser,
   aggregateOutboundByUser,
   aggregateOutboundByWeek,
-  aggregateOutboundByMonth
+  aggregateOutboundByMonth,
+  fillMonthlyKpiSummary,
 } from '@/components/calllog/AggregationLogic';
 import CallLogDetailModal from '@/components/calllog/CallLogDetailModal';
 import WeeklyTable from '@/components/calllog/WeeklyTable';
@@ -26,11 +34,15 @@ import CDRUpload from '@/components/calllog/CDRUpload';
 import UserDirectoryTable from '@/components/calllog/UserDirectoryTable';
 import UnmappedExtensionsAlert from '@/components/calllog/UnmappedExtensionsAlert';
 import GoalTrackingWidget from '@/components/calllog/GoalTrackingWidget';
+import CallLogDateRangeSelector from '@/components/calllog/CallLogDateRangeSelector';
 
 export default function CallLogDashboard() {
   const [selectedMetric, setSelectedMetric] = useState(null);
   const [activeTab, setActiveTab] = useState('reporting');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [datePreset, setDatePreset] = useState('current_month');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -58,6 +70,33 @@ export default function CallLogDashboard() {
   const isLoading = inboundLoading || outboundLoading || usersLoading;
   const hasData = inbound.length > 0 || outbound.length > 0;
   const hasQueryError = inboundError || outboundError || usersError;
+
+  const dateRange = useMemo(
+    () => resolveCallLogDateRange(datePreset, customStart, customEnd),
+    [datePreset, customStart, customEnd]
+  );
+
+  const dateRangeReady = isCallLogDateRangeReady(dateRange);
+  const dateRangeLabel = formatCallLogDateRangeLabel(dateRange.start, dateRange.end);
+
+  const filteredInbound = useMemo(() => {
+    if (!dateRangeReady) return [];
+    return filterCallsByDateRange(inbound, dateRange.start, dateRange.end);
+  }, [inbound, dateRange, dateRangeReady]);
+
+  const filteredOutbound = useMemo(() => {
+    if (!dateRangeReady) return [];
+    return filterCallsByDateRange(outbound, dateRange.start, dateRange.end);
+  }, [outbound, dateRange, dateRangeReady]);
+
+  const handleDatePresetChange = (value) => {
+    setDatePreset(value);
+    if (value === 'custom' && !customStart && !customEnd) {
+      const currentMonth = resolveCallLogDateRange('current_month');
+      setCustomStart(currentMonth.start);
+      setCustomEnd(currentMonth.end);
+    }
+  };
 
   const handleRefreshData = async () => {
     setIsRefreshing(true);
@@ -101,39 +140,13 @@ export default function CallLogDashboard() {
     return new Set(users.filter(u => u.include_in_benchmark).map(u => u.id));
   }, [users]);
 
-  // Helper to parse duration string "H:MM:SS" to seconds
-  const parseDurationSeconds = (duration) => {
-    if (!duration || typeof duration !== 'string') return 0;
-    const parts = duration.split(':').map(p => parseInt(p, 10) || 0);
-    if (parts.length === 3) {
-      return parts[0] * 3600 + parts[1] * 60 + parts[2];
-    } else if (parts.length === 2) {
-      return parts[0] * 60 + parts[1];
-    }
-    return 0;
-  };
-
-  // Calculate metrics
-  const metrics = useCallMetrics(inbound, outbound, users);
-
-  // Calculate outbound connected calls (duration >= 30 seconds)
-  const outboundConnected = useMemo(() => {
-    let count = 0;
-    if (Array.isArray(outbound)) {
-      outbound.forEach(call => {
-        const seconds = parseDurationSeconds(call.duration_seconds);
-        if (seconds >= 30) {
-          count++;
-        }
-      });
-    }
-    return count;
-  }, [outbound]);
+  // Calculate metrics (scoped to selected reporting period)
+  const metrics = useCallMetrics(filteredInbound, filteredOutbound, users);
 
   // Aggregate data
   const weeklyData = useMemo(() => {
-    const inboundWeekly = aggregateInboundByWeek(inbound, extToUser, benchmarkUserIds);
-    const outboundWeekly = aggregateOutboundByWeek(outbound, extToUser, benchmarkUserIds);
+    const inboundWeekly = aggregateInboundByWeek(filteredInbound, extToUser, benchmarkUserIds);
+    const outboundWeekly = aggregateOutboundByWeek(filteredOutbound, extToUser, benchmarkUserIds);
 
     // Merge weekly inbound and outbound by week_start
     const weekMap = {};
@@ -153,32 +166,42 @@ export default function CallLogDashboard() {
       });
     }
     return Object.values(weekMap);
-  }, [inbound, outbound, extToUser, benchmarkUserIds]);
+  }, [filteredInbound, filteredOutbound, extToUser, benchmarkUserIds]);
+
+  // YTD inbound for Monthly KPI Summary — independent of reporting date range
+  const ytdInbound = useMemo(() => {
+    const today = new Date();
+    return filterCallsByDateRange(
+      inbound,
+      format(startOfYear(today), 'yyyy-MM-dd'),
+      format(endOfMonth(today), 'yyyy-MM-dd')
+    );
+  }, [inbound]);
 
   const monthlyData = useMemo(() => {
-    const data = aggregateInboundByMonth(inbound, extToUser, benchmarkUserIds);
-    return Array.isArray(data) ? [...data].sort((a, b) => (b.month || "").localeCompare(a.month || "")) : data;
-  }, [inbound, extToUser, benchmarkUserIds]);
+    const aggregated = aggregateInboundByMonth(ytdInbound, extToUser, benchmarkUserIds);
+    return fillMonthlyKpiSummary(aggregated, new Date().getFullYear());
+  }, [ytdInbound, extToUser, benchmarkUserIds]);
 
   const weeklyOutboundData = useMemo(() => {
-    return aggregateOutboundByWeek(outbound, extToUser, benchmarkUserIds);
-  }, [outbound, extToUser, benchmarkUserIds]);
+    return aggregateOutboundByWeek(filteredOutbound, extToUser, benchmarkUserIds);
+  }, [filteredOutbound, extToUser, benchmarkUserIds]);
 
   const monthlyOutboundData = useMemo(() => {
-    return aggregateOutboundByMonth(outbound, extToUser, benchmarkUserIds);
-  }, [outbound, extToUser, benchmarkUserIds]);
+    return aggregateOutboundByMonth(filteredOutbound, extToUser, benchmarkUserIds);
+  }, [filteredOutbound, extToUser, benchmarkUserIds]);
 
   const individualData = useMemo(() => {
-    const inboundByUser = aggregateByUser(inbound, extToUser, users);
-    const outboundByUser = aggregateOutboundByUser(outbound, extToUser, users);
+    const inboundByUser = aggregateByUser(filteredInbound, extToUser, users);
+    const outboundByUser = aggregateOutboundByUser(filteredOutbound, extToUser, users);
 
     if (!Array.isArray(inboundByUser)) throw new Error("inboundByUser is not an array");
     if (!Array.isArray(outboundByUser)) throw new Error("outboundByUser is not an array");
 
     // Build a map of answered outbound by user (for overall contact rate calculation)
     const answeredOutboundByUser = {};
-    if (Array.isArray(outbound)) {
-    outbound.forEach(call => {
+    if (Array.isArray(filteredOutbound)) {
+    filteredOutbound.forEach(call => {
       const normalizedExt = call.extension?.trim().replace(/[\s\-()]/g, '').replace(/\D/g, '') || '';
       const user = extToUser[normalizedExt] || extToUser[call.extension];
       if (!user) return;
@@ -233,7 +256,7 @@ export default function CallLogDashboard() {
         overall_contact_rate: totalCalls > 0 ? Math.min(totalContacted / totalCalls, 1.0) : 0
       };
     });
-  }, [inbound, outbound, extToUser, users]);
+  }, [filteredInbound, filteredOutbound, extToUser, users]);
 
   const frontendData = useMemo(() => {
     if (!Array.isArray(individualData)) return [];
@@ -269,45 +292,45 @@ export default function CallLogDashboard() {
 
     switch(filterType) {
       case 'total':
-        filteredData = [...inbound, ...outbound];
+        filteredData = [...filteredInbound, ...filteredOutbound];
         title = 'All Calls';
         break;
       case 'inbound':
-        filteredData = [...inbound];
+        filteredData = [...filteredInbound];
         title = 'Inbound Calls';
         break;
       case 'outbound':
-        filteredData = [...outbound];
+        filteredData = [...filteredOutbound];
         title = 'Outbound Calls';
         break;
       case 'answered':
-        filteredData = inbound.filter(c => c.answered);
+        filteredData = filteredInbound.filter(c => c.answered);
         title = 'Answered Calls';
         break;
       case 'missed':
-        filteredData = inbound.filter(c => c.missed);
+        filteredData = filteredInbound.filter(c => c.missed);
         title = 'Missed Calls';
         break;
       case 'outbound-connected':
-        filteredData = outbound.filter(c => c.result === 'answered' && (c.duration_seconds || 0) >= 30);
+        filteredData = filteredOutbound.filter(c => c.result === 'answered' && (c.duration_seconds || 0) >= 30);
         title = 'Outbound Connected Calls (≥30s)';
         break;
       case 'overall-contacted':
         filteredData = [
-          ...inbound.filter(c => c.answered),
-          ...outbound.filter(c => c.result === 'answered')
+          ...filteredInbound.filter(c => c.answered),
+          ...filteredOutbound.filter(c => c.result === 'answered')
         ];
         title = 'All Answered Inbound + Answered Outbound';
         break;
       case 'benchmark-inbound':
-        filteredData = inbound.filter(c => {
+        filteredData = filteredInbound.filter(c => {
           const user = extToUserMap[c.extension];
           return user && benchmarkUserIds.has(user.id);
         });
         title = 'Inbound Calls (Benchmark Users)';
         break;
       case 'frontend-inbound':
-        filteredData = inbound.filter(c => {
+        filteredData = filteredInbound.filter(c => {
           const user = extToUserMap[c.extension];
           return user && frontDeskUserIds.has(user.id);
         });
@@ -331,16 +354,17 @@ export default function CallLogDashboard() {
       console.log("frontendData:", Array.isArray(frontendData) ? `array (${frontendData.length})` : "NOT ARRAY");
       console.log("npCoordinatorData:", Array.isArray(npCoordinatorData) ? `array (${npCoordinatorData.length})` : "NOT ARRAY");
       console.log("individualPerformanceData (FD+NPC):", Array.isArray(individualPerformanceData) ? `array (${individualPerformanceData.length})` : "NOT ARRAY");
-      console.log("inbound:", Array.isArray(inbound) ? `array (${inbound.length})` : "NOT ARRAY");
-      console.log("outbound:", Array.isArray(outbound) ? `array (${outbound.length})` : "NOT ARRAY");
+      console.log("inbound:", Array.isArray(filteredInbound) ? `array (${filteredInbound.length})` : "NOT ARRAY");
+      console.log("outbound:", Array.isArray(filteredOutbound) ? `array (${filteredOutbound.length})` : "NOT ARRAY");
       
       // ===== STRICT VALIDATION =====
        if (!Array.isArray(weeklyData)) throw new Error("weeklyData must be an array");
        if (!Array.isArray(monthlyData)) throw new Error("monthlyData must be an array");
        if (!Array.isArray(frontendData)) throw new Error("frontendData must be an array");
        if (!Array.isArray(individualData)) throw new Error("individualData must be an array");
-       if (!Array.isArray(inbound)) throw new Error("inbound must be an array");
-       if (!Array.isArray(outbound)) throw new Error("outbound must be an array");
+       if (!Array.isArray(filteredInbound)) throw new Error("filteredInbound must be an array");
+       if (!Array.isArray(filteredOutbound)) throw new Error("filteredOutbound must be an array");
+       if (!dateRangeReady) throw new Error("Select a valid reporting date range before exporting");
 
        // ===== PHASE 1: MINIMAL STABLE EXPORT =====
        // Colors & Fonts
@@ -351,49 +375,22 @@ export default function CallLogDashboard() {
        const RED_BG = "FFFFC7CE";
        const baseFont = { name: "Calibri", size: 11 };
 
-       // ===== CALCULATE METRICS (defensive) =====
-       let totalInbound = 0;
-       let totalAnswered = 0;
-       let totalMissed = 0;
-       let totalFrontEndInbound = 0;
-       let totalFrontEndAnswered = 0;
+       // ===== CALCULATE METRICS (selected reporting period) =====
+       const totalInbound = metrics.totalInbound;
+       const totalAnswered = metrics.totalAnswered;
+       const totalMissed = metrics.totalMissed;
+       const totalOutbound = metrics.totalOutbound;
+       const totalOutboundConnected = metrics.connectedOutbound;
+       const totalFrontEndInbound = metrics.frontDeskInbound;
+       const totalFrontEndAnswered = metrics.frontDeskAnswered;
 
-       // ===== OUTBOUND AGGREGATION (CRITICAL: must happen early) =====
-       const totalOutbound = Array.isArray(outbound) ? outbound.length : 0;
-       const totalOutboundConnected = Array.isArray(outbound)
-         ? outbound.filter(call => {
-             const parsedDurationSeconds = call.duration_seconds || 0;
-             return parsedDurationSeconds >= 30;
-           }).length
-         : 0;
-
-       console.log("Outbound total:", totalOutbound);
-       console.log("Outbound connected:", totalOutboundConnected);
-
-      // Extract latest monthly inbound metrics
-      if (monthlyData.length > 0) {
-        const latestMonth = monthlyData[monthlyData.length - 1];
-        totalInbound = latestMonth.total_inbound || 0;
-        totalAnswered = latestMonth.total_answered || 0;
-        totalMissed = latestMonth.total_missed || 0;
-      }
-
-      // Extract frontend totals
-      let idx = 0;
-      while (idx < frontendData.length) {
-        const user = frontendData[idx];
-        totalFrontEndInbound += user.total_inbound || 0;
-        totalFrontEndAnswered += user.total_answered || 0;
-        idx++;
-      }
-
-      // Calculate rates
-      const totalCalls = totalInbound + totalOutbound;
-      const inboundRate = totalInbound > 0 ? totalAnswered / totalInbound : 0;
-      const frontEndRate = totalFrontEndInbound > 0 ? totalFrontEndAnswered / totalFrontEndInbound : 0;
-      const outboundContactRate = totalOutbound > 0 ? totalOutboundConnected / totalOutbound : 0;
-      const totalContacted = totalAnswered + totalOutboundConnected;
-      const overallContactRate = totalCalls > 0 ? totalContacted / totalCalls : 0;
+      const inboundRate = metrics.inboundAnswerRate;
+      const frontEndRate = metrics.frontDeskAnswerRate;
+      const outboundContactRate = metrics.outboundContactRate;
+      const totalContacted = metrics.totalContacted;
+      const totalCalls = metrics.totalCalls;
+      const overallContactRate = metrics.overallContactRate;
+      const exportPeriodLabel = dateRangeLabel || 'Selected Period';
 
       // Create workbook
       const wb = new ExcelJS.Workbook();
@@ -453,8 +450,7 @@ export default function CallLogDashboard() {
       summary.mergeCells("A1:L1");
       const headerCell = summary.getCell("A1");
       const now = new Date();
-      const monthYear = now.toLocaleString('en-US', { month: 'long', year: 'numeric' });
-      headerCell.value = `Call Log Executive Report – ${monthYear}`;
+      headerCell.value = `Call Log Executive Report – ${exportPeriodLabel}`;
       headerCell.font = { name: "Calibri", size: 18, bold: true, color: { argb: WHITE } };
       headerCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_BG } };
       headerCell.alignment = { horizontal: "left", vertical: "middle" };
@@ -628,7 +624,7 @@ export default function CallLogDashboard() {
 
       // Pre-compute per-group outbound metrics using raw outbound records mapped through extToUser
       const groupOutboundMap = { "Front Desk": { total: 0, connected: 0 }, "NP Coordinator": { total: 0, connected: 0 } };
-      outbound.forEach(call => {
+      filteredOutbound.forEach(call => {
         const normalizedExt = String(call.extension || "").trim().replace(/[\s\-()]/g, '').replace(/\D/g, '');
         const userObj = extToUser[normalizedExt] || extToUser[call.extension];
         const group = userObj ? userObj.benchmark_group : null;
@@ -831,7 +827,7 @@ export default function CallLogDashboard() {
           return d.toISOString().split('T')[0];
         };
 
-        inbound.forEach(call => {
+        filteredInbound.forEach(call => {
           const normalizedExt = String(call.extension || '').trim().replace(/[\s\-()]/g, '').replace(/\D/g, '');
           const userObj = extToUser[normalizedExt] || extToUser[call.extension];
           if (!userObj) return;
@@ -845,7 +841,7 @@ export default function CallLogDashboard() {
           if (call.missed) b.total_missed++;
         });
 
-        outbound.forEach(call => {
+        filteredOutbound.forEach(call => {
           const normalizedExt = String(call.extension || '').trim().replace(/[\s\-()]/g, '').replace(/\D/g, '');
           const userObj = extToUser[normalizedExt] || extToUser[call.extension];
           if (!userObj) return;
@@ -1186,8 +1182,8 @@ export default function CallLogDashboard() {
 
        // Add inbound data
        let inIdx = 0;
-       while (inIdx < inbound.length) {
-         const call = inbound[inIdx];
+       while (inIdx < filteredInbound.length) {
+         const call = filteredInbound[inIdx];
          const callDate = call.call_date || "";
          const callTime = call.call_time || "";
          const userObj = users.find(u => u.extensions && u.extensions.includes(call.extension));
@@ -1212,8 +1208,8 @@ export default function CallLogDashboard() {
 
        // Add outbound data
        let outIdx = 0;
-       while (outIdx < outbound.length) {
-         const call = outbound[outIdx];
+       while (outIdx < filteredOutbound.length) {
+         const call = filteredOutbound[outIdx];
          const callDate = call.call_date || "";
          const callTime = call.call_time || "";
          const userObj = users.find(u => u.extensions && u.extensions.includes(call.extension));
@@ -1261,7 +1257,7 @@ export default function CallLogDashboard() {
 
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = `CallLog_Report_${new Date().toISOString().split("T")[0]}.xlsx`;
+      link.download = `CallLog_Report_${dateRange.start}_to_${dateRange.end}.xlsx`;
 
       document.body.appendChild(link);
       link.click();
@@ -1304,7 +1300,11 @@ export default function CallLogDashboard() {
 
   // Validation warnings (exclude unmapped count - handled by UnmappedExtensionsAlert)
   const warnings = [];
-  if (inbound.length === 0) warnings.push('No inbound call data imported');
+  if (inbound.length === 0 && outbound.length === 0) {
+    warnings.push('No call data imported');
+  } else if (dateRangeReady && filteredInbound.length === 0 && filteredOutbound.length === 0) {
+    warnings.push('No call records in selected date range');
+  }
   if (users.filter(u => u.include_in_benchmark).length === 0) warnings.push('No benchmark users configured');
 
   return (
@@ -1349,7 +1349,7 @@ export default function CallLogDashboard() {
             <div className="flex justify-end">
               <Button
                 onClick={handleExportExcel}
-                disabled={inbound.length === 0 && outbound.length === 0}
+                disabled={!dateRangeReady || (filteredInbound.length === 0 && filteredOutbound.length === 0)}
                 className="gap-2"
               >
                 <Download className="w-4 h-4" />
@@ -1358,7 +1358,7 @@ export default function CallLogDashboard() {
             </div>
 
             {/* Unmapped Extensions Alert */}
-            <UnmappedExtensionsAlert />
+            <UnmappedExtensionsAlert inbound={filteredInbound} outbound={filteredOutbound} />
 
             {/* Warnings */}
             {warnings.length > 0 && (
@@ -1373,6 +1373,17 @@ export default function CallLogDashboard() {
                 </AlertDescription>
               </Alert>
             )}
+
+            {/* Reporting date range */}
+            <CallLogDateRangeSelector
+              preset={datePreset}
+              onPresetChange={handleDatePresetChange}
+              customStart={customStart}
+              customEnd={customEnd}
+              onCustomStartChange={setCustomStart}
+              onCustomEndChange={setCustomEnd}
+              dateRange={dateRange}
+            />
 
             {/* KPI Cards - 2 rows of 4 */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
