@@ -117,7 +117,7 @@ const EMPTY_MONTH_ROW = {
 /** First month Call Log data was tracked (inclusive). */
 export const CALL_LOG_TRACKING_START_MONTH = '2026-01';
 
-function enumerateMonthKeys(startMonthKey, endMonthKey) {
+export function enumerateMonthKeys(startMonthKey, endMonthKey) {
   const months = [];
   let year = parseInt(startMonthKey.slice(0, 4), 10);
   let month = parseInt(startMonthKey.slice(5, 7), 10);

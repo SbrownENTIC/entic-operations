@@ -1,15 +1,22 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { forceRefreshCallLogData, syncCallLogReportData, CALL_LOG_QUERY_OPTIONS } from '@/lib/callLogCache';
-import { fetchAllCallRecords } from '@/lib/callLogData';
+import {
+  forceRefreshCallLogData,
+  configureCallLogCacheHits,
+  CALL_LOG_QUERY_OPTIONS,
+  CALL_LOG_PERIOD_QUERY_OPTIONS,
+} from '@/lib/callLogCache';
+import {
+  fetchCallRecordsByDateRange,
+  fetchMonthlyInboundAggregates,
+  getCallLogFetchErrorMessage,
+} from '@/lib/callLogData';
 import {
   resolveCallLogDateRange,
-  filterCallsByDateRange,
   formatCallLogDateRangeLabel,
   isCallLogDateRangeReady,
 } from '@/lib/callLogDateRange';
-import { format, endOfMonth } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -19,7 +26,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCallMetrics, formatPercent, KPICard } from '@/components/calllog/CallLogMetrics';
 import { 
   aggregateInboundByWeek, 
-  aggregateInboundByMonth, 
   aggregateByUser,
   aggregateOutboundByUser,
   aggregateOutboundByWeek,
@@ -44,60 +50,7 @@ export default function CallLogDashboard() {
   const [datePreset, setDatePreset] = useState('current_month');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [loadError, setLoadError] = useState(false);
   const queryClient = useQueryClient();
-  const hasRequestedLoadRef = useRef(false);
-
-  useEffect(() => {
-    if (hasRequestedLoadRef.current) return;
-    hasRequestedLoadRef.current = true;
-
-    const alreadyLoaded =
-      Array.isArray(queryClient.getQueryData(['inbound-calls'])) &&
-      Array.isArray(queryClient.getQueryData(['outbound-calls']));
-
-    if (alreadyLoaded) {
-      setIsInitialLoad(false);
-      return;
-    }
-
-    (async () => {
-      try {
-        await syncCallLogReportData(queryClient);
-        setLoadError(false);
-      } catch {
-        setLoadError(true);
-      } finally {
-        setIsInitialLoad(false);
-      }
-    })();
-  }, [queryClient]);
-
-  const { data: inbound = [] } = useQuery({
-    queryKey: ['inbound-calls'],
-    queryFn: () => fetchAllCallRecords(base44.entities.InboundCallRaw),
-    ...CALL_LOG_QUERY_OPTIONS,
-    enabled: false,
-  });
-
-  const { data: outbound = [] } = useQuery({
-    queryKey: ['outbound-calls'],
-    queryFn: () => fetchAllCallRecords(base44.entities.OutboundCallRaw),
-    ...CALL_LOG_QUERY_OPTIONS,
-    enabled: false,
-  });
-
-  const { data: users = [] } = useQuery({
-    queryKey: ['user-directory'],
-    queryFn: () => base44.entities.UserDirectory.list(),
-    ...CALL_LOG_QUERY_OPTIONS,
-    enabled: false,
-  });
-
-  const hasData = inbound.length > 0 || outbound.length > 0;
-  const isLoading = isInitialLoad && !hasData && !isRefreshing;
-  const hasQueryError = loadError;
 
   const dateRange = useMemo(
     () => resolveCallLogDateRange(datePreset, customStart, customEnd),
@@ -107,15 +60,49 @@ export default function CallLogDashboard() {
   const dateRangeReady = isCallLogDateRangeReady(dateRange);
   const dateRangeLabel = formatCallLogDateRangeLabel(dateRange.start, dateRange.end);
 
-  const filteredInbound = useMemo(() => {
-    if (!dateRangeReady) return [];
-    return filterCallsByDateRange(inbound, dateRange.start, dateRange.end);
-  }, [inbound, dateRange, dateRangeReady]);
+  useEffect(() => {
+    configureCallLogCacheHits(queryClient);
+  }, [queryClient]);
 
-  const filteredOutbound = useMemo(() => {
-    if (!dateRangeReady) return [];
-    return filterCallsByDateRange(outbound, dateRange.start, dateRange.end);
-  }, [outbound, dateRange, dateRangeReady]);
+  const { data: users = [], isLoading: usersLoading, isError: usersError } = useQuery({
+    queryKey: ['user-directory'],
+    queryFn: () => base44.entities.UserDirectory.list(),
+    ...CALL_LOG_QUERY_OPTIONS,
+  });
+
+  const {
+    data: filteredInbound = [],
+    isLoading: inboundLoading,
+    isFetching: inboundFetching,
+    isError: inboundError,
+    error: inboundFetchError,
+  } = useQuery({
+    queryKey: ['inbound-calls', dateRange.start, dateRange.end],
+    queryFn: () => fetchCallRecordsByDateRange(
+      base44.entities.InboundCallRaw,
+      dateRange.start,
+      dateRange.end
+    ),
+    enabled: dateRangeReady,
+    ...CALL_LOG_PERIOD_QUERY_OPTIONS,
+  });
+
+  const {
+    data: filteredOutbound = [],
+    isLoading: outboundLoading,
+    isFetching: outboundFetching,
+    isError: outboundError,
+    error: outboundFetchError,
+  } = useQuery({
+    queryKey: ['outbound-calls', dateRange.start, dateRange.end],
+    queryFn: () => fetchCallRecordsByDateRange(
+      base44.entities.OutboundCallRaw,
+      dateRange.start,
+      dateRange.end
+    ),
+    enabled: dateRangeReady,
+    ...CALL_LOG_PERIOD_QUERY_OPTIONS,
+  });
 
   const handleDatePresetChange = (value) => {
     setDatePreset(value);
@@ -168,6 +155,30 @@ export default function CallLogDashboard() {
     return new Set(users.filter(u => u.include_in_benchmark).map(u => u.id));
   }, [users]);
 
+  const {
+    data: monthlyKpiAggregated = [],
+    isLoading: monthlyKpiLoading,
+    isError: monthlyKpiError,
+    error: monthlyKpiFetchError,
+  } = useQuery({
+    queryKey: ['call-log-monthly-kpi-inbound', CALL_LOG_TRACKING_START_MONTH],
+    queryFn: () => fetchMonthlyInboundAggregates(
+      base44.entities.InboundCallRaw,
+      extToUser,
+      benchmarkUserIds
+    ),
+    enabled: users.length > 0,
+    ...CALL_LOG_PERIOD_QUERY_OPTIONS,
+  });
+
+  const periodLoading = dateRangeReady && (inboundLoading || outboundLoading);
+  const periodFetching = dateRangeReady && (inboundFetching || outboundFetching);
+  const isLoading = usersLoading || periodLoading || monthlyKpiLoading;
+  const hasQueryError = usersError || inboundError || outboundError || monthlyKpiError;
+  const fetchErrorMessage = getCallLogFetchErrorMessage(
+    inboundFetchError || outboundFetchError || monthlyKpiFetchError
+  );
+
   // Calculate metrics (scoped to selected reporting period)
   const metrics = useCallMetrics(filteredInbound, filteredOutbound, users);
 
@@ -196,20 +207,9 @@ export default function CallLogDashboard() {
     return Object.values(weekMap);
   }, [filteredInbound, filteredOutbound, extToUser, benchmarkUserIds]);
 
-  // Inbound from tracking start for Monthly KPI Summary — independent of reporting date range
-  const monthlyKpiInbound = useMemo(() => {
-    const today = new Date();
-    return filterCallsByDateRange(
-      inbound,
-      `${CALL_LOG_TRACKING_START_MONTH}-01`,
-      format(endOfMonth(today), 'yyyy-MM-dd')
-    );
-  }, [inbound]);
-
   const monthlyData = useMemo(() => {
-    const aggregated = aggregateInboundByMonth(monthlyKpiInbound, extToUser, benchmarkUserIds);
-    return fillMonthlyKpiSummary(aggregated);
-  }, [monthlyKpiInbound, extToUser, benchmarkUserIds]);
+    return fillMonthlyKpiSummary(monthlyKpiAggregated);
+  }, [monthlyKpiAggregated]);
 
   const weeklyOutboundData = useMemo(() => {
     return aggregateOutboundByWeek(filteredOutbound, extToUser, benchmarkUserIds);
@@ -1295,7 +1295,7 @@ export default function CallLogDashboard() {
     }
   };
 
-  if (isLoading && !hasData && !isRefreshing) {
+  if (isLoading && !isRefreshing) {
     return (
       <div className="p-6 bg-slate-50 min-h-screen flex flex-col items-center justify-center gap-3">
         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
@@ -1304,26 +1304,22 @@ export default function CallLogDashboard() {
     );
   }
 
-  if (hasQueryError && !hasData && !isRefreshing) {
+  if (hasQueryError && !isRefreshing && !filteredInbound.length && !filteredOutbound.length && !monthlyKpiAggregated.length) {
     return (
       <div className="p-6 bg-slate-50 min-h-screen flex flex-col items-center justify-center gap-4">
         <Alert variant="destructive" className="max-w-md">
           <AlertTriangle className="w-4 h-4" />
           <AlertDescription>
-            Failed to load call log data. Check your connection and try again.
+            {fetchErrorMessage}
           </AlertDescription>
         </Alert>
         <Button
           variant="outline"
           onClick={async () => {
-            setIsInitialLoad(true);
-            setLoadError(false);
             try {
-              await syncCallLogReportData(queryClient);
-            } catch {
-              setLoadError(true);
-            } finally {
-              setIsInitialLoad(false);
+              await forceRefreshCallLogData(queryClient);
+            } catch (error) {
+              alert(getCallLogFetchErrorMessage(error));
             }
           }}
         >
@@ -1335,9 +1331,7 @@ export default function CallLogDashboard() {
 
   // Validation warnings (exclude unmapped count - handled by UnmappedExtensionsAlert)
   const warnings = [];
-  if (inbound.length === 0 && outbound.length === 0) {
-    warnings.push('No call data imported');
-  } else if (dateRangeReady && filteredInbound.length === 0 && filteredOutbound.length === 0) {
+  if (dateRangeReady && !periodLoading && filteredInbound.length === 0 && filteredOutbound.length === 0) {
     warnings.push('No call records in selected date range');
   }
   if (users.filter(u => u.include_in_benchmark).length === 0) warnings.push('No benchmark users configured');
@@ -1366,7 +1360,16 @@ export default function CallLogDashboard() {
           <Alert className="border-blue-200 bg-blue-50">
             <Loader2 className="w-4 h-4 animate-spin text-blue-700" />
             <AlertDescription className="text-blue-900">
-              Reloading all inbound and outbound call records and recalculating metrics…
+              Reloading call log data for the selected reporting period…
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {periodFetching && !isRefreshing && (
+          <Alert className="border-blue-200 bg-blue-50">
+            <Loader2 className="w-4 h-4 animate-spin text-blue-700" />
+            <AlertDescription className="text-blue-900">
+              Loading call records for {dateRangeLabel}…
             </AlertDescription>
           </Alert>
         )}

@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
-import { fetchAllCallRecords } from '@/lib/callLogData';
+import { CALL_LOG_QUERY_OPTIONS } from '@/lib/callLogCache';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import {
@@ -19,17 +18,20 @@ export default function UnmappedExtensionsPanel() {
 
   const { data: inbound = [] } = useQuery({
     queryKey: ['inbound-calls'],
-    queryFn: () => fetchAllCallRecords(base44.entities.InboundCallRaw),
+    ...CALL_LOG_QUERY_OPTIONS,
+    enabled: false,
   });
 
   const { data: outbound = [] } = useQuery({
     queryKey: ['outbound-calls'],
-    queryFn: () => fetchAllCallRecords(base44.entities.OutboundCallRaw),
+    ...CALL_LOG_QUERY_OPTIONS,
+    enabled: false,
   });
 
   const { data: users = [] } = useQuery({
     queryKey: ['user-directory'],
-    queryFn: () => base44.entities.UserDirectory.list(),
+    ...CALL_LOG_QUERY_OPTIONS,
+    enabled: false,
   });
 
   const activeUsers = useMemo(() => users.filter(u => u.active !== false), [users]);
