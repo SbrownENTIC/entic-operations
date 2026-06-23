@@ -115,7 +115,7 @@ const EMPTY_MONTH_ROW = {
 };
 
 /** First month Call Log data was tracked (inclusive). */
-export const CALL_LOG_TRACKING_START_MONTH = '2026-05';
+export const CALL_LOG_TRACKING_START_MONTH = '2026-01';
 
 function enumerateMonthKeys(startMonthKey, endMonthKey) {
   const months = [];
@@ -154,7 +154,7 @@ function normalizeMonthRow(row) {
 }
 
 /**
- * Fill monthly KPI rows from tracking start (May 2026) through the current month.
+ * Fill monthly KPI rows from tracking start (January 2026) through the current month.
  * Newest month first; empty months included with zeros.
  */
 export function fillMonthlyKpiSummary(aggregatedRows, referenceDate = new Date()) {

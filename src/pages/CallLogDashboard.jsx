@@ -25,6 +25,7 @@ import {
   aggregateOutboundByWeek,
   aggregateOutboundByMonth,
   fillMonthlyKpiSummary,
+  CALL_LOG_TRACKING_START_MONTH,
 } from '@/components/calllog/AggregationLogic';
 import CallLogDetailModal from '@/components/calllog/CallLogDetailModal';
 import WeeklyTable from '@/components/calllog/WeeklyTable';
@@ -200,7 +201,7 @@ export default function CallLogDashboard() {
     const today = new Date();
     return filterCallsByDateRange(
       inbound,
-      '2026-05-01',
+      `${CALL_LOG_TRACKING_START_MONTH}-01`,
       format(endOfMonth(today), 'yyyy-MM-dd')
     );
   }, [inbound]);
