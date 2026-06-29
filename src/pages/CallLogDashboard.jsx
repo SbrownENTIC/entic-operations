@@ -1047,7 +1047,7 @@ export default function CallLogDashboard() {
 
       {
         const feWeeklyMap = buildWeeklyUserMap("Front Desk");
-        writeWeeklyPerformanceSheet(frontEnd, feWeeklyMap, "Front-End Performance", true, true, 11, monthYear);
+        writeWeeklyPerformanceSheet(frontEnd, feWeeklyMap, "Front-End Performance", true, true, 11, dateRangeLabel);
       }
       frontEnd.state = "visible";
 
@@ -1061,7 +1061,7 @@ export default function CallLogDashboard() {
       ];
       {
         const npcWeeklyMap = buildWeeklyUserMap("NP Coordinator");
-        writeWeeklyPerformanceSheet(npCoord, npcWeeklyMap, "NP Coordinator Performance", true, true, 11, monthYear);
+        writeWeeklyPerformanceSheet(npCoord, npcWeeklyMap, "NP Coordinator Performance", true, true, 11, dateRangeLabel);
       }
       npCoord.state = "visible";
 
@@ -1074,7 +1074,7 @@ export default function CallLogDashboard() {
       ];
       {
         const indWeeklyMap = buildWeeklyUserMap(["Front Desk", "NP Coordinator"]);
-        writeWeeklyPerformanceSheet(individual, indWeeklyMap, "Individual Performance", false, false, 8, monthYear);
+        writeWeeklyPerformanceSheet(individual, indWeeklyMap, "Individual Performance", false, false, 8, dateRangeLabel);
       }
       individual.state = "visible";
 

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CALL_LOG_QUERY_OPTIONS } from '@/lib/callLogCache';
+import { base44 } from '@/api/base44Client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import {
