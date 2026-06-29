@@ -30,7 +30,7 @@ export default function Reminders() {
   const [editingReminder, setEditingReminder] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [sortField, setSortField] = useState('send_date');
-  const [sortDirection, setSortDirection] = useState('asc');
+  const [sortDirection, setSortDirection] = useState('desc');
   const [statusMessage, setStatusMessage] = useState(null);
   const [testingReminders, setTestingReminders] = useState(false);
   const [airtableSyncing, setAirtableSyncing] = useState(false);
@@ -47,7 +47,7 @@ export default function Reminders() {
 
   const { data: reminders = [], isLoading } = useQuery({
     queryKey: ['reminders'],
-    queryFn: () => base44.entities.Reminder.list('send_date')
+    queryFn: () => base44.entities.Reminder.list('-send_date')
   });
 
   const { data: notificationQueue = [] } = useQuery({
