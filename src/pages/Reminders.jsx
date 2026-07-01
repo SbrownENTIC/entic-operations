@@ -32,7 +32,6 @@ export default function Reminders() {
   const [sortField, setSortField] = useState('send_date');
   const [sortDirection, setSortDirection] = useState('desc');
   const [statusMessage, setStatusMessage] = useState(null);
-  const [testingReminders, setTestingReminders] = useState(false);
   const [airtableSyncing, setAirtableSyncing] = useState(false);
   const [queuingId, setQueuingId] = useState(null);
   const [bulkQueueing, setBulkQueueing] = useState(false);
@@ -417,32 +416,6 @@ The Operations Team`;
                   Queue Closure Notifications
                 </Button>
                 <Button
-                  onClick={async () => {
-                    setTestingReminders(true);
-                    setStatusMessage(null);
-                    try {
-                      const response = await base44.functions.invoke('sendScheduledReminders', {});
-                      setStatusMessage({
-                        type: 'success',
-                        message: `✅ ${response.data.message}`
-                      });
-                    } catch (error) {
-                      setStatusMessage({
-                        type: 'error',
-                        message: `❌ Error: ${error.message}`
-                      });
-                    } finally {
-                      setTestingReminders(false);
-                      queryClient.invalidateQueries({ queryKey: ['reminders'] });
-                    }
-                  }}
-                  disabled={testingReminders}
-                  variant="outline"
-                  className="border-green-600 text-green-700 hover:bg-green-50"
-                >
-                  {testingReminders ? 'Running...' : 'Test Scheduled Reminders'}
-                </Button>
-                <Button
                   onClick={() => {
                     setEditingReminder(null);
                     setShowForm(true);
@@ -456,6 +429,15 @@ The Operations Team`;
             )}
           </div>
         </div>
+
+        {user?.role === 'admin' && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3 no-print">
+            <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+            <p className="text-blue-700 text-sm">
+              Email delivery is now handled through Power Automate / Notification Queue. Airtable sync is legacy and should only be used if directed.
+            </p>
+          </div>
+        )}
 
         {statusMessage && (
           <Card className={`border-2 ${

@@ -1172,6 +1172,15 @@ export default function Invoices() {
           </div>
         </div>
 
+        {user?.role === 'admin' && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3 no-print">
+            <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+            <p className="text-blue-700 text-sm">
+              Email delivery is now handled through Power Automate / Notification Queue. Airtable sync is legacy and should only be used if directed.
+            </p>
+          </div>
+        )}
+
         {fixMessage && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm text-blue-900">{fixMessage}</p>
